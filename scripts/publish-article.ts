@@ -21,23 +21,22 @@ const baseArticleForm = (params: any) => ({
 });
 
 /**
- * 公众号专用表单构造器
+ * 公众号专用表单构造器 (基于 WxGongZhongHaoArticleForm DTO)
  */
 const wechatArticleForm = (params: any) => ({
-  articles: [{
+  contentList: [{
     title: params.title,
     content: params.content,
-    authorName: params.author || '',
+    digest: params.digest || params.title.substring(0, 120),
     cover: params.coverKey ? { key: params.coverKey, width: 1200, height: 800, size: 0 } : undefined,
-    digest: params.digest || params.title.substring(0, 50),
-    type: params.original ? 1 : 0, // 0:不申明 1:申明原创
-    categories: [],
+    createType: params.original ? 1 : 0, // 0:不申明 1:申明原创
+    authorName: params.author || '',
     quickRepost: 1,
+    categories: [],
     contentSourceUrl: params.contentSourceUrl || '',
-    quickPrivateMessage: 1,
-    videoCardCount: 0
+    quickPrivateMessage: 1
   }],
-  notifySubscribers: params.notify === false ? 0 : 1,
+  notifySubscribers: params.notify === false ? 0 : 1, // 0:不群发 1:群发
   sex: 0,
   pubType: params.pubType ?? 1
 });
