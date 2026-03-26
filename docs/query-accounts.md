@@ -12,13 +12,16 @@
 | 参数名 | 类型 | 描述 |
 | :--- | :--- | :--- |
 | `platform` | `string` | **可选**。如 `DouYin`, `XiaoHongShu` |
-| `status` | `string` | **可选**。如 `active`, `expired` |
+| `page` | `number` | **可选**。默认 `1` |
+| `size` | `number` | **可选**。默认 `20` |
 
-## 脚本映射 (Script)
+## 脚本逻辑 (Backend)
 
 - **脚本路径**: `../scripts/query-accounts.ts`
+- **实际接口**: `GET https://www.yixiaoer.cn/api/platform-accounts`
 - **调用示例**: `node query-accounts.ts --platform=DouYin`
 
 ## 输出结果 (Output)
 
-脚本返回标准的 JSON 数组对象。每一个账号对象应包含 `platform`, `name`, `uid`, `status`。
+脚本返回标准的 JSON 数组对象。每一个账号对象应包含 `id`, `platform`, `name`, `uid` 等。
+请确保环境变量 `YIXIAOER_API_KEY` 已设置。

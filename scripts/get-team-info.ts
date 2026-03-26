@@ -1,51 +1,73 @@
 /**
- * Get Team Information (get-team-info.ts)
+ * Get Current Team Information (get-team-info.ts)
  * 
- * 获取当前团队绑定的元数据及余额信息。
- * 无需外部依赖，兼容 Node.js 18+ 原生运行。
- * 
- * 调用方式: node get-team-info.ts [flags]
+ * 获取当前用户的团队元数据及限额配额。
+ * 调用方式: node get-team-info.ts
  */
 
 async function main() {
-  const args = process.argv.slice(2);
-  const teamIdArg = args.find(a => a.startsWith('--teamId='))?.split('=')[1];
-
-  // 模拟从环境变量获取认证信息
-  const API_KEY = process.env.YIXIAOER_API_KEY || 'MOCK_KEY';
+  const API_KEY = process.env.YIXIAOER_API_KEY;
   const API_URL = process.env.YIXIAOER_API_URL || 'https://www.yixiaoer.cn/api';
 
+  if (!API_KEY) {
+    console.error(JSON.stringify({ error: "Missing YIXIAOER_API_KEY environment variable" }));
+    process.exit(1);
+  }
+
   try {
-    /* 
-    // 实现生产级交互：
-    const response = await fetch(`${API_URL}/teams/${teamIdArg || 'current'}`, {
-      headers: { 'Authorization': `Bearer ${API_KEY}` }
-    });
-    const data = await response.json();
-    console.log(JSON.stringify(data, null, 2));
-    */
-
-    // 演示模拟输出
-    const mockTeam = {
-      teamId: teamIdArg || "t_6688",
-      name: "天极全媒体内容运营中心",
-      role: "admin",
-      quota: {
-        total: 2000,
-        used: 1250,
-        remaining: 750
-      },
-      settings: {
-        defaultPlatform: "DouYin",
-        isVip: true,
-        expiredAt: "2027-01-01"
+    // 步骤 1: 获取当前用户信息，提取最后一次使用的团队 ID (latestTeamId)
+    const userInfoRes = await fetch(`${API_URL}/users/info`, {
+      method: 'GET',
+      headers: {
+        'Authorization': API_KEY,
+        'Content-Type': 'application/json'
       }
-    };
+    });
 
-    console.log(JSON.stringify(mockTeam, null, 2));
+    if (!userInfoRes.ok) {
+        const errorText = await userInfoRes.text();
+        throw new Error(`Failed to fetch user info. HTTP ${userInfoRes.status}: ${errorText}`);
+    }
+
+    const userData = await userInfoRes.json();
+    const userInfo = userData.data || userData;
+    const teamId = userInfo.latestTeamId;
+
+    if (!teamId) {
+      console.error(JSON.stringify({ error: "User is not associated with any team" }));
+      process.exit(1);
+    }
+
+    // 步骤 2: 获取该特定团队的详细信息
+    const teamInfoRes = await fetch(`${API_URL}/teams/${teamId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': API_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!teamInfoRes.ok) {
+        const errorText = await teamInfoRes.text();
+        throw new Error(`Failed to fetch team info. HTTP ${teamInfoRes.status}: ${errorText}`);
+    }
+
+    const teamData = await teamInfoRes.json();
+    const finalResult = {
+      user: {
+        id: userInfo.id,
+        nickName: userInfo.nickName,
+      },
+      team: teamData.data || teamData
+    }
+
+    console.log(JSON.stringify(finalResult, null, 2));
 
   } catch (error) {
-    console.error(JSON.stringify({ error: "Failed to fetch team info", details: (error as Error).message }));
+    console.error(JSON.stringify({ 
+      error: "Failed to query team information", 
+      details: (error as Error).message 
+    }));
     process.exit(1);
   }
 }
