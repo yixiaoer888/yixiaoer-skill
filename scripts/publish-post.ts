@@ -1,4 +1,4 @@
-import { uploadResource } from './upload-resource';
+import { uploadResource } from './upload-resource.ts';
 
 const API_KEY = process.env.YIXIAOER_API_KEY;
 const API_URL = process.env.YIXIAOER_API_URL || 'https://www.yixiaoer.cn/api';
