@@ -32,75 +32,57 @@ async function main() {
   }
 
   try {
-    // 0. 生成客户端内容 ID
-    const publishContentId = Array.from({ length: 24 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-
     // 1. 处理封面
+    let coverUrl = coverUrlArg;
     let coverKey = coverKeyArg;
+    
+    // 如果只有 URL 没有 Key，先上传获取 Key
     if (!coverKey && coverUrlArg) {
       coverKey = await uploadResource(coverUrlArg);
     }
+    // 如果只有 Key 没有 URL，获取访问地址 (公众号发布需要 URL 作为素材源)
+    if (!coverUrl && coverKey) {
+      coverUrl = `${API_URL}/storages/assets/access-url?fileKey=${coverKey}`;
+    }
 
-    // 2. 正文存证 (公众号也需要)
-    const wrappedContent = `<html><body>${contentArg}</body></html>`;
-    const storageRes = await fetch(`${API_URL}/storages/articles`, {
-      method: 'POST',
-      headers: { 'Authorization': API_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ publishContentId, title, content: wrappedContent, contentHtml: wrappedContent })
-    });
-    if (!storageRes.ok) throw new Error(`Storage failed: ${await storageRes.text()}`);
-
-    // 3. 构造公众号特定表单
-    const wechatForm = {
-      articles: [{
-        title,
-        content: wrappedContent,
-        authorName: author,
-        cover: coverKey ? { key: coverKey, width: 1200, height: 800, size: 0 } : undefined,
-        digest: digest || title.substring(0, 50),
-        type: isOriginal,
-        categories: [],
-        quickRepost: 1,
-        contentSourceUrl,
-        quickPrivateMessage: 1,
-        videoCardCount: 0
-      }],
-      notifySubscribers,
-      sex: 0,
-      pubType
-    };
-
-    const platformForms: Record<string, any> = {
-      '微信公众号': wechatForm
+    // 2. 构造公众号特定文章结构
+    const article = {
+      title,
+      author: author,
+      digest: digest || title.substring(0, 50),
+      content: contentArg, // 后端会自动处理标签替换
+      contentSourceUrl,
+      thumbUrl: coverUrl || '', // 这里的 thumbUrl 通常是图片的访问地址
+      needOpenComment: 1,
+      onlyFansCanComment: 0
     };
 
     const taskBody = {
+      platformAccountIds: targetAccountIds,
+      publishType: 'article',
+      sendIgnoreReprint: 0,
+      sendAll: notifySubscribers ? 1 : 0,
+      coverKey: coverKey || '',
       desc: title,
-      platforms: ['微信公众号'],
-      publishType: 'weixin-gongzhonghao',
-      publishChannel: 'cloud',
-      isDraft: pubType === 0,
-      coverKey,
-      publishArgs: {
-        platformForms,
-        accountForms: targetAccountIds.map(accountId => ({
-          platformAccountId: accountId,
-          publishContentId,
-          coverKey,
-          contentPublishForm: wechatForm
-        }))
-      }
+      articles: [article]
     };
 
-    // 4. 发起发布
-    const publishRes = await fetch(`${API_URL}/taskSets/v2`, {
+    // 3. 发起发布
+    const publishRes = await fetch(`${API_URL}/wx/publish`, {
       method: 'POST',
-      headers: { 'Authorization': API_KEY, 'Content-Type': 'application/json' },
+      headers: { 
+        'Authorization': API_KEY, 
+        'Content-Type': 'application/json' 
+      },
       body: JSON.stringify(taskBody)
     });
-    if (!publishRes.ok) throw new Error(`WeChat publishing failed: ${await publishRes.text()}`);
+    
+    if (!publishRes.ok) {
+      const errorText = await publishRes.text();
+      throw new Error(`WeChat publishing failed (Terminal Status ${publishRes.status}): ${errorText}`);
+    }
+    
     const result = await publishRes.json();
-
     console.log(JSON.stringify(result, null, 2));
 
   } catch (error) {
