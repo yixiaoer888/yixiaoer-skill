@@ -6,8 +6,8 @@
 ## 技能定义 (Metadata)
 
 - **ID**: `openclaw-skill-core`
-- **版本**: `1.0.4`
-- **架构模式**: 文档驱动型自律脚本 (Doc-Driven Scripts)
+- **版本**: `1.2.0`
+- **架构模式**: DTO 驱动型文档与共享引擎 (DTO-Driven & Shared Engine)
 - **运行环境**: Node.js v18+ (Direct Runtime)
 
 ## 配置与安全 (Config & Secrets)
@@ -21,16 +21,19 @@
 ## 能力地图 (Capabilities)
 
 本技能通过映射 `docs/` 下的指令文档到 `scripts/` 下的执行脚本实现功能的动态调度。
+为确保表单知识准确，**每个平台+发布模态均拥有独立的指令文档**，其字段逻辑源自后端 DTO。
 
 | 能力名称 | 指令文档 (Trigger) | 执行脚本 (Implementation) | 核心功能 |
 | :--- | :--- | :--- | :--- |
 | **查询账号列表** | [query-accounts.md](./docs/query-accounts.md) | [query-accounts.ts](./scripts/query-accounts.ts) | 获取租户下绑定的媒体账号 |
 | **查询发布记录** | [get-publish-records.md](./docs/get-publish-records.md) | [get-publish-records.ts](./scripts/get-publish-records.ts) | 获取发布任务的详细记录与状态 |
 | **当前团队信息** | [get-team-info.md](./docs/get-team-info.md) | [get-team-info.ts](./scripts/get-team-info.ts) | 获取团队名称、角色、额度信息 |
-| **上传资源** | [upload-resource.md](./docs/upload-resource.md) | [upload-resource.ts](./scripts/upload-resource.ts) | **核心能力**: 将文件或 URL 直传蚁小二 OSS |
-| **发布文章 (Article Engine)** | [publish-article.md](./docs/publish-article.md) | [publish-article.ts](./scripts/publish-article.ts) | **统一引擎**: 支持 22+ 长文平台 (含微信公众号/头条/百家号等) |
-| **发布图文 (Post Engine)** | [publish-post.md](./docs/publish-post.md) | [publish-post.ts](./scripts/publish-post.ts) | **统一引擎**: 支持抖音/快手/小红书/微博等动态平台 |
-| **发布视频 (Video Engine)** | [publish-video.md](./docs/publish-video.md) | [publish-video.ts](./scripts/publish-video.ts) | **统一引擎**: 支持 30+ 视频平台 (B站/西瓜/视频号/抖音/快手等) |
+| **上传资源** | [upload-resource.md](./docs/upload-resource.md) | [upload-resource.ts](./scripts/upload-resource.ts) | **基础能力**: 将文件或 URL 直传蚁小二 OSS |
+| **微信公众号文章** | [wxgongzhonghao.md](./docs/publish-article/wxgongzhonghao.md) | [publish-article.ts](./scripts/publish-article.ts) | **专用指令**: 支持群发设置、原创申明、快捷私信 |
+| **头条号文章** | [toutiaohao.md](./docs/publish-article/toutiaohao.md) | [publish-article.ts](./scripts/publish-article.ts) | **通用引擎**: 支持头条文章分发 (含专题/双标题) |
+| **百家号文章** | [baijiahao.md](./docs/publish-article/baijiahao.md) | [publish-article.ts](./scripts/publish-article.ts) | **通用引擎**: 支持百家号分类选择、内容声明 |
+| **图文发布 (通用)** | [index.md](./docs/publish-post/index.md) | [publish-post.ts](./scripts/publish-post.ts) | 支持抖音/快手/小红书/微博等动态平台 |
+| **视频发布 (通用)** | [index.md](./docs/publish-video/index.md) | [publish-video.ts](./scripts/publish-video.ts) | 支持 30+ 视频平台自动化分发 |
 
 
 ## 任务执行最佳实践 (Best Practices)

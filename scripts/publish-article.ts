@@ -47,7 +47,14 @@ const wechatArticleForm = (params: any) => ({
 const PLATFORM_REGISTRY: Record<string, any> = {
   '微信公众号': (params: any) => wechatArticleForm(params),
   '头条号': (params: any) => baseArticleForm(params),
-  '百家号': (params: any) => ({ ...baseArticleForm(params), coverType: 'single' }),
+  '百家号': (params: any) => ({ 
+    ...baseArticleForm(params), 
+    coverType: 'single', 
+    category: params.categoryId ? [{ 
+      yixiaoerId: params.categoryId, 
+      yixiaoerName: params.categoryName || '默认' 
+    }] : [] 
+  }),
   '企鹅号': (params: any) => ({ ...baseArticleForm(params), tags: params.tags || [] }),
   '搜狐号': (params: any) => baseArticleForm(params),
   '一点号': (params: any) => baseArticleForm(params),
@@ -85,6 +92,8 @@ async function main() {
   const notify = args.find(a => a.startsWith('--notify='))?.split('=')[1] !== 'false';
   const pubType = parseInt(args.find(a => a.startsWith('--pub_type='))?.split('=')[1] || '1');
   const declaration = parseInt(args.find(a => a.startsWith('--declaration='))?.split('=')[1] || '0');
+  const categoryId = args.find(a => a.startsWith('--category_id='))?.split('=')[1];
+  const categoryName = args.find(a => a.startsWith('--category_name='))?.split('=')[1];
 
   if (!title || !contentArg || !platformsStr) {
     console.error(JSON.stringify({ error: "Missing required parameters: --title, --content, --platforms" }));
@@ -122,7 +131,8 @@ async function main() {
       if (factory) {
         platformForms[p] = factory({ 
           title, content: wrappedContent, coverKey, tags, pubType, 
-          declaration, author, digest, contentSourceUrl, original, notify 
+          declaration, author, digest, contentSourceUrl, original, notify,
+          categoryId, categoryName
         });
       }
     });
