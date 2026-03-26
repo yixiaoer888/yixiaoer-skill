@@ -1,42 +1,36 @@
 /**
  * Publish Baijiahao Article (publish-baijiahao-article.ts)
  * 
- * 实现该脚本时使用的底层接口依赖：
- * 1. GET /api/platform-accounts
- * 2. GET /api/storages/[bucket]/upload-url
- * 3. POST /api/storages/articles (内容存证)
- * 4. POST /api/taskSets/v2 (任务派发)
+ * 使用方式: node publish-baijiahao-article.ts --title="我的第一篇文章" --content="<p>内容...</p>" --cover_key="..."
  * 
- * 免外部包依赖运行环境：Node.js 18+
+ * 如果未提供 --cover_key，则可以提供 --cover_url，脚本将内部尝试同步上传。
  */
 
 const API_KEY = process.env.YIXIAOER_API_KEY;
 const API_URL = process.env.YIXIAOER_API_URL || 'https://www.yixiaoer.cn/api';
 
 async function uploadResource(urlOrPath: string, bucket: string = 'cloud-publish') {
-  // 1. 获取文件的内容 (Buffer/ArrayBuffer)
+  // 简化的转存逻辑，实际大型项目建议先调用独立的上传工具
   let buffer: ArrayBuffer;
   let fileName = 'file.jpg';
 
   if (urlOrPath.startsWith('http')) {
     const res = await fetch(urlOrPath);
+    if (!res.ok) throw new Error(`HTTP error downloading file during sync upload: ${res.status}`);
     buffer = await res.arrayBuffer();
     const urlObj = new URL(urlOrPath);
     fileName = urlObj.pathname.split('/').pop() || 'image.jpg';
     if (!fileName.includes('.')) fileName += '.jpg';
   } else {
-    // 简化处理：假设脚本主要处理 URL 形式的公开资源进行转存
-    throw new Error('Local file path is not supported in this lightweight script yet.');
+    throw new Error('Local file path is not supported.');
   }
 
-  // 2. 获取上传预签名 URL
   const uploadInfoRes = await fetch(`${API_URL}/storages/${bucket}/upload-url?fileKey=${fileName}`, {
     headers: { 'Authorization': API_KEY! }
   });
   const uploadInfo = await uploadInfoRes.json();
   const { serviceUrl, key } = uploadInfo.data || uploadInfo;
 
-  // 3. 执行上传 (PUT)
   await fetch(serviceUrl, {
     method: 'PUT',
     body: buffer,
@@ -50,8 +44,9 @@ async function main() {
   const args = process.argv.slice(2);
   const title = args.find(a => a.startsWith('--title='))?.split('=')[1];
   const content = args.find(a => a.startsWith('--content='))?.split('=')[1];
-  const coverUrl = args.find(a => a.startsWith('--cover_url='))?.split('=')[1];
-  const declaration = parseInt(args.find(a => a.startsWith('--declaration='))?.split('=')[1] || '2'); // 2为原创
+  const coverKeyArg = args.find(a => a.startsWith('--cover_key='))?.split('=')[1];
+  const coverUrlArg = args.find(a => a.startsWith('--cover_url='))?.split('=')[1];
+  const declaration = parseInt(args.find(a => a.startsWith('--declaration='))?.split('=')[1] || '2');
 
   if (!title || !content) {
     console.error(JSON.stringify({ error: "Missing required parameters: --title, --content" }));
@@ -59,15 +54,19 @@ async function main() {
   }
 
   if (!API_KEY) {
-     console.error(JSON.stringify({ error: "Missing YIXIAOER_API_KEY. Please check your .env or environment settings." }));
+     console.error(JSON.stringify({ error: "Missing YIXIAOER_API_KEY." }));
      process.exit(1);
   }
 
   try {
-    // 1. 处理封面上传（可选）
-    const coverKey = coverUrl ? await uploadResource(coverUrl, 'material-library') : undefined;
+    // 1. 处理封面 (优先使用预先上传好的 Key)
+    let coverKey = coverKeyArg;
+    if (!coverKey && coverUrlArg) {
+      // 若没有提供 Key 但有 URL，则回退到内部同步转存
+      coverKey = await uploadResource(coverUrlArg, 'material-library');
+    }
 
-    // 2. 文章内容存证获取 publishContentId
+    // 2. 内容存证 (获取 publishContentId)
     const publishContentId = `art_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     const wrappedContent = `<html><body>${content}</body></html>`;
     const saveRes = await fetch(`${API_URL}/storages/articles`, {
@@ -81,11 +80,12 @@ async function main() {
     
     if (!saveRes.ok) throw new Error(`Failed to save article content: ${await saveRes.text()}`);
 
-    // 3. 获取第一个可用的百家号账号
+    // 3. 获取第一个百家号账号
     const accountsRes = await fetch(`${API_URL}/platform-accounts?platform=百家号&page=1&size=10`, {
       headers: { 'Authorization': API_KEY }
     });
-    const { data: { data: accounts } } = await accountsRes.json();
+    const accountsData = await accountsRes.json();
+    const accounts = (accountsData.data?.data) || (accountsData.data) || accountsData;
     if (!accounts || accounts.length === 0) throw new Error('No available Baijiahao accounts found.');
     
     const accountId = accounts[0].id;
@@ -120,8 +120,8 @@ async function main() {
               covers: coverKey ? [{ key: coverKey, width: 1200, height: 800, size: 0 }] : [],
               category: [{ id: '100', text: '其他', raw: null }],
               declaration: declaration,
-              type: 1, // 图文类型
-              pubType: 1, // 公开发布
+              type: 1, 
+              pubType: 1, 
               articles: [
                 {
                   title: title,

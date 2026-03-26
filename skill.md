@@ -1,23 +1,22 @@
 # OpenClaw 龙虾技能 (OpenClaw Skill)
 
 该技能定义了蚁小二全平台的媒体管理与运营能力。
-通过元数据驱动（Skill -> Doc -> Script）的模式，为 AI 提供可执行的工具集。
+通过元数据驱动（Skill -> Doc -> Script）模式，将发布过程原子化。
 
 ## 技能定义 (Metadata)
 
 - **ID**: `openclaw-skill-core`
-- **版本**: `1.0.1`
+- **版本**: `1.0.2`
 - **架构模式**: 文档驱动型自律脚本 (Doc-Driven Scripts)
 - **运行环境**: Node.js v18+ (Direct Runtime)
 
 ## 配置与安全 (Config & Secrets)
 
-为了保持技能的“无包设计 (Package-Free)”，所有的敏感信息应通过**环境变量**注入：
+所有的敏感信息应通过**环境变量**注入：
 
 1.  **生产环境**: 在龙虾系统 (OpenClaw) 的环境变量配置中填入 `YIXIAOER_API_KEY`。
 2.  **本地开发**: 
-    - 建议在根目录创建 `.env` 文件。
-    - 运行脚本时，Node.js 20.6+ 可以使用内置标志加载：`node --env-file=.env scripts/query-accounts.ts`。
+    - 运行脚本时，Node.js 20.6+ 可以使用内置标志加载：`node --env-file=.env scripts/xxx.ts`。
 
 ## 能力地图 (Capabilities)
 
@@ -27,11 +26,12 @@
 | :--- | :--- | :--- | :--- |
 | **查询账号列表** | [query-accounts.md](./docs/query-accounts.md) | [query-accounts.ts](./scripts/query-accounts.ts) | 获取租户下绑定的媒体账号 |
 | **当前团队信息** | [get-team-info.md](./docs/get-team-info.md) | [get-team-info.ts](./scripts/get-team-info.ts) | 获取团队名称、角色、额度信息 |
+| **上传资源** | [upload-resource.md](./docs/upload-resource.md) | [upload-resource.ts](./scripts/upload-resource.ts) | **核心能力**: 将文件或 URL 直传蚁小二 OSS |
 | **发布百家号文章** | [publish-baijiahao-article.md](./docs/publish-baijiahao-article.md) | [publish-baijiahao-article.ts](./scripts/publish-baijiahao-article.ts) | 在百家号平台发表文章 |
 
-## 运行规范 (Protocol)
+## 任务执行最佳实践 (Best Practices)
 
-1.  **加载**: 系统分析 `skill.md` 确定可用功能列表。
-2.  **理解**: 当用户发出需求时，系统读取对应的 `docs/*.md` 确认输入参数与预期输出。
-3.  **执行**: 调用 `scripts/*.ts` 并通过命令行参数或环境变量传递经过处理的输入。
-4.  **返回**: 脚本输出标准的 JSON 数据，由系统解析并反馈。
+在处理复杂的发布任务时，AI 助手应遵循以下工作流：
+1. **获取账号**: 首先调用其“账号查询”能力，确认目标账号 ID。
+2. **预处理素材**: 如果存在外部图片/视频，**优先调用“上传资源”能力**，获取各个素材的 Key。避免在发布步骤中进行耗时的实时上传。
+3. **最终派发**: 将获取到的各级 Resource Keys 传递给特定的“发布”原子能力进行最终提交。
