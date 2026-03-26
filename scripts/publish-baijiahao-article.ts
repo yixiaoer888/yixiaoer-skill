@@ -1,46 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { uploadResource } from './upload-resource';
 
 const API_KEY = process.env.YIXIAOER_API_KEY;
 const API_URL = process.env.YIXIAOER_API_URL || 'https://www.yixiaoer.cn/api';
-
-async function uploadResource(urlOrPath: string, bucket: string = 'cloud-publish') {
-  // 简化的转存逻辑，实际大型项目建议先调用独立的上传工具
-  let buffer: ArrayBuffer;
-  let fileName = 'file.jpg';
-
-  if (urlOrPath.startsWith('http')) {
-    const res = await fetch(urlOrPath);
-    if (!res.ok) throw new Error(`HTTP error downloading file during sync upload: ${res.status}`);
-    buffer = await res.arrayBuffer();
-    const urlObj = new URL(urlOrPath);
-    fileName = urlObj.pathname.split('/').pop() || 'image.jpg';
-    if (!fileName.includes('.')) fileName += '.jpg';
-  } else {
-    // 读取本地文件流
-    const absolutePath = path.isAbsolute(urlOrPath) ? urlOrPath : path.resolve(process.cwd(), urlOrPath);
-    if (!fs.existsSync(absolutePath)) {
-        throw new Error(`Local file not found: ${absolutePath}`);
-    }
-    const fileBuffer = fs.readFileSync(absolutePath);
-    buffer = fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength);
-    fileName = path.basename(absolutePath);
-  }
-
-  const uploadInfoRes = await fetch(`${API_URL}/storages/${bucket}/upload-url?fileKey=${fileName}`, {
-    headers: { 'Authorization': API_KEY! }
-  });
-  const uploadInfo = await uploadInfoRes.json();
-  const { serviceUrl, key } = uploadInfo.data || uploadInfo;
-
-  await fetch(serviceUrl, {
-    method: 'PUT',
-    body: buffer,
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-  });
-
-  return key;
-}
 
 async function main() {
   const args = process.argv.slice(2);
