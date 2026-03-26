@@ -25,6 +25,7 @@
 | 能力名称 | 指令文档 (Trigger) | 执行脚本 (Implementation) | 核心功能 |
 | :--- | :--- | :--- | :--- |
 | **查询账号列表** | [query-accounts.md](./docs/query-accounts.md) | [query-accounts.ts](./scripts/query-accounts.ts) | 获取租户下绑定的媒体账号 |
+| **查询发布记录** | [get-publish-records.md](./docs/get-publish-records.md) | [get-publish-records.ts](./scripts/get-publish-records.ts) | 获取发布任务的详细记录与状态 |
 | **当前团队信息** | [get-team-info.md](./docs/get-team-info.md) | [get-team-info.ts](./scripts/get-team-info.ts) | 获取团队名称、角色、额度信息 |
 | **上传资源** | [upload-resource.md](./docs/upload-resource.md) | [upload-resource.ts](./scripts/upload-resource.ts) | **核心能力**: 将文件或 URL 直传蚁小二 OSS |
 | **发布文章 (Article Engine)** | [publish-article.md](./docs/publish-article.md) | [publish-article.ts](./scripts/publish-article.ts) | **统一引擎**: 支持所有长文章平台 (百家号/企鹅号/头条号/网易等) |
