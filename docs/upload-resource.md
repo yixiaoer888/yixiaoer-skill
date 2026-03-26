@@ -18,9 +18,12 @@
 
 - **脚本路径**: `../scripts/upload-resource.ts`
 - **流程**:
-  1. 调用 `GET /api/storages/[bucket]/upload-url` 获取预签名上传地址及 Key。
-  2. 使用 `PUT` 请求将文件流发送至预签名地址。
-- **调用示例**: `node upload-resource.ts --url="https://example.com/item.jpg"`
+  1. 识别 `url` 参数：若以 `http` 开头则抓取远程资源，否则视为本地路径读取文件。
+  2. 调用 `GET /api/storages/[bucket]/upload-url` 获取预签名上传地址及 Key。
+  3. 使用 `PUT` 请求将文件流发送至预签名地址。
+- **调用示例**: 
+  - 远程: `node upload-resource.ts --url="https://example.com/item.jpg"`
+  - 本地: `node upload-resource.ts --url="./my-image.png"`
 
 ## 输出结果 (Output)
 

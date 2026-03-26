@@ -1,19 +1,5 @@
-/**
- * Publish TouTiaoHao Article (publish-toutiao-article.ts)
- * 
- * 使用方式: node publish-toutiao-article.ts --title="我的第一篇文章" --content="<p>内容...</p>" --cover_key="..."
- * 
- * 参数列表:
- * --title: 文章标题
- * --content: 文章 HTML 内容
- * --cover_key: 封面图存储 Key
- * --cover_url: 封面图外部 URL (可选，若无 Key 则同步上传)
- * --is_first: 是否原创 (true/false, 默认 false)
- * --advertisement: 广告投放 (2: 不投放, 3: 投放, 默认 2)
- * --declaration: 声明字段 (0: 无需声明, 默认 0)
- * --pub_type: 发布类型 (0: 草稿, 1: 公开, 默认 1)
- * --account_ids: 指定账号 ID 列表 (逗号分隔)
- */
+import * as fs from 'fs';
+import * as path from 'path';
 
 export {};
 
@@ -32,7 +18,14 @@ async function uploadResource(urlOrPath: string, bucket: string = 'cloud-publish
     fileName = urlObj.pathname.split('/').pop() || 'image.jpg';
     if (!fileName.includes('.')) fileName += '.jpg';
   } else {
-    throw new Error('Local file path is not supported.');
+    // 读取本地文件流
+    const absolutePath = path.isAbsolute(urlOrPath) ? urlOrPath : path.resolve(process.cwd(), urlOrPath);
+    if (!fs.existsSync(absolutePath)) {
+        throw new Error(`Local file not found: ${absolutePath}`);
+    }
+    const fileBuffer = fs.readFileSync(absolutePath);
+    buffer = fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength);
+    fileName = path.basename(absolutePath);
   }
 
   const uploadInfoRes = await fetch(`${API_URL}/storages/${bucket}/upload-url?fileKey=${fileName}`, {

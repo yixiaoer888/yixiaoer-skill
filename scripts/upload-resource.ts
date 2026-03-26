@@ -1,11 +1,5 @@
-/**
- * Upload Resource (upload-resource.ts)
- * 
- * 将本地或远程资源上传至蚁小二 OSS。
- * 
- * 使用方式: node upload-resource.ts --url="https://example.com/item.jpg"
- * 实现对外部资源的转存。
- */
+import * as fs from 'fs';
+import * as path from 'path';
 
 const API_KEY = process.env.YIXIAOER_API_KEY;
 const API_URL = process.env.YIXIAOER_API_URL || 'https://www.yixiaoer.cn/api';
@@ -38,8 +32,14 @@ async function main() {
         fileName = urlObj.pathname.split('/').pop() || 'image.jpg';
         if (!fileName.includes('.')) fileName += '.jpg';
     } else {
-        // 扩展：如果需要读取本地文件流
-        throw new Error('Local files are not supported in this lightweight script environment.');
+        // 读取本地文件流
+        const absolutePath = path.isAbsolute(urlArg) ? urlArg : path.resolve(process.cwd(), urlArg);
+        if (!fs.existsSync(absolutePath)) {
+            throw new Error(`Local file not found: ${absolutePath}`);
+        }
+        const fileBuffer = fs.readFileSync(absolutePath);
+        buffer = fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength);
+        fileName = path.basename(absolutePath);
     }
 
     // 2. 调用 /api/storages/[bucket]/upload-url 获取预签名上传地址
