@@ -28,11 +28,9 @@
 | **查询发布记录** | [get-publish-records.md](./docs/get-publish-records.md) | [get-publish-records.ts](./scripts/get-publish-records.ts) | 获取发布任务的详细记录与状态 |
 | **当前团队信息** | [get-team-info.md](./docs/get-team-info.md) | [get-team-info.ts](./scripts/get-team-info.ts) | 获取团队名称、角色、额度信息 |
 | **上传资源** | [upload-resource.md](./docs/upload-resource.md) | [upload-resource.ts](./scripts/upload-resource.ts) | **核心能力**: 将文件或 URL 直传蚁小二 OSS |
-| **发布图文 (Post Engine)** | [publish-post.md](./docs/publish-post.md) | [publish-post.ts](./scripts/publish-post.ts) | **统一引擎**: 支持所有动态/短图文平台 (抖音/快手/小红书/微博/微博等) |
-| **发布公众号 (WeChat Engine)** | [publish-wechat.md](./docs/publish-wechat.md) | [publish-wechat.ts](./scripts/publish-wechat.ts) | **核心引擎**: 支持微信公众号 (含作者/摘要/原创申明/群发设置等) |
+| **发布文章 (Article Engine)** | [publish-article.md](./docs/publish-article.md) | [publish-article.ts](./scripts/publish-article.ts) | **统一引擎**: 支持 22+ 长文平台 (含微信公众号/头条/百家号等) |
+| **发布图文 (Post Engine)** | [publish-post.md](./docs/publish-post.md) | [publish-post.ts](./scripts/publish-post.ts) | **统一引擎**: 支持抖音/快手/小红书/微博等动态平台 |
 | **发布视频 (Video Engine)** | [publish-video.md](./docs/publish-video.md) | [publish-video.ts](./scripts/publish-video.ts) | **统一引擎**: 支持 30+ 视频平台 (B站/西瓜/视频号/抖音/快手等) |
-| **发布图文 (Post Engine)** | [publish-post.md](./docs/publish-post.md) | [publish-post.ts](./scripts/publish-post.ts) | **统一引擎**: 支持图文动态平台 (小红书/微博/朋友圈等) |
-| **发布公众号 (WeChat Engine)** | [publish-wechat.md](./docs/publish-wechat.md) | [publish-wechat.ts](./scripts/publish-wechat.ts) | **专项引擎**: 支持微信公众号专有的图文发布 |
 
 
 ## 任务执行最佳实践 (Best Practices)

@@ -15,60 +15,59 @@ const baseArticleForm = (params: any) => ({
     title: params.title,
     content: params.content,
     contentHtml: params.content,
-    digest: params.title.substring(0, 50),
+    digest: params.digest || params.title.substring(0, 50),
     isDraft: (params.pubType ?? 1) === 0
   }]
 });
 
 /**
- * 全量文章引擎注册中心 (21+ 平台)
+ * 公众号专用表单构造器
+ */
+const wechatArticleForm = (params: any) => ({
+  articles: [{
+    title: params.title,
+    content: params.content,
+    authorName: params.author || '',
+    cover: params.coverKey ? { key: params.coverKey, width: 1200, height: 800, size: 0 } : undefined,
+    digest: params.digest || params.title.substring(0, 50),
+    type: params.original ? 1 : 0, // 0:不申明 1:申明原创
+    categories: [],
+    quickRepost: 1,
+    contentSourceUrl: params.contentSourceUrl || '',
+    quickPrivateMessage: 1,
+    videoCardCount: 0
+  }],
+  notifySubscribers: params.notify === false ? 0 : 1,
+  sex: 0,
+  pubType: params.pubType ?? 1
+});
+
+/**
+ * 全量文章与公众号引擎注册中心
  */
 const PLATFORM_REGISTRY: Record<string, any> = {
+  '微信公众号': (params: any) => wechatArticleForm(params),
   '头条号': (params: any) => baseArticleForm(params),
-  '百家号': (params: any) => {
-    const form = baseArticleForm(params);
-    return { ...form, coverType: 'single' };
-  },
-  '企鹅号': (params: any) => {
-    const form = baseArticleForm(params);
-    return { ...form, tags: params.tags || [] };
-  },
+  '百家号': (params: any) => ({ ...baseArticleForm(params), coverType: 'single' }),
+  '企鹅号': (params: any) => ({ ...baseArticleForm(params), tags: params.tags || [] }),
   '搜狐号': (params: any) => baseArticleForm(params),
   '一点号': (params: any) => baseArticleForm(params),
   '大鱼号': (params: any) => baseArticleForm(params),
   '网易号': (params: any) => baseArticleForm(params),
-  '知乎': (params: any) => {
-    const form = baseArticleForm(params);
-    return { ...form, topics: [] };
-  },
+  '知乎': (params: any) => ({ ...baseArticleForm(params), topics: [] }),
   '爱奇艺': (params: any) => baseArticleForm(params),
   '新浪微博': (params: any) => baseArticleForm(params),
-  '哔哩哔哩': (params: any) => {
-    const form = baseArticleForm(params);
-    return { ...form, category: params.category || [], tag: (params.tags || []).join(','), original: 1 };
-  },
+  '哔哩哔哩': (params: any) => ({ ...baseArticleForm(params), category: params.category || [], tag: (params.tags || []).join(','), original: 1 }),
   '雪球号': (params: any) => baseArticleForm(params),
   '快传号': (params: any) => baseArticleForm(params),
   '豆瓣': (params: any) => baseArticleForm(params),
-  'CSDN': (params: any) => {
-    const form = baseArticleForm(params);
-    return { ...form, categories: [], tags: params.tags || [], type: 'original' };
-  },
+  'CSDN': (params: any) => ({ ...baseArticleForm(params), categories: [], tags: params.tags || [], type: 'original' }),
   '车家号': (params: any) => baseArticleForm(params),
   '简书': (params: any) => baseArticleForm(params),
-  'WiFi万能钥匙': (params: any) => {
-    const form = baseArticleForm(params);
-    return { ...form, category: [], desc: params.title };
-  },
-  'AcFun (A站)': (params: any) => {
-    const form = baseArticleForm(params);
-    return { ...form, category: [], tags: params.tags || [], desc: params.title, type: 0 };
-  },
+  'WiFi万能钥匙': (params: any) => ({ ...baseArticleForm(params), category: [], desc: params.title }),
+  'AcFun (A站)': (params: any) => ({ ...baseArticleForm(params), category: [], tags: params.tags || [], desc: params.title, type: 0 }),
   '易车号': (params: any) => baseArticleForm(params),
-  '抖音': (params: any) => {
-    const form = baseArticleForm(params);
-    return { ...form, description: params.title };
-  }
+  '抖音': (params: any) => ({ ...baseArticleForm(params), description: params.title })
 };
 
 async function main() {
@@ -80,6 +79,11 @@ async function main() {
   const coverKeyArg = args.find(a => a.startsWith('--cover_key='))?.split('=')[1];
   const coverUrlArg = args.find(a => a.startsWith('--cover_url='))?.split('=')[1];
   const tagsArg = args.find(a => a.startsWith('--tags='))?.split('=')[1];
+  const author = args.find(a => a.startsWith('--author='))?.split('=')[1];
+  const digest = args.find(a => a.startsWith('--digest='))?.split('=')[1];
+  const contentSourceUrl = args.find(a => a.startsWith('--content_source_url='))?.split('=')[1];
+  const original = args.find(a => a.startsWith('--original='))?.split('=')[1] === 'true';
+  const notify = args.find(a => a.startsWith('--notify='))?.split('=')[1] !== 'false';
   const pubType = parseInt(args.find(a => a.startsWith('--pub_type='))?.split('=')[1] || '1');
   const declaration = parseInt(args.find(a => a.startsWith('--declaration='))?.split('=')[1] || '0');
 
@@ -98,16 +102,13 @@ async function main() {
   }
 
   try {
-    // 0. 生成客户端内容 ID
     const publishContentId = Array.from({ length: 24 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
 
-    // 1. 处理封面
     let coverKey = coverKeyArg;
     if (!coverKey && coverUrlArg) {
       coverKey = await uploadResource(coverUrlArg);
     }
 
-    // 2. 正文存证
     const wrappedContent = `<html><body>${contentArg}</body></html>`;
     const storageRes = await fetch(`${API_URL}/storages/articles`, {
       method: 'POST',
@@ -116,19 +117,25 @@ async function main() {
     });
     if (!storageRes.ok) throw new Error(`Storage failed: ${await storageRes.text()}`);
 
-    // 3. 构造任务集
     const platformForms: Record<string, any> = {};
     platforms.forEach(p => {
       const factory = PLATFORM_REGISTRY[p];
       if (factory) {
-        platformForms[p] = factory({ title, content: wrappedContent, coverKey, tags, pubType, declaration });
+        platformForms[p] = factory({ 
+          title, content: wrappedContent, coverKey, tags, pubType, 
+          declaration, author, digest, contentSourceUrl, original, notify 
+        });
       }
     });
+
+    // 公众号特有类型识别
+    const isWechatOnly = platforms.length === 1 && platforms[0] === '微信公众号';
+    const publishType = isWechatOnly ? 'weixin-gongzhonghao' : 'article';
 
     const taskBody = {
       desc: title,
       platforms,
-      publishType: 'article',
+      publishType,
       publishChannel: 'cloud',
       isDraft: pubType === 0,
       coverKey,
@@ -138,13 +145,11 @@ async function main() {
           platformAccountId: accountId,
           publishContentId,
           coverKey,
-          cover: coverKey ? { key: coverKey, width: 1200, height: 800, size: 0 } : undefined,
           contentPublishForm: platformForms[platforms[0]] || {}
         }))
       }
     };
 
-    // 4. 发起发布
     const publishRes = await fetch(`${API_URL}/taskSets/v2`, {
       method: 'POST',
       headers: { 'Authorization': API_KEY, 'Content-Type': 'application/json' },
@@ -156,7 +161,7 @@ async function main() {
     console.log(JSON.stringify(result, null, 2));
 
   } catch (error) {
-    console.error(JSON.stringify({ error: "Article Engine Error", details: (error as Error).message }));
+    console.error(JSON.stringify({ error: "Article/WeChat Engine Error", details: (error as Error).message }));
     process.exit(1);
   }
 }
