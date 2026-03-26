@@ -6,7 +6,7 @@
 ## 技能定义 (Metadata)
 
 - **ID**: `openclaw-skill-core`
-- **版本**: `1.0.3`
+- **版本**: `1.0.4`
 - **架构模式**: 文档驱动型自律脚本 (Doc-Driven Scripts)
 - **运行环境**: Node.js v18+ (Direct Runtime)
 
@@ -29,6 +29,7 @@
 | **上传资源** | [upload-resource.md](./docs/upload-resource.md) | [upload-resource.ts](./scripts/upload-resource.ts) | **核心能力**: 将文件或 URL 直传蚁小二 OSS |
 | **发布百家号文章** | [publish-baijiahao-article.md](./docs/publish-baijiahao-article.md) | [publish-baijiahao-article.ts](./scripts/publish-baijiahao-article.ts) | 在百家号平台发表文章 |
 | **发布头条号文章** | [publish-toutiao-article.md](./docs/publish-toutiao-article.md) | [publish-toutiao-article.ts](./scripts/publish-toutiao-article.ts) | 在头条号/今日头条平台发表文章 |
+| **发布企鹅号文章** | [publish-qiehao-article.md](./docs/publish-qiehao-article.md) | [publish-qiehao-article.ts](./scripts/publish-qiehao-article.ts) | 在企鹅号平台发表文章 |
 
 
 ## 任务执行最佳实践 (Best Practices)
