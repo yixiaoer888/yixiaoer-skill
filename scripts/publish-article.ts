@@ -98,6 +98,9 @@ async function main() {
   }
 
   try {
+    // 0. 生成客户端内容 ID
+    const publishContentId = Array.from({ length: 24 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+
     // 1. 处理封面
     let coverKey = coverKeyArg;
     if (!coverKey && coverUrlArg) {
@@ -109,10 +112,9 @@ async function main() {
     const storageRes = await fetch(`${API_URL}/storages/articles`, {
       method: 'POST',
       headers: { 'Authorization': API_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content: wrappedContent, contentHtml: wrappedContent })
+      body: JSON.stringify({ publishContentId, title, content: wrappedContent, contentHtml: wrappedContent })
     });
     if (!storageRes.ok) throw new Error(`Storage failed: ${await storageRes.text()}`);
-    const { data: { publishContentId } } = await storageRes.json();
 
     // 3. 构造任务集
     const platformForms: Record<string, any> = {};
