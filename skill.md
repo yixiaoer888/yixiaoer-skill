@@ -27,9 +27,7 @@
 | **查询账号列表** | [query-accounts.md](./docs/query-accounts.md) | [query-accounts.ts](./scripts/query-accounts.ts) | 获取租户下绑定的媒体账号 |
 | **当前团队信息** | [get-team-info.md](./docs/get-team-info.md) | [get-team-info.ts](./scripts/get-team-info.ts) | 获取团队名称、角色、额度信息 |
 | **上传资源** | [upload-resource.md](./docs/upload-resource.md) | [upload-resource.ts](./scripts/upload-resource.ts) | **核心能力**: 将文件或 URL 直传蚁小二 OSS |
-| **发布百家号文章** | [publish-baijiahao-article.md](./docs/publish-baijiahao-article.md) | [publish-baijiahao-article.ts](./scripts/publish-baijiahao-article.ts) | 在百家号平台发表文章 |
-| **发布头条号文章** | [publish-toutiao-article.md](./docs/publish-toutiao-article.md) | [publish-toutiao-article.ts](./scripts/publish-toutiao-article.ts) | 在头条号/今日头条平台发表文章 |
-| **发布企鹅号文章** | [publish-qiehao-article.md](./docs/publish-qiehao-article.md) | [publish-qiehao-article.ts](./scripts/publish-qiehao-article.ts) | 在企鹅号平台发表文章 |
+| **发布文章 (统一分发)** | [publish-article.md](./docs/publish-article.md) | [publish-article.ts](./scripts/publish-article.ts) | **基座能力**: 一键发布文章到百家号、企鹅号、头条号等 15+ 平台 |
 
 
 ## 任务执行最佳实践 (Best Practices)
