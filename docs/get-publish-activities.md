@@ -1,25 +1,49 @@
-# 获取发布活动 (Get Publish Activities)
+# 获取征文活动 (Get Publish Activities)
 
-该指令用于获取特定账号在特定分发模态下可参与的征文活动列表。
+该指令用于获取特定账号在特定发布类型（视频/文章等）下的征文活动列表。征文活动通常带有特定的投稿要求和奖励。
 
 ## 场景描述 (Usage)
 
-- "我的百家号账号 bj-123 最近有什么可以参加的文章征文活动吗？"
+- "帮我查一下抖音账号 A 最近有哪些可以参加的征文活动。"
+- "我想参加个关于科技的征文，看看我的百家号账号能报哪个。"
 
 ## 参数定义 (Parameters)
 
-| 参数名 | 类型 | 描述 |
-| :--- | :--- | :--- |
-| `--account_id` | `string` | **必填**。目标账号 ID |
-| `--type` | `string` | **必填**。`article`, `image-text`, `video` |
+| 参数名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `--account_id` | `string` | **是** | 蚁小二媒体账号 ID |
+| `--type` | `ContentTypeEnum` | **是** | 发布模态：`video` (视频), `article` (文章), `dynamic` (动态), `imageText` (图文) |
+| `--categoryId` | `string` | 否 | 分类 ID，用于过滤特定分类下的活动 |
+| `--keyWord` | `string` | 否 | 搜索关键词 |
+
+### 枚举值定义
+
+#### ContentTypeEnum (发布类型)
+- `video`: 视频
+- `article`: 文章
+- `dynamic`: 动态 (爬虫使用)
+- `imageText`: 图文 (前端使用)
 
 ## 脚本逻辑 (Backend)
 
 - **脚本路径**: `../scripts/get-publish-activities.ts`
-- **实际接口**: `POST https://www.yixiaoer.cn/api/web/config-data/activity-tasks`
-- **调用示例**: `node scripts/get-publish-activities.ts --account_id=bjh_123 --type=article`
+- **实际接口**: `POST https://www.yixiaoer.cn/api/platform-accounts/:id/activities` (或通过 OpenPlatform 路由)
+- **环境要求**: 需设置 `YIXIAOER_API_KEY` 环境变量。
 
 ## 输出结果 (Output)
 
-脚本返回标准的 JSON 数组对象。每一个活动对象应包含 `id`, `name`, `raw` 等。
-请确保环境变量 `YIXIAOER_API_KEY` 已设置。
+脚本返回活动列表数组，每个对象包含以下核心字段：
+
+| 字段名 | 类型 | 描述 |
+| :--- | :--- | :--- |
+| `yixiaoerId` | `string` | 活动在本系统的唯一标识 |
+| `yixiaoerName` | `string` | 活动名称 |
+| `yixiaoerDesc` | `string` | 活动描述 |
+| `yixiaoerImageUrl` | `string` | 活动封面图 URL |
+| `viewNum` | `string` | 浏览量/参与度指标 |
+| `raw` | `object` | 平台原始活动数据（包含第三方平台的 Activity ID 等） |
+
+### 调用示例
+```bash
+node scripts/get-publish-activities.ts --account_id=66a8xxx --type=video --keyWord=运动
+```

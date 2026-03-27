@@ -25,7 +25,7 @@
 | 参数 | 对应 DTO 逻辑 | 说明 |
 | :--- | :--- | :--- |
 | `--type` | `publishType` | 必填。`article`, `image-text`, `video`, `weixin-gongzhonghao` |
-| `--platforms` | `platforms` | 必填。目标平台名称列表（逗号分隔） |
+| `--platforms` | `platforms` | 必填。目标平台名称列表（逗号分隔）。见 [平台定义](./docs/platform.md) |
 | `--account_ids` | `accountIds` | 必填。目标账号 ID 列表（逗号分隔） |
 | `--title` | `title` | 标题（文章、视频必填） |
 | `--content` | `content/description`| 内容（文章为 HTML，图文视频为描述文本） |
@@ -40,7 +40,7 @@
 
 | 能力名称 | 指令文档 (Trigger) | 执行脚本 (Implementation) | 核心功能 |
 | :--- | :--- | :--- | :--- |
-| **查询账号列表** | [query-accounts.md](./docs/query-accounts.md) | [query-accounts.ts](./scripts/query-accounts.ts) | 获取租户下绑定的媒体账号 |
+| **查询账号列表** | [query-accounts.md](./docs/query-accounts.md) ([平台定义](./docs/platform.md)) | [query-accounts.ts](./scripts/query-accounts.ts) | 获取租户下绑定的媒体账号 |
 | **查询发布记录** | [get-publish-records.md](./docs/get-publish-records.md) | [get-publish-records.ts](./scripts/get-publish-records.ts) | 获取发布任务的详细记录与状态 |
 | **当前团队信息** | [get-team-info.md](./docs/get-team-info.md) | [get-team-info.ts](./scripts/get-team-info.ts) | 获取团队名称、角色、额度信息 |
 | **查询发布分类** | [get-publish-categories.md](./docs/get-publish-categories.md) | [get-publish-categories.ts](./scripts/get-publish-categories.ts) | 获取账号下的分类列表（百家号/公众号等） |

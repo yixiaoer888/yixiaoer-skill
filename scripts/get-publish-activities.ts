@@ -1,14 +1,25 @@
 /**
- * Get Publish Activities (get-publish-activities.ts)
+ * 获取征文活动 (get-publish-activities.ts)
  * 
- * 获取特定账号在特定发布模态下的征文活动。
- * 调用方式: node get-publish-activities.ts --account_id=XXX --type=article
+ * 获取特定账号在特定发布类型下的征文活动列表。
+ * 调用方式: node get-publish-activities.ts --account_id=XXX --type=video [--categoryId=YYY] [--keyWord=ZZZ]
  */
 
 async function main() {
   const args = process.argv.slice(2);
-  const accountId = args.find(a => a.startsWith('--account_id='))?.split('=')[1];
-  const type = args.find(a => a.startsWith('--type='))?.split('=')[1];
+  const argMap: Record<string, string> = {};
+
+  args.forEach(arg => {
+    const [key, value] = arg.split('=');
+    if (key.startsWith('--')) {
+      argMap[key.substring(2)] = value;
+    }
+  });
+
+  const accountId = argMap.account_id;
+  const type = argMap.type;
+  const categoryId = argMap.categoryId;
+  const keyWord = argMap.keyWord;
 
   const API_KEY = process.env.YIXIAOER_API_KEY;
   const API_URL = process.env.YIXIAOER_API_URL || 'https://www.yixiaoer.cn/api';
@@ -21,17 +32,20 @@ async function main() {
   }
 
   try {
-    const response = await fetch(`${API_URL}/web/config-data/activity-tasks`, {
-      method: 'POST',
+    // 构造查询参数
+    const queryParams = new URLSearchParams({
+      publishType: type
+    });
+    if (categoryId) queryParams.append('categoryId', categoryId);
+    if (keyWord) queryParams.append('keyWord', keyWord);
+
+    // 标准 API 路径: GET platform-accounts/:id/activities
+    const response = await fetch(`${API_URL}/platform-accounts/${accountId}/activities?${queryParams.toString()}`, {
+      method: 'GET',
       headers: {
         'Authorization': API_KEY,
-        'Content-Type': 'application/json',
-        'x-account-id': accountId
-      },
-      body: JSON.stringify({
-        openAccountId: accountId,
-        publishType: type
-      })
+        'Content-Type': 'application/json'
+      }
     });
 
     if (!response.ok) {
@@ -52,3 +66,7 @@ async function main() {
 }
 
 main();
+
+export {};
+
+

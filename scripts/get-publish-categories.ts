@@ -1,14 +1,23 @@
 /**
- * Get Publish Categories (get-publish-categories.ts)
+ * 获取发布分类 (get-publish-categories.ts)
  * 
- * 获取特定账号在特定发布模态下的分类列表。
+ * 获取特定账号在特定发布下可以使用的分类列表。
  * 调用方式: node get-publish-categories.ts --account_id=XXX --type=article
  */
 
 async function main() {
   const args = process.argv.slice(2);
-  const accountId = args.find(a => a.startsWith('--account_id='))?.split('=')[1];
-  const type = args.find(a => a.startsWith('--type='))?.split('=')[1];
+  const argMap: Record<string, string> = {};
+
+  args.forEach((arg: string) => {
+    const [key, value] = arg.split('=');
+    if (key.startsWith('--')) {
+      argMap[key.substring(2)] = value;
+    }
+  });
+
+  const accountId = argMap.account_id;
+  const type = argMap.type;
 
   const API_KEY = process.env.YIXIAOER_API_KEY;
   const API_URL = process.env.YIXIAOER_API_URL || 'https://www.yixiaoer.cn/api';
@@ -21,17 +30,13 @@ async function main() {
   }
 
   try {
-    const response = await fetch(`${API_URL}/web/config-data/publish-category-tasks`, {
-      method: 'POST',
+    // 标准 API 路径: GET platform-accounts/:id/categories
+    const response = await fetch(`${API_URL}/platform-accounts/${accountId}/categories?publishType=${type}`, {
+      method: 'GET',
       headers: {
         'Authorization': API_KEY,
-        'Content-Type': 'application/json',
-        'x-account-id': accountId // 按照 open-platform 服务约定，accountId 可能在 Header 中
-      },
-      body: JSON.stringify({
-        openAccountId: accountId,
-        publishType: type
-      })
+        'Content-Type': 'application/json'
+      }
     });
 
     if (!response.ok) {
@@ -52,3 +57,7 @@ async function main() {
 }
 
 main();
+
+export {};
+
+

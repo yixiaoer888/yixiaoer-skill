@@ -1,5 +1,5 @@
 /**
- * Get Current Team Information (get-team-info.ts)
+ * 获取当前团队信息 (get-team-info.ts)
  * 
  * 获取当前用户的团队元数据及限额配额。
  * 调用方式: node get-team-info.ts
@@ -73,3 +73,6 @@ async function main() {
 }
 
 main();
+
+export {};
+

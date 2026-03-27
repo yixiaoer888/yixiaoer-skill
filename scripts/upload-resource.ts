@@ -100,3 +100,6 @@ if (process.argv[1]?.replace(/\\/g, '/').endsWith('scripts/upload-resource.ts') 
     process.argv[1]?.replace(/\\/g, '/').endsWith('scripts/upload-resource')) {
   main();
 }
+
+export {};
+

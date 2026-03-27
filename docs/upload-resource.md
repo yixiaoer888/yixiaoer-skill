@@ -1,37 +1,43 @@
 # 上传资源 (Upload Resource)
 
-将图片、视频或其它素材上传至蚁小二云端存储 (OSS)，并获取用于发布的资源 Key。
+将图片、视频或其它素材上传至蚁小二云端存储 (OSS)，并获取用于发布的资源 Key。这是自动化发布的前置步骤。
 
 ## 场景描述 (Usage)
 
-- "帮我把这个视频上传一下，我要发布到抖音。"
-- "先上传这张图片作为多篇文章的封面。"
+- "帮我把这个视频上传并给我资源 Key。"
+- "上传这组图片作为多个账号的封面图。"
 
 ## 参数定义 (Parameters)
 
 | 参数名 | 类型 | 必填 | 描述 |
 | :--- | :--- | :--- | :--- |
-| `url` | `string` | 是 | 资源的远程 URL 或本地路径（本地需脚本运行环境支持读取） |
-| `bucket` | `'cloud-publish'\|'material-library'` | 否 | 存储桶类型。默认 `'cloud-publish'` |
+| `url` | `string` | **是** | 资源的远程 URL 或本地绝对路径 |
+| `bucket` | `TeamBucketNamesEnum` | 否 | 存储桶。可选：`cloud-publish` (默认), `material-library`, `wechat-publish` |
+
+### 存储桶说明 (Buckets)
+- `cloud-publish`: 用于云端发布的视频、封面、图文素材。
+- `material-library`: 素材库存储。
+- `wechat-publish`: 微信公众号专用资产存储。
 
 ## 脚本逻辑 (Backend)
 
 - **脚本路径**: `../scripts/upload-resource.ts`
-- **流程**:
-  1. 识别 `url` 参数：若以 `http` 开头则抓取远程资源，否则视为本地路径读取文件。
-  2. 调用 `GET /api/storages/[bucket]/upload-url` 获取预签名上传地址及 Key。
-  3. 使用 `PUT` 请求将文件流发送至预签名地址。
+- **流程 (2-Step Upload)**:
+  1. **申请地址**: 调用 `GET /api/storages/[bucket]/upload-url?fileKey=...`。
+     - 获取 `serviceUrl`: 预签名的阿里云或私有云 PUT 写入地址。
+     - 获取 `key`: 资源在 OSS 上的全局唯一路径。
+  2. **物理写入**: 脚本将文件 Buffer 通过 `PUT` 请求直接发送至 `serviceUrl`。
 - **调用示例**: 
-  - 远程: `node upload-resource.ts --url="https://example.com/item.jpg"`
-  - 本地: `node upload-resource.ts --url="./my-image.png"`
+  - `node scripts/upload-resource.ts --url="https://example.com/item.jpg" --bucket=cloud-publish`
 
 ## 输出结果 (Output)
 
-成功时输出包含资源 Key 的 JSON 对象：
+输出生成的资源标识，供发布脚本引用：
 ```json
 {
-  "key": "cloud-publish/2026/03/26/xxx.jpg",
+  "key": "cloud-publish/2026/03/26/66b2xxx/xxx.jpg",
   "name": "xxx.jpg"
 }
 ```
-该 Key 可在后续的“发布百家号文章”等能力中作为参数使用。
+**注意**: 在发布文章或视频时，请直接传入返回的 `key` 字符串作为封面或图片地址。
+
