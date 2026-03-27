@@ -61,7 +61,7 @@
 ## 脚本逻辑 (Backend)
 
 - **脚本路径**: `../scripts/query-accounts.ts`
-- **实际接口**: `GET https://www.yixiaoer.cn/api/platform-accounts`
+- **实际接口**: `GET https://www.yixiaoer.cn/api/v2/platform/accounts`
 - **调用示例**: 
   - `node query-accounts.ts --platform=抖音 --name=倒霉蛋`
   - `node query-accounts.ts --page=1 --size=50`

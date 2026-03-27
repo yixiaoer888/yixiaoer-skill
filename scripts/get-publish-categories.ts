@@ -30,8 +30,8 @@ async function main() {
   }
 
   try {
-    // 标准 API 路径: GET platform-accounts/:id/categories
-    const response = await fetch(`${API_URL}/platform-accounts/${accountId}/categories?publishType=${type}`, {
+    // 标准 API 路径: GET v2/platform/accounts/:id/categories
+    const response = await fetch(`${API_URL}/v2/platform/accounts/${accountId}/categories?publishType=${type}`, {
       method: 'GET',
       headers: {
         'Authorization': API_KEY,

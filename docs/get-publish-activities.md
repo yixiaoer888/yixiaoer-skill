@@ -27,7 +27,7 @@
 ## 脚本逻辑 (Backend)
 
 - **脚本路径**: `../scripts/get-publish-activities.ts`
-- **实际接口**: `POST https://www.yixiaoer.cn/api/platform-accounts/:id/activities` (或通过 OpenPlatform 路由)
+- **实际接口**: `GET https://www.yixiaoer.cn/api/v2/platform/accounts/:id/activities` (或通过 OpenPlatform 路由)
 - **环境要求**: 需设置 `YIXIAOER_API_KEY` 环境变量。
 
 ## 输出结果 (Output)

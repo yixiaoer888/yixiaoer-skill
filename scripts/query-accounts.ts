@@ -27,7 +27,7 @@ async function main() {
   }
 
   try {
-    const url = new URL(`${API_URL}/platform-accounts`);
+    const url = new URL(`${API_URL}/v2/platform/accounts`);
     
     // 默认值
     if (!params.page) params.page = '1';

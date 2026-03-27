@@ -39,8 +39,8 @@ async function main() {
     if (categoryId) queryParams.append('categoryId', categoryId);
     if (keyWord) queryParams.append('keyWord', keyWord);
 
-    // 标准 API 路径: GET platform-accounts/:id/activities
-    const response = await fetch(`${API_URL}/platform-accounts/${accountId}/activities?${queryParams.toString()}`, {
+    // 标准 API 路径: GET v2/platform/accounts/:id/activities
+    const response = await fetch(`${API_URL}/v2/platform/accounts/${accountId}/activities?${queryParams.toString()}`, {
       method: 'GET',
       headers: {
         'Authorization': API_KEY,

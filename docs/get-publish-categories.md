@@ -25,7 +25,7 @@
 ## 脚本逻辑 (Backend)
 
 - **脚本路径**: `../scripts/get-publish-categories.ts`
-- **实际接口**: `GET https://www.yixiaoer.cn/api/platform-accounts/:id/categories`
+- **实际接口**: `GET https://www.yixiaoer.cn/api/v2/platform/accounts/:id/categories`
 - **环境要求**: 需设置 `YIXIAOER_API_KEY` 环境变量。
 
 ## 输出结果 (Output)
