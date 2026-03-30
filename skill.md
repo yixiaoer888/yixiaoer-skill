@@ -6,7 +6,7 @@
 ## 技能定义 (Metadata)
 
 - **ID**: `openclaw-skill-core`
-- **版本**: `1.3.0`
+- **版本**: `1.3.1`
 - **架构模式**: DTO 驱动型文档与共享引擎 (DTO-Driven & Shared Engine)
 - **运行环境**: Node.js v18+ (Direct Runtime)
 

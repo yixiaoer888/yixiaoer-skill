@@ -108,6 +108,13 @@ async function main() {
     if (content && !contentPublishForm.content && (type === 'article' || type === 'weixin-gongzhonghao')) {
       contentPublishForm.content = content;
     }
+    // 补全描述字段 (针对文章摘要或视频/图文描述)
+    if (!contentPublishForm.desc && (params.desc || params.description)) {
+      contentPublishForm.desc = params.desc || params.description;
+    }
+    if (!contentPublishForm.description && (params.description || params.desc)) {
+      contentPublishForm.description = params.description || params.desc;
+    }
     
     // 针对文章格式的补全 (核心处理)
     if (type === 'article' || type === 'weixin-gongzhonghao' || platforms.some(p => p === '微信公众号' || p === '公众号')) {
