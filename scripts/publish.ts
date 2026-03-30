@@ -196,8 +196,18 @@ async function main() {
     }
 
     // 针对视频格式的补全
-    if (type === 'video' && !contentPublishForm.description) {
-      contentPublishForm.description = content;
+    if (type === 'video') {
+      if (!contentPublishForm.description) contentPublishForm.description = content;
+      
+      const isDouYin = platforms.some(p => p.includes('抖音'));
+      // 抖音视频 DTO 要求 horizontalCover (横板封面)
+      if (isDouYin && !contentPublishForm.horizontalCover && coverKey) {
+        contentPublishForm.horizontalCover = { key: coverKey, width: 1920, height: 1080, size: 0 };
+      }
+      // 抖音 DTO 拼写为 musice (typo)，不论是视频还是图文都兼容一下
+      if (isDouYin && contentPublishForm.music && !contentPublishForm.musice) {
+        contentPublishForm.musice = contentPublishForm.music;
+      }
     }
 
     // 5. 构造任务 Body

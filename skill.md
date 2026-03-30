@@ -85,7 +85,39 @@
 | **上传资源** | [upload-resource.md](./docs/upload-resource.md) | [upload-resource.ts](./scripts/upload-resource.ts) | **基础能力**: 将文件或 URL 直传蚁小二 OSS |
 | **文章发布 (通用)** | [一点号](./docs/publish-article/yidianhao.md) \| [大鱼号](./docs/publish-article/dayuhao.md) \| [知乎](./docs/publish-article/zhihu.md) \| [更多](./docs/publish-article/) | [publish.ts](./scripts/publish.ts) | 支持 30+ 长文平台自动分发 |
 | **图文发布 (通用)** | [小红书](./docs/publish-image-text/xiaohongshu.md) \| [视频号](./docs/publish-image-text/shipinhao.md) \| [百家号](./docs/publish-image-text/baijiahao.md) \| [更多](./docs/publish-image-text/) | [publish.ts](./scripts/publish.ts) | 支持抖音/快手/小红书/微博/视频号/百家/头条/知乎等动态平台 |
-| **视频发布 (通用)** | [查看 docs/publish-video 目录](./docs/publish-video/) | [publish.ts](./scripts/publish.ts) | 支持 30+ 视频平台自动化分发 |
+| **视频发布 (通用)** | [支持 30+ 视频平台](#视频发布平台支持情况) | [publish.ts](./scripts/publish.ts) | 支持抖音/快手/B站/视频号等全平台自动化分发 |
+
+### 视频发布平台支持情况
+- [抖音 (Douyin)](./docs/publish-video/douyin.md)
+- [头条号 (Toutiao)](./docs/publish-video/toutiaohao.md)
+- [哔哩哔哩 (Bilibili)](./docs/publish-video/bilibili.md)
+- [哔哩哔哩-Open (Bilibili Open API)](./docs/publish-video/bilibili-open.md)
+- [百家号 (Baijiahao)](./docs/publish-video/baijiahao.md)
+- [小红书 (Xiaohongshu)](./docs/publish-video/xiaohongshu.md)
+- [小红书商家号 (Xiaohongshu Shop)](./docs/publish-video/xiaohongshu-shop.md)
+- [快手 (Kuaishou)](./docs/publish-video/kuaishou.md)
+- [快手-Open (Kuaishou Open API)](./docs/publish-video/kuaishou-open.md)
+- [新浪微博 (Weibo)](./docs/publish-video/weibo.md)
+- [视频号 (WeChat Video Account)](./docs/publish-video/shipinhao.md)
+- [知乎 (Zhihu)](./docs/publish-video/zhihu.md)
+- [企鹅号 (Qiehao)](./docs/publish-video/qiehao.md)
+- [爱奇艺 (iQIYI)](./docs/publish-video/aiqiyi.md)
+- [网易号 (Wangyi)](./docs/publish-video/wangyihao.md)
+- [一点号 (Yidianhao)](./docs/publish-video/yidianhao.md)
+- [搜狐号 (Sohuhao)](./docs/publish-video/souhuhao.md)
+- [搜狐视频 (Sohu Video)](./docs/publish-video/souhushipin.md)
+- [腾讯微视 (Weishi)](./docs/publish-video/weishi.md)
+- [皮皮虾 (Pipixia)](./docs/publish-video/pipixia.md)
+- [腾讯视频 (Tencent Video)](./docs/publish-video/v-qq.md)
+- [多多视频 (Duo Duo Video)](./docs/publish-video/duoduoshipin.md)
+- [美拍 (Meipai)](./docs/publish-video/meipai.md)
+- [AcFun](./docs/publish-video/acfun.md)
+- [大鱼号 (Dayuhao)](./docs/publish-video/dayuhao.md)
+- [车家号 (Chejiahao)](./docs/publish-video/chejiahao.md)
+- [蜂网 (Fengwang)](./docs/publish-video/fengwang.md)
+- [得物 (Dewu)](./docs/publish-video/dewu.md)
+- [美柚 (Meiyou)](./docs/publish-video/meiyou.md)
+- [易车号 (Yichehao)](./docs/publish-video/yichehao.md)
 
 ## DTO 知识提取规范 (DTO Extraction Specs)
 
