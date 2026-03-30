@@ -1,7 +1,7 @@
 ---
-name: openclaw-skill-core
+name: yixiaoer
 version: 1.5.0
-description: "蚁小二全平台媒体管理与运营能力，采用 DTO 驱动型架构实现全案发布。"
+description: "蚁小二支持 50 + 平台一键分发、多账号矩阵管理、团队协作与数据统计，适配图文、短视频等内容，覆盖全平台客户端，助力个人与企业高效运营新媒体矩阵。"
 author: wangzhengjiao
 ---
 
@@ -15,36 +15,18 @@ author: wangzhengjiao
 2.  **文档即指引**: `docs/` 下的 Markdown 文档用于解释对应接口的参数规则、必填项与约束。
 3.  **零映射透传**: 鼓励调用者直接构造符合 DTO 要求的 JSON Payload 进行提交。
 
-## 发布操作说明 (Publishing Guide)
 
-发布任务通过 `scripts/publish.ts` 执行。调用者应根据发布类型参考对应的基础结构文档。
+## 平台支持 (Platform Support)
 
-### 1. 基础发布结构 (Base Structures)
+API 调用时涉及的平台名称必须使用蚁小二定义的中文枚举或 Code。
 
-*   **通用发布接口 DTO**: [docs/publish/index.md#1-基础结构](./docs/publish/index.md)
-
-
-### 2. 平台特定字段 (Platform Specifics)
-
-接口中的 `contentPublishForm` 字段用于承载不同平台的差异化参数。请查阅各模态子目录下的具体平台文档：
-
-*   **视频平台映射表**: 见 [视频发布目录](./docs/publish/video/) (如 `douyin.md`, `bilibili.md`)
-*   **文章平台映射表**: 见 [文章发布目录](./docs/publish/article/) (如 `weixin.md`)
-*   **图文平台映射表**: 见 [图文发布目录](./docs/publish/image-text/) (如 `xiaohongshu.md`)
-
-## 调用方式 (Execution)
-
-所有脚本均仅支持通过 `--payload` 传入符合接口 DTO 结构的 JSON 字符串。
-
-```bash
-node scripts/publish.ts --payload='{...}'
-```
+*   **平台枚举列表**: [docs/platform.md](./docs/platform.md)
 
 ## 能力地图 (Capabilities)
 
 | 能力类型 | 功能描述 | 执行脚本 | 文档指引 |
 | :--- | :--- | :--- | :--- |
-| **内容发布** | 视频、图文、文章全平台发布 | `publish.ts` | [发布指引](#发布操作说明) |
+| **内容发布** | 视频、图文、文章全平台发布 | `publish.ts` | [docs/publish/index.md](./docs/publish/index.md) |
 | **账号管理** | 查询全平台账号列表与 UID | `query-accounts.ts` | [query-accounts.md](./docs/query-accounts.md) |
 | **资源管理** | 图片/视频上传至 OSS 获取 Key | `upload-resource.ts` | [upload-resource.md](./docs/upload-resource.md) |
 | **发布记录** | 查询历史发布任务与各平台状态 | `get-publish-records.ts`| [get-publish-records.md](./docs/get-publish-records.md) |

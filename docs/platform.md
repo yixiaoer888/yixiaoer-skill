@@ -1,5 +1,7 @@
 # 平台定义 (Platform Definitions)
-如无特殊声明，接口需要填写的Platform为平台中文名
+如无特殊声明，API 接口中 `platforms` 数组中需要填写的名称为**平台中文名**。
+
+详细的发布接口结构请参考: [通用内容发布基础结构](./publish/index.md)
 
 ## 平台标识枚举 (Platform Codes)
 

@@ -9,7 +9,7 @@
 | 字段名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
 | `publishType` | `string` | **是** | 发布类型: `article` (文章), `imageText` (图文), `video` (视频) |
-| `platforms` | `string[]` | **是** | 目标平台枚举数组 (如 `["抖音", "微信公众号"]`) |
+| `platforms` | `string[]` | **是** | 目标平台枚举数组 (如 `["抖音", "微信公众号"]`)，详见 [平台列表](../platform.md) |
 | `publishArgs` | `Object` | **是** | 发布参数核心容器 |
 | `taskSetId` | `string` | 否 | 任务集唯一标识 (草稿发布时必填) |
 | `desc` | `string` | 否 | 任务描述/摘要 |
@@ -37,7 +37,15 @@
 | `mediaId` | `string` | 否 | 第三方库素材 ID |
 | `fps` | `number` | 否 | 视频发布帧率 (海外平台使用) |
 
-## 4. 演示数据 (Payload Examples)
+## 4. 调用指令 (Execution)
+
+所有发布操作均通过 `scripts/publish.ts` 脚本执行。调用时需通过 `--payload` 参数传入符合上述 JSON 结构的字符串。
+
+```bash
+node scripts/publish.ts --payload='{...}'
+```
+
+## 5. 演示数据 (Payload Examples)
 
 以下为几种主要发布类型的完整 Payload 示例。
 
@@ -84,6 +92,7 @@
         "cover": { "key": "img_key_1", "width": 1080, "height": 1440, "size": 200000 },
         "contentPublishForm": {
           "formType": "task",
+          // 更多属性请阅读平台文档
         }
       }
     ]
