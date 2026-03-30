@@ -1,100 +1,77 @@
-# 抖音图文发布 (Douyin Image-Text)
+# 抖音图文发布 (Douyin Image-Text Publishing)
 
-支持发布抖音图文（动态/图文快传）。该模态在手机端表现为图片轮播形式，支持配乐、话题标签、地理位置及合集挂载。
+该文档定义了在抖音平台发布图文（动态）能力的参数规范。
 
-## 指令定义 (Capability)
-
-- **类型 (`--type`)**: `image-text`
-- **平台 (`--platforms`)**: `抖音`
-- **核心 DTO**: `DouYinDynamicForm`
-- **发布引擎映射**: `publishType` -> `imageText`
-
-## 参数说明 (Parameters)
-
-### 1. 核心参数 (Core)
-
-| 参数 | 类型 | 必填 | 说明 | DTO 校验规则 |
-| :--- | :--- | :--- | :--- | :--- |
-| `--title` | `string` | 否 | 抖音图文标题。 | `@IsOptional` |
-| `--content` | `string` | 是 | **描述内容**。支持 HTML 格式（`<p>`）及特殊标签（见下文）。 | 后端要求 `1000` 字符以内 |
-| `--image_urls` | `url[]` | 是 | **图片链接**。至少 1 张，多张用逗号分隔。 | `@IsNotEmpty` (映射为 `images`) |
-| `--cover_url` | `url` | 否 | **封面图链接**。若未指定，引擎自动取首图。 | 自动构建 `covers` 数组 |
-
-### 2. 业务参数 (Business)
-
-这些参数将透传至 `contentPublishForm`：
-
-| 参数 | 类型 | 必填 | 说明 | 特殊要求 |
-| :--- | :--- | :--- | :--- | :--- |
-| `--location` | `object` | 否 | **地理位置**。来源于 `get-publish-categories` 或符合 `PlatformDataItem`。 | 与购物车/小程序互斥 |
-| `--musice` | `object` | 否 | **背景音乐**。来源于音乐搜索接口。 | **注意**: 字段名包含 `e` (`musice`) |
-| `--scheduledTime`| `number` | 否 | **定时发布时间**。单位：秒级时间戳。 | 需大于当前时间 |
-| `--collection` | `object` | 否 | **合集信息**。属于 `Category` 结构。 | 挂载到指定合集 |
-| `--sub_collection`| `object` | 否 | **合集选集**。属于 `Category` 结构。 | |
-
-## 高级特性：描述内容标签 (Rich Tags)
-
-抖音描述 (`--content`) 支持在文本中嵌入特殊互动标签，格式如下：
-
-### 1. 话题标签 (`topic`)
-```html
-<p>探讨 <topic text='搞笑' raw='{"yixiaoerId":"...","yixiaoerName":"搞笑","raw":{...}}'>#搞笑</topic> 的日常 </p>
-```
-
-### 2. 艾特好友 (`friend`)
-```html
-<p>感谢 <friend raw='{"yixiaoerId":"...","raw":{"nick":"张三"}}'>@张三</friend> 的出镜 </p>
-```
-
-### 3. 参与活动 (`activity`)
-```html
-<p>参加 <activity raw='{"yixiaoerId":"...","raw":{}}'>#热门挑战</activity> </p>
-```
-
-> [!TIP]
-> 引擎会自动为未包裹 `<p>` 标签的普通纯文本添加标签并处理换行。
-
-## 对象模型 (Models)
-
-### PlatformDataItem (location / musice)
-```json
-{
-  "id": "123",
-  "text": "地理位置名称/音乐名称",
-  "raw": { "platform_data": "..." }
-}
-```
-
-### Category (collection / sub_collection)
-```json
-{
-  "yixiaoerId": "cid_123",
-  "yixiaoerName": "合集名",
-  "yixiaoerImageUrl": "http...",
-  "yixiaoerDesc": "描述",
-  "viewNum": "100",
-  "raw": {}
-}
-```
-
-## 调用示例 (Usage)
+## 核心指令 (Command)
 
 ```bash
-# 基础发布
-node scripts/publish.ts \
-  --type=image-text \
-  --platforms="抖音" \
-  --account_ids="acc_douyin_001" \
-  --content="记录美好周末 #生活感悟" \
-  --image_urls="https://img.com/1.jpg,https://img.com/2.jpg"
+node scripts/publish.ts --type=image-text --platforms=抖音 --account_ids=ACCOUNT_ID --title="标题" --description="描述内容" --image_urls="URL1,URL2"
+```
 
-# 带地理位置与定时发布
+## 参数列表 (Properties)
+
+| 参数名 | 类型 | 是否必填 | 说明 | DTO 校验规则 |
+| :--- | :--- | :--- | :--- | :--- |
+| `--type` | `string` | 是 | 固定值: `image-text` | - |
+| `--platforms` | `string` | 是 | 固定值: `抖音` | - |
+| `--account_ids` | `string` | 是 | 账号 ID，多个请用逗号分隔 | - |
+| `--title` | `string` | 否 | 抖音标题 | `title` |
+| `--description` | `string` | 否 | 图文描述。支持 HTML 格式和话题标签。**约束**: 必须用 `<p>` 标签包裹段落，最多 5 个话题。如未包裹，引擎会自动处理。 | `description` |
+| `--image_urls` | `string` | 是 | 图片 URL 列表，多个请用逗号分隔。 | `images` (OldImage[]) |
+| `--cover_url` | `string` | 否 | 封面图 URL。如不填，引擎默认取第一张图。 | `covers` (OldCover[]) |
+| `--location` | `object` | 否 | 抖音地址/带货地址。JSON 字符串。来源于获取地址接口。 | `location` (PlatformDataItem) |
+| `--musice` | `object` | 否 | **注意**: DTO 拼写为 `musice`。图文发布的音乐。JSON 字符串。 | `musice` (PlatformDataItem) |
+| `--scheduledTime`| `number`| 否 | 定时发布时间戳（毫秒）。 | `scheduledTime` |
+| `--collection` | `object` | 否 | 合集信息。JSON 字符串。要求抖音账号已创建合集。 | `collection` (Category) |
+| `--sub_collection`| `object`| 否 | 合集选集。JSON 字符串。要求抖音账号已创建合集。 | `sub_collection` (Category) |
+
+## 复杂对象结构 (Complex Object Structures)
+
+### PlatformDataItem (用于 location, musice)
+```json
+{
+  "id": "如果接口有返回 ID",
+  "text": "显示的文本名称",
+  "raw": { "根据不同接口返回的原始数据内容" }
+}
+```
+> [!TIP]
+> 建议直接通过查询接口（如 `get-locations.ts`）获取该对象，不要手动构造。
+
+### Category (用于 collection, sub_collection)
+```json
+{
+  "yixiaoerId": "内部 ID",
+  "yixiaoerName": "名称",
+  "yixiaoerImageUrl": "图标 URL",
+  "yixiaoerDesc": "描述",
+  "viewNum": "浏览量/统计",
+  "raw": { "原始数据" }
+}
+```
+
+## 依赖查询文档 (Dependencies)
+
+如果需要获取上述复杂对象的数据，请参考以下查询指令：
+- **获取地理位置**: [get-locations.md](../get-locations.md) -> `scripts/get-locations.ts`
+- **获取音乐列表**: [get-music.md](../get-music.md) -> `scripts/get-music.ts`
+- **获取合集列表**: [get-collections.md](../get-collections.md) -> `scripts/get-collections.ts`
+
+## 引擎逻辑说明 (Engine Logic)
+
+1. **描述处理**: 引擎会自动检测 `description`。如果是抖音平台且没有 HTML 标签，会按照换行符自动将其拆分为多个 `<p>` 标签包裹的内容。
+2. **话题处理**: 描述中支持 `<topic text='话题名' raw='{...}'>#话题名</topic>` 格式。
+3. **封面补全**: 如果未提供 `--cover_url`，引擎会自动将第一张图片作为封面填入 `covers` 数组。
+4. **资源映射**: `--image_urls` 会被自动转换为后端要求的 `images: OldImage[]` 数组结构。
+
+## 调用示例 (Example)
+
+```bash
 node scripts/publish.ts \
   --type=image-text \
-  --platforms="抖音" \
-  --account_ids="acc_douyin_001" \
-  --content="西湖的风景真美" \
-  --image_urls="https://img.com/scenery.jpg" \
-  --location='{"id":"loc_001","text":"西湖景区","raw":{}}' \
-  --scheduledTime=1735689600
+  --platforms=抖音 \
+  --account_ids=67c824558e8b233a00000000 \
+  --title="生活随笔" \
+  --description="今天阳光真好 #生活\n记录一下美好瞬间" \
+  --image_urls="https://example.com/1.jpg,https://example.com/2.jpg"
 ```

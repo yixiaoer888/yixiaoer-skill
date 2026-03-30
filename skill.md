@@ -6,7 +6,7 @@
 ## 技能定义 (Metadata)
 
 - **ID**: `openclaw-skill-core`
-- **版本**: `1.3.4`
+- **版本**: `1.3.6`
 - **架构模式**: DTO 驱动型文档与共享引擎 (DTO-Driven & Shared Engine)
 - **运行环境**: Node.js v18+ (Direct Runtime)
 
@@ -78,10 +78,13 @@
 | **查询发布记录** | [get-publish-records.md](./docs/get-publish-records.md) | [get-publish-records.ts](./scripts/get-publish-records.ts) | 获取发布任务的详细记录与状态 |
 | **当前团队信息** | [get-team-info.md](./docs/get-team-info.md) | [get-team-info.ts](./scripts/get-team-info.ts) | 获取团队名称、角色、额度信息 |
 | **查询发布分类** | [get-publish-categories.md](./docs/get-publish-categories.md) | [get-publish-categories.ts](./scripts/get-publish-categories.ts) | 获取账号下的分类列表（百家号/公众号等） |
+| **查询地理位置** | [get-locations.md](./docs/get-locations.md) | [get-locations.ts](./scripts/get-locations.ts) | 获取发布可选的地址/带货地址 |
+| **查询视频音乐** | [get-music.md](./docs/get-music.md) | [get-music.ts](./scripts/get-music.ts) | 获取发布可选的音乐素材 |
+| **查询合集列表** | [get-collections.md](./docs/get-collections.md) | [get-collections.ts](./scripts/get-collections.ts) | 获取账号已创建的合集 (抖音/头条) |
 | **查询征文活动** | [get-publish-activities.md](./docs/get-publish-activities.md) | [get-publish-activities.ts](./scripts/get-publish-activities.ts) | 获取账号下的可参与活动（百家号等） |
 | **上传资源** | [upload-resource.md](./docs/upload-resource.md) | [upload-resource.ts](./scripts/upload-resource.ts) | **基础能力**: 将文件或 URL 直传蚁小二 OSS |
 | **文章发布 (通用)** | [查看 docs/publish-article 目录](./docs/publish-article/) | [publish.ts](./scripts/publish.ts) | 支持 20+ 长文平台自动分发 |
-| **图文发布 (通用)** | [抖音](./docs/publish-image-text/douyin.md) \| [更多](./docs/publish-image-text/) | [publish.ts](./scripts/publish.ts) | 支持抖音/快手/小红书/微博等动态平台 |
+| **图文发布 (通用)** | [抖音](./docs/publish-image-text/douyin.md) \| [快手](./docs/publish-image-text/kuaishou.md) \| [更多](./docs/publish-image-text/) | [publish.ts](./scripts/publish.ts) | 支持抖音/快手/小红书/微博等动态平台 |
 | **视频发布 (通用)** | [查看 docs/publish-video 目录](./docs/publish-video/) | [publish.ts](./scripts/publish.ts) | 支持 30+ 视频平台自动化分发 |
 
 ## DTO 知识提取规范 (DTO Extraction Specs)

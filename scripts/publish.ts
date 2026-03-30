@@ -171,15 +171,22 @@ async function main() {
     if (type === 'image-text') {
       let description = content || '';
       // 抖音图文要求描述内容用 <p> 标签包裹
-      if (platforms.some(p => p.includes('抖音')) && description && !description.includes('<p>')) {
+      const isDouYin = platforms.some(p => p.includes('抖音'));
+      if (isDouYin && description && !description.includes('<p>')) {
         description = `<p>${description.replace(/\n/g, '</p><p>')}</p>`;
       }
       
       if (!contentPublishForm.description) contentPublishForm.description = description;
-      if (imageKeys.length > 0 && !contentPublishForm.images) {
-        contentPublishForm.images = imageKeys.map(key => ({ key, width: 1200, height: 800, size: 0 }));
+
+      // 抖音 DTO 拼写为 musice (typo)
+      if (isDouYin && contentPublishForm.music && !contentPublishForm.musice) {
+        contentPublishForm.musice = contentPublishForm.music;
       }
-      // 抖音等平台可能需要 covers 数组
+
+      if (imageKeys.length > 0 && !contentPublishForm.images) {
+        contentPublishForm.images = imageKeys.map(key => ({ key, width: 1200, height: 800, size: 0, format: 'png' }));
+      }
+      // 抖音等平台可能需要 covers 数组 (OldCover)
       if (!contentPublishForm.covers && coverKey) {
         contentPublishForm.covers = [{ key: coverKey, width: 1200, height: 800, size: 0 }];
       } else if (!contentPublishForm.covers && imageKeys.length > 0) {
