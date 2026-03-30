@@ -173,6 +173,13 @@ async function main() {
       if (imageKeys.length > 0 && !contentPublishForm.images) {
         contentPublishForm.images = imageKeys.map(key => ({ key, width: 1200, height: 800, size: 0 }));
       }
+      // 抖音等平台可能需要 covers 数组
+      if (!contentPublishForm.covers && coverKey) {
+        contentPublishForm.covers = [{ key: coverKey, width: 1200, height: 800, size: 0 }];
+      } else if (!contentPublishForm.covers && imageKeys.length > 0) {
+        // 如果没有显式封面，使用第一张图作为封面
+        contentPublishForm.covers = [{ key: imageKeys[0], width: 1200, height: 800, size: 0 }];
+      }
     }
 
     // 针对视频格式的补全
