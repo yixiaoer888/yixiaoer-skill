@@ -6,7 +6,7 @@
 ## 技能定义 (Metadata)
 
 - **ID**: `openclaw-skill-core`
-- **版本**: `1.3.2`
+- **版本**: `1.3.3`
 - **架构模式**: DTO 驱动型文档与共享引擎 (DTO-Driven & Shared Engine)
 - **运行环境**: Node.js v18+ (Direct Runtime)
 
@@ -20,18 +20,52 @@
 
 ## 通用发布指令接口 (Universal Publish CLI)
 
-所有发布任务均通过 `scripts/publish.ts` 执行，支持以下核心通用参数：
+所有发布任务均通过 `scripts/publish.ts` 执行。引擎会自动将 CLI 参数转换为后端 DTO 要求的复杂结构。
 
-| 参数 | 对应 DTO 逻辑 | 说明 |
+### 1. 核心映射逻辑 (Core Mapping)
+
+| 参数 | 对应 DTO 字段 | 说明 |
 | :--- | :--- | :--- |
-| `--type` | `publishType` | 必填。`article`, `image-text`, `video`, `weixin-gongzhonghao` |
+| `--type` | `publishType` | `article`, `image-text`, `video`。(`image-text` 会自动映射为后端的 `imageText`) |
 | `--platforms` | `platforms` | 必填。目标平台名称列表（逗号分隔）。见 [平台定义](./docs/platform.md) |
 | `--account_ids` | `accountIds` | 必填。目标账号 ID 列表（逗号分隔） |
-| `--title` | `title` | 标题（文章、视频必填） |
-| `--content` | `content/description`| 内容（文章为 HTML，图文视频为描述文本） |
-| `--video_url` | 自动上传并重组 | 视频直连 URL，引擎会自动上传至 OSS 并填入 `videoKey` |
-| `--image_urls` | 自动上传并重组 | 图片/封面 URL（逗号分隔），引擎会自动上传并填入 `images` |
-| `--pubType` | `isDraft` | `1`: 立即发布 (默认), `0`: 保存草稿 |
+| `--title` | `title` | 标题（文章必填；图文/视频可选，若填入则作为任务集描述） |
+| `--content` | `content`/`desc`| 文章为 HTML 内容；图文和视频会自动映射为 `description` |
+| `--video_url` | `video` | 视频 URL。引擎会自动生成 `VideoFormItem` 对象并补全基础元数据 |
+| `--image_urls` | `images` | 图片 URL（逗号分隔）。引擎会自动生成 `ImageFormItem[]` 列表 |
+| `--cover_url` | `cover` | 封面 URL。针对单账号生成 `ImageFormItem`，针对任务集生成 `coverKey` |
+| `--pubType` | `isDraft` | `1`: 立即发布 (默认: `isDraft=false`), `0`: 保存草稿 (`isDraft=true`) |
+
+### 2. 标准表单项模型 (Standard Form Models)
+
+当 DTO 中引用以下类时，引擎会按照以下默认结构构造数据：
+
+#### ImageFormItem (图片/封面)
+```json
+{
+  "key": "oss_key",
+  "path": "http://...",
+  "width": 1200, 
+  "height": 800,
+  "size": 0
+}
+```
+
+#### VideoFormItem (视频)
+```json
+{
+  "key": "oss_key",
+  "path": "http://...",
+  "duration": 0,
+  "width": 1920,
+  "height": 1080,
+  "size": 0
+}
+```
+> [!NOTE]
+> 引擎会自动处理资源上传。若指令中只提供 URL，引擎会获取 Key 后填入。
+
+## 能力地图 (Capabilities)
 
 ## 能力地图 (Capabilities)
 
@@ -47,7 +81,7 @@
 | **查询征文活动** | [get-publish-activities.md](./docs/get-publish-activities.md) | [get-publish-activities.ts](./scripts/get-publish-activities.ts) | 获取账号下的可参与活动（百家号等） |
 | **上传资源** | [upload-resource.md](./docs/upload-resource.md) | [upload-resource.ts](./scripts/upload-resource.ts) | **基础能力**: 将文件或 URL 直传蚁小二 OSS |
 | **文章发布 (通用)** | [查看 docs/publish-article 目录](./docs/publish-article/) | [publish.ts](./scripts/publish.ts) | 支持 20+ 长文平台自动分发 |
-| **图文发布 (通用)** | [查看 docs/publish-post 目录](./docs/publish-post/) | [publish.ts](./scripts/publish.ts) | 支持抖音/快手/小红书/微博等动态平台 |
+| **图文发布 (通用)** | [抖音](./docs/publish-image-text/douyin.md) \| [更多](./docs/publish-image-text/) | [publish.ts](./scripts/publish.ts) | 支持抖音/快手/小红书/微博等动态平台 |
 | **视频发布 (通用)** | [查看 docs/publish-video 目录](./docs/publish-video/) | [publish.ts](./scripts/publish.ts) | 支持 30+ 视频平台自动化分发 |
 
 ## DTO 知识提取规范 (DTO Extraction Specs)
@@ -55,30 +89,27 @@
 为确保 AI 助手在生成指令文档时**完整、无遗漏**地提取参数，必须遵循以下 DTO 阅读准则：
 
 ### 1. 目标类定位 (Target Identification)
-根据业务模态，在 `<platform_id>.dto.ts` 中定位对应的表单类（通常继承自 `Platform*ViewDTO`）：
-- **文章发布**: 提取 `*ArticleForm` 类（如 `DouyinArticleForm`）。
-- **视频发布**: 提取 `*VideoForm` 类（如 `DouYinVideoForm`）。
-- **图文/动态**: 提取 `*DynamicForm` 类（如 `DouYinDynamicForm`）。
+根据业务模态，在 `<platform_id>.dto.ts` 中定位对应的表单类：
+- **文章发布 (`article`)**: 提取 `*ArticleForm` 类（如 `DouyinArticleForm`）。
+- **视频发布 (`video`)**: 提取 `*VideoForm` 类（如 `DouYinVideoForm`）。
+- **图文/动态 (`image-text`)**: 提取 `*DynamicForm` 类（如 `DouYinDynamicForm`）。
 - **注意**: 若类名不符合上述规律，请查找所有继承自 `PlatformFormBaseDTO` 的类。
 
-### 2. 知识提取 (Knowledge Extraction)
+### 2. 核心结构审计 (Core Structure Audit)
 **必须深度审计以下文件**以获取完整表单知识：
 1.  **后端 DTO** (`*.dto.ts`): 
-    - **定位 Form 类**: 文章找 `*ArticleForm`，视频找 `*VideoForm`，图文找 `*DynamicForm`。
-    - **全量扫描**: 必须提取类中**所有**带有 `@ApiProperty` 的字段。
+    - **扫描 ApiProperty**: 必须提取类中**所有**带有 `@ApiProperty` 的字段。
+    - **标准对象识别**: 若字段类型引用了 `ImageFormItem` 或 `VideoFormItem`（见上文模型），文档中只需指明为“标准图片/视频对象”即可。
     - **规则还原**: 详细记录 `@IsNotEmpty` (必填), `@IsIn` (枚举范围), `@IsInt` (类型), `@MaxLength` (长度限制) 等逻辑。
-    - **嵌套对象**: 若字段类型是 class (如 `Cover`), 必须点击跳转查看该类的具体字段，并在文档中详细说明该对象的 JSON 结构。
-2.  **环境变量**: 确保 `YIXIAOER_API_KEY` 在 `openclaw-skill/.env` 中正确配置。
+    - **嵌套对象**: 若字段类型是 class (且非标准项), 必须点击跳转查看该类的具体字段，并在文档中详细说明该对象的 JSON 结构。
 
-### 4. 对象与嵌套能力处理 (Complex Objects & Capabilities)
-**核心规则**:
-1.  **模型说明**: 如果平台参数中是一个对象（如 `category`, `activity`, `location`），在指令文档中必须提供该对象的完整 JSON 模型示例。
-2.  **递归能力创建**: 
-    - 若该对象的数据依赖于其他接口（例如“获取分类列表”、“获取活动列表”），AI 助手**必须**在 `docs/` 下创建一个专门的能力说明文件（如 `get-bjh-categories.md`）。
-    - 同时在 `scripts/` 下增加对应的原子脚本（如 `get-bjh-categories.ts`）以支持数据查询。
-    - 在主发布文档中，应在参数说明中明确指向该查询能力。
+### 3. 上层结构知识 (Upper-Level Mapping)
+AI 助手应知晓 `publish.ts` 最终会将指令封装为 `CloudTaskPushRequest`：
+- `publishType`: 映射为 `article`, `video`, `imageText`。
+- `publishArgs`: 包含 `accountForms` (账号级) 和 `platformForms` (平台级)。
+- **指令参数透传**: 指令文档中定义的所有非核心通用参数，都会被自动收集并填入 `contentPublishForm`。
 
-### 5. 禁止项 (Strict Prohibitions)
+### 4. 禁止项 (Strict Prohibitions)
 - **严禁遗漏**: 不得因为属性是“可选”的就忽略提取。可选属性在文档中应标注为 `[可选]`。
 - **严禁简写**: 必须保留 DTO 中定义的完整字段名（如 `scheduledTime` 不得简写为 `time`）。
 - **严禁自创**: 所有的参数逻辑必须以后端代码为准，不得凭经验猜测。

@@ -169,7 +169,13 @@ async function main() {
 
     // 针对图文格式的补全
     if (type === 'image-text') {
-      if (!contentPublishForm.description) contentPublishForm.description = content;
+      let description = content || '';
+      // 抖音图文要求描述内容用 <p> 标签包裹
+      if (platforms.some(p => p.includes('抖音')) && description && !description.includes('<p>')) {
+        description = `<p>${description.replace(/\n/g, '</p><p>')}</p>`;
+      }
+      
+      if (!contentPublishForm.description) contentPublishForm.description = description;
       if (imageKeys.length > 0 && !contentPublishForm.images) {
         contentPublishForm.images = imageKeys.map(key => ({ key, width: 1200, height: 800, size: 0 }));
       }
@@ -188,8 +194,6 @@ async function main() {
     }
 
     // 5. 构造任务 Body
-    const platformForms: Record<string, any> = {};
-    platforms.forEach(p => { platformForms[p] = contentPublishForm; });
 
     const taskBody: any = {
       desc: title || content?.substring(0, 30),
@@ -199,7 +203,6 @@ async function main() {
       isDraft: contentPublishForm.pubType === 0,
       coverKey,
       publishArgs: {
-        platformForms,
         accountForms: accountIds.map(accountId => {
           const accForm: any = { platformAccountId: accountId, contentPublishForm };
           if (publishContentId) accForm.publishContentId = publishContentId;
