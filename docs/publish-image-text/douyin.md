@@ -32,6 +32,18 @@
 }
 ```
 
+### collection / sub_collection (Category)
+```json
+{
+  "yixiaoerId": "123",
+  "yixiaoerName": "合集名称",
+  "yixiaoerImageUrl": "http://...",
+  "yixiaoerDesc": "合集描述",
+  "viewNum": "100",
+  "raw": { ... }
+}
+```
+
 ## 使用示例 (Usage)
 
 ```bash
