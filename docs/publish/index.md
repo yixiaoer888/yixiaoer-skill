@@ -153,3 +153,4 @@ node scripts/publish.ts --payload='{...}'
 > [!TIP]
 > 平台特定的 DTO 字段请查阅对应模态子目录下的各平台文档，将其放入 `contentPublishForm` 中。
 > contentPublishForm 中如果存在不清楚的选填字段，请不要随意填写。
+> 批量发布，不要多次调用脚本，而是在accountForms里增加多个平台的表单。
