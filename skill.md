@@ -1,14 +1,11 @@
+---
+name: openclaw-skill-core
+version: 1.4.0
+description: "蚁小二全平台媒体管理与运营能力，通过 DTO 驱动型文档与共享引擎实现发布过程原子化。"
+author: wangzhengjiao
+---
+
 # OpenClaw 龙虾技能 (OpenClaw Skill)
-
-该技能定义了蚁小二全平台的媒体管理与运营能力。
-通过元数据驱动（Skill -> Doc -> Script）模式，将发布过程原子化。
-
-## 技能定义 (Metadata)
-
-- **ID**: `openclaw-skill-core`
-- **版本**: `1.4.0`
-- **架构模式**: DTO 驱动型文档与共享引擎 (支持批量生成与增量优化)
-- **运行环境**: Node.js v18+ (Direct Runtime)
 
 ## 配置与安全 (Config & Secrets)
 
