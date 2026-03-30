@@ -37,6 +37,91 @@
 | `mediaId` | `string` | 否 | 第三方库素材 ID |
 | `fps` | `number` | 否 | 视频发布帧率 (海外平台使用) |
 
+## 4. 演示数据 (Payload Examples)
+
+以下为几种主要发布类型的完整 Payload 示例。
+
+### 示例 A: 文章发布 (Article)
+```json
+{
+  "publishType": "article",
+  "platforms": ["微信公众号"],
+  "publishArgs": {
+    "content": "<h1>演示文章标题</h1><p>这是一个演示文章的正文内容，支持 HTML 格式。</p>",
+    "accountForms": [
+      {
+        "platformAccountId": "acc_art_001",
+        "cover": {
+          "key": "article_cover_key",
+          "width": 900,
+          "height": 500,
+          "size": 150000
+        },
+        "contentPublishForm": {
+          "formType": "task",
+          // 更多属性请阅读平台文档
+        }
+      }
+    ]
+  }
+}
+```
+
+### 示例 B: 图文发布 (Image-Text)
+```json
+{
+  "publishType": "imageText",
+  "platforms": ["小红书"],
+  "publishArgs": {
+    "content": "这是一个图文发布的描述内容，通常为纯文本。 #演示 #Demo",
+    "accountForms": [
+      {
+        "platformAccountId": "acc_img_002",
+        "images": [
+          { "key": "img_key_1", "width": 1080, "height": 1440, "size": 200000 },
+          { "key": "img_key_2", "width": 1080, "height": 1440, "size": 200000 }
+        ],
+        "cover": { "key": "img_key_1", "width": 1080, "height": 1440, "size": 200000 },
+        "contentPublishForm": {
+          "formType": "task",
+        }
+      }
+    ]
+  }
+}
+```
+
+### 示例 C: 视频发布 (Video)
+```json
+{
+  "publishType": "video",
+  "platforms": ["抖音"],
+  "publishArgs": {
+    "accountForms": [
+      {
+        "platformAccountId": "acc_vid_003",
+        "video": {
+          "key": "video_oss_key",
+          "width": 1080,
+          "height": 1920,
+          "size": 52428800
+        },
+        "cover": {
+          "key": "video_cover_key",
+          "width": 1080,
+          "height": 1920,
+          "size": 307200
+        },
+        "contentPublishForm": {
+          "formType": "task",
+          // 更多属性请阅读平台文档
+        }
+      }
+    ]
+  }
+}
+```
+
 ---
 
 ### [文章发布平台列表 (Article)](./article/)
