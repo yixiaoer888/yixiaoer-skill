@@ -83,41 +83,54 @@
 | **查询合集列表** | [get-collections.md](./docs/get-collections.md) | [get-collections.ts](./scripts/get-collections.ts) | 获取账号已创建的合集 (抖音/头条) |
 | **查询征文活动** | [get-publish-activities.md](./docs/get-publish-activities.md) | [get-publish-activities.ts](./scripts/get-publish-activities.ts) | 获取账号下的可参与活动（百家号等） |
 | **上传资源** | [upload-resource.md](./docs/upload-resource.md) | [upload-resource.ts](./scripts/upload-resource.ts) | **基础能力**: 将文件或 URL 直传蚁小二 OSS |
-| **文章发布 (通用)** | [一点号](./docs/publish-article/yidianhao.md) \| [大鱼号](./docs/publish-article/dayuhao.md) \| [知乎](./docs/publish-article/zhihu.md) \| [更多](./docs/publish-article/) | [publish.ts](./scripts/publish.ts) | 支持 30+ 长文平台自动分发 |
-| **图文发布 (通用)** | [小红书](./docs/publish-image-text/xiaohongshu.md) \| [视频号](./docs/publish-image-text/shipinhao.md) \| [百家号](./docs/publish-image-text/baijiahao.md) \| [更多](./docs/publish-image-text/) | [publish.ts](./scripts/publish.ts) | 支持抖音/快手/小红书/微博/视频号/百家/头条/知乎等动态平台 |
+| **文章发布 (通用)** | [支持 20+ 文章平台](#文章发布平台支持情况) | [publish.ts](./scripts/publish.ts) | 支持 30+ 长文平台自动分发 |
+| **图文发布 (通用)** | [支持 8+ 图文平台](#图文发布平台支持情况) | [publish.ts](./scripts/publish.ts) | 支持抖音/快手/小红书/微博/视频号/百家/头条/知乎等动态平台 |
 | **视频发布 (通用)** | [支持 30+ 视频平台](#视频发布平台支持情况) | [publish.ts](./scripts/publish.ts) | 支持抖音/快手/B站/视频号等全平台自动化分发 |
 
 ### 视频发布平台支持情况
-- [抖音 (Douyin)](./docs/publish-video/douyin.md)
-- [头条号 (Toutiao)](./docs/publish-video/toutiaohao.md)
-- [哔哩哔哩 (Bilibili)](./docs/publish-video/bilibili.md)
-- [哔哩哔哩-Open (Bilibili Open API)](./docs/publish-video/bilibili-open.md)
-- [百家号 (Baijiahao)](./docs/publish-video/baijiahao.md)
-- [小红书 (Xiaohongshu)](./docs/publish-video/xiaohongshu.md)
-- [小红书商家号 (Xiaohongshu Shop)](./docs/publish-video/xiaohongshu-shop.md)
-- [快手 (Kuaishou)](./docs/publish-video/kuaishou.md)
-- [快手-Open (Kuaishou Open API)](./docs/publish-video/kuaishou-open.md)
-- [新浪微博 (Weibo)](./docs/publish-video/weibo.md)
-- [视频号 (WeChat Video Account)](./docs/publish-video/shipinhao.md)
-- [知乎 (Zhihu)](./docs/publish-video/zhihu.md)
-- [企鹅号 (Qiehao)](./docs/publish-video/qiehao.md)
-- [爱奇艺 (iQIYI)](./docs/publish-video/aiqiyi.md)
-- [网易号 (Wangyi)](./docs/publish-video/wangyihao.md)
-- [一点号 (Yidianhao)](./docs/publish-video/yidianhao.md)
-- [搜狐号 (Sohuhao)](./docs/publish-video/souhuhao.md)
-- [搜狐视频 (Sohu Video)](./docs/publish-video/souhushipin.md)
-- [腾讯微视 (Weishi)](./docs/publish-video/weishi.md)
-- [皮皮虾 (Pipixia)](./docs/publish-video/pipixia.md)
-- [腾讯视频 (Tencent Video)](./docs/publish-video/v-qq.md)
-- [多多视频 (Duo Duo Video)](./docs/publish-video/duoduoshipin.md)
-- [美拍 (Meipai)](./docs/publish-video/meipai.md)
-- [AcFun](./docs/publish-video/acfun.md)
-- [大鱼号 (Dayuhao)](./docs/publish-video/dayuhao.md)
-- [车家号 (Chejiahao)](./docs/publish-video/chejiahao.md)
-- [蜂网 (Fengwang)](./docs/publish-video/fengwang.md)
-- [得物 (Dewu)](./docs/publish-video/dewu.md)
-- [美柚 (Meiyou)](./docs/publish-video/meiyou.md)
-- [易车号 (Yichehao)](./docs/publish-video/yichehao.md)
+
+| 平台名称 | 文档路径 | 平台名称 | 文档路径 |
+| :--- | :--- | :--- | :--- |
+| **抖音 (Douyin)** | [douyin.md](./docs/publish-video/douyin.md) | **头条号 (Toutiao)** | [toutiaohao.md](./docs/publish-video/toutiaohao.md) |
+| **哔哩哔哩 (Bilibili)** | [bilibili.md](./docs/publish-video/bilibili.md) | **哔哩哔哩-Open** | [bilibili-open.md](./docs/publish-video/bilibili-open.md) |
+| **百家号 (Baijiahao)** | [baijiahao.md](./docs/publish-video/baijiahao.md) | **小红书 (Xiaohongshu)** | [xiaohongshu.md](./docs/publish-video/xiaohongshu.md) |
+| **小红书商家号** | [xiaohongshu-shop.md](./docs/publish-video/xiaohongshu-shop.md) | **快手 (Kuaishou)** | [kuaishou.md](./docs/publish-video/kuaishou.md) |
+| **快手-Open** | [kuaishou-open.md](./docs/publish-video/kuaishou-open.md) | **新浪微博 (Weibo)** | [weibo.md](./docs/publish-video/weibo.md) |
+| **视频号 (Video Account)** | [shipinhao.md](./docs/publish-video/shipinhao.md) | **知乎 (Zhihu)** | [zhihu.md](./docs/publish-video/zhihu.md) |
+| **企鹅号 (Qiehao)** | [qiehao.md](./docs/publish-video/qiehao.md) | **爱奇艺 (iQIYI)** | [aiqiyi.md](./docs/publish-video/aiqiyi.md) |
+| **网易号 (Wangyi)** | [wangyihao.md](./docs/publish-video/wangyihao.md) | **一点号 (Yidianhao)** | [yidianhao.md](./docs/publish-video/yidianhao.md) |
+| **搜狐号 (Sohuhao)** | [souhuhao.md](./docs/publish-video/souhuhao.md) | **搜狐视频 (Sohu Video)** | [souhushipin.md](./docs/publish-video/souhushipin.md) |
+| **腾讯微视 (Weishi)** | [weishi.md](./docs/publish-video/weishi.md) | **皮皮虾 (Pipixia)** | [pipixia.md](./docs/publish-video/pipixia.md) |
+| **腾讯视频 (Tencent)** | [v-qq.md](./docs/publish-video/v-qq.md) | **多多视频 (Duo Duo)** | [duoduoshipin.md](./docs/publish-video/duoduoshipin.md) |
+| **美拍 (Meipai)** | [meipai.md](./docs/publish-video/meipai.md) | **AcFun** | [acfun.md](./docs/publish-video/acfun.md) |
+| **大鱼号 (Dayuhao)** | [dayuhao.md](./docs/publish-video/dayuhao.md) | **车家号 (Chejiahao)** | [chejiahao.md](./docs/publish-video/chejiahao.md) |
+| **蜂网 (Fengwang)** | [fengwang.md](./docs/publish-video/fengwang.md) | **得物 (Dewu)** | [dewu.md](./docs/publish-video/dewu.md) |
+| **美柚 (Meiyou)** | [meiyou.md](./docs/publish-video/meiyou.md) | **易车号 (Yichehao)** | [yichehao.md](./docs/publish-video/yichehao.md) |
+
+### 文章发布平台支持情况
+
+| 平台名称 | 文档路径 | 平台名称 | 文档路径 |
+| :--- | :--- | :--- | :--- |
+| **微信公众号** | [wxgongzhonghao.md](./docs/publish-article/wxgongzhonghao.md) | **百家号 (Baijiahao)** | [baijiahao.md](./docs/publish-article/baijiahao.md) |
+| **今日头条 (Toutiao)** | [toutiao.md](./docs/publish-article/toutiao.md) | **知乎 (Zhihu)** | [zhihu.md](./docs/publish-article/zhihu.md) |
+| **新浪微博 (Weibo)** | [xinlangweibo.md](./docs/publish-article/xinlangweibo.md) | **网易号 (Wangyi)** | [wangyihao.md](./docs/publish-article/wangyihao.md) |
+| **大鱼号 (Dayuhao)** | [dayuhao.md](./docs/publish-article/dayuhao.md) | **一点号 (Yidianhao)** | [yidianhao.md](./docs/publish-article/yidianhao.md) |
+| **企鹅号 (Qiehao)** | [qiehao.md](./docs/publish-article/qiehao.md) | **搜狐号 (Sohuhao)** | [souhuhao.md](./docs/publish-article/souhuhao.md) |
+| **哔哩哔哩 (Bilibili)** | [bilibili.md](./docs/publish-article/bilibili.md) | **CSDN** | [csdn.md](./docs/publish-article/csdn.md) |
+| **简书 (Jianshu)** | [jianshu.md](./docs/publish-article/jianshu.md) | **雪球号 (Xueqiu)** | [xueqiuhao.md](./docs/publish-article/xueqiuhao.md) |
+| **豆瓣 (Douban)** | [douban.md](./docs/publish-article/douban.md) | **快传号 (Kuaichuan)** | [kuaichuanhao.md](./docs/publish-article/kuaichuanhao.md) |
+| **抖音 (Douyin)** | [douyin.md](./docs/publish-article/douyin.md) | **爱奇艺 (iQIYI)** | [aiqiyi.md](./docs/publish-article/aiqiyi.md) |
+| **车家号 (Chejiahao)** | [chejiahao.md](./docs/publish-article/chejiahao.md) | **易车号 (Yichehao)** | [yichehao.md](./docs/publish-article/yichehao.md) |
+| **WiFi万能钥匙** | [wifiwanneng.md](./docs/publish-article/wifiwanneng.md) | **AcFun** | [acfun.md](./docs/publish-article/acfun.md) |
+
+### 图文发布平台支持情况
+
+| 平台名称 | 文档路径 | 平台名称 | 文档路径 |
+| :--- | :--- | :--- | :--- |
+| **小红书 (Xiaohongshu)** | [xiaohongshu.md](./docs/publish-image-text/xiaohongshu.md) | **抖音 (Douyin)** | [douyin.md](./docs/publish-image-text/douyin.md) |
+| **快手 (Kuaishou)** | [kuaishou.md](./docs/publish-image-text/kuaishou.md) | **视频号 (Video Account)** | [shipinhao.md](./docs/publish-image-text/shipinhao.md) |
+| **新浪微博 (Weibo)** | [weibo.md](./docs/publish-image-text/weibo.md) | **百家号 (Baijiahao)** | [baijiahao.md](./docs/publish-image-text/baijiahao.md) |
+| **今日头条 (Toutiao)** | [toutiaohao.md](./docs/publish-image-text/toutiaohao.md) | **知乎 (Zhihu)** | [zhihu.md](./docs/publish-image-text/zhihu.md) |
 
 ## DTO 知识提取规范 (DTO Extraction Specs)
 
