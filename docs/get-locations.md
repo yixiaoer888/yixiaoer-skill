@@ -2,19 +2,19 @@
 
 获取在发布内容时可选的地理位置列表（地址/带货地址）。
 
-## 核心指令 (Command)
+## 调用指令 (Command)
 
 ```bash
-node scripts/get-locations.ts --account_id=ACCOUNT_ID --keyword="深圳" --type=1
+node scripts/get-locations.ts --payload='{"account_id":"XXX","keyword":"深圳","type":1}'
 ```
 
-## 参数列表 (Properties)
+## 参数列表 (Payload Properties)
 
-| 参数名 | 类型 | 是否必填 | 说明 |
+| 字段名 | 类型 | 是否必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| `--account_id` | `string` | 是 | 账号 ID。 |
-| `--keyword` | `string` | 否 | 搜索关键词。 |
-| `--type` | `number` | 否 | 搜索类型。`1`: 搜索位置（默认）；其他类型视平台支持而定。 |
+| `account_id` | `string` | **是** | 蚁小二账号 ID (32位十六进制) |
+| `keyword` | `string` | 否 | 搜索关键词 |
+| `type` | `number` | 否 | 搜索类型：`1`: 搜索位置 (默认) |
 
 ## 返回结果 (Response)
 

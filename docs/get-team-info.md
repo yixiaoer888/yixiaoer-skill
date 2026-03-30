@@ -17,11 +17,17 @@
 - **流程**:
   1. 调用 `GET /api/users/info` 获取用户元数据及 `latestTeamId`。
   2. 调用 `GET /api/teams/:id` 获取团队详情。
-- **调用示例**: `node scripts/get-team-info.ts`
 
-## 输出结果 (Output)
+## 调用指令 (Command)
 
-脚本输出合并后的 JSON 对象。核心字段如下：
+```bash
+node scripts/get-team-info.ts --payload='{}'
+```
+
+## 参数列表 (Payload Properties)
+
+无需传入字段，构造一个空对象即可：`--payload='{}'`
+核心字段如下：
 
 ### Team 字段 (Team Details)
 | 字段名 | 类型 | 描述 |

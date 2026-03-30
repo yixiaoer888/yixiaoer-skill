@@ -2,18 +2,18 @@
 
 获取发布内容时可供选择的平台背景音乐列表。
 
-## 核心指令 (Command)
+## 调用指令 (Command)
 
 ```bash
-node scripts/get-music.ts --account_id=ACCOUNT_ID --keyword="周杰伦"
+node scripts/get-music.ts --payload='{"account_id":"XXX","keyword":"周杰伦"}'
 ```
 
-## 参数列表 (Properties)
+## 参数列表 (Payload Properties)
 
-| 参数名 | 类型 | 是否必填 | 说明 |
+| 字段名 | 类型 | 是否必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| `--account_id` | `string` | 是 | 账号 ID。 |
-| `--keyword` | `string` | 是 | 搜索音乐关键词。 |
+| `account_id`| `string` | **是** | 蚁小二账号 ID (32位十六进制) |
+| `keyword`   | `string` | **是** | 搜索音乐关键词 |
 
 ## 返回结果 (Response)
 

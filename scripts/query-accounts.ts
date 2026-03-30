@@ -2,58 +2,42 @@
  * Query Account List (query-accounts.ts)
  * 
  * 获取蚁小二平台绑定的账号列表。
- * 调用方式: node query-accounts.ts --platform=抖音 --name=昵称 --page=1 --size=20
+ * 仅支持通过 --payload 传入完整的过滤参数 JSON 对象。
+ * 
+ * 调用方式:
+ * node scripts/query-accounts.ts --payload='{"platform":"抖音","name":"昵称","page":1,"size":20}'
  */
 
 async function main() {
-  const args = process.argv.slice(2);
-  const params: Record<string, string> = {};
-
-  args.forEach(arg => {
-    if (arg.startsWith('--')) {
-      const [key, value] = arg.slice(2).split('=');
-      if (key && value !== undefined) {
-        params[key] = value;
-      }
-    }
-  });
-
   const API_KEY = process.env.YIXIAOER_API_KEY;
   const API_URL = process.env.YIXIAOER_API_URL || 'https://www.yixiaoer.cn/api';
+
+  const args = process.argv.slice(2);
+  const payloadArg = args.find(a => a.startsWith('--payload='))?.split('=')[1];
 
   if (!API_KEY) {
     console.error(JSON.stringify({ error: "Missing YIXIAOER_API_KEY environment variable" }));
     process.exit(1);
   }
 
+  if (!payloadArg) {
+    console.error(JSON.stringify({ error: "Missing required parameter: --payload" }));
+    process.exit(1);
+  }
+
   try {
+    const payload = JSON.parse(payloadArg);
     const url = new URL(`${API_URL}/v2/platform/accounts`);
-    
-    // 默认值
-    if (!params.page) params.page = '1';
-    if (!params.size) params.size = '20';
 
-    // 允许的参数列表
-    const allowedParams = [
-      'page', 'size', 'platform', 'name', 'group', 
-      'loginStatus', 'isolation', 'parentId', 'time'
-    ];
-
-    allowedParams.forEach(key => {
-      if (params[key]) {
-        url.searchParams.append(key, params[key]);
+    // 将 Payload 中的字段映射为 SearchParams
+    Object.keys(payload).forEach(key => {
+      const val = payload[key];
+      if (Array.isArray(val)) {
+        val.forEach(v => url.searchParams.append(`${key}[]`, String(v)));
+      } else {
+        url.searchParams.append(key, String(val));
       }
     });
-
-    // 处理数组参数 (特殊处理)
-    // 如果用户传了 --platforms=抖音,又传了 --platforms=快手，这里只能拿到最后一个
-    // 如果需要支持数组，通常建议在 CLI 中用逗号分隔，如 --platforms=抖音,快手
-    if (params['platforms']) {
-      params['platforms'].split(',').forEach(p => url.searchParams.append('platforms[]', p));
-    }
-    if (params['platformType']) {
-      params['platformType'].split(',').forEach(t => url.searchParams.append('platformType[]', t));
-    }
 
     const response = await fetch(url.toString(), {
       method: 'GET',
@@ -69,8 +53,6 @@ async function main() {
     }
 
     const result = await response.json();
-    // 蚁小二接口通常返回 { statusCode: 0, data: { data: [...], totalSize: ... } }
-    // 或者直接返回 data 数组
     console.log(JSON.stringify(result.data || result, null, 2));
 
   } catch (error) {
@@ -83,3 +65,5 @@ async function main() {
 }
 
 main();
+
+export {};

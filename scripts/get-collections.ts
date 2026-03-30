@@ -2,33 +2,37 @@
  * 获取合集列表 (get-collections.ts)
  * 
  * 获取账号已创建的合集列表。
- * 调用方式: node scripts/get-collections.ts --account_id=XXX
+ * 仅支持通过 --payload 传入 JSON 参数。
+ * 
+ * 调用方式:
+ * node scripts/get-collections.ts --payload='{"account_id":"ACCOUNT_ID"}'
  */
 
 async function main() {
-  const args = process.argv.slice(2);
-  const argMap: Record<string, string> = {};
-
-  args.forEach(arg => {
-    const [key, value] = arg.split('=');
-    if (key.startsWith('--')) {
-      argMap[key.substring(2)] = value;
-    }
-  });
-
-  const accountId = argMap.account_id;
-
   const API_KEY = process.env.YIXIAOER_API_KEY;
   const API_URL = process.env.YIXIAOER_API_URL || 'https://www.yixiaoer.cn/api';
 
-  if (!API_KEY || !accountId) {
-    console.error(JSON.stringify({ 
-      error: "Missing required parameters: --account_id and YIXIAOER_API_KEY environment variable"
-    }));
+  const args = process.argv.slice(2);
+  const payloadArg = args.find(a => a.startsWith('--payload='))?.split('=')[1];
+
+  if (!API_KEY) {
+    console.error(JSON.stringify({ error: "Missing YIXIAOER_API_KEY environment variable" }));
+    process.exit(1);
+  }
+
+  if (!payloadArg) {
+    console.error(JSON.stringify({ error: "Missing required parameter: --payload" }));
     process.exit(1);
   }
 
   try {
+    const payload = JSON.parse(payloadArg);
+    const accountId = payload.account_id;
+
+    if (!accountId) {
+      throw new Error("Missing required field: account_id in payload");
+    }
+
     const response = await fetch(`${API_URL}/web/config-data/collection-tasks`, {
       method: 'POST',
       headers: {
@@ -36,9 +40,7 @@ async function main() {
         'Content-Type': 'application/json',
         'x-account-id': accountId
       },
-      body: JSON.stringify({
-        openAccountId: accountId
-      })
+      body: JSON.stringify({ openAccountId: accountId })
     });
 
     if (!response.ok) {

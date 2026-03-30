@@ -7,28 +7,18 @@
 - "帮我把这个视频上传并给我资源 Key。"
 - "上传这组图片作为多个账号的封面图。"
 
-## 参数定义 (Parameters)
+## 调用指令 (Command)
 
-| 参数名 | 类型 | 必填 | 描述 |
+```bash
+node scripts/upload-resource.ts --payload='{"url":"https://example.com/image.jpg","bucket":"cloud-publish"}'
+```
+
+## 参数列表 (Payload Properties)
+
+| 字段名 | 类型 | 是否必填 | 描述 |
 | :--- | :--- | :--- | :--- |
 | `url` | `string` | **是** | 资源的远程 URL 或本地绝对路径 |
-| `bucket` | `TeamBucketNamesEnum` | 否 | 存储桶。可选：`cloud-publish` (默认), `material-library`, `wechat-publish` |
-
-### 存储桶说明 (Buckets)
-- `cloud-publish`: 用于云端发布的视频、封面、图文素材。
-- `material-library`: 素材库存储。
-- `wechat-publish`: 微信公众号专用资产存储。
-
-## 脚本逻辑 (Backend)
-
-- **脚本路径**: `../scripts/upload-resource.ts`
-- **流程 (2-Step Upload)**:
-  1. **申请地址**: 调用 `GET /api/storages/[bucket]/upload-url?fileKey=...`。
-     - 获取 `serviceUrl`: 预签名的阿里云或私有云 PUT 写入地址。
-     - 获取 `key`: 资源在 OSS 上的全局唯一路径。
-  2. **物理写入**: 脚本将文件 Buffer 通过 `PUT` 请求直接发送至 `serviceUrl`。
-- **调用示例**: 
-  - `node scripts/upload-resource.ts --url="https://example.com/item.jpg" --bucket=cloud-publish`
+| `bucket` | `string` | 否 | OSS 存储桶。可选：`cloud-publish` (默认), `material-library` |
 
 ## 输出结果 (Output)
 

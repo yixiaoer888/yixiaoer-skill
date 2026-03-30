@@ -2,22 +2,24 @@
 
 该能力允许用户查询任务集（TaskSet）的历史发布记录，包括分页查看、状态筛选、发布方式（本地/云端）和关键词搜索。
 
-## 场景示例 (Scenarios)
-- "查看我最近发布的 5 条记录。"
-- "查询昨天发布的所有视频任务。"
-- "检查发布中 (publishing) 的任务集有哪些。"
+## 调用指令 (Command)
 
-## 参数定义 (Parameters)
+```bash
+node scripts/get-publish-records.ts --payload='{"page":1,"size":10}'
+```
 
-| 参数名 | 类型 | 必填 | 描述 |
+## 参数列表 (Payload Properties)
+
+| 字段名 | 类型 | 是否必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| `--page` | `number` | 否 | 页码，默认 1 |
-| `--size` | `number` | 否 | 每页数量，默认 10 |
-| `--publish_type` | `string` | 否 | 发布类型：`video`, `article`, `imageText` |
-| `--keywords` | `string` | 否 | 标题描述关键词搜索 |
-| `--status` | `TaskSetStatusEnum` | 否 | 任务集状态过滤 |
-| `--start_time` | `number` | 否 | 发布起始时间戳（毫秒） |
-| `--end_time` | `number` | 否 | 发布截止时间戳（毫秒） |
+| `page` | `number` | 否 | 当前页码，默认 `1` |
+| `size` | `number` | 否 | 每页条数，默认 `20` |
+| `platforms` | `string[]` | 否 | 按平台过滤，如 `["抖音"]` |
+| `publishStatus` | `number` | 否 | 状态过滤 |
+| `keywords` | `string` | 否 | 标题描述关键词搜索 |
+| `status` | `TaskSetStatusEnum` | 否 | 任务集状态过滤 |
+| `start_time` | `number` | 否 | 发布起始时间戳（毫秒） |
+| `end_time` | `number` | 否 | 发布截止时间戳（毫秒） |
 
 ### 枚举值定义
 
@@ -29,17 +31,17 @@
 - `allfailed`: 全部发布失败
 - `cancel`: 已取消
 
-## 调用指令 (Commands)
+## 调用示例 (Examples)
 
-### 1. 查询任务集列表
+### 1. 分页查询成功记录
 ```bash
-node scripts/get-publish-records.ts --page=1 --size=10 --status=allsuccessful
+node scripts/get-publish-records.ts --payload='{"page":1,"size":10,"status":"allsuccessful"}'
 ```
 
-### 2. 查询特定任务详情 (子任务状态)
-使用 `get-publish-details.ts` 通过 `taskSetId` 查询。
+### 2. 查询特定任务集的子任务执行状态
+需要先从记录列表获取 `id`，然后调用 `get-publish-details`：
 ```bash
-node scripts/get-publish-details.ts --id={TASK_SET_ID}
+node scripts/get-publish-details.ts --payload='{"task_set_id":"TASK_SET_ID"}'
 ```
 
 ## 响应数据模型 (Response JSON)

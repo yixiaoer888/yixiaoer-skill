@@ -2,50 +2,47 @@
  * 获取征文活动 (get-publish-activities.ts)
  * 
  * 获取特定账号在特定发布类型下的征文活动列表。
- * 调用方式: node get-publish-activities.ts --account_id=XXX --type=video [--categoryId=YYY] [--keyWord=ZZZ]
+ * 调用方式: node scripts/get-publish-activities.ts --payload='{"account_id":"XXX","type":1}'
  */
 
 async function main() {
-  const args = process.argv.slice(2);
-  const argMap: Record<string, string> = {};
-
-  args.forEach(arg => {
-    const [key, value] = arg.split('=');
-    if (key.startsWith('--')) {
-      argMap[key.substring(2)] = value;
-    }
-  });
-
-  const accountId = argMap.account_id;
-  const type = argMap.type;
-  const categoryId = argMap.categoryId;
-  const keyWord = argMap.keyWord;
-
   const API_KEY = process.env.YIXIAOER_API_KEY;
   const API_URL = process.env.YIXIAOER_API_URL || 'https://www.yixiaoer.cn/api';
 
-  if (!API_KEY || !accountId || !type) {
-    console.error(JSON.stringify({ 
-      error: "Missing required parameters: --account_id, --type and YIXIAOER_API_KEY environment variable"
-    }));
+  const args = process.argv.slice(2);
+  const payloadArg = args.find(a => a.startsWith('--payload='))?.split('=')[1];
+
+  if (!API_KEY) {
+    console.error(JSON.stringify({ error: "Missing YIXIAOER_API_KEY environment variable" }));
+    process.exit(1);
+  }
+
+  if (!payloadArg) {
+    console.error(JSON.stringify({ error: "Missing required parameter: --payload" }));
     process.exit(1);
   }
 
   try {
-    // 构造查询参数
-    const queryParams = new URLSearchParams({
-      publishType: type
-    });
-    if (categoryId) queryParams.append('categoryId', categoryId);
-    if (keyWord) queryParams.append('keyWord', keyWord);
+    const payload = JSON.parse(payloadArg);
+    const accountId = payload.account_id;
 
-    // 标准 API 路径: GET v2/platform/accounts/:id/activities
-    const response = await fetch(`${API_URL}/v2/platform/accounts/${accountId}/activities?${queryParams.toString()}`, {
-      method: 'GET',
+    if (!accountId) {
+      throw new Error("Missing required field: account_id in payload");
+    }
+
+    const response = await fetch(`${API_URL}/web/config-data/activity-tasks`, {
+      method: 'POST',
       headers: {
         'Authorization': API_KEY,
-        'Content-Type': 'application/json'
-      }
+        'Content-Type': 'application/json',
+        'x-account-id': accountId
+      },
+      body: JSON.stringify({
+        openAccountId: accountId,
+        publishType: payload.type || 1,
+        categoryId: payload.categoryId,
+        keyWord: payload.keyWord
+      })
     });
 
     if (!response.ok) {
@@ -58,7 +55,7 @@ async function main() {
 
   } catch (error) {
     console.error(JSON.stringify({ 
-      error: "Failed to get activities", 
+      error: "Failed to query activities", 
       details: (error as Error).message 
     }));
     process.exit(1);
@@ -68,5 +65,3 @@ async function main() {
 main();
 
 export {};
-
-

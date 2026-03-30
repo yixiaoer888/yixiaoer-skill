@@ -10,21 +10,21 @@
 
 ## 参数定义 (Parameters)
 
-### 请求参数 (Query Parameters)
+### 参数列表 (Payload Properties)
 
-| 参数名 | 类型 | 描述 |
-| :--- | :--- | :--- |
-| `platform` | `string` | **可选**。指定展示某个平台。见 [平台定义](./platform.md)。 |
-| `name` | `string` | **可选**。按账号昵称模糊查询。 |
-| `group` | `string` | **可选**。按分组名称查询。 |
-| `page` | `number` | **可选**。当前页码，默认 `1`。 |
-| `size` | `number` | **可选**。每页数量，默认 `20`，最大 `1000`。 |
-| `platforms` | `string[]` | **可选**。平台批量查询，支持多个。见 [平台定义](./platform.md)。 |
-| `platformType` | `number[]` | **可选**。平台类型批量查询。见 [平台定义-平台类型](./platform.md#平台类型枚举-platformtype)。 |
-| `loginStatus` | `number` | **可选**。账号登录状态查询。见下方【登录状态枚举】。 |
-| `isolation` | `string` | **可选**。是否显示隔离数据，`true`\|`false`，默认 `false`。 |
-| `parentId` | `string` | **可选**。父级ID，用于查询子账号列表。 |
-| `time` | `number` | **可选**。查询此时间戳之后是否有新消息（unix ms）。 |
+| 字段名 | 类型 | 是否必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `platform` | `string` | 否 | 指定展示某个平台。见 [平台定义](./platform.md)。 |
+| `name` | `string` | 否 | 按账号昵称模糊查询。 |
+| `group` | `string` | 否 | 按分组名称查询。 |
+| `page` | `number` | 否 | 当前页码，默认 `1`。 |
+| `size` | `number` | 否 | 每页数量，默认 `20`，最大 `1000`。 |
+| `platforms` | `string[]` | 否 | 平台批量查询，支持多个。见 [平台定义](./platform.md)。 |
+| `platformType` | `number[]` | 否 | 平台类型批量查询。见 [平台定义-平台类型](./platform.md#平台类型枚举-platformtype)。 |
+| `loginStatus` | `number` | 否 | 账号登录状态查询。见下方【登录状态枚举】。 |
+| `isolation` | `string` | 否 | 是否显示隔离数据，`true`|`false`，默认 `false`。 |
+| `parentId` | `string` | 否 | 父级ID，用于查询子账号列表。 |
+| `time` | `number` | 否 | 查询此时间戳之后是否有新消息（unix ms）。 |
 
 ### 枚举定义 (Enumerations)
 
@@ -58,15 +58,11 @@
 | `isFreeze` | `boolean` | 账号是否被冻结 |
 | `createdAt` | `number` | 账号创建时间戳 |
 
-## 脚本逻辑 (Backend)
+## 调用指令 (Command)
 
-- **脚本路径**: `../scripts/query-accounts.ts`
-- **实际接口**: `GET https://www.yixiaoer.cn/api/v2/platform/accounts`
-- **调用示例**: 
-  - `node query-accounts.ts --platform=抖音 --name=倒霉蛋`
-  - `node query-accounts.ts --page=1 --size=50`
+```bash
+node scripts/query-accounts.ts --payload='{"platform":"抖音","name":"昵称","page":1,"size":20}'
+```
 
 ## 注意事项
-
-- 请确保环境变量 `YIXIAOER_API_KEY` 已设置，目前该接口优先通过 API Key 进行租户鉴权。
-- 复杂数组参数（如 `platforms[]`）在目前的脚本中可能需要通过特定方式传入，建议优先使用单选 `platform` 参数。
+- 请确保环境变量 `YIXIAOER_API_KEY` 已设置。

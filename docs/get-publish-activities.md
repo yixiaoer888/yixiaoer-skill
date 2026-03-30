@@ -7,14 +7,20 @@
 - "帮我查一下抖音账号 A 最近有哪些可以参加的征文活动。"
 - "我想参加个关于科技的征文，看看我的百家号账号能报哪个。"
 
-## 参数定义 (Parameters)
+## 调用指令 (Command)
 
-| 参数名 | 类型 | 必填 | 描述 |
+```bash
+node scripts/get-publish-activities.ts --payload='{"account_id":"XXX","type":1}'
+```
+
+## 参数列表 (Payload Properties)
+
+| 字段名 | 类型 | 是否必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| `--account_id` | `string` | **是** | 蚁小二媒体账号 ID |
-| `--type` | `ContentTypeEnum` | **是** | 发布模态：`video` (视频), `article` (文章), `dynamic` (动态), `imageText` (图文) |
-| `--categoryId` | `string` | 否 | 分类 ID，用于过滤特定分类下的活动 |
-| `--keyWord` | `string` | 否 | 搜索关键词 |
+| `account_id` | `string` | **是** | 蚁小二账号 ID (32位十六进制) |
+| `type`       | `number` | **是** | 发布类型：`1`: 文章，`2`: 视频，`3`: 动态 |
+| `categoryId` | `string` | 否   | 特定分类下的活动 |
+| `keyWord`    | `string` | 否   | 搜索活动关键字 |
 
 ### 枚举值定义
 
@@ -43,7 +49,3 @@
 | `viewNum` | `string` | 浏览量/参与度指标 |
 | `raw` | `object` | 平台原始活动数据（包含第三方平台的 Activity ID 等） |
 
-### 调用示例
-```bash
-node scripts/get-publish-activities.ts --account_id=66a8xxx --type=video --keyWord=运动
-```

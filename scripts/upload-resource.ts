@@ -1,14 +1,14 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-const API_KEY = process.env.YIXIAOER_API_KEY;
-const API_URL = process.env.YIXIAOER_API_URL || 'https://www.yixiaoer.cn/api';
-
 /**
  * 通用资源上传辅助函数
  * 将本地文件或远程 URL 上传到蚁小二 OSS
  */
 export async function uploadResource(urlOrPath: string, bucket: string = 'cloud-publish') {
+  const API_KEY = process.env.YIXIAOER_API_KEY;
+  const API_URL = process.env.YIXIAOER_API_URL || 'https://www.yixiaoer.cn/api';
+
   if (!API_KEY) {
     throw new Error("Missing YIXIAOER_API_KEY environment variable.");
   }
@@ -45,7 +45,6 @@ export async function uploadResource(urlOrPath: string, bucket: string = 'cloud-
   }
 
   const uploadInfo = await uploadInfoRes.json();
-  // 兼容两种返回格式：{ data: { serviceUrl, key } } 或直接 { serviceUrl, key }
   const data = uploadInfo.data || uploadInfo;
   const { serviceUrl, key } = data;
 
@@ -68,24 +67,34 @@ export async function uploadResource(urlOrPath: string, bucket: string = 'cloud-
 }
 
 /**
- * 如果是直接运行脚本 (node scripts/upload-resource.ts)，则执行 main
+ * 主执行入口
+ * 仅支持通过 --payload 传入参数。
+ * 调用方式: node scripts/upload-resource.ts --payload='{"url":"https://...","bucket":"cloud-publish"}'
  */
 async function main() {
   const args = process.argv.slice(2);
-  const urlArg = args.find(a => a.startsWith('--url='))?.split('=')[1];
-  const bucket = args.find(a => a.startsWith('--bucket='))?.split('=')[1] || 'cloud-publish';
+  const payloadArg = args.find(a => a.startsWith('--payload='))?.split('=')[1];
 
-  if (!urlArg) {
-    console.error(JSON.stringify({ error: "Missing parameter: --url" }));
+  if (!payloadArg) {
+    console.error(JSON.stringify({ error: "Missing required parameter: --payload" }));
     process.exit(1);
   }
 
   try {
+    const payload = JSON.parse(payloadArg);
+    const urlArg = payload.url;
+    const bucket = payload.bucket || 'cloud-publish';
+
+    if (!urlArg) {
+      throw new Error("Missing required field: url in payload");
+    }
+
     const key = await uploadResource(urlArg, bucket);
     console.log(JSON.stringify({ 
         key, 
         name: urlArg.startsWith('http') ? new URL(urlArg).pathname.split('/').pop() : urlArg.split('/').pop() 
     }, null, 2));
+
   } catch (error) {
     console.error(JSON.stringify({ 
       error: "Failed to upload resource", 
@@ -95,11 +104,10 @@ async function main() {
   }
 }
 
-// 简单的判断是否为直接执行：如果路径包含脚本名称且 argv[1] 存在
+// 简单的判断是否为直接执行
 if (process.argv[1]?.replace(/\\/g, '/').endsWith('scripts/upload-resource.ts') || 
     process.argv[1]?.replace(/\\/g, '/').endsWith('scripts/upload-resource')) {
   main();
 }
 
 export {};
-

@@ -7,12 +7,12 @@
 - "列出我的抖音账号 A 可选的所有视频分类。"
 - "看看这个百家号账号都有哪些文章分类。"
 
-## 参数定义 (Parameters)
+## 参数列表 (Payload Properties)
 
-| 参数名 | 类型 | 必填 | 描述 |
+| 字段名 | 类型 | 是否必填 | 描述 |
 | :--- | :--- | :--- | :--- |
-| `--account_id` | `string` | **是** | 蚁小二媒体账号 ID |
-| `--type` | `ContentTypeEnum` | **是** | 发布模态：`video` (视频), `article` (文章), `dynamic` (动态), `imageText` (图文) |
+| `account_id` | `string` | **是** | 蚁小二媒体账号 ID |
+| `type` | `ContentTypeEnum` | **是** | 发布模态：`video` (视频), `article` (文章), `dynamic` (动态), `imageText` (图文) |
 
 ### 枚举值定义
 
@@ -39,8 +39,7 @@
 | `child` | `array` | 子分类列表（若支持层级分类，如抖音/快手） |
 | `raw` | `object` | 平台原始分类数据 |
 
-### 调用示例
+### 调用指令 (Command)
 ```bash
-node scripts/get-publish-categories.ts --account_id=64dxxx --type=article
+node scripts/get-publish-categories.ts --payload='{"account_id":"64dxxx","type":"article"}'
 ```
-

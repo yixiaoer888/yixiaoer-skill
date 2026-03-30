@@ -1,300 +1,52 @@
-import { uploadResource } from './upload-resource.ts';
-
-const API_KEY = process.env.YIXIAOER_API_KEY;
-const API_URL = process.env.YIXIAOER_API_URL || 'https://www.yixiaoer.cn/api';
-
 /**
- * 通用发布引擎
- * 支持：文章(article)、视频(video)、图文/动态(image-text)、微信公众号(weixin-gongzhonghao)
+ * 通用发布引擎 (Universal Publishing Engine)
+ * 
+ * 仅支持通过 --payload 传入完整的符合 CloudTaskPushRequest 结构的 JSON 对象。
+ * 
+ * 调用方式:
+ * node scripts/publish.ts --payload='{...}'
  */
-async function main() {
-  const args = process.argv.slice(2);
-  const params: Record<string, string> = {};
-  
-  // 1. 基础解析
-  args.forEach(arg => {
-    const match = arg.match(/^--([^=]+)=(.*)$/);
-    if (match) {
-      params[match[1]] = match[2];
-    }
-  });
 
-  const type = params.type;
-  const platformsStr = params.platforms;
-  const accountIdsStr = params.account_ids;
-  const title = params.title;
-  const content = params.content || params.description; // 兼容 content 或 description
-  
-  if (!type || !platformsStr || !accountIdsStr) {
-    console.error(JSON.stringify({ 
-      error: "Missing core parameters: --type, --platforms, --account_ids" 
-    }));
-    process.exit(1);
-  }
+async function main() {
+  const API_KEY = process.env.YIXIAOER_API_KEY;
+  const API_URL = process.env.YIXIAOER_API_URL || 'https://www.yixiaoer.cn/api';
+
+  const args = process.argv.slice(2);
+  const payloadArg = args.find(a => a.startsWith('--payload='))?.split('=')[1];
 
   if (!API_KEY) {
-    console.error(JSON.stringify({ error: "Missing YIXIAOER_API_KEY environment variable." }));
+    console.error(JSON.stringify({ error: "Missing YIXIAOER_API_KEY environment variable" }));
     process.exit(1);
   }
 
-  const platforms = platformsStr.split(',').map(p => p.trim());
-  const accountIds = accountIdsStr.split(',').map(id => id.trim());
+  if (!payloadArg) {
+    console.error(JSON.stringify({ error: "Missing required parameter: --payload" }));
+    process.exit(1);
+  }
 
   try {
-    // 2. 资源上传处理
-    let videoKey = params.video_key;
-    if (!videoKey && params.video_url) {
-      videoKey = await uploadResource(params.video_url);
-    }
+    const taskBody = JSON.parse(payloadArg);
 
-    let coverKey = params.cover_key;
-    if (!coverKey && params.cover_url) {
-      coverKey = await uploadResource(params.cover_url);
-    }
-
-    let imageKeys: string[] = params.image_keys ? params.image_keys.split(',').map(k => k.trim()) : [];
-    if (imageKeys.length === 0 && params.image_urls) {
-      const urls = params.image_urls.split(',').map(u => u.trim());
-      for (const url of urls) {
-        const key = await uploadResource(url);
-        imageKeys.push(key);
-      }
-    }
-
-    // 3. 内容存证 (针对文章类)
-    let publishContentId: string | undefined;
-    if (type === 'article' || type === 'weixin-gongzhonghao') {
-      publishContentId = Array.from({ length: 24 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-      const wrappedContent = `<html><body>${content || ''}</body></html>`;
-      const storageRes = await fetch(`${API_URL}/storages/articles`, {
-        method: 'POST',
-        headers: { 'Authorization': API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ publishContentId, title, content: wrappedContent, contentHtml: wrappedContent })
-      });
-      if (!storageRes.ok) throw new Error(`Storage failed: ${await storageRes.text()}`);
-    }
-
-    // 4. 构建业务表单 (Document-Driven: 将所有非核心参数收集到 form 中)
-    const coreArgs = [
-      'type', 'platforms', 'account_ids', 'title', 'content', 'description',
-      'video_url', 'video_key', 'cover_url', 'cover_key', 'image_urls', 'image_keys',
-      'client_id', 'channel', 'task_set_id', 'is_app', 'interval', 'time_unit', 
-      'start_time', 'rotation', 'media_id', 'fps'
-    ];
-    
-    const contentPublishForm: Record<string, any> = {};
-    Object.keys(params).forEach(key => {
-      if (!coreArgs.includes(key)) {
-        const value = params[key];
-        // 尝试解析 JSON (如 category, activity 等)
-        try {
-          if (value.startsWith('[') || value.startsWith('{')) {
-            contentPublishForm[key] = JSON.parse(value);
-          } else if (value === 'true') {
-            contentPublishForm[key] = true;
-          } else if (value === 'false') {
-            contentPublishForm[key] = false;
-          } else if (!isNaN(Number(value)) && value.trim() !== '') {
-            contentPublishForm[key] = Number(value);
-          } else {
-            contentPublishForm[key] = value;
-          }
-        } catch (e) {
-          contentPublishForm[key] = value;
-        }
-      }
-    });
-
-    // 补全基础字段
-    if (title && !contentPublishForm.title) contentPublishForm.title = title;
-    if (content && !contentPublishForm.content && (type === 'article' || type === 'weixin-gongzhonghao')) {
-      contentPublishForm.content = content;
-    }
-    // 补全描述字段 (针对文章摘要或视频/图文描述)
-    if (!contentPublishForm.desc && (params.desc || params.description)) {
-      contentPublishForm.desc = params.desc || params.description;
-    }
-    if (!contentPublishForm.description && (params.description || params.desc)) {
-      contentPublishForm.description = params.description || params.desc;
-    }
-    
-    // 针对文章格式的补全 (核心处理)
-    if (type === 'article' || type === 'weixin-gongzhonghao' || platforms.some(p => p === '微信公众号' || p === '公众号')) {
-      if (!contentPublishForm.articles) {
-        contentPublishForm.articles = [{
-          title: title,
-          content: content,
-          contentHtml: `<html><body>${content}</body></html>`,
-          digest: contentPublishForm.digest || title?.substring(0, 120),
-          isDraft: contentPublishForm.pubType === 0
-        }];
-      }
-
-      // 针对微信公众号的专项补全 (嵌套结构要求)
-      if (platforms.some(p => p === '微信公众号' || p === '公众号')) {
-        const wechatArticle = contentPublishForm.articles[0];
-        if (wechatArticle) {
-          // 确保 WeChat 必须的 cover 对象存在
-          if (!wechatArticle.cover && coverKey) {
-            wechatArticle.cover = { key: coverKey, width: 900, height: 383, size: 0 };
-          }
-          // 确保 WeChat 必须的 createType & authorName
-          if (wechatArticle.createType === undefined) {
-            wechatArticle.createType = contentPublishForm.original === true ? 1 : 0;
-          }
-          if (wechatArticle.authorName === undefined) {
-            wechatArticle.authorName = contentPublishForm.author || '';
-          }
-          // 补全公众号专用属性 (默认值)
-          if (wechatArticle.quickRepost === undefined) wechatArticle.quickRepost = 1;
-          if (wechatArticle.quickPrivateMessage === undefined) wechatArticle.quickPrivateMessage = 1;
-        }
-
-        // 兼容某些接口可能需要的 contentList
-        if (!contentPublishForm.contentList) {
-          contentPublishForm.contentList = contentPublishForm.articles;
-        }
-
-        // 群发逻辑补全
-        if (contentPublishForm.notify === false) {
-          contentPublishForm.notifySubscribers = 0;
-        } else if (contentPublishForm.notifySubscribers === undefined) {
-          contentPublishForm.notifySubscribers = 1;
-        }
-      }
-
-      // 文章共用封面
-      if (!contentPublishForm.covers && coverKey) {
-        contentPublishForm.covers = [{ key: coverKey, width: 1200, height: 800, size: 0 }];
-      }
-    }
-
-    // 针对图文格式的补全
-    if (type === 'image-text') {
-      let description = content || '';
-      // 抖音图文要求描述内容用 <p> 标签包裹
-      const isDouYin = platforms.some(p => p.includes('抖音'));
-      if (isDouYin && description && !description.includes('<p>')) {
-        description = `<p>${description.replace(/\n/g, '</p><p>')}</p>`;
-      }
-      
-      if (!contentPublishForm.description) contentPublishForm.description = description;
-
-      // 抖音 DTO 拼写为 musice (typo)
-      if (isDouYin && contentPublishForm.music && !contentPublishForm.musice) {
-        contentPublishForm.musice = contentPublishForm.music;
-      }
-
-      if (imageKeys.length > 0 && !contentPublishForm.images) {
-        contentPublishForm.images = imageKeys.map(key => ({ key, width: 1200, height: 800, size: 0, format: 'png' }));
-      }
-      // 抖音等平台可能需要 covers 数组 (OldCover)
-      if (!contentPublishForm.covers && coverKey) {
-        contentPublishForm.covers = [{ key: coverKey, width: 1200, height: 800, size: 0 }];
-      } else if (!contentPublishForm.covers && imageKeys.length > 0) {
-        // 如果没有显式封面，使用第一张图作为封面
-        contentPublishForm.covers = [{ key: imageKeys[0], width: 1200, height: 800, size: 0 }];
-      }
-    }
-
-    // 针对视频格式的补全
-    if (type === 'video') {
-      if (!contentPublishForm.description) contentPublishForm.description = content;
-      
-      const isDouYin = platforms.some(p => p.includes('抖音'));
-      // 抖音视频 DTO 要求 horizontalCover (横板封面)
-      if (isDouYin && !contentPublishForm.horizontalCover && coverKey) {
-        contentPublishForm.horizontalCover = { key: coverKey, width: 1920, height: 1080, size: 0 };
-      }
-      // 抖音 DTO 拼写为 musice (typo)，不论是视频还是图文都兼容一下
-      if (isDouYin && contentPublishForm.music && !contentPublishForm.musice) {
-        contentPublishForm.musice = contentPublishForm.music;
-      }
-    }
-
-    // 5. 构造任务 Body
-
-    // 抖音/图文等场景，如果没填封面，在此处把默认生成的封面 Key 回填到顶层 coverKey
-    let finalCoverKey = coverKey;
-    if (!finalCoverKey && type === 'image-text' && imageKeys.length > 0) {
-      finalCoverKey = imageKeys[0];
-    }
-
-    const publishTypeMapping: Record<string, string> = {
-      'weixin-gongzhonghao': 'article',
-      'article': 'article',
-      'image-text': 'imageText',
-      'video': 'video'
-    };
-
-    const taskBody: any = {
-      taskSetId: params.task_set_id,
-      desc: title || params.description || content?.substring(0, 30),
-      platforms,
-      publishType: publishTypeMapping[type] || type,
-      publishChannel: params.channel || 'cloud',
-      clientId: params.client_id,
-      isDraft: contentPublishForm.pubType === 0,
-      isAppContent: params.is_app === 'true',
-      coverKey: finalCoverKey,
-      publishArgs: {
-        accountForms: accountIds.map(accountId => {
-          const accForm: any = { platformAccountId: accountId, contentPublishForm };
-          if (publishContentId) accForm.publishContentId = publishContentId;
-          
-          // 账号级额外字段
-          if (params.media_id) accForm.mediaId = params.media_id;
-          if (params.fps) accForm.fps = Number(params.fps);
-
-          // 必填项：cover (ImageFormItem)
-          const currentCoverKey = finalCoverKey;
-          if (currentCoverKey) {
-            accForm.coverKey = currentCoverKey;
-            accForm.cover = { key: currentCoverKey, width: 1200, height: 800, size: 0 };
-          }
-          
-          if (videoKey) {
-            accForm.video = { key: videoKey, width: 1920, height: 1080, size: 0, duration: 0 };
-          }
-          if (imageKeys.length > 0) {
-            accForm.images = imageKeys.map(key => ({ key, width: 1200, height: 800, size: 0 }));
-          }
-          return accForm;
-        })
-      }
-    };
-
-    // 关键补全: 文章和图文要求 publishArgs 顶层包含内容原文
-    if (type === 'article' || type === 'weixin-gongzhonghao' || type === 'image-text') {
-      taskBody.publishArgs.content = content;
-    }
-
-    // 间隔发布配置补全
-    if (params.interval) {
-      taskBody.intervalConfig = {
-        enable: true,
-        interval: Number(params.interval),
-        timeUnit: params.time_unit || 'minute',
-        dailyStartTime: params.start_time,
-        accountRotation: params.rotation === 'true'
-      };
-    }
-
-    // 6. 最终提交
-    const publishRes = await fetch(`${API_URL}/taskSets/v2`, {
+    const response = await fetch(`${API_URL}/taskSets/v2`, {
       method: 'POST',
-      headers: { 'Authorization': API_KEY, 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': API_KEY,
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify(taskBody)
     });
 
-    if (!publishRes.ok) throw new Error(`Publishing failed: ${await publishRes.text()}`);
-    const result = await publishRes.json();
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
 
+    const result = await response.json();
     console.log(JSON.stringify(result, null, 2));
 
   } catch (error) {
     console.error(JSON.stringify({ 
-      error: "Universal Publish Engine Error", 
+      error: "Failed to submit publish task", 
       details: (error as Error).message 
     }));
     process.exit(1);
@@ -302,3 +54,5 @@ async function main() {
 }
 
 main();
+
+export {};
