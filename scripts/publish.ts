@@ -202,21 +202,38 @@ async function main() {
 
     // 5. 构造任务 Body
 
+    // 抖音/图文等场景，如果没填封面，在此处把默认生成的封面 Key 回填到顶层 coverKey
+    let finalCoverKey = coverKey;
+    if (!finalCoverKey && type === 'image-text' && imageKeys.length > 0) {
+      finalCoverKey = imageKeys[0];
+    }
+
+    const publishTypeMapping: Record<string, string> = {
+      'weixin-gongzhonghao': 'article',
+      'article': 'article',
+      'image-text': 'imageText',
+      'video': 'video'
+    };
+
     const taskBody: any = {
-      desc: title || content?.substring(0, 30),
+      desc: title || params.description || content?.substring(0, 30),
       platforms,
-      publishType: (type === 'weixin-gongzhonghao' || type === 'article') ? 'article' : (type === 'image-text' ? 'imageText' : type),
+      publishType: publishTypeMapping[type] || type,
       publishChannel: 'cloud',
       isDraft: contentPublishForm.pubType === 0,
-      coverKey,
+      coverKey: finalCoverKey,
       publishArgs: {
         accountForms: accountIds.map(accountId => {
           const accForm: any = { platformAccountId: accountId, contentPublishForm };
           if (publishContentId) accForm.publishContentId = publishContentId;
-          if (coverKey) {
-            accForm.coverKey = coverKey;
-            accForm.cover = { key: coverKey, width: 1200, height: 800, size: 0 };
+          
+          // 必填项：cover (ImageFormItem)
+          const currentCoverKey = finalCoverKey;
+          if (currentCoverKey) {
+            accForm.coverKey = currentCoverKey;
+            accForm.cover = { key: currentCoverKey, width: 1200, height: 800, size: 0 };
           }
+          
           if (videoKey) {
             accForm.video = { key: videoKey, width: 1920, height: 1080, size: 0 };
           }
@@ -227,6 +244,11 @@ async function main() {
         })
       }
     };
+
+    // 关键补全: 文章和图文要求 publishArgs 顶层包含内容原文
+    if (type === 'article' || type === 'weixin-gongzhonghao' || type === 'image-text') {
+      taskBody.publishArgs.content = content;
+    }
     
     // 如果是视频，顶级也需要 videoKey
     if (videoKey) taskBody.videoKey = videoKey;

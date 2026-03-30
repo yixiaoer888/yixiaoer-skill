@@ -24,17 +24,19 @@
 
 ### 1. 核心映射逻辑 (Core Mapping)
 
-| 参数 | 对应 DTO 字段 | 说明 |
-| :--- | :--- | :--- |
-| `--type` | `publishType` | `article`, `image-text`, `video`。(`image-text` 会自动映射为后端的 `imageText`) |
-| `--platforms` | `platforms` | 必填。目标平台名称列表（逗号分隔）。见 [平台定义](./docs/platform.md) |
-| `--account_ids` | `accountIds` | 必填。目标账号 ID 列表（逗号分隔） |
-| `--title` | `title` | 标题（文章必填；图文/视频可选，若填入则作为任务集描述） |
-| `--content` | `content`/`desc`| 文章为 HTML 内容；图文和视频会自动映射为 `description` |
-| `--video_url` | `video` | 视频 URL。引擎会自动生成 `VideoFormItem` 对象并补全基础元数据 |
-| `--image_urls` | `images` | 图片 URL（逗号分隔）。引擎会自动生成 `ImageFormItem[]` 列表 |
-| `--cover_url` | `cover` | 封面 URL。针对单账号生成 `ImageFormItem`，针对任务集生成 `coverKey` |
-| `--pubType` | `isDraft` | `1`: 立即发布 (默认: `isDraft=false`), `0`: 保存草稿 (`isDraft=true`) |
+引擎将指令参数映射为 `CloudTaskPushRequest` 结构：
+
+| 指令参数 | DTO 字段 | 映射目标 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `--type` | `publishType` | Root | `article`, `imageText`, `video` |
+| `--platforms` | `platforms` | Root | 目标平台数组 |
+| `--title` | `desc` | Root | 任务集描述/标题 |
+| `--content` | `content` | `publishArgs` | **关键**: 文章和图文必须在 `publishArgs` 顶层填入原始内容 |
+| `--account_ids`| - | `accountForms`| 拆分为多个账号级对象 |
+| `--cover_url` | `cover` | `accountForms`| **必填**: 账号级对象必须包含 `cover` (ImageFormItem) |
+| `--image_urls`| `images` | `accountForms`| 图文发布时填入账号级 `images` 列表 |
+| `--video_url` | `video` | `accountForms`| 视频发布时填入账号级 `video` 对象 |
+| `[Other]` | `*` | `contentPublishForm`| 所有不在上述核心列表的参数透传到平台 DTO |
 
 ### 2. 标准表单项模型 (Standard Form Models)
 
@@ -64,8 +66,6 @@
 ```
 > [!NOTE]
 > 引擎会自动处理资源上传。若指令中只提供 URL，引擎会获取 Key 后填入。
-
-## 能力地图 (Capabilities)
 
 ## 能力地图 (Capabilities)
 
@@ -107,10 +107,31 @@
     - **嵌套对象**: 若字段类型是 class (且非标准项), 必须点击跳转查看该类的具体字段，并在文档中详细说明该对象的 JSON 结构。
 
 ### 3. 上层结构知识 (Upper-Level Mapping)
-AI 助手应知晓 `publish.ts` 最终会将指令封装为 `CloudTaskPushRequest`：
-- `publishType`: 映射为 `article`, `video`, `imageText`。
-- `publishArgs`: 包含 `accountForms` (账号级) 和 `platformForms` (平台级)。
-- **指令参数透传**: 指令文档中定义的所有非核心通用参数，都会被自动收集并填入 `contentPublishForm`。
+
+AI 助手必须确保生成的请求符合以下 `CloudTaskPushRequest` 的嵌套层级：
+
+```json
+{
+  "desc": "任务集标题",
+  "publishType": "article | video | imageText",
+  "publishArgs": {
+    "content": "原始内容 (针对文章/图文必填)",
+    "accountForms": [
+      {
+        "platformAccountId": "账号ID",
+        "cover": { "key": "...", "width": 1200, "height": 800 }, // 必填
+        "images": [], // 图文必填
+        "video": {},  // 视频必填
+        "contentPublishForm": {
+          // 此处填入 DTO 提取规范中的平台专有参数
+        }
+      }
+    ]
+  }
+}
+```
+> [!IMPORTANT]
+> 注意 `content` 的双重位置：原始内容在 `publishArgs.content`；平台特有格式（如 HTML 或带标签的描述）在 `contentPublishForm`。
 
 ### 4. 禁止项 (Strict Prohibitions)
 - **严禁遗漏**: 不得因为属性是“可选”的就忽略提取。可选属性在文档中应标注为 `[可选]`。
