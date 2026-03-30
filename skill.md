@@ -74,6 +74,31 @@ author: wangzhengjiao
 > [!NOTE]
 > 引擎会自动处理资源上传。若指令中只提供 URL，引擎会获取 Key 后填入。
 
+### 3. 最终请求结构参考 (Target Payload Structure)
+
+引擎生成的 `CloudTaskPushRequest` 最终 JSON 结构如下，供理解参数层次：
+
+```json
+{
+  "desc": "任务集标题", 
+  "publishType": "article | video | imageText",
+  "publishArgs": {
+    "content": "原始内容 (针对文章/图文必填)",
+    "accountForms": [
+      {
+        "platformAccountId": "账号ID", 
+        "cover": { "key": "...", "width": 1200, "height": 800 }, // 账号封面 (必填)
+        "images": [], // 图文图片集 (见各平台模型)
+        "video": {},  // 视频对象 (见各平台模型)
+        "contentPublishForm": {
+           // 此处透传平台专有参数 (见文档 `docs/publish-*/<platform>.md`)
+        }
+      }
+    ]
+  }
+}
+```
+
 ## 能力地图 (Capabilities)
 
 本技能通过映射 `docs/` 下的指令文档到 `scripts/` 下的执行脚本实现功能的动态调度。
@@ -138,74 +163,6 @@ author: wangzhengjiao
 | **快手 (Kuaishou)** | [kuaishou.md](./docs/publish-image-text/kuaishou.md) | **视频号 (Video Account)** | [shipinhao.md](./docs/publish-image-text/shipinhao.md) |
 | **新浪微博 (Weibo)** | [weibo.md](./docs/publish-image-text/weibo.md) | **百家号 (Baijiahao)** | [baijiahao.md](./docs/publish-image-text/baijiahao.md) |
 | **今日头条 (Toutiao)** | [toutiaohao.md](./docs/publish-image-text/toutiaohao.md) | **知乎 (Zhihu)** | [zhihu.md](./docs/publish-image-text/zhihu.md) |
-
-## DTO 知识提取规范 (DTO Extraction Specs)
-
-为确保 AI 助手在生成指令文档时**完整、无遗漏**地提取参数，必须遵循以下 DTO 阅读准则：
-
-### 1. 目标类定位 (Target Identification)
-根据业务模态，在 `<platform_id>.dto.ts` 中定位对应的表单类：
-- **文章发布 (`article`)**: 提取 `*ArticleForm` 类（如 `DouyinArticleForm`）。
-- **视频发布 (`video`)**: 提取 `*VideoForm` 类（如 `DouYinVideoForm`）。
-- **图文/动态 (`image-text`)**: 提取 `*DynamicForm` 类（如 `DouYinDynamicForm`）。
-- **注意**: 若类名不符合上述规律，请查找所有继承自 `PlatformFormBaseDTO` 的类。
-
-### 2. 核心结构审计 (Core Structure Audit)
-**必须深度审计以下文件**以获取完整表单知识：
-1.  **后端 DTO** (`*.dto.ts`): 
-    - **扫描 ApiProperty**: 必须提取类中**所有**带有 `@ApiProperty` 的字段。
-    - **标准对象识别**: 若字段类型引用了 `ImageFormItem` 或 `VideoFormItem`（见上文模型），文档中只需指明为“标准图片/视频对象”即可。
-    - **规则还原**: 详细记录 `@IsNotEmpty` (必填), `@IsIn` (枚举范围), `@IsInt` (类型), `@MaxLength` (长度限制) 等逻辑。
-    - **嵌套对象**: 若字段类型是 class (且非标准项), 必须点击跳转查看该类的具体字段，并在文档中详细说明该对象的 JSON 结构。
-
-### 3. 上层结构知识 (Upper-Level Mapping)
-
-AI 助手必须确保生成的请求符合以下 `CloudTaskPushRequest` 的嵌套层级：
-
-```json
-{
-  "desc": "任务集标题",
-  "publishType": "article | video | imageText",
-  "publishArgs": {
-    "content": "原始内容 (针对文章/图文必填)",
-    "accountForms": [
-      {
-        "platformAccountId": "账号ID",
-        "cover": { "key": "...", "width": 1200, "height": 800 }, // 必填
-        "images": [], // 图文必填
-        "video": {},  // 视频必填
-        "contentPublishForm": {
-          // 此处填入 DTO 提取规范中的平台专有参数
-        }
-      }
-    ]
-  }
-}
-```
-> [!IMPORTANT]
-> 注意 `content` 的双重位置：原始内容在 `publishArgs.content`；平台特有格式（如 HTML 或带标签的描述）在 `contentPublishForm`。
-
-### 4. 禁止项 (Strict Prohibitions)
-- **严禁遗漏**: 不得因为属性是“可选”的就忽略提取。可选属性在文档中应标注为 `[可选]`。
-- **严禁简写**: 必须保留 DTO 中定义的完整字段名（如 `scheduledTime` 不得简写为 `time`）。
-- **严禁自创**: 所有的参数逻辑必须以后端代码为准，不得凭经验猜测。
-
-## 平台与类型扩展规范 (Extension & Sync Specs)
-
-当新增发布**类型** (`type`) 或特定**平台** (`platform`) 时，AI 助手必须确保以下两个维度的同步变更：
-
-### 1. 文档端：参数完整说明 (Full Parameter Documentation)
-- **位置**: 在 `docs/publish-*/` 目录下创建或更新对应的平台文档。
-- **要求**: 文档必须详细列出该平台/类型下所有的业务参数。每个参数需包含：字段名、中文含义、类型、必填性、枚举值范围及特殊约束。
-- **依据**: 必须严格遵循上文的 **DTO 知识提取规范**，确保 AI 在阅读文档后能生成 100% 合规的 API 请求。
-
-### 2. 代码端：脚本逻辑适配 (Script Adaptation)
-- **位置**: `scripts/publish.ts`。
-- **要求**: 检查通用发布引擎是否能处理该新增平台/类型的特殊要求。
-- **适配逻辑**:
-  - **字段转换**: 若前端传入的参数名与后端 DTO 要求的结构不一致（例如文章列表包装、封面对象嵌套），需在 `publish.ts` 的“构建业务表单”或“补全基础字段”环节添加对应的转换逻辑。
-  - **模态分支**: 对于全新的 `type`（如“直播间推送”），需在 `publish.ts` 中新增处理分支，确保 `taskBody` 的构造符合后端 API 规范。
-- **验证**: 适配完成后，必须确保脚本能正确将 Markdown 指令转换为合规的 JSON Payload。
 
 ## 任务执行最佳实践 (Best Practices)
 
