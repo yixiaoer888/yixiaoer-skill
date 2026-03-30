@@ -27,6 +27,8 @@
     "accountForms": [
       {
         "platformAccountId": "YOUR_ACCOUNT_ID",
+        "coverKey": "cover_oss_key",
+        "cover": { "key": "cover_oss_key", "size": 100, "width": 800, "height": 600 },
         "contentPublishForm": {
           "formType": "task",
           "title": "这是一篇抖音文章",

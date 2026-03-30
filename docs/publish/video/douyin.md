@@ -34,6 +34,8 @@
           "width": 1920,
           "height": 1080
         },
+        "coverKey": "cover_oss_key",
+        "cover": { "key": "cover_oss_key", "size": 100, "width": 1280, "height": 720 },
         "contentPublishForm": {
           "formType": "task",
           "title": "测试视频标题",

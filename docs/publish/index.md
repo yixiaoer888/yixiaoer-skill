@@ -17,6 +17,8 @@
 | `clientId` | `string` | 否 | 客户端连接 ID (`local` 发布时必填) |
 | `isDraft` | `boolean` | 否 | 是否仅保存为草稿，默认 `false` |
 | `intervalConfig` | `Object` | 否 | 间隔发布配置 (包含 `enable`, `interval`, `timeUnit` 等) |
+| `coverKey` | `string` | 否 | 封面资源 Key (上传至 OSS 的路径) |
+
 
 ## 2. 发布参数 (publishArgs)
 
@@ -36,6 +38,8 @@
 | `images` | `Array` | 条件 | **ImageFormItem[]**: 图文图片列表 (**图文发布必填**) |
 | `mediaId` | `string` | 否 | 第三方库素材 ID |
 | `fps` | `number` | 否 | 视频发布帧率 (海外平台使用) |
+| `coverKey` | `string` | 否 | 账号级封面 Key (通常与 `cover.key` 一致) |
+
 
 ## 4. 调用指令 (Execution)
 
@@ -54,11 +58,13 @@ node scripts/publish.ts --payload='{...}'
 {
   "publishType": "article",
   "platforms": ["微信公众号"],
+  "coverKey": "article_cover_key",
   "publishArgs": {
     "content": "<h1>演示文章标题</h1><p>这是一个演示文章的正文内容，支持 HTML 格式。</p>",
     "accountForms": [
       {
         "platformAccountId": "acc_art_001",
+        "coverKey": "article_cover_key",
         "cover": {
           "key": "article_cover_key",
           "width": 900,
@@ -89,6 +95,7 @@ node scripts/publish.ts --payload='{...}'
           { "key": "img_key_1", "width": 1080, "height": 1440, "size": 200000 },
           { "key": "img_key_2", "width": 1080, "height": 1440, "size": 200000 }
         ],
+        "coverKey": "img_key_1",
         "cover": { "key": "img_key_1", "width": 1080, "height": 1440, "size": 200000 },
         "contentPublishForm": {
           "formType": "task",
@@ -115,6 +122,7 @@ node scripts/publish.ts --payload='{...}'
           "height": 1920,
           "size": 52428800
         },
+        "coverKey": "video_cover_key",
         "cover": {
           "key": "video_cover_key",
           "width": 1080,
@@ -144,3 +152,4 @@ node scripts/publish.ts --payload='{...}'
 
 > [!TIP]
 > 平台特定的 DTO 字段请查阅对应模态子目录下的各平台文档，将其放入 `contentPublishForm` 中。
+> contentPublishForm 中如果存在不清楚的选填字段，请不要随意填写。
