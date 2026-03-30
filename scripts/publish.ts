@@ -168,8 +168,11 @@ async function main() {
     }
 
     // 针对图文格式的补全
-    if (type === 'image-text' && !contentPublishForm.description) {
-      contentPublishForm.description = content;
+    if (type === 'image-text') {
+      if (!contentPublishForm.description) contentPublishForm.description = content;
+      if (imageKeys.length > 0 && !contentPublishForm.images) {
+        contentPublishForm.images = imageKeys.map(key => ({ key, width: 1200, height: 800, size: 0 }));
+      }
     }
 
     // 针对视频格式的补全
@@ -184,7 +187,7 @@ async function main() {
     const taskBody: any = {
       desc: title || content?.substring(0, 30),
       platforms,
-      publishType: (type === 'weixin-gongzhonghao' || type === 'article') ? 'article' : type,
+      publishType: (type === 'weixin-gongzhonghao' || type === 'article') ? 'article' : (type === 'image-text' ? 'imageText' : type),
       publishChannel: 'cloud',
       isDraft: contentPublishForm.pubType === 0,
       coverKey,
