@@ -109,41 +109,54 @@ async function main() {
       contentPublishForm.content = content;
     }
     
-    // 针对文章格式的特殊补全 (DTO 要求)
-    if (type === 'article') {
+    // 针对文章格式的补全 (核心处理)
+    if (type === 'article' || type === 'weixin-gongzhonghao' || platforms.some(p => p === '微信公众号' || p === '公众号')) {
       if (!contentPublishForm.articles) {
         contentPublishForm.articles = [{
           title: title,
           content: content,
           contentHtml: `<html><body>${content}</body></html>`,
-          digest: contentPublishForm.digest || title?.substring(0, 50),
+          digest: contentPublishForm.digest || title?.substring(0, 120),
           isDraft: contentPublishForm.pubType === 0
         }];
       }
+
+      // 针对微信公众号的专项补全 (嵌套结构要求)
+      if (platforms.some(p => p === '微信公众号' || p === '公众号')) {
+        const wechatArticle = contentPublishForm.articles[0];
+        if (wechatArticle) {
+          // 确保 WeChat 必须的 cover 对象存在
+          if (!wechatArticle.cover && coverKey) {
+            wechatArticle.cover = { key: coverKey, width: 900, height: 383, size: 0 };
+          }
+          // 确保 WeChat 必须的 createType & authorName
+          if (wechatArticle.createType === undefined) {
+            wechatArticle.createType = contentPublishForm.original === true ? 1 : 0;
+          }
+          if (wechatArticle.authorName === undefined) {
+            wechatArticle.authorName = contentPublishForm.author || '';
+          }
+          // 补全公众号专用属性 (默认值)
+          if (wechatArticle.quickRepost === undefined) wechatArticle.quickRepost = 1;
+          if (wechatArticle.quickPrivateMessage === undefined) wechatArticle.quickPrivateMessage = 1;
+        }
+
+        // 兼容某些接口可能需要的 contentList
+        if (!contentPublishForm.contentList) {
+          contentPublishForm.contentList = contentPublishForm.articles;
+        }
+
+        // 群发逻辑补全
+        if (contentPublishForm.notify === false) {
+          contentPublishForm.notifySubscribers = 0;
+        } else if (contentPublishForm.notifySubscribers === undefined) {
+          contentPublishForm.notifySubscribers = 1;
+        }
+      }
+
+      // 文章共用封面
       if (!contentPublishForm.covers && coverKey) {
         contentPublishForm.covers = [{ key: coverKey, width: 1200, height: 800, size: 0 }];
-      }
-    }
-
-    // 针对微信公众号格式的特殊补全
-    if (type === 'weixin-gongzhonghao') {
-      if (!contentPublishForm.contentList) {
-        contentPublishForm.contentList = [{
-          title: title,
-          content: content,
-          digest: contentPublishForm.digest || title?.substring(0, 120),
-          cover: coverKey ? { key: coverKey, width: 1200, height: 800, size: 0 } : undefined,
-          createType: contentPublishForm.original === true ? 1 : 0,
-          authorName: contentPublishForm.author || '',
-          quickRepost: 1,
-          quickPrivateMessage: 1,
-          contentSourceUrl: contentPublishForm.contentSourceUrl || ''
-        }];
-      }
-      if (contentPublishForm.notify === false) {
-        contentPublishForm.notifySubscribers = 0;
-      } else if (contentPublishForm.notify === true) {
-        contentPublishForm.notifySubscribers = 1;
       }
     }
 
@@ -164,7 +177,7 @@ async function main() {
     const taskBody: any = {
       desc: title || content?.substring(0, 30),
       platforms,
-      publishType: type,
+      publishType: (type === 'weixin-gongzhonghao' || type === 'article') ? 'article' : type,
       publishChannel: 'cloud',
       isDraft: contentPublishForm.pubType === 0,
       coverKey,
