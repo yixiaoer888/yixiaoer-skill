@@ -36,6 +36,16 @@
 | `--cover_url` | `cover` | `accountForms`| **必填**: 账号级对象必须包含 `cover` (ImageFormItem) |
 | `--image_urls`| `images` | `accountForms`| 图文发布时填入账号级 `images` 列表 |
 | `--video_url` | `video` | `accountForms`| 视频发布时填入账号级 `video` 对象 |
+| `--client_id` | `clientId` | Root | **RPA 必填**: 当 channel=local 时，对应本地客户端连接 ID |
+| `--channel` | `publishChannel`| Root | `cloud` (默认), `local` (本机/RPA) |
+| `--task_set_id`| `taskSetId` | Root | 指定任务集 ID (用于更新草稿或特定管理) |
+| `--is_app` | `isAppContent` | Root | `true` 或 `false` |
+| `--media_id` | `mediaId` | `accountForms`| 使用平台素材库 ID (如已上传) |
+| `--fps` | `fps` | `accountForms`| 视频发布帧率 (海外平台必填项) |
+| `--interval` | `interval` | `intervalConfig`| 间隔发布数值 (数字) |
+| `--time_unit` | `timeUnit` | `intervalConfig`| `minute` (5,10,15,20,30), `day` (1,2,3,4,5) |
+| `--start_time` | `dailyStartTime`| `intervalConfig`| 按天发布时的起始时间 (HH:MM) |
+| `--rotation` | `accountRotation`| `intervalConfig`| 是否开启账号轮询 (`true`/`false`) |
 | `[Other]` | `*` | `contentPublishForm`| 所有不在上述核心列表的参数透传到平台 DTO |
 
 ### 2. 标准表单项模型 (Standard Form Models)

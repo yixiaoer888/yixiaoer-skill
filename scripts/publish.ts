@@ -77,7 +77,9 @@ async function main() {
     // 4. 构建业务表单 (Document-Driven: 将所有非核心参数收集到 form 中)
     const coreArgs = [
       'type', 'platforms', 'account_ids', 'title', 'content', 'description',
-      'video_url', 'video_key', 'cover_url', 'cover_key', 'image_urls', 'image_keys'
+      'video_url', 'video_key', 'cover_url', 'cover_key', 'image_urls', 'image_keys',
+      'client_id', 'channel', 'task_set_id', 'is_app', 'interval', 'time_unit', 
+      'start_time', 'rotation', 'media_id', 'fps'
     ];
     
     const contentPublishForm: Record<string, any> = {};
@@ -226,17 +228,24 @@ async function main() {
     };
 
     const taskBody: any = {
+      taskSetId: params.task_set_id,
       desc: title || params.description || content?.substring(0, 30),
       platforms,
       publishType: publishTypeMapping[type] || type,
-      publishChannel: 'cloud',
+      publishChannel: params.channel || 'cloud',
+      clientId: params.client_id,
       isDraft: contentPublishForm.pubType === 0,
+      isAppContent: params.is_app === 'true',
       coverKey: finalCoverKey,
       publishArgs: {
         accountForms: accountIds.map(accountId => {
           const accForm: any = { platformAccountId: accountId, contentPublishForm };
           if (publishContentId) accForm.publishContentId = publishContentId;
           
+          // 账号级额外字段
+          if (params.media_id) accForm.mediaId = params.media_id;
+          if (params.fps) accForm.fps = Number(params.fps);
+
           // 必填项：cover (ImageFormItem)
           const currentCoverKey = finalCoverKey;
           if (currentCoverKey) {
@@ -245,7 +254,7 @@ async function main() {
           }
           
           if (videoKey) {
-            accForm.video = { key: videoKey, width: 1920, height: 1080, size: 0 };
+            accForm.video = { key: videoKey, width: 1920, height: 1080, size: 0, duration: 0 };
           }
           if (imageKeys.length > 0) {
             accForm.images = imageKeys.map(key => ({ key, width: 1200, height: 800, size: 0 }));
@@ -259,9 +268,17 @@ async function main() {
     if (type === 'article' || type === 'weixin-gongzhonghao' || type === 'image-text') {
       taskBody.publishArgs.content = content;
     }
-    
-    // 如果是视频，顶级也需要 videoKey
-    if (videoKey) taskBody.videoKey = videoKey;
+
+    // 间隔发布配置补全
+    if (params.interval) {
+      taskBody.intervalConfig = {
+        enable: true,
+        interval: Number(params.interval),
+        timeUnit: params.time_unit || 'minute',
+        dailyStartTime: params.start_time,
+        accountRotation: params.rotation === 'true'
+      };
+    }
 
     // 6. 最终提交
     const publishRes = await fetch(`${API_URL}/taskSets/v2`, {
