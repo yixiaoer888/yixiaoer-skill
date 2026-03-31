@@ -1,4 +1,74 @@
-# 文章发布平台支持列表 (Article Platforms)
+# 文章发布 (Article Publish)
+
+所有通过 `api.ts`（指定 `action: "publish"`）执行的文章发布任务均遵循以下数据结构。
+
+> [!IMPORTANT]
+> **发布合规性要求**:
+> 所有的封面 (`cover`) 均**必须**使用通过[资源上传接口](../../upload-resource.md)获得的资源 `key`。
+> **严禁**直接填写外部网络 URL 或在该填入 Key 的地方留空。
+
+## 1. 数据结构 (Data Structure)
+
+接口要求传入 `CloudTaskPushRequest` 结构。
+
+### 1.1 基础结构 (Base Structure)
+
+| 字段名 | 类型 | 必填 | 说明 | 默认值 |
+| :--- | :--- | :--- | :--- | :--- |
+| `publishType` | `string` | **是** | 固定为 `article` | - |
+| `platforms` | `string[]` | **是** | 目标平台枚举数组，详见下方平台列表 | - |
+| `publishArgs` | `Object` | **是** | 发布参数核心容器 | - |
+| `taskSetId` | `string` | 否 | 任务集唯一标识 (草稿发布时必填) | - |
+| `desc` | `string` | 否 | 任务描述/摘要 | - |
+| `publishChannel` | `string` | 否 | `cloud` (云端) 或 `local` (本机) | `local` |
+| `clientId` | `string` | 否 | 客户端连接 ID (`local` 发布时必填) | - |
+| `isDraft` | `boolean` | 否 | 是否仅保存为草稿 | `false` |
+
+### 1.2 发布参数 (publishArgs)
+
+| 字段名 | 类型 | 必填 | 说明 | 默认值 |
+| :--- | :--- | :--- | :--- | :--- |
+| `content` | `string` | **是** | **文章正文**: HTML 格式字符串 | - |
+| `accountForms` | `Array` | **是** | 账号发布表单列表 | - |
+
+### 1.3 账号表单项 (accountForms Item)
+
+| 字段名 | 类型 | 必填 | 说明 | 默认值 |
+| :--- | :--- | :--- | :--- | :--- |
+| `platformAccountId` | `string` | **是** | 蚁小二平台账号唯一 ID | - |
+| `cover` | `Object` | **是** | **ImageFormItem**: 主封面对象 (`key`, `width`, `height`, `size`) | - |
+| `contentPublishForm`| `Object` | **是** | **透传层**: `{formType: "task", ...}`，其他更多属性需要参考对应平台文档 | - |
+| `coverKey` | `string` | 否 | 账号级封面 Key (通常与 `cover.key` 一致) | - |
+
+## 2. 发布示例 (Payload Example)
+
+```json
+{
+  "action": "publish",
+  "publishType": "article",
+  "platforms": ["微信公众号"],
+  "publishArgs": {
+    "content": "<h1>演示文章标题</h1><p>这是一个演示文章的正文内容，支持 HTML 格式。</p>",
+    "accountForms": [
+      {
+        "platformAccountId": "acc_art_001",
+        "cover": {
+          "key": "article_cover_key",
+          "width": 900,
+          "height": 500,
+          "size": 150000
+        },
+        "coverKey": "article_cover_key",
+        "contentPublishForm": {
+          "formType": "task"
+        }
+      }
+    ]
+  }
+}
+```
+
+## 3. 支持平台列表 (Support Platforms)
 
 以下平台支持通过 `publishType: "article"` 进行发布。
 
@@ -28,3 +98,4 @@
 
 > [!TIP]
 > 持续增加中... 请参考后端 DTO `*ArticleForm` 扩展新平台。
+

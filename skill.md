@@ -33,7 +33,7 @@ API 调用时涉及的平台名称必须使用蚁小二定义的中文枚举或 
 
 | action 值 | 对应的能力描述 | 相关文档 |
 | :--- | :--- | :--- |
-| `publish` | 图文、视频、文章分发发布 | [docs/publish/index.md](./docs/publish/index.md) |
+| `publish` | 图文、视频、文章分发发布 | [文章](./docs/publish/article/index.md), [图文](./docs/publish/image-text/index.md), [视频](./docs/publish/video/index.md) |
 | `accounts` | 查询已绑定的账号列表 | [query-accounts.md](./docs/query-accounts.md) |
 | `upload` | 上传本地或 URL 图片/视频 | [upload-resource.md](./docs/upload-resource.md) |
 | `records` | 查询发布任务概览列表 | [get-publish-records.md](./docs/get-publish-records.md) |
