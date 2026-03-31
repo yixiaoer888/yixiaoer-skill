@@ -38,7 +38,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `platformAccountId` | `string` | **是** | 蚁小二平台账号唯一 ID | - |
 | `cover` | `Object` | **是** | **ImageFormItem**: 主封面对象 (`key`, `width`, `height`, `size`) | - |
-| `contentPublishForm`| `Object` | **是** | **透传层**: `{formType: "task", ...}`，其他更多属性需要参考对应平台文档 | - |
+| `contentPublishForm`| `Object` | **是** | **透传层**: `{}` | - |
 | `coverKey` | `string` | 否 | 账号级封面 Key (通常与 `cover.key` 一致) | - |
 
 ## 2. 发布示例 (Payload Example)
@@ -72,6 +72,7 @@
 ## 3. 支持平台列表 (Support Platforms)
 
 以下平台支持通过 `publishType: "article"` 进行发布。
+contentPublishForm 中的字段需要从以下文档中获取。
 
 | 平台名称 | 标识符 | 文档链接 |
 | :--- | :--- | :--- |
