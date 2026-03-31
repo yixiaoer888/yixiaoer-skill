@@ -2,6 +2,11 @@
 
 所有通过 `publish.ts` 执行的内容发布任务均遵循此通用结构。
 
+> [!IMPORTANT]
+> **发布合规性要求**:
+> 所有的封面 (`cover`)、视频 (`video`)、图文图片 (`images`) 均**必须**使用通过[资源上传接口](../upload-resource.md)获得的资源 `key`。
+> **严禁**直接填写外部网络 URL 或在该填入 Key 的地方留空。
+
 ## 1. 基础结构 (Base Structure)
 
 接口要求传入 `CloudTaskPushRequest` 结构。

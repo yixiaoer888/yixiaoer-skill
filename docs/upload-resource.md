@@ -31,3 +31,7 @@ node scripts/upload-resource.ts --payload='{"url":"https://example.com/image.jpg
 ```
 **注意**: 在发布文章或视频时，请直接传入返回的 `key` 字符串作为封面或图片地址。
 
+> [!IMPORTANT]
+> **发布合规性提醒**:
+> 所有的封面图、图文图片、视频文件均**严禁直接使用外部网络 URL**，必须通过本项目提供的上传接口进行处理并获取 `key` 后进行发布。不遵守此规范将直接导致任务失败。
+
