@@ -171,10 +171,6 @@ async function main() {
         result = await callApi(`/v2/taskSets/${payload.task_set_id}/tasks`, { method: 'GET' });
         break;
 
-      case 'team-info': // 团队信息
-        result = await callApi('/v2/teams/current', { method: 'GET' });
-        break;
-
       case 'categories': // 分类查询
         result = await callApi('/web/config-data/category-tasks', { 
           method: 'POST', 
@@ -213,6 +209,59 @@ async function main() {
           headers: { 'x-account-id': payload.account_id },
           body: JSON.stringify({ openAccountId: payload.account_id })
         });
+        break;
+
+      case 'proxies': // 代理列表
+        const proxyUrl = new URL(`${API_URL}/proxys`);
+        proxyUrl.searchParams.append('size', String(payload.size || 9999));
+        result = await callApi(proxyUrl.toString(), { method: 'GET' });
+        break;
+
+      case 'proxy-areas': // 内置代理地区列表 (默认代理)
+        result = await callApi('/daili/areas', { method: 'GET' });
+        break;
+
+      case 'update-account': // 更新账号信息 (如设置代理)
+        if (!payload.account_id) throw new Error("Missing account_id for action: update-account");
+        // 支持更新 kuaidailiArea 或 proxyId
+        const updateBody: any = {};
+        if ('kuaidailiArea' in payload) updateBody.kuaidailiArea = payload.kuaidailiArea;
+        if ('proxyId' in payload) updateBody.proxyId = payload.proxyId;
+        if ('remark' in payload) updateBody.remark = payload.remark;
+        if ('groups' in payload) updateBody.groups = payload.groups;
+        
+        result = await callApi(`/platform-accounts/${payload.account_id}`, { 
+          method: 'PATCH', 
+          body: JSON.stringify(updateBody) 
+        });
+        break;
+
+      case 'content-overviews': // 作品数据
+        const contentOverviewUrl = new URL(`${API_URL}/contents/overviews`);
+        Object.keys(payload).forEach(key => {
+          if (key !== 'action') {
+            if (Array.isArray(payload[key])) {
+              payload[key].forEach((v: any) => contentOverviewUrl.searchParams.append(key, String(v)));
+            } else {
+              contentOverviewUrl.searchParams.append(key, String(payload[key]));
+            }
+          }
+        });
+        result = await callApi(contentOverviewUrl.toString(), { method: 'GET' });
+        break;
+
+      case 'account-overviews': // 账号数据 (V2)
+        const accountOverviewUrl = new URL(`${API_URL}/platform-accounts/overviews-v2`);
+        Object.keys(payload).forEach(key => {
+          if (key !== 'action') {
+            if (Array.isArray(payload[key])) {
+              payload[key].forEach((v: any) => accountOverviewUrl.searchParams.append(key, String(v)));
+            } else {
+              accountOverviewUrl.searchParams.append(key, String(payload[key]));
+            }
+          }
+        });
+        result = await callApi(accountOverviewUrl.toString(), { method: 'GET' });
         break;
 
       default:

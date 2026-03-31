@@ -38,12 +38,16 @@ API 调用时涉及的平台名称必须使用蚁小二定义的中文枚举或 
 | `upload` | 上传本地或 URL 图片/视频 | [upload-resource.md](./docs/upload-resource.md) |
 | `records` | 查询发布任务概览列表 | [get-publish-records.md](./docs/get-publish-records.md) |
 | `details` | 查询特定任务的执行详情 | [get-publish-records.md](./docs/get-publish-records.md) |
-| `team-info`| 获取租户与配额信息 | [get-team-info.md](./docs/get-team-info.md) |
 | `categories`| 获取账号分类/话题列表 | [get-publish-categories.md](./docs/get-publish-categories.md) |
 | `activities`| 获取征文活动列表 | [get-publish-activities.md](./docs/get-publish-activities.md) |
 | `locations` | 获取 POI 物理位置列表 | [get-locations.md](./docs/get-locations.md) |
 | `music` | 获取抖音/快手可选背景音乐 | [get-music.md](./docs/get-music.md) |
 | `collections`| 获取账号已创建的合集列表 | [get-collections.md](./docs/get-collections.md) |
+| `proxies` | 获取团队可用代理列表 | [proxy-management.md](./docs/proxy-management.md) |
+| `proxy-areas`| 获取默认代理地区编码列表 | [proxy-management.md](./docs/proxy-management.md) |
+| `account-overviews` | 账号表现汇总 (V2) | [get-account-overviews.md](./docs/get-account-overviews.md) |
+| `content-overviews` | 查看发布作品数据统计 | [get-content-overviews.md](./docs/get-content-overviews.md) |
+| `update-account` | 更新账号信息 (如设置代理) | [proxy-management.md](./docs/proxy-management.md) |
 
 ### 调用示例 (Example)
 

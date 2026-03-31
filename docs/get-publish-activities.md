@@ -18,23 +18,21 @@ node scripts/api.ts --payload='{"action":"activities","account_id":"XXX","type":
 | 字段名 | 类型 | 是否必填 | 说明 |
 | :--- | :--- | :--- | :--- |
 | `account_id` | `string` | **是** | 蚁小二账号 ID (32位十六进制) |
-| `type`       | `number` | **是** | 发布类型：`1`: 文章，`2`: 视频，`3`: 动态 |
+| `type`       | `number` | **是** | 发布类型：`1`: 文章，`2`: 视频，`3`: 图文 |
 | `categoryId` | `string` | 否   | 特定分类下的活动 |
 | `keyWord`    | `string` | 否   | 搜索活动关键字 |
 
 ### 枚举值定义
 
 #### ContentTypeEnum (发布类型)
-- `video`: 视频
-- `article`: 文章
-- `dynamic`: 动态 (爬虫使用)
-- `imageText`: 图文 (前端使用)
+- `video`: 2
+- `article`: 1
+- `imageText`: 3
 
 ## 脚本逻辑 (Backend)
 
-- **脚本路径**: `../scripts/get-publish-activities.ts`
-- **实际接口**: `GET https://www.yixiaoer.cn/api/v2/platform/accounts/:id/activities` (或通过 OpenPlatform 路由)
-- **环境要求**: 需设置 `YIXIAOER_API_KEY` 环境变量。
+- **脚本路径**: `scripts/api.ts`
+- **功能**: 封装蚁小二活动查询接口。
 
 ## 输出结果 (Output)
 

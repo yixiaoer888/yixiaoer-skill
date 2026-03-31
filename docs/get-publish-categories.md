@@ -7,26 +7,30 @@
 - "列出我的抖音账号 A 可选的所有视频分类。"
 - "看看这个百家号账号都有哪些文章分类。"
 
+## 调用指令 (Command)
+
+```bash
+node scripts/api.ts --payload='{"action":"categories","account_id":"64dxxx","type":"article"}'
+```
+
 ## 参数列表 (Payload Properties)
 
 | 字段名 | 类型 | 是否必填 | 描述 |
 | :--- | :--- | :--- | :--- |
 | `account_id` | `string` | **是** | 蚁小二媒体账号 ID |
-| `type` | `ContentTypeEnum` | **是** | 发布模态：`video` (视频), `article` (文章), `dynamic` (动态), `imageText` (图文) |
+| `type` | `ContentTypeEnum` | **是** | 发布模态：`video` (视频), `article` (文章), `imageText` (图文) |
 
 ### 枚举值定义
 
 #### ContentTypeEnum (发布类型)
 - `video`: 视频
 - `article`: 文章
-- `dynamic`: 动态 (爬虫使用)
-- `imageText`: 图文 (前端使用)
+- `imageText`: 图文
 
 ## 脚本逻辑 (Backend)
 
-- **脚本路径**: `../scripts/get-publish-categories.ts`
-- **实际接口**: `GET https://www.yixiaoer.cn/api/v2/platform/accounts/:id/categories`
-- **环境要求**: 需设置 `YIXIAOER_API_KEY` 环境变量。
+- **脚本路径**: `scripts/api.ts`
+- **功能**: 封装蚁小二分类拉取接口。
 
 ## 输出结果 (Output)
 
@@ -38,8 +42,3 @@
 | `yixiaoerName` | `string` | 分类名称 |
 | `child` | `array` | 子分类列表（若支持层级分类，如抖音/快手） |
 | `raw` | `object` | 平台原始分类数据 |
-
-### 调用指令 (Command)
-```bash
-node scripts/api.ts --payload='{"action":"categories","account_id":"64dxxx","type":"article"}'
-```

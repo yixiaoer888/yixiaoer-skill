@@ -53,6 +53,8 @@
 | `platformType` | `number` | 平台类型（见上方枚举） |
 | `parentId` | `string` | 父账号 ID（针对微信视频号等子账号结构） |
 | `groups` | `string[]` | 账号所属的分组 ID 列表 |
+| `proxyId` | `string` | 绑定的团队代理 ID (如果有) |
+| `kuaidailiArea` | `string` | 绑定的内置代理地区编码 (如果有) |
 | `favorites` | `Object[]` | 账号收藏夹列表。包含 `id`, `name`, `websiteUrl` |
 | `isOperate` | `boolean` | 当前用户是否拥有该账号的运营权限 |
 | `isFreeze` | `boolean` | 账号是否被冻结 |
