@@ -64,3 +64,4 @@ node scripts/api.ts --payload='{"action": "accounts", "platform": "抖音"}'
 ---
 > [!NOTE]
 > 所有的敏感信息应通过环境变量 `YIXIAOER_API_KEY` 注入。
+> 如果用户没有发送clientId，则默认使用云发布，publishChannel: cloud
