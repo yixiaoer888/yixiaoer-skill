@@ -17,6 +17,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `publishType` | `string` | **是** | 固定为 `article` | - |
 | `platforms` | `string[]` | **是** | 目标平台枚举数组，详见下方平台列表 | - |
+| `coverKey` | `string` | **是** | 任务封面资源 Key | - |
 | `publishArgs` | `Object` | **是** | 发布参数核心容器 | - |
 | `taskSetId` | `string` | 否 | 任务集唯一标识 (草稿发布时必填) | - |
 | `desc` | `string` | 否 | 任务描述/摘要 | - |
