@@ -1,25 +1,42 @@
-# 视频号视频发布参数 (Shipinghao)
+# 视频号 视频发布
 
-本平台视频发布通过 `contentPublishForm` 承载以下参数。
-
-## 1. contentPublishForm 参数定义
+## 1. contentPublishForm 数据结构
 
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| `formType` | `string` | **是** | 固定值: `task` | `task` |
-| `title` | `string` | 否 | 视频标题 | - |
-| `short_title` | `string` | 否 | 视频短标题 | - |
-| `description` | `string` | 否 | 视频描述 (支持 HTML 及话题) | - |
-| `location` | `Object` | 否 | 视频位置 (`PlatformDataItem`) | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间戳 | - |
-| `type` | `number` | **是** | 原创类型: 1-非原创, 2-原创 | - |
-| `shoppingCart` | `object` | 否 | 关联商品 | - |
-| `horizontalCover` | `Object` | 否 | 横版封面 (`OldCover`) | - |
-| `collection` | `object` | 否 | 合集信息 | - |
-| `activity` | `object` | 否 | 活动信息 | - |
-| `pubType` | `number` | 否 | 发布类型: 0-草稿, 1-直接发布 | - |
+| formType | string | 是 | 固定为 `task` | `task` |
+| title | string | 否 | 视频标题 | - |
+| short_title | string | 否 | 视频短标题 | - |
+| description | string | 否 | 视频描述，支持 HTML 格式和 `@` 好友/话题标签 | - |
+| horizontalCover | object | 否 | 视频横板封面，使用 `OldCover` 结构 | - |
+| type | number | 是 | 视频原创类型：1-非原创，2-原创 | 1 |
+| createType | number | 是 | 创建类型：1-草稿，2-直接发布 | 2 |
+| pubType | number | 否 | 发布类型：0-草稿，1-直接发布 | 1 |
+| location | object | 否 | 视频位置，使用 `PlatformDataItem` 结构 | - |
+| scheduledTime | number | 否 | 定时发布时间戳（单位：秒） | - |
+| shoppingCart | object | 否 | 关联商品信息 | - |
+| collection | object | 否 | 合集信息 | - |
+| activity | object | 否 | 活动信息 | - |
 
-## 2. Payload 完整示例
+## 2. 复杂对象结构
+
+### OldCover
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| width | number | 是 | 宽度 |
+| height | number | 是 | 高度 |
+| size | number | 是 | 文件大小 (Byte) |
+| path | string | 否 | 文件绝对路径 (与 `key` 二选一) |
+| key | string | 否 | OSS 对象存储 Key (与 `path` 二选一) |
+
+### PlatformDataItem
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| id | string | 是 | ID |
+| text | string | 是 | 文本内容 |
+| raw | object | 是 | 平台原始数据 |
+
+## 3. JSON 示例
 
 ```json
 {
@@ -29,19 +46,28 @@
     "accountForms": [
       {
         "platformAccountId": "SPH_ACC_ID",
-        "video": { "key": "v_key", "size": 1024, "width": 720, "height": 1280 },
+        "video": {
+          "key": "v_key",
+          "size": 1024000,
+          "width": 1080,
+          "height": 1920,
+          "duration": 15
+        },
         "contentPublishForm": {
           "formType": "task",
-          "description": "<p>视频号描述 #话题</p>",
+          "title": "视频号视频标题",
+          "description": "<p>这是视频号内容的精彩描述 #生活 #记录</p>",
           "type": 2,
-          "pubType": 1
+          "createType": 2,
+          "pubType": 1,
+          "location": {
+            "id": "sph_loc_1",
+            "text": "广州市",
+            "raw": {}
+          }
         }
       }
     ]
   }
 }
 ```
-
-## 3. DTO 参考
-- 后端类: `ShiPingHaoVideoForm`
-- 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/shipinghao.dto.ts`

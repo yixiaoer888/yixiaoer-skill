@@ -17,6 +17,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `publishType` | `string` | **是** | 固定为 `imageText` | - |
 | `platforms` | `string[]` | **是** | 目标平台枚举数组，详见下方平台列表 | - |
+| `coverKey` | `string` | **是** | 任务封面资源 Key | - |
 | `publishArgs` | `Object` | **是** | 发布参数核心容器 | - |
 | `taskSetId` | `string` | 否 | 任务集唯一标识 (草稿发布时必填) | - |
 | `desc` | `string` | 否 | 任务描述/摘要 | - |
@@ -39,7 +40,7 @@
 | `images` | `Array` | **是** | **ImageFormItem[]**: 图文图片列表 (`key`, `width`, `height`, `size`) | - |
 | `cover` | `Object` | **是** | **ImageFormItem**: 主封面对象 | - |
 | `contentPublishForm`| `Object` | **是** | **透传层**: `{formType: "task", ...}`，其他更多属性需要参考对应平台文档 | - |
-| `coverKey` | `string` | 否 | 账号级封面 Key (通常与 `cover.key` 一致) | - |
+| `coverKey` | `string` | **是** | 账号级封面 Key (必须与 `cover.key` 一致) | - |
 
 ## 2. 发布示例 (Payload Example)
 
@@ -48,6 +49,7 @@
   "action": "publish",
   "publishType": "imageText",
   "platforms": ["小红书"],
+  "coverKey": "img_key_1",
   "publishArgs": {
     "content": "这是一个图文发布的描述内容，通常为纯文本。 #演示 #Demo",
     "accountForms": [

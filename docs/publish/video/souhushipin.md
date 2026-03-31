@@ -1,18 +1,16 @@
-# 搜狐视频发布参数 (Souhushipin)
+# 搜狐视频 视频发布
 
-本平台视频发布通过 `contentPublishForm` 承载以下参数。
-
-## 1. contentPublishForm 参数定义
+## 1. contentPublishForm 数据结构
 
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| `formType` | `string` | **是** | 固定值: `task` | `task` |
-| `title` | `string` | **是** | 视频标题 | - |
-| `description` | `string` | 否 | 视频描述 | - |
-| `tags` | `string[]` | 否 | 视频标签 | - |
-| `declaration` | `number` | 否 | 声明: 0-无需申明, 3-AI生成, 4-虚构演绎, 5-AI数字人 | `0` |
+| formType | string | 是 | 固定为 `task` | `task` |
+| title | string | 是 | 视频标题 | - |
+| description | string | 否 | 视频描述 | - |
+| tags | string[] | 否 | 视频标签 | - |
+| declaration | number | 否 | 搜狐视频申明：0-无需申明, 3-AI生成, 4-虚构演绎, 5-AI数字人生成 | 0 |
 
-## 2. Payload 完整示例
+## 2. JSON 示例
 
 ```json
 {
@@ -21,11 +19,19 @@
   "publishArgs": {
     "accountForms": [
       {
-        "platformAccountId": "SOHU_VIDEO_ACC_ID",
-        "video": { "key": "v_key", "size": 1024, "width": 720, "height": 1280 },
+        "platformAccountId": "SOUHU_VIDEO_ACC_ID",
+        "video": {
+          "key": "v_key",
+          "size": 1024000,
+          "width": 1920,
+          "height": 1080,
+          "duration": 60
+        },
         "contentPublishForm": {
           "formType": "task",
-          "title": "搜狐视频标题",
+          "title": "搜狐视频标题示例",
+          "description": "这是大搜狐平台的精彩视频分享内容。",
+          "tags": ["生活", "见闻"],
           "declaration": 0
         }
       }
@@ -33,7 +39,3 @@
   }
 }
 ```
-
-## 3. DTO 参考
-- 后端类: `SouHuShiPinVideoForm`
-- 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/souhushipin.dto.ts`

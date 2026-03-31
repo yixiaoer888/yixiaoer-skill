@@ -1,21 +1,29 @@
-# 网易号视频发布参数 (Wangyihao)
+# 网易号 视频发布
 
-本平台视频发布通过 `contentPublishForm` 承载以下参数。
-
-## 1. contentPublishForm 参数定义
+## 1. contentPublishForm 数据结构
 
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| `formType` | `string` | **是** | 固定值: `task` | `task` |
-| `title` | `string` | **是** | 视频标题 | - |
-| `description` | `string` | **是** | 视频描述 | - |
-| `tags` | `string[]` | **是** | 视频标签 | - |
-| `category` | `Array` | **是** | 视频分类 (`CascadingPlatformDataItem[]`) | - |
-| `declaration` | `number` | 否 | 声明: 1-AI生成, 2-个人原创 (参考), 3-取材网络, 4-虚构演绎 | - |
-| `type` | `number` | 否 | 原创: 0-不勾选, 1-勾选原创 | `0` |
-| `scheduledTime` | `number` | 否 | 定时发布时间戳 | - |
+| formType | string | 是 | 固定为 `task` | `task` |
+| title | string | 是 | 视频标题 | - |
+| description | string | 是 | 视频描述 | - |
+| tags | string[] | 是 | 视频标签 | - |
+| category | object[] | 否 | 视频分类，使用 `CascadingPlatformDataItem[]` 结构 | - |
+| declaration | number | 否 | 创作申明：1-内容由AI生成, 2-个人原创仅供参考, 3-取材网络谨慎辨别, 4-虚构演绎仅供娱乐 | - |
+| type | number | 是 | 原创声明：0-不勾选, 1-勾选原创 | 0 |
+| scheduledTime | number | 否 | 定时发布时间戳（单位：秒） | - |
 
-## 2. Payload 完整示例
+## 2. 复杂对象结构
+
+### CascadingPlatformDataItem
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| id | string | 是 | 选项ID |
+| text | string | 是 | 选项文本 |
+| children | object[] | 否 | 子级选项列表 (CascadingPlatformDataItem[]) |
+| raw | object | 是 | 平台原始数据 |
+
+## 3. JSON 示例
 
 ```json
 {
@@ -25,21 +33,30 @@
     "accountForms": [
       {
         "platformAccountId": "WANGYI_ACC_ID",
-        "video": { "key": "v_key", "size": 1024, "width": 720, "height": 1280 },
+        "video": {
+          "key": "v_key",
+          "size": 1024000,
+          "width": 1920,
+          "height": 1080,
+          "duration": 60
+        },
         "contentPublishForm": {
           "formType": "task",
-          "title": "网易号视频",
-          "description": "描述内容",
-          "tags": ["网易"],
-          "category": [{"id": "1", "name": "科技"}],
-          "type": 1
+          "title": "网易号视频标题示例",
+          "description": "这是网易号平台的视频内容描述。",
+          "tags": ["科技", "前沿"],
+          "category": [
+            {
+              "id": "1",
+              "text": "科技",
+              "raw": {}
+            }
+          ],
+          "type": 1,
+          "declaration": 2
         }
       }
     ]
   }
 }
 ```
-
-## 3. DTO 参考
-- 后端类: `WangYiHaoVideoForm`
-- 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/wangyihao.dto.ts`

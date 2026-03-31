@@ -1,19 +1,27 @@
-# 蜂网视频发布参数 (Fengwang)
+# 凤凰网 视频发布
 
-本平台视频发布通过 `contentPublishForm` 承载以下参数。
-
-## 1. contentPublishForm 参数定义
+## 1. contentPublishForm 数据结构
 
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| `formType` | `string` | **是** | 固定值: `task` | `task` |
-| `title` | `string` | **是** | 视频标题 | - |
-| `description` | `string` | **是** | 视频描述 | - |
-| `tags` | `string[]` | **是** | 视频标签 | - |
-| `category` | `Array` | **是** | 视频分类 (`CascadingPlatformDataItem[]`) | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间戳 | - |
+| formType | string | 是 | 固定为 `task` | `task` |
+| title | string | 是 | 视频标题 | - |
+| description | string | 是 | 视频描述 | - |
+| tags | string[] | 是 | 视频标签 | - |
+| category | object[] | 是 | 视频分类，使用 `CascadingPlatformDataItem[]` 结构 | - |
+| scheduledTime | number | 否 | 定时发布时间戳（单位：秒） | - |
 
-## 2. Payload 完整示例
+## 2. 复杂对象结构
+
+### CascadingPlatformDataItem
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| id | string | 是 | 选项ID |
+| text | string | 是 | 选项文本 |
+| children | object[] | 否 | 子级选项列表 (CascadingPlatformDataItem[]) |
+| raw | object | 是 | 平台原始数据 |
+
+## 3. JSON 示例
 
 ```json
 {
@@ -23,20 +31,28 @@
     "accountForms": [
       {
         "platformAccountId": "FENGWANG_ACC_ID",
-        "video": { "key": "v_key", "size": 1024, "width": 720, "height": 1280 },
+        "video": {
+          "key": "v_key",
+          "size": 1024000,
+          "width": 1920,
+          "height": 1080,
+          "duration": 60
+        },
         "contentPublishForm": {
           "formType": "task",
-          "title": "蜂网视频",
-          "description": "描述内容",
-          "tags": ["蜂网"],
-          "category": [{"id": "1", "name": "科技"}]
+          "title": "凤凰网资讯视频标题",
+          "description": "这是凤凰网平台的一则重要资讯视频内容。",
+          "tags": ["资讯", "社会"],
+          "category": [
+            {
+              "id": "1",
+              "text": "社会",
+              "raw": {}
+            }
+          ]
         }
       }
     ]
   }
 }
 ```
-
-## 3. DTO 参考
-- 后端类: `FengWangVideoForm`
-- 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/fengwang.dto.ts`

@@ -1,33 +1,33 @@
-# 豆瓣日记发布参数 (DouBan Article)
+# 豆瓣文章发布参数 (DouBan Article)
 
-本平台日记发布通过 `contentPublishForm` 承载以下参数。
+本平台文章发布通过 `contentPublishForm` 承载以下参数。
 
 ## 1. contentPublishForm 参数定义
 
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
 | `formType` | `string` | **是** | 固定值: `task` | `task` |
-| `title` | `string` | **是** | 日记标题 | - |
-| `content` | `string` | **是** | 日记 HTML 正文 | - |
-| `type` | `number` | **是** | 创作类型 (0:不声明, 1:声明原创) | - |
-| `tags` | `Array` | 否 | 标签列表 (`string[]`) | - |
+| `title` | `string` | **是** | 文章标题 | - |
+| `type` | `number` | **是** | 创作类型: 0-非原创, 1-申明原创 | - |
+| `tags` | `string[]` | **是** | 标签 | - |
 
 ## 2. Payload 完整示例
 
 ```json
 {
+  "action": "publish",
   "publishType": "article",
-  "platforms": ["DouBan"],
+  "platforms": ["豆瓣"],
   "publishArgs": {
+    "content": "<h1>文章标题</h1><p>正文内容...</p>",
     "accountForms": [
       {
-        "platformAccountId": "YOUR_ACCOUNT_ID",
+        "platformAccountId": "acc_db_001",
         "contentPublishForm": {
           "formType": "task",
-          "title": "豆瓣日记发布测试",
-          "content": "<p>正文内容...</p>",
+          "title": "这是文章标题",
           "type": 1,
-          "tags": ["测试", "豆瓣"]
+          "tags": ["影评", "生活"]
         }
       }
     ]
@@ -35,6 +35,6 @@
 }
 ```
 
-## 3. DTO 参考
+## 4. DTO 参考
 - 后端类: `DouBanArticleForm`
 - 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/douban.dto.ts`

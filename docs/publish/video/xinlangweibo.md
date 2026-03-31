@@ -1,20 +1,27 @@
-# 新浪微博视频发布参数 (Xinlangweibo)
+# 新浪微博 视频发布
 
-本平台视频发布通过 `contentPublishForm` 承载以下参数。
-
-## 1. contentPublishForm 参数定义
+## 1. contentPublishForm 数据结构
 
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| `formType` | `string` | **是** | 固定值: `task` | `task` |
-| `title` | `string` | **是** | 微博视频标题 | - |
-| `description` | `string` | **是** | 微博正文/描述 | - |
-| `type` | `number` | 否 | 类型: 1-原创, 2-转载, 3-二次创作 | `1` |
-| `location` | `Object` | 否 | 位置信息 (`PlatformDataItem`) | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间戳 | - |
-| `collection` | `object` | 否 | 合集字段 | - |
+| formType | string | 是 | 固定为 `task` | `task` |
+| title | string | 是 | 视频标题 | - |
+| description | string | 是 | 视频描述 | - |
+| type | number | 否 | 内容类型：1-原创, 2-转载内容, 3-二次创作内容 | 1 |
+| location | object | 否 | 视频位置，使用 `PlatformDataItem` 结构 | - |
+| scheduledTime | number | 否 | 定时发布时间戳（单位：秒） | - |
+| collection | object | 否 | 合集信息 | - |
 
-## 2. Payload 完整示例
+## 2. 复杂对象结构
+
+### PlatformDataItem
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| id | string | 是 | ID |
+| text | string | 是 | 文本内容 |
+| raw | object | 是 | 平台原始数据 |
+
+## 3. JSON 示例
 
 ```json
 {
@@ -24,19 +31,26 @@
     "accountForms": [
       {
         "platformAccountId": "WEIBO_ACC_ID",
-        "video": { "key": "v_key", "size": 1024, "width": 720, "height": 1280 },
+        "video": {
+          "key": "v_key",
+          "size": 1024000,
+          "width": 1920,
+          "height": 1080,
+          "duration": 60
+        },
         "contentPublishForm": {
           "formType": "task",
-          "title": "微博视频",
-          "description": "这是微博正文 #话题",
-          "type": 1
+          "title": "微博视频发布标题",
+          "description": "这是发布在微博的一段视频详情内容 #记录生活",
+          "type": 1,
+          "location": {
+            "id": "loc_123",
+            "text": "上海市",
+            "raw": {}
+          }
         }
       }
     ]
   }
 }
 ```
-
-## 3. DTO 参考
-- 后端类: `XinLangWeiBoVideoForm`
-- 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/xinlangweibo.dto.ts`

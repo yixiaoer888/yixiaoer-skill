@@ -8,22 +8,22 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `formType` | `string` | **是** | 固定值: `task` | `task` |
 | `title` | `string` | **是** | 文章标题 | - |
-| `content` | `string` | **是** | 文章 HTML 正文 | - |
 
 ## 2. Payload 完整示例
 
 ```json
 {
+  "action": "publish",
   "publishType": "article",
-  "platforms": ["JianShu"],
+  "platforms": ["简书"],
   "publishArgs": {
+    "content": "<h1>文章标题</h1><p>正文内容...</p>",
     "accountForms": [
       {
-        "platformAccountId": "YOUR_ACCOUNT_ID",
+        "platformAccountId": "acc_js_001",
         "contentPublishForm": {
           "formType": "task",
-          "title": "简书发布测试",
-          "content": "<p>正文内容...</p>"
+          "title": "这是文章标题"
         }
       }
     ]
@@ -31,6 +31,6 @@
 }
 ```
 
-## 3. DTO 参考
+## 4. DTO 参考
 - 后端类: `JianShuArticleForm`
 - 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/jianshu.dto.ts`

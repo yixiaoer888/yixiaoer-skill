@@ -1,21 +1,36 @@
-# 知乎视频发布参数 (Zhihu)
+# 知乎 视频发布
 
-本平台视频发布通过 `contentPublishForm` 承载以下参数。
-
-## 1. contentPublishForm 参数 definition
+## 1. contentPublishForm 数据结构
 
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| `formType` | `string` | **是** | 固定值: `task` | `task` |
-| `title` | `string` | **是** | 视频标题 | - |
-| `description` | `string` | **是** | 视频描述 | - |
-| `topics` | `Array` | 否 | 话题列表 (`Category[]`) | - |
-| `category` | `Array` | **是** | 视频分类 (`CascadingPlatformDataItem[]`) | - |
-| `declaration` | `number` | 否 | 声明: 0-不声明, 2-AI生成 | - |
-| `type` | `number` | 否 | 创作类型: 1-原创, 2-非原创 | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间戳 | - |
+| formType | string | 是 | 固定为 `task` | `task` |
+| title | string | 是 | 视频标题 | - |
+| description | string | 是 | 视频描述 | - |
+| topics | object[] | 否 | 知乎话题列表，使用 `Category[]` 结构 | - |
+| category | object[] | 是 | 视频分类，使用 `CascadingPlatformDataItem[]` 结构 | - |
+| declaration | number | 否 | 视频创作申明：0-不声明, 2-图片/视频由AI生成 | 0 |
+| type | number | 否 | 视频类型：1-原创, 2-非原创 | 1 |
+| scheduledTime | number | 否 | 定时发布时间戳（单位：秒） | - |
 
-## 2. Payload 完整示例
+## 2. 复杂对象结构
+
+### Category
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| yixiaoerId | string | 是 | 蚁小二ID |
+| yixiaoerName | string | 是 | 蚁小二名称 |
+| raw | object | 是 | 平台原始数据 |
+
+### CascadingPlatformDataItem
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| id | string | 是 | 选项ID |
+| text | string | 是 | 选项文本 |
+| children | object[] | 否 | 子级选项列表 (CascadingPlatformDataItem[]) |
+| raw | object | 是 | 平台原始数据 |
+
+## 3. JSON 示例
 
 ```json
 {
@@ -24,21 +39,37 @@
   "publishArgs": {
     "accountForms": [
       {
-        "platformAccountId": "ZH_ACC_ID",
-        "video": { "key": "v_key", "size": 1024, "width": 720, "height": 1280 },
+        "platformAccountId": "ZHIHU_ACC_ID",
+        "video": {
+          "key": "v_key",
+          "size": 1024000,
+          "width": 1920,
+          "height": 1080,
+          "duration": 60
+        },
         "contentPublishForm": {
           "formType": "task",
-          "title": "知乎视频标题",
-          "description": "视频内容描述",
-          "category": [{"id": "1", "name": "科技"}],
-          "type": 1
+          "title": "知乎精选视频标题",
+          "description": "这是关于知乎深度内容的视频分享描述内容。",
+          "topics": [
+            {
+              "yixiaoerId": "123",
+              "yixiaoerName": "人工智能",
+              "raw": {}
+            }
+          ],
+          "category": [
+            {
+              "id": "1",
+              "text": "科技",
+              "raw": {}
+            }
+          ],
+          "type": 1,
+          "declaration": 0
         }
       }
     ]
   }
 }
 ```
-
-## 3. DTO 参考
-- 后端类: `ZhiHuVideoForm`
-- 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/zhihu.dto.ts`

@@ -8,29 +8,32 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `formType` | `string` | **是** | 固定值: `task` | `task` |
 | `title` | `string` | **是** | 文章标题 | - |
-| `content` | `string` | **是** | 文章 HTML 正文 | - |
-| `covers` | `Array` | **是** | 文章封面图列表 (`OldCover[]`) | - |
-| `tags` | `Array` | **是** | 文章标签列表 (`string[]`) | - |
-| `declaration` | `number` | 否 | 创作声明 (0:暂不声明, 1:AI生成, 2:个人观点, 3:剧情演绎, 7:AI辅助, 8:健康, 9:危险行为) | - |
+| `covers` | `Array` | **是** | 文章封面列表 (`OldCover[]`) | - |
+| `tags` | `string[]` | **是** | 文章标签 (至少一个) | - |
+| `declaration` | `number` | 否 | 创作申明: 0-暂不申明, 1-AI生成, 2-个人观点, 3-剧情演绎, 7-AI辅助, 8-健康医疗, 9-危险行为 | - |
 
 ## 2. Payload 完整示例
 
 ```json
 {
+  "action": "publish",
   "publishType": "article",
-  "platforms": ["QiEHao"],
+  "platforms": ["企鹅号"],
   "publishArgs": {
+    "content": "<h1>文章标题</h1><p>正文内容...</p>",
     "accountForms": [
       {
-        "platformAccountId": "YOUR_ACCOUNT_ID",
+        "platformAccountId": "acc_qh_001",
+        "coverKey": "article_cover_key",
+        "cover": { "key": "article_cover_key", "size": 102400, "width": 800, "height": 600 },
         "contentPublishForm": {
           "formType": "task",
-          "title": "腾讯发布测试",
-          "content": "<p>正文内容...</p>",
+          "title": "这是文章标题",
           "covers": [
-            { "key": "cover_key", "size": 100, "width": 800, "height": 600 }
+            { "key": "article_cover_key", "size": 102400, "width": 800, "height": 600 }
           ],
-          "tags": ["测试", "腾讯"]
+          "tags": ["科技", "AI"],
+          "declaration": 0
         }
       }
     ]
@@ -38,6 +41,16 @@
 }
 ```
 
-## 3. DTO 参考
+## 3. 复杂对象结构
+
+### 3.1 OldCover (封面对象)
+| 字段名 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| `key` | `string` | OSS 资源 Key |
+| `size` | `number` | 文件大小 (bytes) |
+| `width` | `number` | 宽度 |
+| `height` | `number` | 高度 |
+
+## 4. DTO 参考
 - 后端类: `QiEHaoArticleForm`
 - 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/qiehao.dto.ts`

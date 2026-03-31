@@ -8,30 +8,32 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `formType` | `string` | **是** | 固定值: `task` | `task` |
 | `title` | `string` | **是** | 文章标题 | - |
-| `content` | `string` | **是** | 文章 HTML 正文 | - |
-| `covers` | `Array` | **是** | 文章封面图列表 (`OldCover[]`) | - |
-| `tags` | `Array` | 否 | 标签列表 (`string[]`) | - |
-| `type` | `number` | **是** | 创作类型 (0:不声明, 1:声明原创) | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间 (时间戳) | - |
+| `covers` | `Array` | **是** | 文章封面列表 (`OldCover[]`) | - |
+| `tags` | `string[]` | 否 | 文章标签 | - |
+| `type`| `number` | **是** | 创作类型: 0-不申明, 1-申明原创 | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
 
 ## 2. Payload 完整示例
 
 ```json
 {
+  "action": "publish",
   "publishType": "article",
-  "platforms": ["KuaiChuanHao"],
+  "platforms": ["快传号"],
   "publishArgs": {
+    "content": "<h1>文章标题</h1><p>正文内容...</p>",
     "accountForms": [
       {
-        "platformAccountId": "YOUR_ACCOUNT_ID",
+        "platformAccountId": "acc_kch_001",
+        "coverKey": "article_cover_key",
+        "cover": { "key": "article_cover_key", "size": 102400, "width": 800, "height": 600 },
         "contentPublishForm": {
           "formType": "task",
-          "title": "快传号发布测试",
-          "content": "<p>正文内容...</p>",
+          "title": "这是文章标题",
           "covers": [
-            { "key": "cover_key", "size": 100, "width": 800, "height": 600 }
+            { "key": "article_cover_key", "size": 102400, "width": 800, "height": 600 }
           ],
-          "type": 0
+          "type": 1
         }
       }
     ]
@@ -39,6 +41,16 @@
 }
 ```
 
-## 3. DTO 参考
+## 3. 复杂对象结构
+
+### 3.1 OldCover (封面对象)
+| 字段名 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| `key` | `string` | OSS 资源 Key |
+| `size` | `number` | 文件大小 (bytes) |
+| `width` | `number` | 宽度 |
+| `height` | `number` | 高度 |
+
+## 4. DTO 参考
 - 后端类: `KuaiChuanHaoArticleForm`
 - 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/kuaichuanhao.dto.ts`

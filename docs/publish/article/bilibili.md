@@ -1,39 +1,41 @@
-# 哔哩哔哩专栏发布参数 (BiLiBiLi Article)
+# 哔哩哔哩文章发布参数 (BiLiBiLi Article)
 
-本平台专栏发布通过 `contentPublishForm` 承载以下参数。
+本平台文章发布通过 `contentPublishForm` 承载以下参数。
 
 ## 1. contentPublishForm 参数定义
 
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
 | `formType` | `string` | **是** | 固定值: `task` | `task` |
-| `title` | `string` | **是** | 专栏标题 | - |
-| `content` | `string` | **是** | 专栏 HTML 正文 | - |
-| `covers` | `Array` | **是** | 专栏封面图列表 (`OldCover[]`) | - |
-| `tags` | `Array` | 否 | 标签名称列表 (`string[]`) | - |
-| `type` | `number` | 否 | 创作类型 (1:自制, 2:转载) | `1` |
-| `category` | `Array` | 否 | 分类列表 (`Category[]`) | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间 (时间戳) | - |
+| `title` | `string` | **是** | 文章标题 | - |
+| `covers` | `Array` | **是** | 文章封面列表 (`OldCover[]`) | - |
+| `tags` | `string[]` | 否 | 文章标签 | - |
+| `type` | `number` | 否 | 原创类型: 0-非原创, 1-原创 | - |
+| `category` | `Array` | 否 | 文章分类 (`Category[]`) | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
 
 ## 2. Payload 完整示例
 
 ```json
 {
+  "action": "publish",
   "publishType": "article",
-  "platforms": ["BiLiBiLi"],
+  "platforms": ["哔哩哔哩"],
   "publishArgs": {
+    "content": "<h1>文章标题</h1><p>正文内容...</p>",
     "accountForms": [
       {
-        "platformAccountId": "YOUR_ACCOUNT_ID",
+        "platformAccountId": "acc_bili_001",
+        "coverKey": "article_cover_key",
+        "cover": { "key": "article_cover_key", "size": 102400, "width": 800, "height": 600 },
         "contentPublishForm": {
           "formType": "task",
-          "title": "B站专栏发布测试",
-          "content": "<p>正文内容...</p>",
+          "title": "这是文章标题",
           "covers": [
-            { "key": "cover_key", "size": 100, "width": 800, "height": 600 }
+            { "key": "article_cover_key", "size": 102400, "width": 800, "height": 600 }
           ],
-          "tags": ["测试", "B站"],
-          "type": 1
+          "type": 1,
+          "tags": ["生活", "科技"]
         }
       }
     ]
@@ -41,6 +43,23 @@
 }
 ```
 
-## 3. DTO 参考
+## 3. 复杂对象结构
+
+### 3.1 OldCover (封面对象)
+| 字段名 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| `key` | `string` | OSS 资源 Key |
+| `size` | `number` | 文件大小 (bytes) |
+| `width` | `number` | 宽度 |
+| `height` | `number` | 高度 |
+
+### 3.2 Category (分类对象)
+| 字段名 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| `yixiaoerId` | `string` | ID |
+| `yixiaoerName` | `string` | 名称 |
+| `raw` | `Object` | 原始对象 |
+
+## 4. DTO 参考
 - 后端类: `BiLiBiLiArticleForm`
 - 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/bilibili.dto.ts`
