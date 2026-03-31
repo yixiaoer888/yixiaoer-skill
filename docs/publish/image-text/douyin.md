@@ -7,31 +7,64 @@
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
 | `formType` | `string` | **是** | 固定值: `task` | `task` |
-| `title` | `string` | 否 | 抖音图文标题 | - |
-| `description` | `string` | **是** | 图文描述，支持 HTML 格式（`<p>` 标签及 `<topic>` 标签） | - |
-| `images` | `Array` | **是** | 图片 OSS 列表 (`OldImage[]`) | - |
-| `location` | `Object` | 否 | 物理地址信息 | - |
-| `musice` | `Object` | 否 | 音乐素材信息 | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间戳 | - |
-| `collection` | `Object` | 否 | 合集信息 | - |
+| `title` | `string` | 否 | 标题 | - |
+| `description` | `string` | 否 | 图文描述，支持 HTML (`<p>`, `<topic>`)。最多 1000 字符。 | - |
+| `images` | `Array` | **是** | 图片数组 (`OldImage[]`) | - |
+| `location` | `Object` | 否 | 地址信息 (`PlatformDataItem`) | - |
+| `musice` | `Object` | 否 | 音乐信息 (`PlatformDataItem`) | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳) | - |
+| `collection` | `Object` | 否 | 合集信息 (`Category`) | - |
+| `sub_collection` | `Object` | 否 | 合集选集信息 (`Category`) | - |
 
-## 2. Payload 完整示例
+> [!WARNING]
+> 请注意，抖音图文 DTO 中的音乐字段名为 `musice`。
+
+## 2. 复杂对象结构说明
+
+### 复杂对象：OldImage
+| 字段名 | 类型 | 必填 | 说明 | 默认值 |
+| :--- | :--- | :--- | :--- | :--- |
+| `width` | `number` | **是** | 图片宽度 | - |
+| `height` | `number` | **是** | 图片高度 | - |
+| `size` | `number` | **是** | 文件大小 (Bytes) | - |
+| `key` | `string` | **是** | 资源 Key (通过上传接口获取) | - |
+| `format` | `string` | **是** | 文件格式 (e.g., `jpg`, `png`) | - |
+
+### 复杂对象：Category
+| 字段名 | 类型 | 必填 | 说明 | 默认值 |
+| :--- | :--- | :--- | :--- | :--- |
+| `yixiaoerId` | `string` | **是** | 蚁小二内部 ID | - |
+| `yixiaoerName` | `string` | **是** | 显示名称 | - |
+| `raw` | `object` | 否 | 原始数据对象 | - |
+
+## 3. 依赖接口说明
+
+若字段值需通过查询获得，需注明：
+- **位置 (location)**: 需通过 `[获取位置](../../get-location.md)` 获得对应的 `PlatformDataItem`。
+- **音乐 (musice)**: 需通过 `[获取音乐](../../get-music.md)` 获得对应的 `PlatformDataItem`。
+- **话题 (topic)**: 在 `description` 中使用 `<topic>` 标签时，话题数据需通过 `[获取话题](../../get-topics.md)` 获得。
+- **合集 (collection)**: 需通过 `[获取合集](../../get-collections.md)` 获得对应的 `Category`。
+
+## 4. Payload 完整示例
 
 ```json
 {
+  "action": "publish",
   "publishType": "imageText",
   "platforms": ["抖音"],
   "publishArgs": {
     "accountForms": [
       {
-        "platformAccountId": "YOUR_ACCOUNT_ID",
-        "images": [
-          { "key": "img1_oss_key", "size": 100, "width": 800, "height": 600 }
-        ],
+        "platformAccountId": "DY_ACC_ID",
         "contentPublishForm": {
           "formType": "task",
-          "title": "图文标题",
-          "description": "<p>这是一个关于 <topic text='搞笑' raw='{\\\"yixiaoerId\\\":\\\"123\\\"}'>#搞笑</topic> 的示例</p>"
+          "title": "抖音图文标题",
+          "description": "<p>内容描述 <topic text='合拍' raw='{\"id\":\"xxx\",\"name\":\"合拍\"}'>#合拍</topic></p>",
+          "images": [
+            { "key": "img_1", "size": 1024, "width": 1080, "height": 1440, "format": "jpg" },
+            { "key": "img_2", "size": 1024, "width": 1080, "height": 1440, "format": "jpg" }
+          ],
+          "location": { "id": "loc_123", "text": "某商位" }
         }
       }
     ]
@@ -39,6 +72,6 @@
 }
 ```
 
-## 3. DTO 参考
+## 5. DTO 参考
 - 后端类: `DouYinDynamicForm`
 - 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/douyin.dto.ts`
