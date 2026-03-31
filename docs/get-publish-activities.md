@@ -10,7 +10,7 @@
 ## 调用指令 (Command)
 
 ```bash
-node scripts/get-publish-activities.ts --payload='{"account_id":"XXX","type":1}'
+node scripts/api.ts --payload='{"action":"activities","account_id":"XXX","type":1}'
 ```
 
 ## 参数列表 (Payload Properties)

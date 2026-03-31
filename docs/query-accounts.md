@@ -61,7 +61,7 @@
 ## 调用指令 (Command)
 
 ```bash
-node scripts/query-accounts.ts --payload='{"platform":"抖音","name":"昵称","page":1,"size":20}'
+node scripts/api.ts --payload='{"action":"accounts","platform":"抖音","name":"昵称","page":1,"size":20}'
 ```
 
 ## 注意事项

@@ -1,6 +1,6 @@
 # 通用内容发布基础结构 (Universal Publish Base)
 
-所有通过 `publish.ts` 执行的内容发布任务均遵循此通用结构。
+所有通过 `api.ts`（指定 `action: "publish"`）执行的内容发布任务均遵循此通用结构。
 
 > [!IMPORTANT]
 > **发布合规性要求**:
@@ -48,10 +48,10 @@
 
 ## 4. 调用指令 (Execution)
 
-所有发布操作均通过 `scripts/publish.ts` 脚本执行。调用时需通过 `--payload` 参数传入符合上述 JSON 结构的字符串。
+所有发布操作均通过 `scripts/api.ts` 脚本执行。调用时需通过 `--payload` 参数传入符合上述 JSON 结构且包含 `"action": "publish"` 的字符串。
 
 ```bash
-node scripts/publish.ts --payload='{...}'
+node scripts/api.ts --payload='{"action": "publish", ...}'
 ```
 
 ## 5. 演示数据 (Payload Examples)

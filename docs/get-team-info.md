@@ -21,7 +21,7 @@
 ## 调用指令 (Command)
 
 ```bash
-node scripts/get-team-info.ts --payload='{}'
+node scripts/api.ts --payload='{"action":"team-info"}'
 ```
 
 ## 参数列表 (Payload Properties)

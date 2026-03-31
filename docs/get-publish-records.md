@@ -5,7 +5,7 @@
 ## 调用指令 (Command)
 
 ```bash
-node scripts/get-publish-records.ts --payload='{"page":1,"size":10}'
+node scripts/api.ts --payload='{"action":"records","page":1,"size":10}'
 ```
 
 ## 参数列表 (Payload Properties)
@@ -35,13 +35,13 @@ node scripts/get-publish-records.ts --payload='{"page":1,"size":10}'
 
 ### 1. 分页查询成功记录
 ```bash
-node scripts/get-publish-records.ts --payload='{"page":1,"size":10,"status":"allsuccessful"}'
+node scripts/api.ts --payload='{"action":"records","page":1,"size":10,"status":"allsuccessful"}'
 ```
 
 ### 2. 查询特定任务集的子任务执行状态
 需要先从记录列表获取 `id`，然后调用 `get-publish-details`：
 ```bash
-node scripts/get-publish-details.ts --payload='{"task_set_id":"TASK_SET_ID"}'
+node scripts/api.ts --payload='{"action":"details","task_set_id":"TASK_SET_ID"}'
 ```
 
 ## 响应数据模型 (Response JSON)

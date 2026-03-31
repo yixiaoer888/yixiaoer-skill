@@ -5,7 +5,7 @@
 ## 调用指令 (Command)
 
 ```bash
-node scripts/get-locations.ts --payload='{"account_id":"XXX","keyword":"深圳","type":1}'
+node scripts/api.ts --payload='{"action":"locations","account_id":"XXX","keyword":"深圳","type":1}'
 ```
 
 ## 参数列表 (Payload Properties)

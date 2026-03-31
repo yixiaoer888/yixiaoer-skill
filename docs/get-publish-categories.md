@@ -41,5 +41,5 @@
 
 ### 调用指令 (Command)
 ```bash
-node scripts/get-publish-categories.ts --payload='{"account_id":"64dxxx","type":"article"}'
+node scripts/api.ts --payload='{"action":"categories","account_id":"64dxxx","type":"article"}'
 ```

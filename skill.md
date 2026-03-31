@@ -27,23 +27,30 @@ API 调用时涉及的平台名称必须使用蚁小二定义的中文枚举或 
 
 *   **平台枚举列表**: [docs/platform.md](./docs/platform.md)
 
-## 能力地图 (Capabilities)
+## 统一执行指令 (Unified Execution)
 
-所有的能力均通过 [api.ts](./scripts/api.ts) 中的 `callApi` 配合对应的 DTO Payload 实现。
+所有的 API 功能统一通过 [api.ts](./scripts/api.ts) 脚本执行。调用时需通过 `--payload` 参数传入 JSON，且 **`action` 字段为必填项**，用于指定具体功能。
 
-| 能力类型 | 功能描述 | 请求 Endpoint | 相关文档 |
-| :--- | :--- | :--- | :--- |
-| **内容发布** | 视频、图文、文章全平台发布 | `/taskSets/v2` | [docs/publish/index.md](./docs/publish/index.md) |
-| **账号管理** | 查询全平台账号列表与 UID | `/v2/platform/accounts` | [query-accounts.md](./docs/query-accounts.md) |
-| **资源管理** | 图片/视频上传至 OSS 获取 Key | `/storages/[bucket]/upload-url` | [upload-resource.md](./docs/upload-resource.md) |
-| **发布记录** | 查询历史发布任务与各平台状态 | `/v2/taskSets` | [get-publish-records.md](./docs/get-publish-records.md) |
-| **发布详情** | 获取特定任务的详细执行记录 | `/v2/taskSets/[id]/tasks` | [get-publish-details.md](./docs/get-publish-details.md) |
-| **团队信息** | 获取租户/团队基本信息与额度 | `/v2/teams/current` | [get-team-info.md](./docs/get-team-info.md) |
-| **分类查询** | 获取账号下的分类/合集/话题 | `/web/config-data/category-tasks` | [get-publish-categories.md](./docs/get-publish-categories.md) |
-| **活动查询** | 获取平台当前的征文活动列表 | `/web/config-data/activity-tasks` | [get-publish-activities.md](./docs/get-publish-activities.md) |
-| **地理位置** | 获取发布可选的 POI 地址列表 | `/web/config-data/location-tasks` | [get-locations.md](./docs/get-locations.md) |
-| **音乐素材** | 获取抖音/快手发布可选音乐 | `/web/config-data/music-tasks` | [get-music.md](./docs/get-music.md) |
-| **合集管理** | 获取账号已创建的合集列表 | `/web/config-data/collection-tasks` | [get-collections.md](./docs/get-collections.md) |
+| action 值 | 对应的能力描述 | 相关文档 |
+| :--- | :--- | :--- |
+| `publish` | 图文、视频、文章分发发布 | [docs/publish/index.md](./docs/publish/index.md) |
+| `accounts` | 查询已绑定的账号列表 | [query-accounts.md](./docs/query-accounts.md) |
+| `upload` | 上传本地或 URL 图片/视频 | [upload-resource.md](./docs/upload-resource.md) |
+| `records` | 查询发布任务概览列表 | [get-publish-records.md](./docs/get-publish-records.md) |
+| `details` | 查询特定任务的执行详情 | [get-publish-records.md](./docs/get-publish-records.md) |
+| `team-info`| 获取租户与配额信息 | [get-team-info.md](./docs/get-team-info.md) |
+| `categories`| 获取账号分类/话题列表 | [get-publish-categories.md](./docs/get-publish-categories.md) |
+| `activities`| 获取征文活动列表 | [get-publish-activities.md](./docs/get-publish-activities.md) |
+| `locations` | 获取 POI 物理位置列表 | [get-locations.md](./docs/get-locations.md) |
+| `music` | 获取抖音/快手可选背景音乐 | [get-music.md](./docs/get-music.md) |
+| `collections`| 获取账号已创建的合集列表 | [get-collections.md](./docs/get-collections.md) |
+
+### 调用示例 (Example)
+
+```bash
+# 查询账号列表 (action: accounts)
+node scripts/api.ts --payload='{"action": "accounts", "platform": "抖音"}'
+```
 
 ## 开发指南 (Development Guide)
 

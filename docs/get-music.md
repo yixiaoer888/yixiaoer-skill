@@ -5,7 +5,7 @@
 ## 调用指令 (Command)
 
 ```bash
-node scripts/get-music.ts --payload='{"account_id":"XXX","keyword":"周杰伦"}'
+node scripts/api.ts --payload='{"action":"music","account_id":"XXX","keyword":"周杰伦"}'
 ```
 
 ## 参数列表 (Payload Properties)

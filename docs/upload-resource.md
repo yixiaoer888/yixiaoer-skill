@@ -10,7 +10,7 @@
 ## 调用指令 (Command)
 
 ```bash
-node scripts/upload-resource.ts --payload='{"url":"https://example.com/image.jpg","bucket":"cloud-publish"}'
+node scripts/api.ts --payload='{"action":"upload","url":"https://example.com/image.jpg","bucket":"cloud-publish"}'
 ```
 
 ## 参数列表 (Payload Properties)

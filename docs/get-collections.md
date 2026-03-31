@@ -5,7 +5,7 @@
 ## 调用指令 (Command)
 
 ```bash
-node scripts/get-collections.ts --payload='{"account_id":"ACCOUNT_ID"}'
+node scripts/api.ts --payload='{"action":"collections","account_id":"ACCOUNT_ID"}'
 ```
 
 ## 参数列表 (Payload Properties)

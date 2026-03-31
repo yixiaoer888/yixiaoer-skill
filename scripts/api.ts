@@ -114,3 +114,118 @@ export function handleError(error: any, context: string) {
   }, null, 2));
   process.exit(1);
 }
+
+/**
+ * 主执行入口 (Execution Entry)
+ */
+async function main() {
+  // 1. 检查是否为直接执行 (ts-node 或 node scripts/api.ts)
+  const isMain = process.argv[1]?.replace(/\\/g, '/').endsWith('scripts/api.ts') || 
+                 process.argv[1]?.replace(/\\/g, '/').endsWith('scripts/api');
+  
+  if (!isMain) return;
+
+  try {
+    const payload = getPayload();
+    const action = payload.action;
+
+    if (!action) {
+      throw new Error("Missing required field: action in payload");
+    }
+
+    let result: any;
+    switch (action) {
+      case 'publish': // 内容发布
+        result = await callApi('/taskSets/v2', { 
+          method: 'POST', 
+          body: JSON.stringify(payload) 
+        });
+        break;
+
+      case 'accounts': // 账号列表
+        const accountUrl = new URL(`${API_URL}/v2/platform/accounts`);
+        Object.keys(payload).forEach(key => {
+          if (key !== 'action') accountUrl.searchParams.append(key, String(payload[key]));
+        });
+        result = await callApi(accountUrl.toString(), { method: 'GET' });
+        break;
+
+      case 'upload': // 资源上传
+        const key = await uploadResource(payload.url, payload.bucket);
+        result = { 
+          key, 
+          name: payload.url.startsWith('http') ? new URL(payload.url).pathname.split('/').pop() : payload.url.split(/[/\\]/).pop() 
+        };
+        break;
+
+      case 'records': // 发布记录
+        const recordUrl = new URL(`${API_URL}/v2/taskSets`);
+        Object.keys(payload).forEach(key => {
+          if (key !== 'action') recordUrl.searchParams.append(key, String(payload[key]));
+        });
+        result = await callApi(recordUrl.toString(), { method: 'GET' });
+        break;
+
+      case 'details': // 任务详情
+        if (!payload.task_set_id) throw new Error("Missing task_set_id for action: details");
+        result = await callApi(`/v2/taskSets/${payload.task_set_id}/tasks`, { method: 'GET' });
+        break;
+
+      case 'team-info': // 团队信息
+        result = await callApi('/v2/teams/current', { method: 'GET' });
+        break;
+
+      case 'categories': // 分类查询
+        result = await callApi('/web/config-data/category-tasks', { 
+          method: 'POST', 
+          headers: { 'x-account-id': payload.account_id },
+          body: JSON.stringify({ openAccountId: payload.account_id, publishType: payload.type || 'video' })
+        });
+        break;
+
+      case 'activities': // 活动查询
+        result = await callApi('/web/config-data/activity-tasks', { 
+          method: 'POST', 
+          headers: { 'x-account-id': payload.account_id },
+          body: JSON.stringify({ openAccountId: payload.account_id, publishType: payload.type || 1, categoryId: payload.categoryId, keyWord: payload.keyWord })
+        });
+        break;
+
+      case 'locations': // POI 搜索
+        result = await callApi('/web/config-data/location-tasks', { 
+          method: 'POST', 
+          headers: { 'x-account-id': payload.account_id },
+          body: JSON.stringify({ openAccountId: payload.account_id, keyWord: payload.keyword || '', locationType: parseInt(payload.type || '1'), nextPage: "" })
+        });
+        break;
+
+      case 'music': // 音乐素材
+        result = await callApi('/web/config-data/music-tasks', { 
+          method: 'POST', 
+          headers: { 'x-account-id': payload.account_id },
+          body: JSON.stringify({ openAccountId: payload.account_id, keyWord: payload.keyword || '', nextPage: "" })
+        });
+        break;
+
+      case 'collections': // 合集查询
+        result = await callApi('/web/config-data/collection-tasks', { 
+          method: 'POST', 
+          headers: { 'x-account-id': payload.account_id },
+          body: JSON.stringify({ openAccountId: payload.account_id })
+        });
+        break;
+
+      default:
+        throw new Error(`Unsupported action: ${action}`);
+    }
+
+    console.log(JSON.stringify(result.data || result, null, 2));
+
+  } catch (error) {
+    handleError(error, "execute api action");
+  }
+}
+
+main();
+
+export {};
