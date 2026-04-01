@@ -97,6 +97,7 @@ contentPublishForm 中的字段需要从以下文档中获取。
 | **WiFi万能钥匙** | `WiFi万能钥匙`, `WifiWanNeng` | [wifiwanneng.md](./wifiwanneng.md) |
 | **AcFun** | `AcFun`, `AcFun` | [acfun.md](./acfun.md) |
 | **易车号** | `易车号`, `YiCheHao` | [yichehao.md](./yichehao.md) |
+| **微信公众号** | `微信公众号`, `WeiXinGongZhongHao` | [weixingongzhonghao.md](./weixingongzhonghao.md) |
 
 > [!TIP]
 > 持续增加中... 请参考后端 DTO `*ArticleForm` 扩展新平台。
