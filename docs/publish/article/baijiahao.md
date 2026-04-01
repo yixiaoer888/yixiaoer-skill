@@ -12,9 +12,39 @@
 | `category` | `Array` | **是** | 文章分类列表 (`Category[]`) | - |
 | `declaration` | `number` | 否 | 内容声明: 0-不声明, 1-内容由 AI 生成 | - |
 | `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
-| `activity` | `Object` | 否 | 征文活动数据对象 | - |
+| `activity` | `Object` | 否 | 征文活动数据对象，使用 `Activity` 结构 | - |
 
-## 2. Payload 完整示例
+## 2. 复杂对象结构说明
+
+### OldCover
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `key` | `string` | **是** | OSS 资源 Key |
+| `size` | `number` | **是** | 文件大小 (Bytes) |
+| `width` | `number` | **是** | 宽度 |
+| `height` | `number` | **是** | 高度 |
+
+### Category (分类)
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `yixiaoerId` | `string` | **是** | 分类 ID |
+| `yixiaoerName` | `string` | **是** | 分类名称 |
+| `raw` | `object` | 否 | 原始分类对象 |
+
+### Activity (活动)
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `yixiaoerId` | `string` | **是** | 活动 ID |
+| `yixiaoerName` | `string` | **是** | 活动名称 |
+
+### 数据获取途径
+
+| 目标字段 | 对应 Action | 文档参考 |
+| :--- | :--- | :--- |
+| `category` | `categories` | [获取账号分类](../../get-publish-categories.md) |
+| `activity` | `activities` | [获取征文活动](../../get-publish-activities.md) |
+
+## 3. Payload 完整示例
 
 ```json
 {
@@ -44,26 +74,6 @@
   }
 }
 ```
-
-## 3. 复杂对象结构
-
-### 3.1 OldCover (封面对象)
-| 字段名 | 类型 | 说明 |
-| :--- | :--- | :--- |
-| `key` | `string` | OSS 资源 Key |
-| `size` | `number` | 文件大小 (bytes) |
-| `width` | `number` | 宽度 |
-| `height` | `number` | 高度 |
-
-### 3.2 Category (分类对象)
-| 字段名 | 类型 | 说明 |
-| :--- | :--- | :--- |
-| `yixiaoerId` | `string` | 分类 ID |
-| `yixiaoerName` | `string` | 分类名称 |
-| `yixiaoerImageUrl` | `string` | 图片 URL |
-| `yixiaoerDesc` | `string` | 描述 |
-| `viewNum` | `string` | 浏览量 |
-| `raw` | `Object` | 原始分类对象 |
 
 ## 4. DTO 参考
 - 后端类: `BaiJiaHaoArticleForm`

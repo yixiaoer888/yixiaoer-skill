@@ -10,31 +10,46 @@
 | `title` | `string` | 否 | 标题 | - |
 | `description` | `string` | 否 | 图文描述，支持 HTML (`<p>`, `<topic>`)。最多 1000 字符。 | - |
 | `images` | `Array` | **是** | 图片数组 (`OldImage[]`) | - |
-| `location` | `Object` | 否 | 位置信息 (`PlatformDataItem`) | - |
-| `music` | `Object` | 否 | 音乐信息 (`PlatformDataItem`) | - |
+| `location` | `Object` | 否 | 位置对象 (`PlatformDataItem`) | - |
+| `music` | `Object` | 否 | 音乐对象 (`PlatformDataItem`) | - |
 | `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳) | - |
-| `collection` | `Object` | 否 | 合集信息 | - |
+| `collection` | `Object` | 否 | 合集信息，使用 `Collection` 结构 | - |
 | `pubType` | `number` | 否 | 发布类型: 0-草稿, 1-直接发布 | 1 |
 
 ## 2. 复杂对象结构说明
 
-### 复杂对象：OldImage
-| 字段名 | 类型 | 必填 | 说明 | 默认值 |
-| :--- | :--- | :--- | :--- | :--- |
-| `width` | `number` | **是** | 图片宽度 | - |
-| `height` | `number` | **是** | 图片高度 | - |
-| `size` | `number` | **是** | 文件大小 (Bytes) | - |
-| `key` | `string` | **是** | 资源 Key (通过上传接口获取) | - |
-| `format` | `string` | **是** | 文件格式 (e.g., `jpg`, `png`) | - |
+### OldImage
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `width` | `number` | **是** | 图片宽度 |
+| `height` | `number` | **是** | 图片高度 |
+| `size` | `number` | **是** | 文件大小 (Bytes) |
+| `key` | `string` | **是** | 资源 Key (通过上传接口获取) |
+| `format` | `string` | **是** | 文件格式 (e.g., `jpg`, `png`) |
 
-## 3. 依赖接口说明
+### PlatformDataItem
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| id | string | 是 | ID |
+| text | string | 是 | 文本内容 |
+| raw | object | 是 | 平台原始数据 |
 
-若字段值需通过查询获得，需注明：
-- **位置 (location)**: 需通过 `[获取位置](../../get-location.md)` 获得对应的 `PlatformDataItem`。
-- **音乐 (music)**: 需通过 `[获取音乐](../../get-music.md)` 获得对应的 `PlatformDataItem`。
-- **话题 (topic)**: 在 `description` 中使用 `<topic>` 标签时，话题数据需通过 `[获取话题](../../get-topics.md)` 获得。
+### Collection
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| yixiaoerId | string | 是 | 合集 ID |
+| yixiaoerName | string | 是 | 合集名称 |
 
-## 4. Payload 完整示例
+### 数据获取途径
+
+| 目标字段 | 对应 Action | 文档参考 |
+| :--- | :--- | :--- |
+| `location` | `locations` | [获取位置信息](../../get-locations.md) |
+| `collection` | `collections` | [获取合集列表](../../get-collections.md) |
+| `music` | `music` | [获取背景音乐](../../get-music.md) |
+| `tags` | `challenges` | [获取话题/挑战](../../get-challenges.md) |
+
+## 3. Payload 完整示例
 
 ```json
 {

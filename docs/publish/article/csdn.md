@@ -16,47 +16,16 @@
 | `declaration` | `number` | 否 | 声明: 0-无, 1-AI辅助, 2-来源网络, 3-个人观点 | `0` |
 | `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
 
-## 2. Payload 完整示例
+## 2. 复杂对象结构说明
 
-```json
-{
-  "action": "publish",
-  "publishType": "article",
-  "platforms": ["CSDN"],
-  "publishArgs": {
-    "content": "<h1>文章标题</h1><p>正文内容...</p>",
-    "accountForms": [
-      {
-        "platformAccountId": "acc_csdn_001",
-        "coverKey": "article_cover_key",
-        "cover": { "key": "article_cover_key", "size": 102400, "width": 800, "height": 600 },
-        "contentPublishForm": {
-          "formType": "task",
-          "title": "这是文章标题",
-          "desc": "这是摘要",
-          "covers": [
-            { "key": "article_cover_key", "size": 102400, "width": 800, "height": 600 }
-          ],
-          "tags": ["Java", "Spring"],
-          "type": 1,
-          "declaration": 0
-        }
-      }
-    ]
-  }
-}
-```
+### OldCover
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `key` | `string` | **是** | OSS 资源 Key |
+| `size` | `number` | **是** | 文件大小 (Bytes) |
+| `width` | `number` | **是** | 宽度 |
+| `height` | `number` | **是** | 高度 |
 
-## 3. 复杂对象结构
-
-### 3.1 OldCover (封面对象)
-| 字段名 | 类型 | 说明 |
-| :--- | :--- | :--- |
-| `key` | `string` | OSS 资源 Key |
-| `size` | `number` | 文件大小 (bytes) |
-| `width` | `number` | 宽度 |
-| `height` | `number` | 高度 |
-
-## 4. DTO 参考
+## 3. Payload 完整示例
 - 后端类: `CSDNArticleForm`
 - 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/csdn.dto.ts`
