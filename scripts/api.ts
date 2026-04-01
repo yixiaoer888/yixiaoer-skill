@@ -264,6 +264,62 @@ async function main() {
         result = await callApi(accountOverviewUrl.toString(), { method: 'GET' });
         break;
 
+      case 'groups': // 群聊列表
+        result = await callApi('/web/config-data/group-tasks', { 
+          method: 'POST', 
+          headers: { 'x-account-id': payload.account_id },
+          body: JSON.stringify({ openAccountId: payload.account_id })
+        });
+        break;
+
+      case 'goods': // 商品列表
+        result = await callApi('/web/config-data/goods-tasks', { 
+          method: 'POST', 
+          headers: { 'x-account-id': payload.account_id },
+          body: JSON.stringify({ openAccountId: payload.account_id, keyWord: payload.keyword || '', nextPage: "" })
+        });
+        break;
+
+      case 'hot-events': // 热点列表
+        result = await callApi('/web/config-data/hotevent-tasks', { 
+          method: 'POST', 
+          headers: { 'x-account-id': payload.account_id },
+          body: JSON.stringify({ openAccountId: payload.account_id })
+        });
+        break;
+
+      case 'challenges': // 挑战列表
+        result = await callApi('/web/config-data/challenge-tasks', { 
+          method: 'POST', 
+          headers: { 'x-account-id': payload.account_id },
+          body: JSON.stringify({ openAccountId: payload.account_id, keyWord: payload.keyword || '', nextPage: "" })
+        });
+        break;
+
+      case 'miniapps': // 小程序列表
+        result = await callApi('/web/config-data/miniapp-tasks', { 
+          method: 'POST', 
+          headers: { 'x-account-id': payload.account_id },
+          body: JSON.stringify({ openAccountId: payload.account_id, keyWord: payload.keyword || '', nextPage: "" })
+        });
+        break;
+
+      case 'syncapps': // 同步应用列表
+        result = await callApi('/web/config-data/syncapp-tasks', { 
+          method: 'POST', 
+          headers: { 'x-account-id': payload.account_id },
+          body: JSON.stringify({ openAccountId: payload.account_id })
+        });
+        break;
+
+      case 'games': // 游戏列表
+        result = await callApi('/web/config-data/game-tasks', { 
+          method: 'POST', 
+          headers: { 'x-account-id': payload.account_id },
+          body: JSON.stringify({ openAccountId: payload.account_id, keyWord: payload.keyword || '', nextPage: "" })
+        });
+        break;
+
       default:
         throw new Error(`Unsupported action: ${action}`);
     }

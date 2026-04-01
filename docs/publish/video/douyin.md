@@ -15,14 +15,14 @@
 | shoppingCart | object[] | 否 | 购物车列表 | - |
 | groupShopping | object | 否 | 团购信息 | - |
 | collection | object | 否 | 合集信息 | - |
-| sub_collection | object | 否 | 合集选集 | - |
-| sync_apps | object[] | 否 | 同时发布到的应用列表 | - |
-| hot_event | object | 否 | 热点事件 | - |
-| challenge | object | 否 | 挑战/话题 | - |
-| mini_app | object | 否 | 挂载小程序（与购物车互斥） | - |
-| music | object | 否 | 背景音乐信息 | - |
+| sub_collection | object | 否 | 合集选集，使用 `Category` 结构 | - |
+| sync_apps | object[] | 否 | 同时发布到的应用列表，使用 `Category` 结构数组 | - |
+| hot_event | object | 否 | 热点事件，使用 `Category` 结构 | - |
+| challenge | object | 否 | 挑战/话题，使用 `Category` 结构 | - |
+| mini_app | object | 否 | 挂载小程序（与购物车互斥），使用 `MiniApp` 结构 | - |
+| music | object | 否 | 背景音乐信息，使用 `MusicItem` 结构 | - |
 | cooperation_info | object | 否 | 共创信息 | - |
-| game | object | 否 | 游戏挂载信息 | - |
+| game | object | 否 | 游戏挂载信息，使用 `GameItem` 结构 | - |
 
 ## 2. 复杂对象结构
 
@@ -41,6 +41,52 @@
 | id | string | 是 | ID |
 | text | string | 是 | 文本内容 |
 | raw | object | 是 | 平台原始数据 |
+
+### Category
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| yixiaoerId | string | 是 | 蚁小二端统一 ID |
+| yixiaoerName | string | 是 | 平台原始名称 |
+
+### ShoppingCart (购物车/团购)
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| sale_title | string | 是 | 推广标题 (最多10个字) |
+| data | object | 是 | 商品/团购原始数据，来源于对应 Action 返回 |
+| brand_switch_value | number | 否 | 仅团购使用。0:不推荐, 1:推荐其他品牌, 2:只推荐相同品牌 |
+
+### MiniApp (小程序)
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| yixiaoerId | string | 是 | 小程序 ID |
+| yixiaoerName | string | 是 | 小程序名称 |
+
+### MusicItem (音乐)
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| id | string | 是 | 音乐 ID |
+| title | string | 是 | 音乐标题 |
+| artist | string | 否 | 艺术家名称 |
+
+### GameItem (游戏)
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| yixiaoerId | string | 是 | 游戏 ID |
+| yixiaoerName | string | 是 | 游戏规格/名称 |
+
+### 数据获取途径
+
+| 目标字段 | 对应 Action | 文档参考 |
+| :--- | :--- | :--- |
+| `location` | `locations` | [获取位置信息](../get-locations.md) |
+| `collection` | `collections` | [获取合集列表](../../get-collections.md) |
+| `shoppingCart` / `groupShopping` | `goods` | [获取商品列表](../../get-goods.md) |
+| `hot_event` | `hot-events` | [获取热点列表](../../get-hot-events.md) |
+| `challenge` | `challenges` | [获取挑战列表](../../get-challenges.md) |
+| `mini_app` | `miniapps` | [获取小程序列表](../../get-miniapps.md) |
+| `sync_apps` | `syncapps` | [获取同步应用](../../get-sync-apps.md) |
+| `music` | `music` | [获取背景音乐](../../get-music.md) |
+| `game` | `games` | [获取游戏列表](../../get-games.md) |
 
 ## 3. JSON 示例
 

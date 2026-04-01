@@ -12,10 +12,10 @@
 | location | object | 否 | 视频位置，使用 `PlatformDataItem` 结构 | - |
 | scheduledTime | number | 否 | 定时发布时间戳（单位：秒） | - |
 | visibleType | number | 是 | 可见类型：0-公开, 1-私密, 3-好友可见 | 0 |
-| collection | object | 否 | 合集信息 | - |
-| group | object | 否 | 群聊信息 | - |
-| bind_live_info | object | 否 | 直播预告信息 | - |
-| shopping_cart | object[] | 否 | 关联商品信息 | - |
+| collection | object | 否 | 合集信息，使用 `Collection` 结构 | - |
+| group | object | 否 | 群聊信息，使用 `Group` 结构 | - |
+| bind_live_info | object | 否 | 直播预告信息，使用 `LiveInfo` 结构 | - |
+| shopping_cart | object[] | 否 | 关联商品信息，使用 `ShoppingCartItem` 结构数组 | - |
 
 ## 2. 复杂对象结构
 
@@ -25,6 +25,47 @@
 | id | string | 是 | ID |
 | text | string | 是 | 文本内容 |
 | raw | object | 是 | 平台原始数据 |
+
+### Collection
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| yixiaoerId | string | 是 | 合集 ID |
+| yixiaoerName | string | 是 | 合集名称 |
+| child | object[] | 否 | 子级合集列表 |
+
+### Group
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| yixiaoerId | string | 是 | 群聊 ID |
+| yixiaoerName | string | 是 | 群聊标题 |
+| yixiaoerDesc | string | 否 | 群聊描述 |
+| yixiaoerImageUrl | string | 否 | 群聊头像 URL |
+
+### LiveInfo
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| yixiaoerId | string | 是 | 直播预告 ID |
+| yixiaoerName | string | 是 | 直播预告标题 |
+
+### ShoppingCartItem
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| yixiaoerId | string | 是 | 商品 ID |
+| yixiaoerName | string | 是 | 商品名称 |
+| yixiaoerDesc | string | 否 | 商品规格说明 |
+| yixiaoerImageUrl | string | 否 | 商品图片 URL |
+| price | number | 否 | 商品价格（单位：分） |
+| earnPrice | number | 否 | 预估佣金（单位：分） |
+
+### 数据获取途径
+
+| 目标字段 | 对应 Action | 文档参考 |
+| :--- | :--- | :--- |
+| `location` | `locations` | [获取位置信息](../get-locations.md) |
+| `collection` | `collections` | [获取合集列表](../../get-collections.md) |
+| `group` | `groups` | [获取群聊列表](../../get-groups.md) |
+| `shopping_cart` | `goods` | [获取商品列表](../../get-goods.md) |
+| `declaration` | - | 请按表格中的枚举值直接填写（1 或 2） |
 
 ## 3. JSON 示例
 

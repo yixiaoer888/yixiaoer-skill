@@ -43,6 +43,13 @@ API 调用时涉及的平台名称必须使用蚁小二定义的中文枚举或 
 | `locations` | 获取 POI 物理位置列表 | [get-locations.md](./docs/get-locations.md) |
 | `music` | 获取抖音/快手可选背景音乐 | [get-music.md](./docs/get-music.md) |
 | `collections`| 获取账号已创建的合集列表 | [get-collections.md](./docs/get-collections.md) |
+| `groups` | 获取账号可绑定的群聊列表 | [get-groups.md](./docs/get-groups.md) |
+| `goods` | 获取账号可绑定的商品列表 | [get-goods.md](./docs/get-goods.md) |
+| `hot-events`| 获取平台实时热点列表 | [get-hot-events.md](./docs/get-hot-events.md) |
+| `challenges`| 获取平台话题/挑战列表 | [get-challenges.md](./docs/get-challenges.md) |
+| `miniapps` | 获取可挂载的小程序列表 | [get-miniapps.md](./docs/get-miniapps.md) |
+| `syncapps` | 获取可同步发布的关联账号 | [get-sync-apps.md](./docs/get-sync-apps.md) |
+| `games` | 获取可挂载的游戏列表 | [get-games.md](./docs/get-games.md) |
 | `proxies` | 获取团队可用代理列表 | [proxy-management.md](./docs/proxy-management.md) |
 | `proxy-areas`| 获取默认代理地区编码列表 | [proxy-management.md](./docs/proxy-management.md) |
 | `account-overviews` | 账号表现汇总 (V2) | [get-account-overviews.md](./docs/get-account-overviews.md) |
