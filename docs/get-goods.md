@@ -27,10 +27,11 @@ node scripts/api.ts --payload='{
 ### ShoppingCartItem 结构说明
 | 字段名 | 类型 | 说明 |
 | :--- | :--- | :--- |
-| yixiaoerId | string | 商品 ID |
-| yixiaoerName | string | 商品名称 |
-| yixiaoerDesc | string | 商品规格说明 |
-| yixiaoerImageUrl | string | 商品图片 URL |
-| price | number | 商品价格（单位：分） |
-| earnPrice | number | 预估佣金（单位：分） |
-| count | number | 剩余库存 |
+| `yixiaoerId` | `string` | (必填) 商品 ID |
+| `yixiaoerName` | `string` | (必填) 商品名称 |
+| `raw` | `object` | (必填) 平台原始商品对象，发布时透传给 `data` 字段 |
+| `yixiaoerDesc` | `string` | 商品规格说明 |
+| `yixiaoerImageUrl` | `string` | 商品图片 URL |
+| `price` | `number` | 商品价格（单位：分） |
+| `earnPrice` | `number` | 预估佣金（单位：分） |
+| `count` | `number` | 剩余库存 |

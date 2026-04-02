@@ -11,7 +11,7 @@
 | `description` | `string` | 否 | 图文描述，支持 HTML (`<p>`, `<topic>`)。最多 1000 字符。 | - |
 | `images` | `Array` | **是** | 图片数组 (`OldImage[]`) | - |
 | `location` | `Object` | 否 | 地址信息 (`PlatformDataItem`) | - |
-| `music` | `Object` | 否 | 音乐信息 (`PlatformDataItem`) | - |
+| `music` | `Object` | 否 | 音乐信息 (`MusicItem`) | - |
 | `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳) | - |
 | `collection` | `Object` | 否 | 合集信息 (`Category`) | - |
 | `sub_collection` | `Object` | 否 | 合集选集信息 (`Category`) | - |
@@ -32,13 +32,24 @@
 | :--- | :--- | :--- | :--- |
 | `yixiaoerId` | `string` | **是** | 蚁小二内部 ID |
 | `yixiaoerName` | `string` | **是** | 显示名称 |
+| `raw` | `object` | 否 | 平台原始数据 |
 
-### PlatformDataItem (用于位置、音乐)
+### MusicItem (音乐)
 | 字段名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| id | string | 是 | ID |
-| text | string | 是 | 文本内容 |
-| raw | object | 是 | 平台原始数据 |
+| `yixiaoerId` | `string` | 是 | 蚁小二端统一音乐 ID |
+| `yixiaoerName` | `string` | 是 | 歌曲名称 |
+| `duration` | `number` | 是 | 音乐时长（秒） |
+| `playUrl` | `string` | 是 | 试听/播放链接 |
+| `artist` | `string` | 否 | 歌手/作者名 |
+| `raw` | `object` | 否 | 平台原始数据，发布时需完整透传 |
+
+### PlatformDataItem (基础结构)
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `yixiaoerId` | `string` | 是 | 统一 ID |
+| `yixiaoerName` | `string` | 是 | 显示名称 |
+| `raw` | `object` | 是 | 平台原始数据 |
 
 ### 数据获取途径
 
@@ -68,7 +79,7 @@
             { "key": "img_1", "size": 1024, "width": 1080, "height": 1440, "format": "jpg" },
             { "key": "img_2", "size": 1024, "width": 1080, "height": 1440, "format": "jpg" }
           ],
-          "location": { "id": "loc_123", "text": "某商位" }
+          "location": { "yixiaoerId": "loc_123", "yixiaoerName": "某商位", "raw": {} }
         }
       }
     ]

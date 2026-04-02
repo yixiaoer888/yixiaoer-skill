@@ -11,7 +11,7 @@
 | `description` | `string` | 否 | 图文描述，支持 HTML (`<p>`, `<topic>`)。最多 1000 字符。 | - |
 | `images` | `Array` | **是** | 图片数组 (`OldImage[]`) | - |
 | `location` | `Object` | 否 | 位置对象 (`PlatformDataItem`) | - |
-| `music` | `Object` | 否 | 音乐对象 (`PlatformDataItem`) | - |
+| `music` | `Object` | 否 | 音乐对象 (`MusicItem`) | - |
 | `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳) | - |
 | `collection` | `Object` | 否 | 合集信息，使用 `Collection` 结构 | - |
 | `pubType` | `number` | 否 | 发布类型: 0-草稿, 1-直接发布 | 1 |
@@ -27,18 +27,29 @@
 | `key` | `string` | **是** | 资源 Key (通过上传接口获取) |
 | `format` | `string` | **是** | 文件格式 (e.g., `jpg`, `png`) |
 
-### PlatformDataItem
+### PlatformDataItem (基础结构)
 | 字段名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| id | string | 是 | ID |
-| text | string | 是 | 文本内容 |
-| raw | object | 是 | 平台原始数据 |
+| `yixiaoerId` | `string` | 是 | 统一 ID |
+| `yixiaoerName` | `string` | 是 | 显示名称 |
+| `raw` | `object` | 是 | 平台原始数据 |
 
 ### Collection
 | 字段名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| yixiaoerId | string | 是 | 合集 ID |
-| yixiaoerName | string | 是 | 合集名称 |
+| `yixiaoerId` | `string` | 是 | 合集 ID |
+| `yixiaoerName` | `string` | 是 | 合集名称 |
+| `raw` | `object` | 否 | 平台原始数据 |
+
+### MusicItem (音乐)
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `yixiaoerId` | `string` | 是 | 蚁小二端统一音乐 ID |
+| `yixiaoerName` | `string` | 是 | 歌曲名称 |
+| `duration` | `number` | 是 | 音乐时长（秒） |
+| `playUrl` | `string` | 是 | 试听/播放链接 |
+| `artist` | `string` | 否 | 歌手/作者名 |
+| `raw` | `object` | 否 | 平台原始数据，发布时需完整透传 |
 
 ### 数据获取途径
 

@@ -11,7 +11,7 @@
 | `description` | `string` | 否 | 文章描述或摘要 | - |
 | `covers` | `Array` | **是** | 封面图 OSS 列表 (`OldCover[]`) | - |
 | `headImage` | `Object` | 否 | 文章头图 (`OldCover`) | - |
-| `music` | `Object` | 否 | 平台音乐背景 (`PlatformDataItem`) | - |
+| `music` | `Object` | 否 | 平台音乐背景 (`MusicItem`) | - |
 | `topics` | `Array` | 否 | 话题标签列表 (`Category[]`) | - |
 | `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
 | `visibleType` | `number` | 否 | 可见性: 0-公开, 1-私密, 3-好友 | `0` |
@@ -60,6 +60,16 @@
 | `yixiaoerId` | `string` | ID |
 | `yixiaoerName` | `string` | 名称 |
 | `raw` | `Object` | 原始对象 |
+
+### 3.3 MusicItem (音乐)
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `yixiaoerId` | `string` | 是 | 蚁小二端统一音乐 ID |
+| `yixiaoerName` | `string` | 是 | 歌曲名称 |
+| `duration` | `number` | 是 | 音乐时长（秒） |
+| `playUrl` | `string` | 是 | 试听/播放链接 |
+| `artist` | `string` | 否 | 歌手/作者名 |
+| `raw` | `object` | 否 | 平台原始数据，发布时需完整透传 |
 
 ## 4. DTO 参考
 - 后端类: `DouyinArticleForm`

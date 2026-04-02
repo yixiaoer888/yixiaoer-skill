@@ -35,18 +35,19 @@
 | path | string | 否 | 文件绝对路径 (与 `key` 二选一) |
 | key | string | 否 | OSS 对象存储 Key (与 `path` 二选一) |
 
-### PlatformDataItem
+### PlatformDataItem (基础结构)
 | 字段名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| id | string | 是 | ID |
-| text | string | 是 | 文本内容 |
-| raw | object | 是 | 平台原始数据 |
+| `yixiaoerId` | `string` | 是 | 统一 ID |
+| `yixiaoerName` | `string` | 是 | 显示名称 |
+| `raw` | `object` | 是 | 平台原始数据 |
 
 ### Category
 | 字段名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| yixiaoerId | string | 是 | 蚁小二端统一 ID |
-| yixiaoerName | string | 是 | 平台原始名称 |
+| `yixiaoerId` | `string` | 是 | 蚁小二端统一 ID |
+| `yixiaoerName` | `string` | 是 | 平台原始名称 |
+| `raw` | `object` | 否 | 平台原始数据 |
 
 ### ShoppingCart (购物车/团购)
 | 字段名 | 类型 | 必填 | 说明 |
@@ -58,21 +59,26 @@
 ### MiniApp (小程序)
 | 字段名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| yixiaoerId | string | 是 | 小程序 ID |
-| yixiaoerName | string | 是 | 小程序名称 |
+| `yixiaoerId` | `string` | 是 | 小程序 ID |
+| `yixiaoerName` | `string` | 是 | 小程序名称 |
+| `raw` | `object` | 否 | 平台原始数据 |
 
 ### MusicItem (音乐)
 | 字段名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| id | string | 是 | 音乐 ID |
-| title | string | 是 | 音乐标题 |
-| artist | string | 否 | 艺术家名称 |
+| `yixiaoerId` | `string` | 是 | 蚁小二端统一音乐 ID |
+| `yixiaoerName` | `string` | 是 | 歌曲名称 |
+| `duration` | `number` | 是 | 音乐时长（秒） |
+| `playUrl` | `string` | 是 | 试听/播放链接 |
+| `artist` | `string` | 否 | 歌手/作者名 |
+| `raw` | `object` | 否 | 平台原始数据，发布时需完整透传 |
 
 ### GameItem (游戏)
 | 字段名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| yixiaoerId | string | 是 | 游戏 ID |
-| yixiaoerName | string | 是 | 游戏规格/名称 |
+| `yixiaoerId` | `string` | 是 | 游戏 ID |
+| `yixiaoerName` | `string` | 是 | 游戏规格/名称 |
+| `raw` | `object` | 否 | 平台原始数据 |
 
 ### 数据获取途径
 
@@ -112,8 +118,8 @@
           "statement": 3,
           "allow_save": 1,
           "location": {
-            "id": "123",
-            "text": "上海市",
+            "yixiaoerId": "123",
+            "yixiaoerName": "上海市",
             "raw": {}
           }
         }

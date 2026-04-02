@@ -23,16 +23,16 @@
 ### Category
 | 字段名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| yixiaoerId | string | 是 | 蚁小二ID |
-| yixiaoerName | string | 是 | 蚁小二名称 |
-| raw | object | 是 | 平台原始数据 |
+| `yixiaoerId` | `string` | 是 | 蚁小二ID |
+| `yixiaoerName` | `string` | 是 | 蚁小二名称 |
+| `raw` | `object` | 是 | 平台原始数据 |
 
-### PlatformDataItem
+### PlatformDataItem (基础结构)
 | 字段名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| id | string | 是 | ID |
-| text | string | 是 | 文本内容 |
-| raw | object | 是 | 平台原始数据 |
+| `yixiaoerId` | `string` | 是 | 统一 ID |
+| `yixiaoerName` | `string` | 是 | 显示名称 |
+| `raw` | `object` | 是 | 平台原始数据 |
 
 ## 3. JSON 示例
 

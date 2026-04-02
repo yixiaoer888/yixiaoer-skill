@@ -12,11 +12,11 @@
 | type | number | 是 | 视频原创类型：1-非原创，2-原创 | 1 |
 | createType | number | 是 | 创建类型：1-草稿，2-直接发布 | 2 |
 | pubType | number | 否 | 发布类型：0-草稿，1-直接发布 | 1 |
-| location | object | 否 | 视频位置，使用 `PlatformDataItem` 结构 | - |
-| scheduledTime | number | 否 | 定时发布时间戳（单位：秒） | - |
-| shoppingCart | object | 否 | 关联商品信息，包含 `yixiaoerId` 和 `yixiaoerName` | - |
-| collection | object | 否 | 合集信息，包含 `yixiaoerId` 和 `yixiaoerName` | - |
-| activity | object | 否 | 活动信息，包含 `yixiaoerId` 和 `yixiaoerName` | - |
+| `location` | `object` | 否 | 视频位置，使用 `PlatformDataItem` 基础结构 | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间戳（单位：秒） | - |
+| `shoppingCart` | `object` | 否 | 关联商品信息，包含 `yixiaoerId`, `yixiaoerName`, `raw` | - |
+| `collection` | `object` | 否 | 合集信息，包含 `yixiaoerId`, `yixiaoerName`, `raw` | - |
+| `activity` | `object` | 否 | 活动信息，包含 `yixiaoerId`, `yixiaoerName`, `raw` | - |
 
 ## 2. 复杂对象结构
 
@@ -29,12 +29,12 @@
 | path | string | 否 | 文件绝对路径 (与 `key` 二选一) |
 | key | string | 否 | OSS 对象存储 Key (与 `path` 二选一) |
 
-### PlatformDataItem
+### PlatformDataItem (基础结构)
 | 字段名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| id | string | 是 | ID |
-| text | string | 是 | 文本内容 |
-| raw | object | 是 | 平台原始数据 |
+| `yixiaoerId` | `string` | 是 | 统一 ID |
+| `yixiaoerName` | `string` | 是 | 显示名称 |
+| `raw` | `object` | 是 | 平台原始数据 |
 
 ### 数据获取途径
 
@@ -70,8 +70,8 @@
           "createType": 2,
           "pubType": 1,
           "location": {
-            "id": "sph_loc_1",
-            "text": "广州市",
+            "yixiaoerId": "sph_loc_1",
+            "yixiaoerName": "广州市",
             "raw": {}
           }
         }
