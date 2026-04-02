@@ -172,55 +172,51 @@ async function main() {
         break;
 
       case 'categories': // 分类查询
-        result = await callApi('/web/config-data/category-tasks', { 
-          method: 'POST', 
-          headers: { 'x-account-id': payload.account_id },
-          body: JSON.stringify({ openAccountId: payload.account_id, publishType: payload.type || 'video' })
-        });
+        const categoryUrl = new URL(`${API_URL}/platform-accounts/${payload.account_id}/categories`);
+        categoryUrl.searchParams.append('publishType', payload.type || 'video');
+        result = await callApi(categoryUrl.toString(), { method: 'GET' });
         break;
 
       case 'activities': // 活动查询
-        result = await callApi('/web/config-data/activity-tasks', { 
-          method: 'POST', 
-          headers: { 'x-account-id': payload.account_id },
-          body: JSON.stringify({ openAccountId: payload.account_id, publishType: payload.type || 1, categoryId: payload.categoryId, keyWord: payload.keyWord })
-        });
+        const activityUrl = new URL(`${API_URL}/platform-accounts/${payload.account_id}/activities`);
+        activityUrl.searchParams.append('publishType', payload.type || 'video');
+        if (payload.categoryId) activityUrl.searchParams.append('categoryId', payload.categoryId);
+        if (payload.keyword || payload.keyWord) activityUrl.searchParams.append('keyWord', payload.keyword || payload.keyWord);
+        result = await callApi(activityUrl.toString(), { method: 'GET' });
         break;
-
+ 
       case 'locations': // POI 搜索
-        result = await callApi('/web/config-data/location-tasks', { 
-          method: 'POST', 
-          headers: { 'x-account-id': payload.account_id },
-          body: JSON.stringify({ openAccountId: payload.account_id, keyWord: payload.keyword || '', locationType: parseInt(payload.type || '1'), nextPage: "" })
-        });
+        const locationUrl = new URL(`${API_URL}/platform-accounts/${payload.account_id}/location`);
+        if (payload.keyword || payload.keyWord) locationUrl.searchParams.append('keyWord', payload.keyword || payload.keyWord);
+        if (payload.type) locationUrl.searchParams.append('locationType', String(payload.type));
+        if (payload.nextPage) locationUrl.searchParams.append('nextPage', payload.nextPage);
+        result = await callApi(locationUrl.toString(), { method: 'GET' });
         break;
-
+ 
       case 'music': // 音乐素材
-        result = await callApi('/web/config-data/music-tasks', { 
-          method: 'POST', 
-          headers: { 'x-account-id': payload.account_id },
-          body: JSON.stringify({ openAccountId: payload.account_id, keyWord: payload.keyword || '', nextPage: "" })
-        });
+        const musicUrl = new URL(`${API_URL}/platform-accounts/${payload.account_id}/music`);
+        if (payload.keyword || payload.keyWord) musicUrl.searchParams.append('keyWord', payload.keyword || payload.keyWord);
+        if (payload.categoryId) musicUrl.searchParams.append('categoryId', payload.categoryId);
+        if (payload.nextPage) musicUrl.searchParams.append('nextPage', payload.nextPage);
+        result = await callApi(musicUrl.toString(), { method: 'GET' });
         break;
-
+ 
       case 'collections': // 合集查询
-        result = await callApi('/web/config-data/collection-tasks', { 
-          method: 'POST', 
-          headers: { 'x-account-id': payload.account_id },
-          body: JSON.stringify({ openAccountId: payload.account_id })
-        });
+        const collectionUrl = new URL(`${API_URL}/platform-accounts/${payload.account_id}/collections`);
+        collectionUrl.searchParams.append('publishType', payload.type || 'video');
+        result = await callApi(collectionUrl.toString(), { method: 'GET' });
         break;
-
+ 
       case 'proxies': // 代理列表
         const proxyUrl = new URL(`${API_URL}/proxys`);
         proxyUrl.searchParams.append('size', String(payload.size || 9999));
         result = await callApi(proxyUrl.toString(), { method: 'GET' });
         break;
-
+ 
       case 'proxy-areas': // 内置代理地区列表 (默认代理)
         result = await callApi('/daili/areas', { method: 'GET' });
         break;
-
+ 
       case 'update-account': // 更新账号信息 (如设置代理)
         if (!payload.account_id) throw new Error("Missing account_id for action: update-account");
         // 支持更新 kuaidailiArea 或 proxyId
@@ -235,7 +231,7 @@ async function main() {
           body: JSON.stringify(updateBody) 
         });
         break;
-
+ 
       case 'content-overviews': // 作品数据
         const contentOverviewUrl = new URL(`${API_URL}/contents/overviews`);
         Object.keys(payload).forEach(key => {
@@ -249,7 +245,7 @@ async function main() {
         });
         result = await callApi(contentOverviewUrl.toString(), { method: 'GET' });
         break;
-
+ 
       case 'account-overviews': // 账号数据 (V2)
         const accountOverviewUrl = new URL(`${API_URL}/platform-accounts/overviews-v2`);
         Object.keys(payload).forEach(key => {
@@ -263,61 +259,46 @@ async function main() {
         });
         result = await callApi(accountOverviewUrl.toString(), { method: 'GET' });
         break;
-
+ 
       case 'groups': // 群聊列表
-        result = await callApi('/web/config-data/group-tasks', { 
-          method: 'POST', 
-          headers: { 'x-account-id': payload.account_id },
-          body: JSON.stringify({ openAccountId: payload.account_id })
-        });
+        result = await callApi(`/platform-accounts/${payload.account_id}/group-chats`, { method: 'GET' });
         break;
-
+ 
       case 'goods': // 商品列表
-        result = await callApi('/web/config-data/goods-tasks', { 
-          method: 'POST', 
-          headers: { 'x-account-id': payload.account_id },
-          body: JSON.stringify({ openAccountId: payload.account_id, keyWord: payload.keyword || '', nextPage: "" })
-        });
+        const goodsUrl = new URL(`${API_URL}/platform-accounts/${payload.account_id}/goods`);
+        if (payload.keyword || payload.keyWord) goodsUrl.searchParams.append('keyWord', payload.keyword || payload.keyWord);
+        if (payload.nextPage) goodsUrl.searchParams.append('nextPage', payload.nextPage);
+        result = await callApi(goodsUrl.toString(), { method: 'GET' });
         break;
-
+ 
       case 'hot-events': // 热点列表
-        result = await callApi('/web/config-data/hotevent-tasks', { 
-          method: 'POST', 
-          headers: { 'x-account-id': payload.account_id },
-          body: JSON.stringify({ openAccountId: payload.account_id })
-        });
+        const hotEventUrl = new URL(`${API_URL}/platform-accounts/${payload.account_id}/hot-events`);
+        hotEventUrl.searchParams.append('publishType', payload.type || 'video');
+        result = await callApi(hotEventUrl.toString(), { method: 'GET' });
         break;
-
+ 
       case 'challenges': // 挑战列表
-        result = await callApi('/web/config-data/challenge-tasks', { 
-          method: 'POST', 
-          headers: { 'x-account-id': payload.account_id },
-          body: JSON.stringify({ openAccountId: payload.account_id, keyWord: payload.keyword || '', nextPage: "" })
-        });
+        const challengeUrl = new URL(`${API_URL}/platform-accounts/${payload.account_id}/challenges`);
+        challengeUrl.searchParams.append('publishType', payload.type || 'video');
+        if (payload.keyword || payload.keyWord) challengeUrl.searchParams.append('keyWord', payload.keyword || payload.keyWord);
+        if (payload.nextPage) challengeUrl.searchParams.append('nextPage', payload.nextPage);
+        result = await callApi(challengeUrl.toString(), { method: 'GET' });
         break;
-
+ 
       case 'miniapps': // 小程序列表
-        result = await callApi('/web/config-data/miniapp-tasks', { 
-          method: 'POST', 
-          headers: { 'x-account-id': payload.account_id },
-          body: JSON.stringify({ openAccountId: payload.account_id, keyWord: payload.keyword || '', nextPage: "" })
-        });
+        const miniappUrl = new URL(`${API_URL}/platform-accounts/${payload.account_id}/mini-apps`);
+        if (payload.keyword || payload.keyWord) miniappUrl.searchParams.append('keyWord', payload.keyword || payload.keyWord);
+        result = await callApi(miniappUrl.toString(), { method: 'GET' });
         break;
-
+ 
       case 'syncapps': // 同步应用列表
-        result = await callApi('/web/config-data/syncapp-tasks', { 
-          method: 'POST', 
-          headers: { 'x-account-id': payload.account_id },
-          body: JSON.stringify({ openAccountId: payload.account_id })
-        });
+        result = await callApi(`/platform-accounts/${payload.account_id}/sync-apps`, { method: 'GET' });
         break;
-
+ 
       case 'games': // 游戏列表
-        result = await callApi('/web/config-data/game-tasks', { 
-          method: 'POST', 
-          headers: { 'x-account-id': payload.account_id },
-          body: JSON.stringify({ openAccountId: payload.account_id, keyWord: payload.keyword || '', nextPage: "" })
-        });
+        const gameUrl = new URL(`${API_URL}/platform-accounts/${payload.account_id}/games`);
+        if (payload.keyword || payload.keyWord) gameUrl.searchParams.append('keyWord', payload.keyword || payload.keyWord);
+        result = await callApi(gameUrl.toString(), { method: 'GET' });
         break;
 
       default:

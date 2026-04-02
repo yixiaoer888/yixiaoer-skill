@@ -30,7 +30,8 @@ node scripts/api.ts --payload='{"action":"categories","account_id":"64dxxx","typ
 ## 脚本逻辑 (Backend)
 
 - **脚本路径**: `scripts/api.ts`
-- **功能**: 封装蚁小二分类拉取接口。
+- **功能**: 封装蚁小二标准化分类拉取接口 (`GET /platform-accounts/{platformAccountId}/categories`)。
+- **参数映射**: 将 `account_id` 映射为 URL 路径变量，将 `type` 映射为 `publishType` 查询参数。
 
 ## 输出结果 (Output)
 

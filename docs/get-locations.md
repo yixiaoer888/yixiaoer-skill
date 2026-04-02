@@ -29,3 +29,9 @@ node scripts/api.ts --payload='{"action":"locations","account_id":"XXX","keyword
   }
 ]
 ```
+
+## 脚本逻辑 (Backend)
+
+- **脚本路径**: `scripts/api.ts`
+- **功能**: 封装蚁小二标准化地址查询接口 (`GET /platform-accounts/{platformAccountId}/location`)。
+- **参数映射**: 将 `account_id` 映射为 URL 路径变量，将 `keyword`, `type`, `nextPage` 映射为查询参数。

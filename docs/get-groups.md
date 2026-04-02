@@ -29,3 +29,9 @@ node scripts/api.ts --payload='{
 | yixiaoerName | string | 群聊标题 |
 | yixiaoerDesc | string | 群聊描述 |
 | yixiaoerImageUrl | string | 群聊头像 URL |
+
+## 脚本逻辑 (Backend)
+
+- **脚本路径**: `scripts/api.ts`
+- **功能**: 封装蚁小二标准化群聊查询接口 (`GET /platform-accounts/{platformAccountId}/group-chats`)。
+- **参数映射**: 将 `account_id` 映射为 URL 路径变量。
