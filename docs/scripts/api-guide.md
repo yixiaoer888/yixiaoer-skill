@@ -37,9 +37,9 @@ const result = await callApi('/taskSets/v2', {
 });
 ```
 
-### 3. `uploadResource(urlOrPath: string, bucket?: string)`
+### 3. `uploadResource(urlOrPath: string)`
 
-**作用**：跨平台的资源上传辅助函数。支持输入本地文件路径或远程 HTTP URL，并将其上传到指定的 OSS Bucket（默认 `cloud-publish`），最后返回文件的统一 `key`。
+**作用**：跨平台的资源上传辅助函数。支持输入本地文件路径或远程 HTTP URL，并将其上传到云端存储 (`cloud-publish`)，最后返回文件的统一 `key`。
 
 **示例**：
 ```typescript

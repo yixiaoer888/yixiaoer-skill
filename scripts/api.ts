@@ -59,7 +59,8 @@ export async function callApi(endpoint: string, options: RequestInit = {}) {
 /**
  * 助手函数: 通用资源上传
  */
-export async function uploadResource(urlOrPath: string, bucket: string = 'cloud-publish'): Promise<string> {
+export async function uploadResource(urlOrPath: string): Promise<string> {
+  const bucket = 'cloud-publish';
   let buffer: ArrayBuffer;
   let fileName = 'file.jpg';
 
@@ -151,7 +152,7 @@ async function main() {
         break;
 
       case 'upload': // 资源上传
-        const key = await uploadResource(payload.url, payload.bucket);
+        const key = await uploadResource(payload.url);
         result = { 
           key, 
           name: payload.url.startsWith('http') ? new URL(payload.url).pathname.split('/').pop() : payload.url.split(/[/\\]/).pop() 
