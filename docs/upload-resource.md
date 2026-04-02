@@ -19,6 +19,8 @@ node scripts/api.ts --payload='{"action":"upload","url":"https://example.com/ima
 | :--- | :--- | :--- | :--- |
 | `url` | `string` | **是** | 资源的远程 URL 或本地绝对路径 |
 | `bucket` | `string` | **是** | OSS 存储桶。固定值为 `cloud-publish` |
+| `contentType` | `string` | 否 | 资源的 MIME 类型。如果通过 URL 上传，程序会尝试自动识别，建议显式指定 (如 `video/mp4`, `image/png`) |
+| `size` | `number` | 否 | 资源大小 (字节)。用于素材库容量检查 (如果适用) |
 
 ## 输出结果 (Output)
 
