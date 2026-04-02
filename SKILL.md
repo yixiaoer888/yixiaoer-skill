@@ -42,6 +42,7 @@ API 调用时涉及的平台名称必须使用蚁小二定义的中文枚举或 
 | `activities`| 获取征文活动列表 | [get-publish-activities.md](./docs/get-publish-activities.md) |
 | `locations` | 获取 POI 物理位置列表 | [get-locations.md](./docs/get-locations.md) |
 | `music` | 获取抖音/快手可选背景音乐 | [get-music.md](./docs/get-music.md) |
+| `music-category` | 获取音乐分类列表 | [get-music-categories.md](./docs/get-music-categories.md) |
 | `collections`| 获取账号已创建的合集列表 | [get-collections.md](./docs/get-collections.md) |
 | `groups` | 获取账号可绑定的群聊列表 | [get-groups.md](./docs/get-groups.md) |
 | `goods` | 获取账号可绑定的商品列表 | [get-goods.md](./docs/get-goods.md) |
