@@ -1,6 +1,6 @@
 ---
 name: yixiaoer
-version: 1.5.0
+version: 1.6.0
 description: "蚁小二支持 50 + 平台一键分发、多账号矩阵管理、团队协作与数据统计，适配图文、短视频等内容，覆盖全平台客户端，助力个人与企业高效运营新媒体矩阵。"
 author: wangzhengjiao
 ---
