@@ -14,9 +14,9 @@
 | pubType | number | 否 | 发布类型：0-草稿，1-直接发布 | 1 |
 | location | object | 否 | 视频位置，使用 `PlatformDataItem` 结构 | - |
 | scheduledTime | number | 否 | 定时发布时间戳（单位：秒） | - |
-| shoppingCart | object | 否 | 关联商品信息 | - |
-| collection | object | 否 | 合集信息 | - |
-| activity | object | 否 | 活动信息 | - |
+| shoppingCart | object | 否 | 关联商品信息，包含 `yixiaoerId` 和 `yixiaoerName` | - |
+| collection | object | 否 | 合集信息，包含 `yixiaoerId` 和 `yixiaoerName` | - |
+| activity | object | 否 | 活动信息，包含 `yixiaoerId` 和 `yixiaoerName` | - |
 
 ## 2. 复杂对象结构
 
@@ -35,6 +35,15 @@
 | id | string | 是 | ID |
 | text | string | 是 | 文本内容 |
 | raw | object | 是 | 平台原始数据 |
+
+### 数据获取途径
+
+| 目标字段 | 对应 Action | 文档参考 |
+| :--- | :--- | :--- |
+| `location` | `locations` | [获取位置信息](../get-locations.md) |
+| `collection` | `collections` | [获取合集列表](../../get-collections.md) |
+| `activity` | `activities` | [获取活动列表](../../get-publish-activities.md) |
+| `shoppingCart` | `goods` | [获取商品列表](../../get-goods.md) |
 
 ## 3. JSON 示例
 

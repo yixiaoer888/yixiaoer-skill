@@ -18,7 +18,7 @@ node scripts/api.ts --payload='{"action":"upload","url":"https://example.com/ima
 | 字段名 | 类型 | 是否必填 | 描述 |
 | :--- | :--- | :--- | :--- |
 | `url` | `string` | **是** | 资源的远程 URL 或本地绝对路径 |
-| `bucket` | `string` | 否 | OSS 存储桶。可选：`cloud-publish` (默认), `material-library` |
+| `bucket` | `string` | **是** | OSS 存储桶。固定值为 `cloud-publish` |
 
 ## 输出结果 (Output)
 

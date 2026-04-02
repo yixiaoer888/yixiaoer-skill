@@ -15,52 +15,29 @@
 | `advertisement` | `number` | **是** | 广告投放收益: 2-无收益, 3-投放广告赚收益 | `3` |
 | `declaration` | `number` | 否 | 创作申明: 1-自行拍摄, 2-取自站外, 3-AI生成, 6-虚构演绎, 7-投资观点, 8-健康医疗 | - |
 
-## 2. Payload 完整示例
+## 2. 复杂对象结构说明
 
-```json
-{
-  "action": "publish",
-  "publishType": "article",
-  "platforms": ["头条号"],
-  "publishArgs": {
-    "content": "<h1>文章标题</h1><p>正文内容...</p>",
-    "accountForms": [
-      {
-        "platformAccountId": "acc_th_001",
-        "coverKey": "article_cover_key",
-        "cover": { "key": "article_cover_key", "size": 102400, "width": 800, "height": 600 },
-        "contentPublishForm": {
-          "formType": "task",
-          "title": "这是文章标题",
-          "covers": [
-            { "key": "article_cover_key", "size": 102400, "width": 800, "height": 600 }
-          ],
-          "advertisement": 3,
-          "isFirst": false
-        }
-      }
-    ]
-  }
-}
-```
+### OldCover
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `key` | `string` | **是** | OSS 资源 Key |
+| `size` | `number` | **是** | 文件大小 (Bytes) |
+| `width` | `number` | **是** | 宽度 |
+| `height` | `number` | **是** | 高度 |
 
-## 3. 复杂对象结构
+### PlatformDataItem (位置信息)
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | `string` | **是** | 位置 ID |
+| `text` | `string` | **是** | 位置名称 |
+| `raw` | `object` | 否 | 原始位置对象 |
 
-### 3.1 OldCover (封面对象)
-| 字段名 | 类型 | 说明 |
+### 数据获取途径
+
+| 目标字段 | 对应 Action | 文档参考 |
 | :--- | :--- | :--- |
-| `key` | `string` | OSS 资源 Key |
-| `size` | `number` | 文件大小 (bytes) |
-| `width` | `number` | 宽度 |
-| `height` | `number` | 高度 |
+| `location` | `locations` | [获取位置信息](../../get-locations.md) |
 
-### 3.2 PlatformDataItem (位置信息)
-| 字段名 | 类型 | 说明 |
-| :--- | :--- | :--- |
-| `id` | `string` | 位置 ID |
-| `text` | `string` | 位置名称 |
-| `raw` | `Object` | 原始位置对象 |
-
-## 4. DTO 参考
+## 3. Payload 完整示例
 - 后端类: `TouTiaoHaoArticleForm`
 - 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/toutiaohao.dto.ts`

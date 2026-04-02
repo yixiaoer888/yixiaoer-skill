@@ -25,3 +25,9 @@ node scripts/api.ts --payload='{"action":"collections","account_id":"ACCOUNT_ID"
   }
 ]
 ```
+
+## 脚本逻辑 (Backend)
+
+- **脚本路径**: `scripts/api.ts`
+- **功能**: 封装蚁小二标准化合集查询接口 (`GET /platform-accounts/{platformAccountId}/collections`)。
+- **参数映射**: 将 `account_id` 映射为 URL 路径变量，将 `type` 映射为 `publishType` 查询参数。

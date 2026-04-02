@@ -30,7 +30,15 @@
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
 | `content` | `string` | **是** | **文章正文**: HTML 格式字符串 | - |
-| `accountForms` | `Array` | **是** | 账号发布表单列表 | - |
+| `accountForms` | `Array` | **是** | 账号发布表单列表 (定义目标账号) | - |
+| `platformForms` | `Object` | 否 | **平台级表单**: 仅限 `微信公众号` 使用。按平台名称组织的共享配置字典 | - |
+
+> [!IMPORTANT]
+> **配置架构约束**:
+> - **微信公众号专用性**: **微信公众号必须单独发布**。在一个发布请求中，如果包含微信公众号，则不能包含其他任何平台；反之亦然。
+> - **platformForms**: **仅限微信公众号使用**。适合多账号共用同一套发布参数（如微信公众号的一周消息、统一的分类/话题）。
+> - **accountForms[i].contentPublishForm**: **除微信公众号外，其他平台必须使用此方式**。适合为特定账号进行差异化配置。
+> - **优先级**: 后端将优先尝试从 `platformForms` 中获取对应平台的配置，若不存在则回退至账号级的 `contentPublishForm`。
 
 ### 1.3 账号表单项 (accountForms Item)
 
@@ -38,7 +46,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `platformAccountId` | `string` | **是** | 蚁小二平台账号唯一 ID | - |
 | `cover` | `Object` | **是** | **ImageFormItem**: 主封面对象 (`key`, `width`, `height`, `size`) | - |
-| `contentPublishForm`| `Object` | **是** | **透传层**: `{}` | - |
+| `contentPublishForm`| `Object` | 否 | **账号级透传配置**: 若未配置 `platformForms` 则从此读取 | `{}` |
 | `coverKey` | `string` | 否 | 账号级封面 Key (通常与 `cover.key` 一致) | - |
 
 ## 2. 发布示例 (Payload Example)
@@ -94,9 +102,9 @@ contentPublishForm 中的字段需要从以下文档中获取。
 | **CSDN** | `CSDN`, `CSDN` | [csdn.md](./csdn.md) |
 | **车家号** | `车家号`, `Chejiahao` | [chejiahao.md](./chejiahao.md) |
 | **简书** | `简书`, `JianShu` | [jianshu.md](./jianshu.md) |
-| **WiFi万能钥匙** | `WiFi万能钥匙`, `WifiWanNeng` | [wifiwanneng.md](./wifiwanneng.md) |
 | **AcFun** | `AcFun`, `AcFun` | [acfun.md](./acfun.md) |
 | **易车号** | `易车号`, `YiCheHao` | [yichehao.md](./yichehao.md) |
+| **微信公众号** | `微信公众号`, `WeiXinGongZhongHao` | [weixingongzhonghao.md](./weixingongzhonghao.md) |
 
 > [!TIP]
 > 持续增加中... 请参考后端 DTO `*ArticleForm` 扩展新平台。

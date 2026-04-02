@@ -32,7 +32,8 @@ node scripts/api.ts --payload='{"action":"activities","account_id":"XXX","type":
 ## 脚本逻辑 (Backend)
 
 - **脚本路径**: `scripts/api.ts`
-- **功能**: 封装蚁小二活动查询接口。
+- **功能**: 封装蚁小二标准化活动查询接口 (`GET /platform-accounts/{platformAccountId}/activities`)。
+- **参数映射**: 将 `account_id` 映射为 URL 路径变量，将 `type`, `categoryId`, `keyWord` 映射为查询参数。
 
 ## 输出结果 (Output)
 
