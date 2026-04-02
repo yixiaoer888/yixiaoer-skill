@@ -29,7 +29,7 @@ node scripts/api.ts --payload='{
 | :--- | :--- | :--- |
 | `yixiaoerId` | `string` | (必填) 商品 ID |
 | `yixiaoerName` | `string` | (必填) 商品名称 |
-| `raw` | `object` | (必填) 平台原始商品对象，发布时透传给 `data` 字段 |
+| `raw` | `object` | (必填) 平台原始商品对象。如果在获取时该字段存在，发布表单中必须携带并完整透传 |
 | `yixiaoerDesc` | `string` | 商品规格说明 |
 | `yixiaoerImageUrl` | `string` | 商品图片 URL |
 | `price` | `number` | 商品价格（单位：分） |

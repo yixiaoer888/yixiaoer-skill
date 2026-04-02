@@ -29,6 +29,7 @@ node scripts/api.ts --payload='{
 | yixiaoerName | string | 群聊标题 |
 | yixiaoerDesc | string | 群聊描述 |
 | yixiaoerImageUrl | string | 群聊头像 URL |
+| `raw` | `object` | 平台原始数据。如果在获取时该字段存在，发布表单中必须携带并完整透传 |
 
 ## 脚本逻辑 (Backend)
 

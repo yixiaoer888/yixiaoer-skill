@@ -34,7 +34,7 @@ node scripts/api.ts --payload='{"action":"music-category","account_id":"XXX"}'
 ### 复杂对象：CategoryItem
 - `yixiaoerId`: 内部分类 ID。
 - `yixiaoerName`: 分类名称。
-- `raw`: 原始平台返回的分类对象。
+- `raw`: 原始平台返回的分类对象。如果在获取时该字段存在，发布表单中必须携带并完整透传。
 
 ## 脚本逻辑 (Backend)
 

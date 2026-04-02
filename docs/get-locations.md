@@ -37,7 +37,7 @@ node scripts/api.ts --payload='{"action":"locations","account_id":"XXX","keyword
 ### 基础结构 (Base Structure)
 - `yixiaoerId`: (必填) 内部唯一 ID。
 - `yixiaoerName`: (必填) 地理位置名称。
-- `raw`: (必填) 原始平台返回的地理位置对象，发布时需完整透传给 `location` 字段。
+- `raw`: (必填) 原始平台返回的地理位置对象。如果在获取时该字段存在，发布表单中必须携带并完整透传。
 - `yixiaoerDesc`: (可选) 地理位置详细说明。
 
 ## 脚本逻辑 (Backend)

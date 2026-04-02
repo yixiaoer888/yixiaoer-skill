@@ -17,6 +17,7 @@
 | `shoppingCart` | `object` | 否 | 关联商品信息，包含 `yixiaoerId`, `yixiaoerName`, `raw` | - |
 | `collection` | `object` | 否 | 合集信息，包含 `yixiaoerId`, `yixiaoerName`, `raw` | - |
 | `activity` | `object` | 否 | 活动信息，包含 `yixiaoerId`, `yixiaoerName`, `raw` | - |
+| `music` | `object` | 否 | 背景音乐信息，使用 `MusicItem` 结构 | - |
 
 ## 2. 复杂对象结构
 
@@ -34,7 +35,17 @@
 | :--- | :--- | :--- | :--- |
 | `yixiaoerId` | `string` | 是 | 统一 ID |
 | `yixiaoerName` | `string` | 是 | 显示名称 |
-| `raw` | `object` | 是 | 平台原始数据 |
+| `raw` | `object` | 是 | 平台原始数据。如果在获取时该字段存在，发布表单中必须携带并完整透传 |
+
+### MusicItem (音乐)
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `yixiaoerId` | `string` | 是 | 蚁小二端统一音乐 ID |
+| `yixiaoerName` | `string` | 是 | 歌曲名称 |
+| `duration` | `number` | 是 | 音乐时长（秒） |
+| `playUrl` | `string` | 是 | 试听/播放链接 |
+| `artist` | `string` | 否 | 歌手/作者名 |
+| `raw` | `object` | 否 | 平台原始数据。如果在音乐列表获取时该字段存在，发布表单中必须携带并完整透传 |
 
 ### 数据获取途径
 
@@ -44,6 +55,7 @@
 | `collection` | `collections` | [获取合集列表](../../get-collections.md) |
 | `activity` | `activities` | [获取活动列表](../../get-publish-activities.md) |
 | `shoppingCart` | `goods` | [获取商品列表](../../get-goods.md) |
+| `music` | `music` | [获取背景音乐](../../get-music.md) |
 
 ## 3. JSON 示例
 

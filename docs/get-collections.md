@@ -14,7 +14,7 @@ node scripts/api.ts --payload='{"action":"collections","account_id":"ACCOUNT_ID"
 | :--- | :--- | :--- | :--- |
 | `account_id` | `string` | **是** | 蚁小二账号 ID (32位十六进制) |
 
-返回一个 `Category` 数组。可以直接将其中的对象作为 `collection` 参数传递给发布脚本。
+返回一个 `Category` 数组。可以直接将其中的对象作为 `collection` 参数传递给发布脚本。如果在获取时 `raw` 字段有值，发布表单中必须完整保留并透传。
 
 ```json
 [
