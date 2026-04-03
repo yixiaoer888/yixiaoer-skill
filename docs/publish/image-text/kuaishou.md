@@ -88,6 +88,8 @@
 }
 ```
 
-## 5. DTO 参考
-- 后端类: `KuaiShouDynamicForm`
-- 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/kuaishou.dto.ts`
+## 相关接口
+
+| 目标数据 | 对应 Action | 相关文档 |
+| :--- | :--- | :--- |
+| `images.key` | `upload` | [资源上传](../../upload-resource.md) |

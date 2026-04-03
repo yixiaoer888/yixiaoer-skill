@@ -62,15 +62,7 @@
 | price | number | 否 | 商品价格（单位：分） |
 | earnPrice | number | 否 | 预估佣金（单位：分） |
 
-### 数据获取途径
 
-| 目标字段 | 对应 Action | 文档参考 |
-| :--- | :--- | :--- |
-| `location` | `locations` | [获取位置信息](../get-locations.md) |
-| `collection` | `collections` | [获取合集列表](../../get-collections.md) |
-| `group` | `groups` | [获取群聊列表](../../get-groups.md) |
-| `shopping_cart` | `goods` | [获取商品列表](../../get-goods.md) |
-| `declaration` | - | 请按表格中的枚举值直接填写（1 或 2） |
 
 ## 3. JSON 示例
 
@@ -102,3 +94,14 @@
   }
 }
 ```
+
+## 相关接口
+
+| 目标字段 | 对应 Action | 文档参考 |
+| :--- | :--- | :--- |
+| `location` | `locations` | [获取位置信息](../get-locations.md) |
+| `collection` | `collections` | [获取合集列表](../../get-collections.md) |
+| `group` | `groups` | [获取群聊列表](../../get-groups.md) |
+| `shopping_cart` | `goods` | [获取商品列表](../../get-goods.md) |
+| `declaration` | - | 请按表格中的枚举值直接填写（1 或 2） |
+| `video.key` | `upload` | [资源上传](../../upload-resource.md) |

@@ -29,5 +29,9 @@
 | `height` | `number` | **是** | 高度 |
 
 ## 3. Payload 完整示例
-- 后端类: `WangYiHaoArticleForm`
-- 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/wangyihao.dto.ts`
+
+## 相关接口
+
+| 目标数据 | 对应 Action | 相关文档 |
+| :--- | :--- | :--- |
+| `covers.key` | `upload` | [资源上传](../../upload-resource.md) |

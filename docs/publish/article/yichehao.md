@@ -61,6 +61,8 @@
 | `width` | `number` | 宽度 |
 | `height` | `number` | 高度 |
 
-## 4. DTO 参考
-- 后端类: `YiCheHaoArticleForm`
-- 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/yichehao.dto.ts`
+## 相关接口
+
+| 目标数据 | 对应 Action | 相关文档 |
+| :--- | :--- | :--- |
+| `covers.key` | `upload` | [资源上传](../../upload-resource.md) |

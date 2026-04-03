@@ -75,6 +75,8 @@
 | `artist` | `string` | 否 | 歌手/作者名 |
 | `raw` | `object` | 否 | 平台原始数据。如果在音乐列表获取时该字段存在，发布表单中必须携带并完整透传 |
 
-## 4. DTO 参考
-- 后端类: `DouyinArticleForm`
-- 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/douyin.dto.ts`
+## 相关接口
+
+| 目标数据 | 对应 Action | 相关文档 |
+| :--- | :--- | :--- |
+| `covers.key` | `upload` | [资源上传](../../upload-resource.md) |

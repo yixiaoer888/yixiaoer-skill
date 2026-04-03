@@ -46,12 +46,7 @@ Bilibili 的分类通常是一个数组，包含一级分区和二级分区的 `
 | yixiaoerId | string | 是 | 合集 ID |
 | yixiaoerName | string | 是 | 合集名称 |
 
-### 数据获取途径
 
-| 目标字段 | 对应 Action | 文档参考 |
-| :--- | :--- | :--- |
-| `category` | `categories` | [获取账号分类](../../get-publish-categories.md) |
-| `collection` | `collections` | [获取合集列表](../../get-collections.md) |
 
 ## 3. JSON 示例
 
@@ -90,3 +85,11 @@ Bilibili 的分类通常是一个数组，包含一级分区和二级分区的 `
   }
 }
 ```
+
+## 相关接口
+
+| 目标字段 | 对应 Action | 文档参考 |
+| :--- | :--- | :--- |
+| `category` | `categories` | [获取账号分类](../../get-publish-categories.md) |
+| `collection` | `collections` | [获取合集列表](../../get-collections.md) |
+| `video.key` | `upload` | [资源上传](../../upload-resource.md) |

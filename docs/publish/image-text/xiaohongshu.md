@@ -55,14 +55,7 @@
 | `artist` | `string` | 否 | 歌手/作者名 |
 | `raw` | `object` | 否 | 平台原始数据。如果在音乐列表获取时该字段存在，发布表单中必须携带并完整透传 |
 
-### 数据获取途径
 
-| 目标字段 | 对应 Action | 文档参考 |
-| :--- | :--- | :--- |
-| `location` | `locations` | [获取位置信息](../../get-locations.md) |
-| `collection` | `collections` | [获取合集列表](../../get-collections.md) |
-| `music` | `music` | [获取背景音乐](../../get-music.md) |
-| `tags` | `challenges` | [获取话题/挑战](../../get-challenges.md) |
 
 ## 3. Payload 完整示例
 
@@ -90,6 +83,12 @@
 }
 ```
 
-## 5. DTO 参考
-- 后端类: `XiaoHongShuDynamicForm`
-- 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/xiaohongshu.dto.ts`
+## 相关接口
+
+| 目标字段 | 对应 Action | 文档参考 |
+| :--- | :--- | :--- |
+| `location` | `locations` | [获取位置信息](../../get-locations.md) |
+| `collection` | `collections` | [获取合集列表](../../get-collections.md) |
+| `music` | `music` | [获取背景音乐](../../get-music.md) |
+| `tags` | `challenges` | [获取话题/挑战](../../get-challenges.md) |
+| `images.key` | `upload` | [资源上传](../../upload-resource.md) |

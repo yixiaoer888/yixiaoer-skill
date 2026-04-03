@@ -85,19 +85,7 @@
 | `yixiaoerName` | `string` | 是 | 游戏规格/名称 |
 | `raw` | `object` | 否 | 平台原始数据。如果在获取时该字段存在，发布表单中必须携带并完整透传 |
 
-### 数据获取途径
 
-| 目标字段 | 对应 Action | 文档参考 |
-| :--- | :--- | :--- |
-| `location` | `locations` | [获取位置信息](../get-locations.md) |
-| `collection` | `collections` | [获取合集列表](../../get-collections.md) |
-| `shoppingCart` / `groupShopping` | `goods` | [获取商品列表](../../get-goods.md) |
-| `hot_event` | `hot-events` | [获取热点列表](../../get-hot-events.md) |
-| `challenge` | `challenges` | [获取挑战列表](../../get-challenges.md) |
-| `mini_app` | `miniapps` | [获取小程序列表](../../get-miniapps.md) |
-| `sync_apps` | `syncapps` | [获取同步应用](../../get-sync-apps.md) |
-| `music` | `music` | [获取背景音乐](../../get-music.md) |
-| `game` | `games` | [获取游戏列表](../../get-games.md) |
 
 ## 3. JSON 示例
 
@@ -133,3 +121,18 @@
   }
 }
 ```
+
+## 相关接口
+
+| 目标字段 | 对应 Action | 文档参考 |
+| :--- | :--- | :--- |
+| `location` | `locations` | [获取位置信息](../get-locations.md) |
+| `collection` | `collections` | [获取合集列表](../../get-collections.md) |
+| `shoppingCart` / `groupShopping` | `goods` | [获取商品列表](../../get-goods.md) |
+| `hot_event` | `hot-events` | [获取热点列表](../../get-hot-events.md) |
+| `challenge` | `challenges` | [获取挑战列表](../../get-challenges.md) |
+| `mini_app` | `miniapps` | [获取小程序列表](../../get-miniapps.md) |
+| `sync_apps` | `syncapps` | [获取同步应用](../../get-sync-apps.md) |
+| `music` | `music` | [获取背景音乐](../../get-music.md) |
+| `game` | `games` | [获取游戏列表](../../get-games.md) |
+| `video.key` | `upload` | [资源上传](../../upload-resource.md) |

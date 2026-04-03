@@ -69,6 +69,8 @@
 | `yixiaoerName` | `string` | 名称 |
 | `raw` | `Object` | 原始对象 |
 
-## 4. DTO 参考
-- 后端类: `AcFunArticleForm`
-- 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/acfun.dto.ts`
+## 相关接口
+
+| 目标数据 | 对应 Action | 相关文档 |
+| :--- | :--- | :--- |
+| `covers.key` | `upload` | [资源上传](../../upload-resource.md) |

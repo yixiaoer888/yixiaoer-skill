@@ -52,15 +52,7 @@
 | `artist` | `string` | 否 | 歌手/作者名 |
 | `raw` | `object` | 否 | 平台原始数据。如果在音乐列表获取时该字段存在，发布表单中必须携带并完整透传 |
 
-### 数据获取途径
 
-| 目标字段 | 对应 Action | 文档参考 |
-| :--- | :--- | :--- |
-| `location` | `locations` | [获取位置信息](../get-locations.md) |
-| `collection` | `collections` | [获取合集列表](../../get-collections.md) |
-| `activity` | `activities` | [获取活动列表](../../get-publish-activities.md) |
-| `shoppingCart` | `goods` | [获取商品列表](../../get-goods.md) |
-| `music` | `music` | [获取背景音乐](../../get-music.md) |
 
 ## 3. JSON 示例
 
@@ -97,3 +89,14 @@
   }
 }
 ```
+
+## 相关接口
+
+| 目标字段 | 对应 Action | 文档参考 |
+| :--- | :--- | :--- |
+| `location` | `locations` | [获取位置信息](../get-locations.md) |
+| `collection` | `collections` | [获取合集列表](../../get-collections.md) |
+| `activity` | `activities` | [获取活动列表](../../get-publish-activities.md) |
+| `shoppingCart` | `goods` | [获取商品列表](../../get-goods.md) |
+| `music` | `music` | [获取背景音乐](../../get-music.md) |
+| `video.key` | `upload` | [资源上传](../../upload-resource.md) |
