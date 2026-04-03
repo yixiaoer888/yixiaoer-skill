@@ -13,6 +13,8 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `formType` | `string` | **是** | 固定值: `task` | `task` |
 | `title` | `string` | **是** | 文章标题 | - |
+| `content` | `string` | **是** | 文章内容 (HTML 格式) | - |
+| `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
 
 ## 2. Payload 完整示例
 
@@ -22,13 +24,15 @@
   "publishType": "article",
   "platforms": ["简书"],
   "publishArgs": {
-    "content": "<h1>文章标题</h1><p>正文内容...</p>",
+    "content": "<h1>简书文章标题</h1><p>内容正文...</p>",
     "accountForms": [
       {
         "platformAccountId": "acc_js_001",
         "contentPublishForm": {
           "formType": "task",
-          "title": "这是文章标题"
+          "title": "这是文章标题",
+          "content": "<h1>简书文章标题</h1><p>内容正文...</p>",
+          "pubType": 1
         }
       }
     ]

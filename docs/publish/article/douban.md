@@ -13,8 +13,10 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `formType` | `string` | **是** | 固定值: `task` | `task` |
 | `title` | `string` | **是** | 文章标题 | - |
-| `type` | `number` | **是** | 创作类型: 0-非原创, 1-申明原创 | - |
-| `tags` | `string[]` | **是** | 标签 | - |
+| `content` | `string` | **是** | 文章内容 (HTML 格式) | - |
+| `createType` | `number` | **是** | 创作类型: 0-非原创, 1-申明原创 | - |
+| `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
+| `tags` | `string[]` | 否 | 标签 | - |
 
 ## 2. Payload 完整示例
 
@@ -24,14 +26,16 @@
   "publishType": "article",
   "platforms": ["豆瓣"],
   "publishArgs": {
-    "content": "<h1>文章标题</h1><p>正文内容...</p>",
+    "content": "<h1>豆瓣日记</h1><p>正文内容...</p>",
     "accountForms": [
       {
         "platformAccountId": "acc_db_001",
         "contentPublishForm": {
           "formType": "task",
           "title": "这是文章标题",
-          "type": 1,
+          "content": "<h1>豆瓣日记</h1><p>正文内容...</p>",
+          "createType": 1,
+          "pubType": 1,
           "tags": ["影评", "生活"]
         }
       }

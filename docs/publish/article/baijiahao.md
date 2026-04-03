@@ -20,30 +20,7 @@
 | `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
 | `activity` | `Object` | 否 | 征文活动数据对象，使用 `Activity` 结构 | - |
 
-## 2. 复杂对象结构说明
-
-### OldCover
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `key` | `string` | **是** | OSS 资源 Key |
-| `size` | `number` | **是** | 文件大小 (Bytes) |
-| `width` | `number` | **是** | 宽度 |
-| `height` | `number` | **是** | 高度 |
-
-### Category (分类)
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `yixiaoerId` | `string` | **是** | 分类 ID |
-| `yixiaoerName` | `string` | **是** | 分类名称 |
-| `raw` | `object` | 否 | 原始分类对象 |
-
-### Activity (活动)
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `yixiaoerId` | `string` | **是** | 活动 ID |
-| `yixiaoerName` | `string` | **是** | 活动名称 |
-
-## 3. Payload 完整示例
+## 2. Payload 完整示例
 
 ```json
 {
@@ -75,13 +52,33 @@
 }
 ```
 
+## 3. 复杂对象结构说明
+
+### 3.1 OldCover
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `key` | `string` | **是** | OSS 资源 Key |
+| `size` | `number` | **是** | 文件大小 (Bytes) |
+| `width` | `number` | **是** | 宽度 |
+| `height` | `number` | **是** | 高度 |
+
+### 3.2 Category (分类)
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `yixiaoerId` | `string` | **是** | 分类 ID |
+| `yixiaoerName` | `string` | **是** | 分类名称 |
+| `raw` | `object` | 否 | 原始分类对象 |
+
+### 3.3 Activity (活动)
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `yixiaoerId` | `string` | **是** | 活动 ID |
+| `yixiaoerName` | `string` | **是** | 活动名称 |
+
 ## 相关接口
 
 | 目标数据 | 对应 Action | 文档参考 |
 | :--- | :--- | :--- |
 | `category` | `categories` | [获取账号分类](../../get-publish-categories.md) |
 | `activity` | `activities` | [获取征文活动](../../get-publish-activities.md) |
-| `covers.key` | `upload` | [资源上传](../../upload-resource.md) |
-| 目标数据 | 对应 Action | 相关文档 |
-| :--- | :--- | :--- |
 | `covers.key` | `upload` | [资源上传](../../upload-resource.md) |

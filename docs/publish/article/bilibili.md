@@ -12,10 +12,12 @@
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
 | `formType` | `string` | **是** | 固定值: `task` | `task` |
-| `title` | `string` | **是** | 文章标题 | - |
-| `covers` | `Array` | **是** | 文章封面列表 (`OldCover[]`) | - |
-| `tags` | `string[]` | 否 | 文章标签 | - |
-| `type` | `number` | 否 | 原创类型: 0-非原创, 1-原创 | - |
+| `title` | `string` | **是** | 文章标题 (最多 80 字符) | - |
+| `content` | `string` | **是** | 文章内容 (HTML 格式，最多 100000 字符) | - |
+| `covers` | `Array` | **是** | 文章封面列表 (`OldCover[]`, 1-20 张) | - |
+| `tags` | `string[]` | 否 | 文章标签 (最多 12 个) | - |
+| `createType` | `number` | 否 | 原创类型: 0-非原创, 1-原创 | - |
+| `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
 | `category` | `Array` | 否 | 文章分类 (`Category[]`) | - |
 | `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
 
@@ -27,7 +29,7 @@
   "publishType": "article",
   "platforms": ["哔哩哔哩"],
   "publishArgs": {
-    "content": "<h1>文章标题</h1><p>正文内容...</p>",
+    "content": "<h1>B站专栏文章</h1><p>正文内容...</p>",
     "accountForms": [
       {
         "platformAccountId": "acc_bili_001",
@@ -36,10 +38,12 @@
         "contentPublishForm": {
           "formType": "task",
           "title": "这是文章标题",
+          "content": "<h1>B站专栏文章</h1><p>正文内容...</p>",
           "covers": [
             { "key": "article_cover_key", "size": 102400, "width": 800, "height": 600 }
           ],
-          "type": 1,
+          "createType": 1,
+          "pubType": 1,
           "tags": ["生活", "科技"]
         }
       }
@@ -48,25 +52,26 @@
 }
 ```
 
-## 3. 复杂对象结构
+## 3. 复杂对象结构说明
 
-### 3.1 OldCover (封面对象)
-| 字段名 | 类型 | 说明 |
-| :--- | :--- | :--- |
-| `key` | `string` | OSS 资源 Key |
-| `size` | `number` | 文件大小 (bytes) |
-| `width` | `number` | 宽度 |
-| `height` | `number` | 高度 |
+### 3.1 OldCover
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `key` | `string` | **是** | OSS 资源 Key |
+| `size` | `number` | **是** | 文件大小 (Bytes) |
+| `width` | `number` | **是** | 宽度 |
+| `height` | `number` | **是** | 高度 |
 
 ### 3.2 Category (分类对象)
-| 字段名 | 类型 | 说明 |
-| :--- | :--- | :--- |
-| `yixiaoerId` | `string` | ID |
-| `yixiaoerName` | `string` | 名称 |
-| `raw` | `Object` | 原始对象 |
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `yixiaoerId` | `string` | **是** | ID |
+| `yixiaoerName` | `string` | **是** | 名称 |
+| `raw` | `Object` | **是** | 原始对象 (透传) |
 
 ## 相关接口
 
 | 目标数据 | 对应 Action | 相关文档 |
 | :--- | :--- | :--- |
 | `covers.key` | `upload` | [资源上传](../../upload-resource.md) |
+| `category` | `categories` | [获取发布分类](../../get-publish-categories.md) |

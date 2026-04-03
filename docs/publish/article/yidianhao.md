@@ -12,8 +12,11 @@
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
 | `formType` | `string` | **是** | 固定值: `task` | `task` |
-| `title` | `string` | **是** | 文章标题 | - |
+| `title` | `string` | **是** | 文章标题 (长度: 5-64) | - |
+| `content` | `string` | **是** | 文章内容 (HTML 格式) | - |
 | `covers` | `Array` | **是** | 文章封面列表 (`OldCover[]`) | - |
+| `declaration` | `number` | 否 | 创作声明: 3-取材网络, 4-AI 生成, 5-虚构情节 | - |
+| `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
 | `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
 
 ## 2. Payload 完整示例
@@ -33,9 +36,11 @@
         "contentPublishForm": {
           "formType": "task",
           "title": "这是文章标题",
+          "content": "<h1>文章标题</h1><p>正文内容...</p>",
           "covers": [
             { "key": "article_cover_key", "size": 102400, "width": 800, "height": 600 }
-          ]
+          ],
+          "pubType": 1
         }
       }
     ]
@@ -43,15 +48,15 @@
 }
 ```
 
-## 3. 复杂对象结构
+## 3. 复杂对象结构说明
 
-### 3.1 OldCover (封面对象)
-| 字段名 | 类型 | 说明 |
-| :--- | :--- | :--- |
-| `key` | `string` | OSS 资源 Key |
-| `size` | `number` | 文件大小 (bytes) |
-| `width` | `number` | 宽度 |
-| `height` | `number` | 高度 |
+### 3.1 OldCover
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `key` | `string` | **是** | OSS 资源 Key |
+| `size` | `number` | **是** | 文件大小 (Bytes) |
+| `width` | `number` | **是** | 宽度 |
+| `height` | `number` | **是** | 高度 |
 
 ## 相关接口
 

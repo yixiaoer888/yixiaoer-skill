@@ -21,24 +21,7 @@
 | `declaration`| `number` | 否 | 创作类型 1:自行拍摄 2:取自站外 3:AI生成 6:虚构演绎,故事经历 7:投资观点,仅供参考 8:健康医疗分享,仅供参考 | - |
 | `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | - |
 
-## 2. 复杂对象结构说明
-
-### OldCover
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `key` | `string` | **是** | OSS 资源 Key |
-| `size` | `number` | **是** | 文件大小 (Bytes) |
-| `width` | `number` | **是** | 宽度 |
-| `height` | `number` | **是** | 高度 |
-
-### PlatformDataItem (位置信息)
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | `string` | **是** | 位置 ID |
-| `text` | `string` | **是** | 位置名称 |
-| `raw` | `object` | 否 | 原始位置对象 |
-
-## 3. Payload 完整示例
+## 2. Payload 完整示例
 
 ```json
 {
@@ -78,12 +61,26 @@
 }
 ```
 
+## 3. 复杂对象结构说明
+
+### 3.1 OldCover
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `key` | `string` | **是** | OSS 资源 Key |
+| `size` | `number` | **是** | 文件大小 (Bytes) |
+| `width` | `number` | **是** | 宽度 |
+| `height` | `number` | **是** | 高度 |
+
+### 3.2 PlatformDataItem (位置信息)
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `yixiaoerId` | `string` | **是** | 位置 ID |
+| `yixiaoerName` | `string` | **是** | 位置名称 |
+| `raw` | `object` | **是** | 原始位置对象 (透传) |
+
 ## 相关接口
 
 | 目标字段 | 对应 Action | 文档参考 |
 | :--- | :--- | :--- |
 | `location` | `locations` | [获取位置信息](../../get-locations.md) |
-| `covers.key` | `upload` | [资源上传](../../upload-resource.md) |
-| 目标数据 | 对应 Action | 相关文档 |
-| :--- | :--- | :--- |
 | `covers.key` | `upload` | [资源上传](../../upload-resource.md) |

@@ -13,12 +13,14 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `formType` | `string` | **是** | 固定值: `task` | `task` |
 | `title` | `string` | **是** | 文章标题 | - |
+| `content` | `string` | **是** | 文章内容 (HTML 格式) | - |
 | `covers` | `Array` | **是** | 文章封面列表 (`OldCover[]`) | - |
+| `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
 | `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
 
 ## 2. 复杂对象结构说明
 
-### OldCover
+### 2.1 OldCover
 | 字段名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
 | `key` | `string` | **是** | OSS 资源 Key |
@@ -27,6 +29,33 @@
 | `height` | `number` | **是** | 高度 |
 
 ## 3. Payload 完整示例
+
+```json
+{
+  "action": "publish",
+  "publishType": "article",
+  "platforms": ["新浪微博"],
+  "publishArgs": {
+    "content": "<h1>微博长文章</h1><p>内容正文支持 HTML 渲染。</p>",
+    "accountForms": [
+      {
+        "platformAccountId": "acc_weibo_001",
+        "coverKey": "article_cover_key",
+        "cover": { "key": "article_cover_key", "size": 102400, "width": 800, "height": 600 },
+        "contentPublishForm": {
+          "formType": "task",
+          "title": "这是文章标题",
+          "content": "<h1>微博长文章</h1><p>内容正文支持 HTML 渲染。</p>",
+          "covers": [
+            { "key": "article_cover_key", "size": 102400, "width": 800, "height": 600 }
+          ],
+          "pubType": 1
+        }
+      }
+    ]
+  }
+}
+```
 
 ## 相关接口
 

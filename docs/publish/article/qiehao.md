@@ -13,9 +13,11 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `formType` | `string` | **是** | 固定值: `task` | `task` |
 | `title` | `string` | **是** | 文章标题 | - |
+| `content` | `string` | **是** | 文章内容 (HTML 格式) | - |
 | `covers` | `Array` | **是** | 文章封面列表 (`OldCover[]`) | - |
 | `tags` | `string[]` | **是** | 文章标签 (至少一个) | - |
 | `declaration` | `number` | 否 | 创作申明: 0-暂不申明, 1-AI生成, 2-个人观点, 3-剧情演绎, 7-AI辅助, 8-健康医疗, 9-危险行为 | - |
+| `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
 
 ## 2. Payload 完整示例
 
@@ -34,11 +36,13 @@
         "contentPublishForm": {
           "formType": "task",
           "title": "这是文章标题",
+          "content": "<h1>文章标题</h1><p>正文内容...</p>",
           "covers": [
             { "key": "article_cover_key", "size": 102400, "width": 800, "height": 600 }
           ],
           "tags": ["科技", "AI"],
-          "declaration": 0
+          "declaration": 0,
+          "pubType": 1
         }
       }
     ]
