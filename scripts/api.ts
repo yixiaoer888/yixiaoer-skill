@@ -59,7 +59,7 @@ export async function callApi(endpoint: string, options: RequestInit = {}) {
 /**
  * 助手函数: 通用资源上传
  */
-export async function uploadResource(urlOrPath: string): Promise<string> {
+export async function uploadResource(urlOrPath: string, contentType?: string, size?: number): Promise<string> {
   const bucket = 'cloud-publish';
   let buffer: ArrayBuffer;
   let fileName = 'file.jpg';
@@ -83,7 +83,12 @@ export async function uploadResource(urlOrPath: string): Promise<string> {
   }
 
   // 2. 获取预签名上传地址 (使用 callApi)
-  const uploadInfo = await callApi(`/storages/${bucket}/upload-url?fileKey=${encodeURIComponent(fileName)}`);
+  const queryParams = new URLSearchParams();
+  queryParams.append('fileKey', fileName);
+  if (contentType) queryParams.append('contentType', contentType);
+  if (size) queryParams.append('size', String(size));
+
+  const uploadInfo = await callApi(`/storages/${bucket}/upload-url?${queryParams.toString()}`);
   const data = uploadInfo.data || uploadInfo;
   const { serviceUrl, key } = data;
 
@@ -91,11 +96,11 @@ export async function uploadResource(urlOrPath: string): Promise<string> {
     throw new Error(`Invalid upload info response: ${JSON.stringify(uploadInfo)}`);
   }
 
-  // 3. 执行 PUT 上传
+  // 3. 执行 PUT 上传 (注意: Content-Type 必须与获取 URL 时一致)
   const putRes = await fetch(serviceUrl, {
     method: 'PUT',
     body: buffer,
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    headers: { 'Content-Type': contentType || 'application/x-www-form-urlencoded' }
   });
 
   if (!putRes.ok) {
@@ -152,9 +157,9 @@ async function main() {
         break;
 
       case 'upload': // 资源上传
-        const key = await uploadResource(payload.url);
+        const uploadKey = await uploadResource(payload.url, payload.contentType, payload.size);
         result = {
-          key,
+          key: uploadKey,
           name: payload.url.startsWith('http') ? new URL(payload.url).pathname.split('/').pop() : payload.url.split(/[/\\]/).pop()
         };
         break;

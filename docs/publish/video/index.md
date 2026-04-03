@@ -1,5 +1,10 @@
 # 视频发布 (Video Publish)
 
+> [!CAUTION]
+> **阅读规范 (Reading Protocol)**:
+> 本文档是 **所有平台** 视频发布的 **唯一入口** 和 **基础 DTO 定义**。
+> 在查阅具体的平台文档（如 `douyin.md`）之前，你 **必须** 首先查阅本文档以理解 Payload 的根结构，否则将导致生成的 JSON 无法通过校验。
+
 所有通过 `api.ts`（指定 `action: "publish"`）执行的视频发布任务均遵循以下数据结构。
 
 > [!IMPORTANT]

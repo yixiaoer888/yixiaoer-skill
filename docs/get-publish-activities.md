@@ -46,5 +46,5 @@ node scripts/api.ts --payload='{"action":"activities","account_id":"XXX","type":
 | `yixiaoerDesc` | `string` | 活动描述 |
 | `yixiaoerImageUrl` | `string` | 活动封面图 URL |
 | `viewNum` | `string` | 浏览量/参与度指标 |
-| `raw` | `object` | 平台原始活动数据（包含第三方平台的 Activity ID 等） |
+| `raw` | `object` | 平台原始活动数据。如果在获取时该字段存在，发布表单中必须携带并完整透传 |
 

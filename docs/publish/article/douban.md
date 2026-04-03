@@ -1,5 +1,10 @@
 # 豆瓣文章发布参数 (DouBan Article)
 
+> [!IMPORTANT]
+> **前提条件 (Prerequisite)**:
+> 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [文章发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
+
+
 本平台文章发布通过 `contentPublishForm` 承载以下参数。
 
 ## 1. contentPublishForm 参数定义
@@ -8,8 +13,10 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `formType` | `string` | **是** | 固定值: `task` | `task` |
 | `title` | `string` | **是** | 文章标题 | - |
-| `type` | `number` | **是** | 创作类型: 0-非原创, 1-申明原创 | - |
-| `tags` | `string[]` | **是** | 标签 | - |
+| `content` | `string` | **是** | 文章内容 (HTML 格式) | - |
+| `createType` | `number` | **是** | 创作类型: 0-非原创, 1-申明原创 | - |
+| `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
+| `tags` | `string[]` | 否 | 标签 | - |
 
 ## 2. Payload 完整示例
 
@@ -19,14 +26,16 @@
   "publishType": "article",
   "platforms": ["豆瓣"],
   "publishArgs": {
-    "content": "<h1>文章标题</h1><p>正文内容...</p>",
+    "content": "<h1>豆瓣日记</h1><p>正文内容...</p>",
     "accountForms": [
       {
         "platformAccountId": "acc_db_001",
         "contentPublishForm": {
           "formType": "task",
           "title": "这是文章标题",
-          "type": 1,
+          "content": "<h1>豆瓣日记</h1><p>正文内容...</p>",
+          "createType": 1,
+          "pubType": 1,
           "tags": ["影评", "生活"]
         }
       }
@@ -35,6 +44,8 @@
 }
 ```
 
-## 4. DTO 参考
-- 后端类: `DouBanArticleForm`
-- 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/douban.dto.ts`
+## 相关接口
+
+| 目标数据 | 对应 Action | 相关文档 |
+| :--- | :--- | :--- |
+| `covers.key` | `upload` | [资源上传](../../upload-resource.md) |

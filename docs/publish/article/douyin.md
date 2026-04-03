@@ -1,5 +1,9 @@
 # 抖音文章发布参数 (Douyin Article)
 
+> [!IMPORTANT]
+> **前提条件 (Prerequisite)**:
+> 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [文章发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
+
 本平台文章发布通过 `contentPublishForm` 承载以下参数。
 
 ## 1. contentPublishForm 参数定义
@@ -11,7 +15,7 @@
 | `description` | `string` | 否 | 文章描述或摘要 | - |
 | `covers` | `Array` | **是** | 封面图 OSS 列表 (`OldCover[]`) | - |
 | `headImage` | `Object` | 否 | 文章头图 (`OldCover`) | - |
-| `music` | `Object` | 否 | 平台音乐背景 (`PlatformDataItem`) | - |
+| `music` | `Object` | 否 | 平台音乐背景 (`MusicItem`) | - |
 | `topics` | `Array` | 否 | 话题标签列表 (`Category[]`) | - |
 | `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
 | `visibleType` | `number` | 否 | 可见性: 0-公开, 1-私密, 3-好友 | `0` |
@@ -59,8 +63,20 @@
 | :--- | :--- | :--- |
 | `yixiaoerId` | `string` | ID |
 | `yixiaoerName` | `string` | 名称 |
-| `raw` | `Object` | 原始对象 |
+| `raw` | `Object` | 平台原始对象。如果在获取时该字段存在，发布表单中必须携带并完整透传 |
 
-## 4. DTO 参考
-- 后端类: `DouyinArticleForm`
-- 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/douyin.dto.ts`
+### 3.3 MusicItem (音乐)
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `yixiaoerId` | `string` | 是 | 蚁小二端统一音乐 ID |
+| `yixiaoerName` | `string` | 是 | 歌曲名称 |
+| `duration` | `number` | 是 | 音乐时长（秒） |
+| `playUrl` | `string` | 是 | 试听/播放链接 |
+| `artist` | `string` | 否 | 歌手/作者名 |
+| `raw` | `object` | 否 | 平台原始数据。如果在音乐列表获取时该字段存在，发布表单中必须携带并完整透传 |
+
+## 相关接口
+
+| 目标数据 | 对应 Action | 相关文档 |
+| :--- | :--- | :--- |
+| `covers.key` | `upload` | [资源上传](../../upload-resource.md) |

@@ -1,5 +1,10 @@
 # 新浪微博图文发布参数 (Sina Weibo Image-Text)
 
+> [!IMPORTANT]
+> **前提条件 (Prerequisite)**:
+> 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [图文发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
+
+
 本平台图文发布通过 `contentPublishForm` 承载以下参数。
 
 ## 1. contentPublishForm 参数定义
@@ -53,6 +58,8 @@
 }
 ```
 
-## 5. DTO 参考
-- 后端类: `XinLangWeiBoDynamicForm`
-- 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/xinlangweibo.dto.ts`
+## 相关接口
+
+| 目标数据 | 对应 Action | 相关文档 |
+| :--- | :--- | :--- |
+| `images.key` | `upload` | [资源上传](../../upload-resource.md) |

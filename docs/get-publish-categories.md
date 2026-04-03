@@ -42,4 +42,4 @@ node scripts/api.ts --payload='{"action":"categories","account_id":"64dxxx","typ
 | `yixiaoerId` | `string` | 分类在本系统的唯一标识 |
 | `yixiaoerName` | `string` | 分类名称 |
 | `child` | `array` | 子分类列表（若支持层级分类，如抖音/快手） |
-| `raw` | `object` | 平台原始分类数据 |
+| `raw` | `object` | 平台原始分类数据。如果在获取时该字段存在，发布表单中必须携带并完整透传 |

@@ -1,5 +1,10 @@
 # AcFun文章发布参数 (AcFun Article)
 
+> [!IMPORTANT]
+> **前提条件 (Prerequisite)**:
+> 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [文章发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
+
+
 本平台文章发布通过 `contentPublishForm` 承载以下参数。
 
 ## 1. contentPublishForm 参数定义
@@ -64,6 +69,8 @@
 | `yixiaoerName` | `string` | 名称 |
 | `raw` | `Object` | 原始对象 |
 
-## 4. DTO 参考
-- 后端类: `AcFunArticleForm`
-- 文件路径: `apps/server-api/packages/yxr-open-platform/src/models/platform/acfun.dto.ts`
+## 相关接口
+
+| 目标数据 | 对应 Action | 相关文档 |
+| :--- | :--- | :--- |
+| `covers.key` | `upload` | [资源上传](../../upload-resource.md) |

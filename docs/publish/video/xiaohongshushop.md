@@ -1,5 +1,10 @@
 # 小红书店铺 视频发布
 
+> [!IMPORTANT]
+> **前提条件 (Prerequisite)**:
+> 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [视频发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
+
+
 ## 1. contentPublishForm 数据结构
 
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
@@ -30,12 +35,7 @@
 | price | number | 否 | 商品价格（单位：分） |
 | earnPrice | number | 否 | 预估佣金（单位：分） |
 
-### 数据获取途径
 
-| 目标字段 | 对应 Action | 文档参考 |
-| :--- | :--- | :--- |
-| `location` | `locations` | [获取位置信息](../get-locations.md) |
-| `shoppingCart` | `goods` | [获取商品列表](../../get-goods.md) |
 
 ## 3. JSON 示例
 
@@ -70,3 +70,11 @@
   }
 }
 ```
+
+## 相关接口
+
+| 目标字段 | 对应 Action | 文档参考 |
+| :--- | :--- | :--- |
+| `location` | `locations` | [获取位置信息](../get-locations.md) |
+| `shoppingCart` | `goods` | [获取商品列表](../../get-goods.md) |
+| `video.key` | `upload` | [资源上传](../../upload-resource.md) |

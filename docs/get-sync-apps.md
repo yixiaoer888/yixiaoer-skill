@@ -13,4 +13,4 @@ node scripts/api.ts --payload='{
 
 ## 2. 返回数据结构
 
-返回 `Category` 数组。
+返回 `Category` 数组。如果在获取时 `raw` 字段有值，发布表单中必须完整保留并透传。

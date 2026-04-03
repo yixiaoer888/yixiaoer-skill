@@ -19,7 +19,7 @@ node scripts/api.ts --payload='{"action":"locations","account_id":"XXX","keyword
 
 ## 返回结果 (Response)
 
-返回一个包含地理位置对象的数组。可以直接将其中的 `raw` 对象作为 `location` 参数传递给发布脚本。
+返回一个包含地理位置对象的数组。发布时请将整个对象（其基础结构符合 `yixiaoerId`, `yixiaoerName`, `raw`）作为 `location` 参数传递给发布脚本。
 
 ```json
 [
@@ -34,11 +34,11 @@ node scripts/api.ts --payload='{"action":"locations","account_id":"XXX","keyword
 ]
 ```
 
-### 复杂对象：SearchResult
-- `yixiaoerId`: 内部唯一 ID。
-- `yixiaoerName`: 地理位置名称。
-- `yixiaoerDesc`: 地理位置详细说明。
-- `raw`: 原始平台返回的地理位置对象，发布时需完整透传给 `location` 字段。
+### 基础结构 (Base Structure)
+- `yixiaoerId`: (必填) 内部唯一 ID。
+- `yixiaoerName`: (必填) 地理位置名称。
+- `raw`: (必填) 原始平台返回的地理位置对象。如果在获取时该字段存在，发布表单中必须携带并完整透传。
+- `yixiaoerDesc`: (可选) 地理位置详细说明。
 
 ## 脚本逻辑 (Backend)
 
