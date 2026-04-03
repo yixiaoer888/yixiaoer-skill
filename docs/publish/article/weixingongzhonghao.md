@@ -1,5 +1,10 @@
 # 微信公众号文章发布参数 (WeiXinGongZhongHao Article)
 
+> [!IMPORTANT]
+> **前提条件 (Prerequisite)**:
+> 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [文章发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
+
+
 本平台文章发布推荐使用 `platformForms` 模式，以支持多账号共用单条图文包消息。
 
 ## 1. 结构概览 (Structure)

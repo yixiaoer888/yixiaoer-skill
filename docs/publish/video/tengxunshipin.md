@@ -1,5 +1,10 @@
 # 腾讯视频 视频发布
 
+> [!IMPORTANT]
+> **前提条件 (Prerequisite)**:
+> 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [视频发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
+
+
 ## 1. contentPublishForm 数据结构
 
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
