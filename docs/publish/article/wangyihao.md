@@ -20,17 +20,7 @@
 | `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
 | `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
 
-## 2. 复杂对象结构说明
-
-### 3.1 OldCover
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `key` | `string` | **是** | OSS 资源 Key |
-| `size` | `number` | **是** | 文件大小 (Bytes) |
-| `width` | `number` | **是** | 宽度 |
-| `height` | `number` | **是** | 高度 |
-
-## 3. Payload 完整示例
+## 2. Payload 完整示例
 
 ```json
 {
@@ -60,6 +50,16 @@
   }
 }
 ```
+
+## 3. 复杂对象结构说明
+
+### 3.1 OldCover
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `key` | `string` | **是** | OSS 资源 Key |
+| `size` | `number` | **是** | 文件大小 (Bytes) |
+| `width` | `number` | **是** | 宽度 |
+| `height` | `number` | **是** | 高度 |
 
 ## 相关接口
 

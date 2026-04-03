@@ -1,35 +1,27 @@
-# 爱奇艺视频发布 (AiQiYi Video)
+# 爱奇艺视频发布参数 (AiQiYi Video)
 
 > [!IMPORTANT]
 > **前提条件 (Prerequisite)**:
 > 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [视频发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
 
 
-## 1. contentPublishForm 数据结构
+在本平台视频发布通过 `contentPublishForm` 承载以下参数。
+
+## 1. contentPublishForm 参数定义
 
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
 | `formType` | `string` | **是** | 固定为 `task` | `task` |
 | `title` | `string` | **是** | 视频标题 (长度: 1-50 字符) | - |
 | `description` | `string` | **是** | 视频描述 (长度: 1-500 字符) | - |
-| `tags` | `string[]` | **否** | 视频标签 (最多 10 个，每个 20 字符) | - |
-| `category` | `object[]` | **是** | 视频分类，使用 `CascadingPlatformDataItem[]` 结构 | - |
+| `tags` | `string[]` | **否** | 视频标签 (最多 10 个) | - |
+| `category` | `Array` | **是** | 视频分类，使用 `CascadingPlatformDataItem[]` 结构 | - |
 | `createType` | `number` | **是** | 内容类型：1-原创，2-转载 | 1 |
 | `pubType` | `number` | **是** | 发布类型：0-草稿，1-直接发布 | 1 |
-| `declaration` | `number` | **否** | 声明：0-无需申明，1-内容由 AI 生成，2-虚构演绎仅供娱乐，3-取材网络谨慎辨别 | 0 |
-| `scheduledTime` | `number` | **否** | 定时任务 (单位: 秒) | - |
+| `declaration` | `number` | **否** | 声明：0-无需申明，1-内容由 AI 生成, 2-虚构演绎, 3-取材网络 | 0 |
+| `scheduledTime` | `number` | **否** | 定时任务 (Unix 时间戳，秒) | - |
 
-## 2. 复杂对象结构
-
-### CascadingPlatformDataItem
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | `string` | **是** | 选项 ID |
-| `text` | `string` | **是** | 选项文本 |
-| `children` | `object[]` | **否** | 子级选项列表 (CascadingPlatformDataItem[]) |
-| `raw` | `object` | **是** | 平台原始数据 (如果接口返回，必须原样回传) |
-
-## 3. JSON 示例
+## 2. Payload 完整示例
 
 ```json
 {
@@ -41,23 +33,21 @@
       {
         "platformAccountId": "acc_aqy_vid_001",
         "video": {
-          "key": "v_key_example",
+          "key": "video_oss_key",
           "size": 1024000,
           "width": 1920,
           "height": 1080,
           "duration": 120
         },
+        "coverKey": "video_cover_key",
+        "cover": { "key": "video_cover_key", "size": 102400, "width": 800, "height": 600 },
         "contentPublishForm": {
           "formType": "task",
           "title": "爱奇艺精彩视频",
           "description": "这是一段有趣的视频描述，展示了爱奇艺发布流程。",
-          "tags": ["影视", "科技", "教程"],
+          "tags": ["影视", "科技"],
           "category": [
-            {
-              "id": "cat_id_001",
-              "text": "影视",
-              "raw": {}
-            }
+            { "yixiaoerId": "cat_001", "yixiaoerName": "影视", "raw": {} }
           ],
           "createType": 1,
           "pubType": 1,
@@ -69,9 +59,19 @@
 }
 ```
 
+## 3. 复杂对象结构说明
+
+### 3.1 CascadingPlatformDataItem (多级分类)
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `yixiaoerId` | `string` | **是** | 级联 ID |
+| `yixiaoerName` | `string` | **是** | 级联显示的名称 |
+| `children` | `Array` | 否 | 子级对象列表 |
+| `raw` | `object` | **是** | 平台原始数据 (必须完整透传) |
+
 ## 相关接口
 
 | 目标数据 | 对应 Action | 相关文档 |
 | :--- | :--- | :--- |
 | `video.key` | `upload` | [资源上传](../../upload-resource.md) |
-
+| `category` | `categories` | [获取发布分类](../../get-publish-categories.md) |
