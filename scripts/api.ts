@@ -314,6 +314,13 @@ async function main() {
         result = await callApi(gameUrl.toString(), { method: 'GET' });
         break;
 
+      case 'save-draft': // 保存草稿
+        result = await callApi('/taskSets/drafts', {
+          method: 'PUT',
+          body: JSON.stringify(payload)
+        });
+        break;
+
       default:
         throw new Error(`Unsupported action: ${action}`);
     }
