@@ -39,6 +39,7 @@ API 调用时涉及的平台名称必须使用蚁小二定义的中文枚举或 
 | `save-draft` | 将发布任务保存为**蚁小二草稿** | [save-draft.md](./docs/save-draft.md) |
 | `accounts` | 查询已绑定的账号列表 | [query-accounts.md](./docs/query-accounts.md) |
 | `upload` | 上传本地或 URL 图片/视频 | [upload-resource.md](./docs/upload-resource.md) |
+| `material` | 将已上传资源登记到**蚁小二素材库** | [material-resource.md](./docs/material-resource.md) |
 | `records` | 查询发布任务概览列表 | [get-publish-records.md](./docs/get-publish-records.md) |
 | `details` | 查询特定任务的执行详情 | [get-publish-records.md](./docs/get-publish-records.md) |
 | `categories`| 获取账号分类/话题列表 | [get-publish-categories.md](./docs/get-publish-categories.md) |

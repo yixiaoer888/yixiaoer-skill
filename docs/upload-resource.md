@@ -18,7 +18,7 @@ node scripts/api.ts --payload='{"action":"upload","url":"https://example.com/ima
 | 字段名 | 类型 | 是否必填 | 描述 |
 | :--- | :--- | :--- | :--- |
 | `url` | `string` | **是** | 资源的远程 URL 或本地绝对路径 |
-| `bucket` | `string` | **是** | OSS 存储桶。固定值为 `cloud-publish` |
+| `bucket` | `string` | **是** | OSS 存储桶。普通发布资源使用 `cloud-publish`；若后续要调用素材库 `action: "material"`，必须使用 `material-library` |
 | `contentType` | `string` | **是** | 资源的 MIME 类型 (如 `video/mp4`, `image/png`)。**严格要求**: 请求预签名 URL 时声明的 `contentType` 必须与执行 PUT 上传时 Header 中的 `Content-Type` **完全一致**，否则会导致签名不匹配 (SignatureDoesNotMatch) 错误。 |
 | `size` | `number` | 否 | 资源大小 (字节)。用于素材库容量检查 |
 
@@ -28,10 +28,16 @@ node scripts/api.ts --payload='{"action":"upload","url":"https://example.com/ima
 ```json
 {
   "key": "cloud-publish/2026/03/26/66b2xxx/xxx.jpg",
-  "name": "xxx.jpg"
+  "name": "xxx.jpg",
+  "bucket": "cloud-publish"
 }
 ```
 **注意**: 在发布文章或视频时，请直接传入返回的 `key` 字符串作为封面或图片地址。
+
+如果你的目标是“上传后写入素材库”，请使用：
+```bash
+node scripts/api.ts --payload='{"action":"upload","url":"https://example.com/video.mp4","bucket":"material-library","contentType":"video/mp4"}'
+```
 
 > [!IMPORTANT]
 > **发布合规性提醒**:

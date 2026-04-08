@@ -59,8 +59,16 @@ export async function callApi(endpoint: string, options: RequestInit = {}) {
 /**
  * 助手函数: 通用资源上传
  */
-export async function uploadResource(urlOrPath: string, contentType?: string, size?: number): Promise<string> {
-  const bucket = 'cloud-publish';
+export async function uploadResource(
+  urlOrPath: string,
+  bucket: string = 'cloud-publish',
+  contentType?: string,
+  size?: number
+): Promise<string> {
+  if (!bucket) {
+    throw new Error('Missing required bucket for upload');
+  }
+
   let buffer: ArrayBuffer;
   let fileName = 'file.jpg';
 
@@ -157,11 +165,32 @@ async function main() {
         break;
 
       case 'upload': // 资源上传
-        const uploadKey = await uploadResource(payload.url, payload.contentType, payload.size);
+        const uploadBucket = payload.bucket || 'cloud-publish';
+        const uploadKey = await uploadResource(payload.url, uploadBucket, payload.contentType, payload.size);
         result = {
           key: uploadKey,
-          name: payload.url.startsWith('http') ? new URL(payload.url).pathname.split('/').pop() : payload.url.split(/[/\\]/).pop()
+          name: payload.url.startsWith('http') ? new URL(payload.url).pathname.split('/').pop() : payload.url.split(/[/\\]/).pop(),
+          bucket: uploadBucket
         };
+        break;
+
+      case 'material': // 上传到素材库
+        if (!payload.filePath) throw new Error("Missing filePath for action: material");
+        if (!payload.fileName) throw new Error("Missing fileName for action: material");
+        if (typeof payload.width !== 'number') throw new Error("Missing numeric width for action: material");
+        if (typeof payload.height !== 'number') throw new Error("Missing numeric height for action: material");
+        if (!payload.type) throw new Error("Missing type for action: material");
+        result = await callApi('/material', {
+          method: 'POST',
+          body: JSON.stringify({
+            thumbPath: payload.thumbPath,
+            filePath: payload.filePath,
+            fileName: payload.fileName,
+            width: payload.width,
+            height: payload.height,
+            type: payload.type
+          })
+        });
         break;
 
       case 'records': // 发布记录
