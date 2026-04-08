@@ -129,6 +129,17 @@ export function handleError(error: any, context: string) {
   process.exit(1);
 }
 
+function buildTaskSetBody(payload: Record<string, any>, forceDraft: boolean = false) {
+  const { action: _action, ...body } = payload;
+  if (!('publishChannel' in body)) {
+    body.publishChannel = 'cloud';
+  }
+  if (forceDraft) {
+    body.isDraft = true;
+  }
+  return body;
+}
+
 /**
  * 主执行入口 (Execution Entry)
  */
@@ -150,9 +161,10 @@ async function main() {
     let result: any;
     switch (action) {
       case 'publish': // 内容发布
+        const publishBody = buildTaskSetBody(payload);
         result = await callApi('/taskSets/v2', {
           method: 'POST',
-          body: JSON.stringify(payload)
+          body: JSON.stringify(publishBody)
         });
         break;
 
@@ -344,9 +356,10 @@ async function main() {
         break;
 
       case 'save-draft': // 保存草稿
+        const draftBody = buildTaskSetBody(payload, true);
         result = await callApi('/taskSets/drafts', {
           method: 'PUT',
-          body: JSON.stringify(payload)
+          body: JSON.stringify(draftBody)
         });
         break;
 

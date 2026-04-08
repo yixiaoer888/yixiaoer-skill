@@ -18,22 +18,31 @@
 
 使用 `action: "save-draft"` 将发布任务整体保存至蚁小二后台。
 
+`save-draft` 与 `publish` 使用**同一套请求参数结构**（`publishType`、`platforms`、`publishArgs` 等保持一致），只是在脚本层调用不同接口：
+- `publish` -> `POST /taskSets/v2`
+- `save-draft` -> `PUT /taskSets/drafts`
+
 ### 调用指令 (Command)
 
 ```bash
 node scripts/api.ts --payload='{
   "action": "save-draft",
-  "publishType": "verticalVideo",
+  "publishType": "video",
   "platforms": ["抖音", "视频号"],
-  "isDraft": true,
   "desc": "这是一个蚁小二草稿",
-  "platformAccounts": [
-    {
-      "platformAccountId": "67fb2f1735eeb3cf31db3d65",
-      "videoKey": "v-xxxxxx",
-      "coverKey": "c-xxxxxx"
-    }
-  ]
+  "publishArgs": {
+    "accountForms": [
+      {
+        "platformAccountId": "67fb2f1735eeb3cf31db3d65",
+        "video": { "key": "v-xxxxxx" },
+        "coverKey": "c-xxxxxx",
+        "contentPublishForm": {
+          "pubType": 1,
+          "title": "这是一个蚁小二草稿"
+        }
+      }
+    ]
+  }
 }'
 ```
 
@@ -43,10 +52,11 @@ node scripts/api.ts --payload='{
 | :--- | :--- | :--- | :--- |
 | `action` | `string` | 是 | 固定值: `save-draft` |
 | `taskSetId` | `string` | 否 | 任务集 ID。传值则为更新草稿，不传则为创建新草稿 |
-| `publishType` | `string` | 是 | 发布类型。可选: `verticalVideo`, `article`, `imageText` 等 |
+| `publishType` | `string` | 是 | 发布类型。可选: `video`, `article`, `imageText` 等 |
 | `platforms` | `string[]` | 是 | 目标平台名称列表 |
-| `isDraft` | `boolean` | 是 | 必须为 `true` |
+| `publishArgs` | `object` | 是 | 与 `publish` 完全一致的发布参数结构 |
 | `desc` | `string` | 否 | 任务集描述 |
+| `isDraft` | `boolean` | 否 | 可不传，脚本会自动补为 `true` |
 
 ---
 
