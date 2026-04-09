@@ -121,10 +121,23 @@ export async function uploadResource(
 /**
  * 统一错误处理并输出到标准输出
  */
-export function handleError(error: any, context: string) {
+export function handleError(error: any, context: string, errorCode: string = 'YIXIAOER_REMOTE_ERR') {
+  // 识别特定错误类型并自动归类
+  let finalErrorCode = errorCode;
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (message.includes('Missing required') || message.includes('Invalid JSON') || message.includes('Unsupported action')) {
+    finalErrorCode = 'YIXIAOER_USAGE_ERR';
+  } else if (message.includes('API_KEY')) {
+    finalErrorCode = 'YIXIAOER_AUTH_ERR';
+  }
+
   console.error(JSON.stringify({
-    error: `Failed to ${context}`,
-    details: error instanceof Error ? error.message : String(error)
+    success: false,
+    errorCode: finalErrorCode,
+    message: `Failed to ${context}`,
+    details: message,
+    suggestion: "请依次检查: 1. 技能版本号是否一致; 2. 请求参数是否符合 DTO 规范; 3. 是否存在过期的缓存文件。"
   }, null, 2));
   process.exit(1);
 }
@@ -367,7 +380,14 @@ async function main() {
         throw new Error(`Unsupported action: ${action}`);
     }
 
-    console.log(JSON.stringify(result.data || result, null, 2));
+    const finalResult = {
+      success: true,
+      action: action,
+      version: "1.6.2", // 与 SKILL.md 保持同步
+      data: result.data || result
+    };
+
+    console.log(JSON.stringify(finalResult, null, 2));
 
   } catch (error) {
     handleError(error, "execute api action");

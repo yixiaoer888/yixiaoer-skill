@@ -17,10 +17,12 @@ author: wangzhengjiao
 4.  **零映射透传**: 鼓励调用者使用 `api.ts` 透明地提交符合 DTO 要求的 JSON Payload。
 
 > [!IMPORTANT]
-> **严格合规性 (Strict Compliance)**:
-> 1. **文档检索顺序**: 针对 `publish` 行为，查询文档时**必须**首先查阅对应内容类型的 `index.md`（如 `docs/publish/article/index.md`），以获取基础 JSON 结构。**严禁**跳过 Index 直接访问平台级文档（如 `douyin.md`），否则可能导致 Payload 根结构缺失。
-> 2. 所有接口调用**必须**严格遵守各文档中定义的**必填字段 (`必填: 是`)** 以及对应的**数据格式要求**（如时间戳、数组嵌套结构等）。
-> 3. **资源引用规范**: 所有的**封面图 (cover)**、**图文图片 (images)** 以及 **视频文件 (video)** 必须先通过[资源上传接口](./docs/upload-resource.md)上传至系统并获得唯一的 `key`。禁止填入非系统内的网络 URL 或随意留空，否则会导致发布任务执行失败。
+> **严格合规性与执行标准 (Strict Compliance & Standard)**:
+> 1. **执行标准**: 所有 Agent 的调用行为、版本校验、错误处理**必须**遵循 [yixiaoer-skill 严格执行标准](./docs/execution-standard.md)。
+> 2. **文档检索顺序**: 针对 `publish` 行为，查询文档时**必须**首先查阅对应内容类型的 `index.md`（如 `docs/publish/article/index.md`），以获取基础 JSON 结构。**严禁**跳过 Index 直接访问平台级文档（如 `douyin.md`），否则可能导致 Payload 根结构缺失。
+> 3. 所有接口调用**必须**严格遵守各文档中定义的**必填字段 (`必填: 是`)** 以及对应的**数据格式要求**。
+> 4. **资源引用规范**: 所有的**封面图 (cover)**、**图文图片 (images)** 以及 **视频文件 (video)** 必须先通过[资源上传接口](./docs/upload-resource.md)上传至系统并获得唯一的 `key`。禁止填入非系统内的网络 URL 或随意留空，否则会导致发布任务执行失败。
+
 
 
 ## 平台支持 (Platform Support)
@@ -80,3 +82,6 @@ node scripts/api.ts --payload='{"action": "accounts", "platform": "抖音"}'
 > [!NOTE]
 > 所有的敏感信息应通过环境变量 `YIXIAOER_API_KEY` 注入。
 > 如果用户没有发送clientId，则默认使用云发布，publishChannel: cloud
+> 
+> **故障诊断建议 (Troubleshooting)**:
+> 出现错误时，请依次检查：① 技能版本号、② 请求参数 DTO 规范、③ 是否使用了过期的缓存文件。
