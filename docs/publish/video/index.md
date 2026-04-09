@@ -28,7 +28,7 @@
 | `desc` | `string` | 否 | 任务描述/摘要 | - |
 | `publishChannel` | `string` | 否 | `cloud` (云端) 或 `local` (本机) | `local` |
 | `clientId` | `string` | 否 | 客户端连接 ID (`local` 发布时必填) | - |
-| `isDraft` | `boolean` | 否 | 是否仅保存为草稿 | `false` |
+| `isDraft` | `boolean` | 否 | 是否仅保存为草稿 (蚁小二草稿) | `false` |
 
 ### 1.2 发布参数 (publishArgs)
 

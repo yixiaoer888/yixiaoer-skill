@@ -1,32 +1,31 @@
-# 保存草稿 (Draft Management)
+# 草稿管理 (Draft Management)
 
-在蚁小二生态中，存在两种不同维度的“草稿”概念，开发者需根据业务场景进行区分。
+在蚁小二生态中，存在两种“草稿”能力，需按目标选择：
+- 保存到**蚁小二草稿箱**（`action: publish` + `isDraft: true`）
+- 保存到**目标平台草稿箱**（`action: publish` + `pubType: 0`）
 
-## 概念区分 (Draft Types)
+## 快速区分 (Draft Types)
 
 | 类型 | 蚁小二草稿 (YiXiaoEr Draft) | 平台草稿 (Platform Draft) |
 | :--- | :--- | :--- |
 | **定义** | 仅保存在蚁小二系统数据库中 | 发送到目标平台（如抖音、B站）的草稿箱 |
-| **是否触发任务** | **否**。仅做内容存储，不触发机器人 | **是**。机器人会登录平台并执行“存草稿”操作 |
-| **调用 Action** | `save-draft` | `publish` |
-| **核心参数** | `isDraft: true` | `contentPublishForm.pubType: 0` |
+| **是否触发任务** | 否 (仅存储) | 是 (执行推送流程) |
+| **调用 Action** | `publish` | `publish` |
+| **核心区分参数** | `isDraft: true` | `contentPublishForm.pubType: 0` |
 | **主要用途** | 跨端同步编辑、团队预审 | 将内容预推送到平台后台，方便手动二次微调 |
 
 ---
 
-## 1. 蚁小二草稿 (YiXiaoEr Draft)
+## 存为蚁小二草稿 (`isDraft: true`)
 
-使用 `action: "save-draft"` 将发布任务整体保存至蚁小二后台。
-
-`save-draft` 与 `publish` 使用**同一套请求参数结构**（`publishType`、`platforms`、`publishArgs` 等保持一致），只是在脚本层调用不同接口：
-- `publish` -> `POST /taskSets/v2`
-- `save-draft` -> `PUT /taskSets/drafts`
+当需要将任务暂存到蚁小二系统的草稿列表，而不启动发布流程时使用。
 
 ### 调用指令 (Command)
 
 ```bash
 node scripts/api.ts --payload='{
-  "action": "save-draft",
+  "action": "publish",
+  "isDraft": true,
   "publishType": "video",
   "platforms": ["抖音", "视频号"],
   "desc": "这是一个蚁小二草稿",
@@ -46,23 +45,11 @@ node scripts/api.ts --payload='{
 }'
 ```
 
-### 参数列表 (Payload Properties)
-
-| 字段名 | 类型 | 是否必填 | 描述 |
-| :--- | :--- | :--- | :--- |
-| `action` | `string` | 是 | 固定值: `save-draft` |
-| `taskSetId` | `string` | 否 | 任务集 ID。传值则为更新草稿，不传则为创建新草稿 |
-| `publishType` | `string` | 是 | 发布类型。可选: `video`, `article`, `imageText` 等 |
-| `platforms` | `string[]` | 是 | 目标平台名称列表 |
-| `publishArgs` | `object` | 是 | 与 `publish` 完全一致的发布参数结构 |
-| `desc` | `string` | 否 | 任务集描述 |
-| `isDraft` | `boolean` | 否 | 可不传，脚本会自动补为 `true` |
-
 ---
 
-## 2. 平台草稿 (Platform Draft)
+## 存为平台草稿 (`pubType: 0`)
 
-使用 `action: "publish"` 但通过 `pubType` 参数控制机器人执行行为。
+当需要启动发布流程，但最终结果是在第三方平台后台看到草稿时使用。
 
 ### 调用指令 (Command)
 
@@ -86,8 +73,3 @@ node scripts/api.ts --payload='{
   }
 }'
 ```
-
-> [!TIP]
-> 平台草稿的 `pubType` 字段定义：
-> - `0`: 存入平台草稿箱 (Save to platform draft box)
-> - `1`: 直接发布 (Publicly publish)

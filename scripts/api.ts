@@ -160,12 +160,18 @@ async function main() {
 
     let result: any;
     switch (action) {
-      case 'publish': // 内容发布
-        const publishBody = buildTaskSetBody(payload);
-        result = await callApi('/taskSets/v2', {
-          method: 'POST',
-          body: JSON.stringify(publishBody)
-        });
+      case 'publish':    // 内容发布
+        {
+          const taskSetBody = buildTaskSetBody(payload);
+          const isDraft = !!taskSetBody.isDraft;
+          const endpoint = isDraft ? '/taskSets/drafts' : '/taskSets/v2';
+          const method = isDraft ? 'PUT' : 'POST';
+
+          result = await callApi(endpoint, {
+            method,
+            body: JSON.stringify(taskSetBody)
+          });
+        }
         break;
 
       case 'accounts': // 账号列表
@@ -355,13 +361,7 @@ async function main() {
         result = await callApi(gameUrl.toString(), { method: 'GET' });
         break;
 
-      case 'save-draft': // 保存草稿
-        const draftBody = buildTaskSetBody(payload, true);
-        result = await callApi('/taskSets/drafts', {
-          method: 'PUT',
-          body: JSON.stringify(draftBody)
-        });
-        break;
+
 
       default:
         throw new Error(`Unsupported action: ${action}`);
