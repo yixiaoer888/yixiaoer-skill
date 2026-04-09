@@ -141,7 +141,7 @@ export function handleError(error: any, context: string, errorCode: string = 'YI
     errorCode: finalErrorCode,
     message: `Failed to ${context}`,
     details: message,
-    suggestion: "请依次检查: 1. 技能版本号是否一致; 2. 请求参数是否符合 DTO 规范; 3. 是否存在过期的缓存文件。"
+    suggestion: "请依次检查: 1. 技能版本号是否一致; 2. 请求参数是否符合 DTO 规范 (重点检查封面 cover、视频 video、分类 categories/标签 等必填项是否符合平台标准); 3. 是否存在过期的缓存文件。"
   }, null, 2));
   process.exit(1);
 }
@@ -387,7 +387,7 @@ async function main() {
     const finalResult = {
       success: true,
       action: action,
-      version: "1.6.2", // 与 SKILL.md 保持同步
+      version: "1.6.3", // 与 SKILL.md 保持同步
       data: result.data || result
     };
 
