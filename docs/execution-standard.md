@@ -29,8 +29,9 @@
 **核心约束：发布与上传必须物理分离**。
 
 1. **先上传再引用**：严禁在 `publish` Payload 中直接使用外部原始 URL。必须通过 `upload` action 获取系统内部 `key` 后进行替换。
-2. **封面图 (Cover)**：视频内容的封面图必须同样经过 `upload` 流程。
-3. **状态校验**：在上传统一资源后，建议通过 `material` 接口（若需要）将其同步至素材库以增加发布稳定性。
+2. **ContentType 签名一致性**：获取预签名 URL 时声明的 `contentType` 必须与执行 PUT 上传时的 `Content-Type` Header **完全一致**。禁止自行猜测或随意留空，否则将导致 `SignatureDoesNotMatch` 错误。
+3. **封面图 (Cover)**：视频内容的封面图必须同样经过 `upload` 流程。
+4. **状态校验**：在上传统一资源后，建议通过 `material` 接口（若需要）将其同步至素材库以增加发布稳定性。
 
 ## 4. 调用序列与检索规范 (Interaction Flow)
 
@@ -72,6 +73,7 @@ Agent 在执行任务时必须遵循以下“分级检索”逻辑：
 
 ### 第三步：检查缓存与过期数据 (Check Cache & Stale Data)
 - 检查是否存在过期的缓存文件（如旧的 Payload JSON、过时的资源 Key）。
+- **资源上传专项排查**：在上传阶段如果出现 `SignatureDoesNotMatch` 错误，优先检查 `contentType` 定义是否与上传时的 Header **完全对齐**。
 - **执行逻辑**：如果怀疑使用了缓存导致的异常，必须清理相关临时文件并严格按照最新技能定义的流程重新执行（如重新执行 `upload` 流程）。
 
 ---

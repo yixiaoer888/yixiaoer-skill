@@ -112,7 +112,11 @@ export async function uploadResource(
   });
 
   if (!putRes.ok) {
-    throw new Error(`Failed to upload to OSS: ${await putRes.text()}`);
+    const errorText = await putRes.text();
+    if (errorText.includes('SignatureDoesNotMatch')) {
+      throw new Error(`Failed to upload to OSS (SignatureDoesNotMatch): 预签名的 Content-Type (${contentType}) 与实际上传的 Header 不匹配。请确保两者完全一致。`);
+    }
+    throw new Error(`Failed to upload to OSS: ${errorText}`);
   }
 
   return key;
