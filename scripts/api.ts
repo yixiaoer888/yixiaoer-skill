@@ -321,8 +321,8 @@ async function main() {
         break;
 
       case 'categories': // 分类查询
-        const categoryUrl = new URL(`${API_URL}/platform-accounts/${payload.account_id}/categories`);
-        categoryUrl.searchParams.append('publishType', payload.type || 'video');
+          const categoryUrl = new URL(`${API_URL}/platform-accounts/${payload.account_id}/categories`);
+          categoryUrl.searchParams.append('publishType', payload.type || 'video');
         result = await callApi(categoryUrl.toString(), { method: 'GET' });
         break;
 

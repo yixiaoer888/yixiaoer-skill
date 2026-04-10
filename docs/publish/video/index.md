@@ -114,5 +114,12 @@
 | **视频号** | `Shipinghao` | [shipinghao.md](./shipinghao.md) |
 | ... | ... | ... |
 
+## 4. 通用规则 (Common DTO Rules)
+
+### 4.1 级联分类组装 (Cascading Categories)
+许多平台要求传入由父及子的完整分类对象数组。
+- **组装逻辑**：每个扁平化后的分类对象（通过 `categories` 获取）都包含一个 **`child`** 字段，已预先为你组装好了“从一级分类到当前分类”的完整对象路径数组。
+- **填表规范**：Agent 在构造 `contentPublishForm.category` 时，**必须直接透传** 该 `child` 数组。
+
 > [!TIP]
 > 完整列表请参考 [SKILL.md](../../SKILL.md)。

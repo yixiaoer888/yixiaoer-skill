@@ -16,17 +16,15 @@ node scripts/api.ts --payload='{"action":"music-category","account_id":"XXX"}'
 
 ## 返回结果 (Response)
 
-返回一个包含音乐分类对象的数组。
+返回一个包含音乐分类对象的数组。脚本会自动将多级嵌套的分类**铺平 (Flatten)**，并为每个对象生成 `child` 路径数组。
 
 ```json
 [
   {
     "yixiaoerId": "123",
     "yixiaoerName": "流行",
-    "raw": {
-      "id": "123",
-      "name": "流行"
-    }
+    "child": [ { "yixiaoerId": "123", "yixiaoerName": "流行" } ],
+    "raw": { "id": "123", "name": "流行" }
   }
 ]
 ```
@@ -34,10 +32,10 @@ node scripts/api.ts --payload='{"action":"music-category","account_id":"XXX"}'
 ### 复杂对象：CategoryItem
 - `yixiaoerId`: 内部分类 ID。
 - `yixiaoerName`: 分类名称。
-- `raw`: 原始平台返回的分类对象。如果在获取时该字段存在，发布表单中必须携带并完整透传。
+- `child`: **完整路径对象数组**。如果分类有父子级关系，发布表单时通常需要在此处填入整个生成的 `child`。
+- `raw`: 原始平台返回的分类对象。
 
 ## 脚本逻辑 (Backend)
 
 - **脚本路径**: `scripts/api.ts`
-- **功能**: 封装蚁小二标准音乐分类查询接口 (`GET /platform-accounts/{platformAccountId}/music/category`)。
-- **参数映射**: 将 `account_id` 映射为路径变量。
+- **功能**: 封装蚁小二标准音乐分类查询接口并自动执行 `flattenTree` 逻辑。
