@@ -143,7 +143,7 @@ export function handleError(error: any, context: string, errorCode: string = 'YI
     errorCode: finalErrorCode,
     message: message.includes('不支持') ? message : `Failed to ${context}`,
     details: message,
-    suggestion: message.includes('不支持') 
+    suggestion: message.includes('不支持')
       ? "请检查发布类型 (publishType) 组合是否正确。例如小红书仅支持 'image-text' 或 'video'，不支持 'article'。"
       : "请依次检查: 1. 技能版本号是否一致; 2. 请求参数是否符合 DTO 规范; 3. 查阅 [避坑指南](./docs/troubleshooting-guide.md)。"
   };
@@ -160,30 +160,61 @@ function validateSupport(payload: any) {
 
   // 1. 基础动作校验
   const supportedActions = [
-    'publish', 'accounts', 'upload', 'material', 'records', 'details', 
-    'categories', 'activities', 'locations', 'music', 'music-category', 
-    'collections', 'groups', 'goods', 'hot-events', 'challenges', 
-    'miniapps', 'syncapps', 'games', 'proxies', 'proxy-areas', 
+    'publish', 'accounts', 'upload', 'material', 'records', 'details',
+    'categories', 'activities', 'locations', 'music', 'music-category',
+    'collections', 'groups', 'goods', 'hot-events', 'challenges',
+    'miniapps', 'syncapps', 'games', 'proxies', 'proxy-areas',
     'account-overviews', 'content-overviews', 'update-account'
   ];
-  
+
   if (action && !supportedActions.includes(action)) {
     throw new Error(`不支持的动作 (Unsupported action): "${action}"。请参考 SKILL.md 中的动作列表。`);
   }
 
-  // 2. 发布类型与平台组合校验 (针对 publish 动作)
-  if (action === 'publish' && publishType && platforms) {
-    const platformList = Array.isArray(platforms) ? platforms : [platforms];
-    
-    // 示例：小红书不支持文章发布
-    if (publishType === 'article') {
-      const unsupported = platformList.filter(p => p === '小红书' || p === 'XiaoHongShu');
-      if (unsupported.length > 0) {
-        throw new Error(`平台不支持: "小红书" 目前不支持 "article" (文章) 类型发布。请使用 "image-text" (图文) 或 "video" (视频) 动作。`);
-      }
+  // 2. 必填字段快速预检 (针对 publish 动作)
+  if (action === 'publish') {
+    if (!payload.publishArgs) {
+      throw new Error(`"publish" 动作缺少必填的 "publishArgs" 对象。请参考对应平台的公开 DTO 架构文档。`);
+    }
+    const { accountForms } = payload.publishArgs;
+    if (!accountForms || !Array.isArray(accountForms) || accountForms.length === 0) {
+      throw new Error(`"publishArgs" 中缺少必填的 "accountForms" 数组。你必须至少指定一个目标账号。`);
     }
 
-    // 可以在此继续扩展其他明确不支持的硬性约束
+    accountForms.forEach((form: any, index: number) => {
+      // 检查账号 ID
+      if (!form.platformAccountId && !form.account_id) {
+        throw new Error(`accountForms[${index}] 缺少必填的 "platformAccountId"。请先通过 "accounts" 动作获取并将 ID 填入。`);
+      }
+
+      // 检查发布表单
+      if (!form.contentPublishForm) {
+        throw new Error(`accountForms[${index}] 缺少必填的 "contentPublishForm"。这是存放标题、描述等核心信息的容器。`);
+      }
+
+      // 深度检查必填核心业务字段 (通识性必填)
+      const cpf = form.contentPublishForm;
+      if (!cpf.title && payload.publishType !== 'video') {
+        // 视频类型在某些平台可能可选标题或由 description 替代，但文章和图文通常必填
+        console.warn(`[Warning] accountForms[${index}].contentPublishForm 中未检测到 "title"。绝大多数平台发布文章/图文均要求标题，请核对。`);
+      }
+
+      // 资源存在性校验
+      if (payload.publishType === 'video' && !form.video) {
+        throw new Error(`"publishType" 为 "video" 时，accountForms[${index}] 必须包含 "video" 资源信息（key, size, width, height, duration）。`);
+      }
+      if (payload.publishType === 'article' && !cpf.content) {
+        throw new Error(`"publishType" 为 "article" 时，contentPublishForm 必须包含 "content" 正文。`);
+      }
+      if (payload.publishType === 'image-text' && (!form.images || form.images.length === 0)) {
+        throw new Error(`"publishType" 为 "image-text" 时，accountForms[${index}] 必须包含 "images" 数组。`);
+      }
+    });
+
+    // 检查全局平台声明
+    if (!payload.platforms || (Array.isArray(payload.platforms) && payload.platforms.length === 0)) {
+      throw new Error(`"publish" 动作缺少必填的 "platforms" (平台列表) 声明。`);
+    }
   }
 }
 
@@ -210,7 +241,7 @@ async function main() {
 
   try {
     const payload = getPayload();
-    
+
     // 动作与平台支持预检测
     validateSupport(payload);
 
@@ -435,7 +466,7 @@ async function main() {
     const finalResult = {
       success: true,
       action: action,
-      version: "1.6.3", // 与 SKILL.md 保持同步
+      version: "1.6.4", // 与 SKILL.md 保持同步
       data: result.data || result
     };
 
