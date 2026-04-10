@@ -38,7 +38,9 @@
 ### 执行逻辑 (Logic Flow)
 1. **意图获取**：当用户希望使用“内置地区代理”而非独立服务器时触发。
 2. **列表拉取**：执行 `action: "proxy-areas"`。
-3. **编码匹配**：获取 `code`（如 `shanghai`）供后续更新使用。
+3. **编码匹配**：获取接口返回的 `code`。
+    - **直辖市**（如北京、上海）：直接使用第一层级的 `code`（例如：北京 `11`，上海 `31`）。
+    - **其他城市**（如长沙）：必须进入 `cities` 数组中获取对应的 `code`（例如：长沙 `430100`）。
 
 ---
 
@@ -52,7 +54,7 @@
 | `action` | `string` | **是** | 固定值：`update-account` |
 | `account_id` | `string` | **是** | 平台的账号 ID |
 | `proxyId` | `string` | 否 | 团队代理 ID |
-| `kuaidailiArea` | `string` | 否 | 内置代理地区编码 |
+| `kuaidailiArea` | `string` | 否 | 内置代理地区编码。直辖市取一级 `code`，普通城市取 `cities` 下的 `code`。 |
 | `remark` | `string` | 否 | 账号备注 |
 | `groups` | `string[]` | 否 | 分组 ID 列表 |
 

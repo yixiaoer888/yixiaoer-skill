@@ -84,5 +84,10 @@ node scripts/api.ts --payload='{"action": "accounts", "platform": "抖音"}'
 > 所有的敏感信息应通过环境变量 `YIXIAOER_API_KEY` 注入。
 > 如果用户没有发送clientId，则默认使用云发布，publishChannel: cloud
 > 
-> **故障诊断建议 (Troubleshooting)**:
-> 出现错误时，请依次检查：① 技能版本号、② 请求参数 DTO 规范、③ 是否使用了过期的缓存文件。
+> **故障诊断与常见问题 (Troubleshooting FAQ)**:
+> 1. **获取在线设备失败**: 若提示客户端不在线，请确保 **蚁小二客户端已启动并处于在线状态**（本机发布需客户端支持），或者将 `publishChannel` 改为 `2` (云发布)。
+> 2. **签名不匹配 (SignatureDoesNotMatch)**: 必须确保 `upload` 获取地址时声明的 `contentType` 与实际 PUT 上传时的 Header **严格一致**。
+> 3. **表单错误**: 请严格校验请求 JSON 是否符合 `docs/` 下对应的 **DTO 架构要求**。
+> 4. **版本不支持**: 检查 `SKILL.md` 的 `version` 是否满足功能要求。
+> 
+> 更多详情请参阅：[YiXiaoEr Skill 严格执行标准](./docs/execution-standard.md)
