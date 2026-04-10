@@ -40,9 +40,18 @@
 | `desc` | `string` | 否 | 任务描述/摘要 | - |
 | `publishChannel` | `string` | 否 | `cloud` (云端) 或 `local` (本机) | `cloud` |
 | `clientId` | `string` | 否 | 客户端连接 ID (`local` 发布时必填) | - |
-| `isDraft` | `boolean` | 否 | 是否仅保存为草稿 (蚁小二草稿) | `false` |
+| `isDraft` | `boolean` | 否 | 是否仅保存为 draft (蚁小二草稿箱) | `false` |
 
-### 1.2 发布参数 (publishArgs)
+### 1.2 草稿模式选取 (Draft Selection)
+
+| 场景 | 蚁小二草稿箱 | 目标平台草稿箱 |
+| :--- | :--- | :--- |
+| **位置** | `Payload` 根路径 | `accountForms` -> `contentPublishForm` |
+| **参数** | `"isDraft": true` | `"pubType": 0` |
+| **效果** | 仅保存在蚁小二系统，不发起平台推送 | 执行推送流程，但最终结果为平台端的草稿态 |
+| **用户话术** | “存为蚁小二草稿”、“以后再发” | “存到百家号草稿箱”、“推送到知乎草稿” |
+
+### 1.3 发布参数 (publishArgs)
 
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
@@ -56,7 +65,7 @@
 > - **platformForms**: **仅限微信公众号使用**。
 > - **优先级**: 后端将优先尝试从 `platformForms` 中获取对应平台的配置，若不存在则回退至账号级的 `contentPublishForm`。
 
-### 1.3 账号表单项 (accountForms Item)
+### 1.4 账号表单项 (accountForms Item)
 
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
