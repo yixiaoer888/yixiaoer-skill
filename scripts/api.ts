@@ -62,7 +62,7 @@ export async function callApi(endpoint: string, options: RequestInit = {}) {
 export async function uploadResource(
   urlOrPath: string,
   bucket: string = 'cloud-publish',
-  contentType?: string,
+  contentType: string,
   size?: number
 ): Promise<string> {
   if (!bucket) {
@@ -108,7 +108,7 @@ export async function uploadResource(
   const putRes = await fetch(serviceUrl, {
     method: 'PUT',
     body: buffer,
-    headers: { 'Content-Type': contentType || 'application/x-www-form-urlencoded' }
+    headers: { 'Content-Type': contentType }
   });
 
   if (!putRes.ok) {
@@ -200,6 +200,9 @@ async function main() {
         break;
 
       case 'upload': // 资源上传
+        if (!payload.contentType) {
+          throw new Error("Missing required field: contentType for action: upload");
+        }
         const uploadBucket = payload.bucket || 'cloud-publish';
         const uploadKey = await uploadResource(payload.url, uploadBucket, payload.contentType, payload.size);
         result = {

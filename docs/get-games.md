@@ -1,17 +1,38 @@
 # 获取可挂载游戏列表 (Get Games)
 
-获取发布视频时可挂载推广的游戏列表（主要用于抖音游戏推广）。
+获取发布视频时可挂载推广的游戏列表。该功能主要用于抖音等平台的“游戏推广”场景，通过挂载游戏链接赚取收益或进行内容深度联动。
 
-## 1. 调用指令
+## 触发场景 (Trigger)
+- **意图辨析**：当用户在发布游戏相关的视频内容，并要求“挂载游戏链接”、“进行游戏推广”或“查找可推广的小游戏”时触发。
+- **典型提示词**：
+  - “我要推广这款小游戏，查看可用链接”
+  - “帮我找一下抖音可挂载的游戏列表”
+  - “这个视频支持挂载游戏吗？”
+
+## 参数定义 (Parameters)
+
+### 参数列表 (Payload Properties)
+
+| 字段名 | 类型 | 是否必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `action` | `string` | **是** | 固定值：`games` |
+| `account_id` | `string` | **是** | 蚁小二账号 ID (ObjectId) |
+| `keyword` | `string` | 否 | 搜索游戏关键词 (别名: `keyWord`) |
+
+## 执行逻辑 (Logic Flow)
+1. **身份锚定**：必须先确定目标 `account_id`。
+2. **关键词构造**：根据用户提供的游戏名称作为 `keyword` 注入。
+3. **参数装配**：构造 `action: "games"` 负载。
+4. **指令执行**：调用 `node scripts/api.ts --payload='{...}'`。
+5. **结果解析**：将筛选出的可用游戏信息反馈给用户，引导其在 `publish` 任务的 `platformSettings` 中完成最终挂载配置。
+
+## 返回数据说明 (Response Details)
+
+返回包含游戏对象（`Category` 结构）的数组。
+每一个对象通常包含：`id`, `name`, `type` 等基础字段。
+
+## 调用指令 (Command)
 
 ```bash
-node scripts/api.ts --payload='{
-  "action": "games",
-  "account_id": "YOUR_ACCOUNT_ID",
-  "keyword": "搜索词"
-}'
+node scripts/api.ts --payload='{"action":"games","account_id":"YOUR_ACCOUNT_ID","keyword":"王者"}'
 ```
-
-## 2. 返回数据结构
-
-返回 `Category` 数组。

@@ -1,50 +1,39 @@
-# 获取征文活动 (Get Publish Activities)
+# 获取征文活动列表 (Get Activities)
 
-该指令用于获取特定账号在特定发布类型（视频/文章等）下的征文活动列表。征文活动通常带有特定的投稿要求和奖励。
+获取各媒体平台（如百家号、企鹅号等）当前正在开展的征文任务或激励活动信息。
 
-## 场景描述 (Usage)
+## 触发场景 (Trigger)
+- **意图辨析**：当用户希望参加平台官方活动以获取额外流量激励或奖金，并需要获取活动 ID 进行发布挂载时触发。
+- **典型提示词**：
+  - “最近百家号有什么征文活动？”
+  - “帮我找一下适合这个视频参加的活动”
+  - “查看特定分类下的激励任务”
 
-- "帮我查一下抖音账号 A 最近有哪些可以参加的征文活动。"
-- "我想参加个关于科技的征文，看看我的百家号账号能报哪个。"
+## 参数定义 (Parameters)
+
+### 参数列表 (Payload Properties)
+
+| 字段名 | 类型 | 是否必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `action` | `string` | **是** | 固定值：`activities` |
+| `account_id` | `string` | **是** | 蚁小二账号 ID (ObjectId) |
+| `type` | `string` | 否 | 发布类型：`video` 或 `article` (默认) |
+| `categoryId` | `string` | 否 | 仅查询特定分类下的活动 |
+| `keyword` | `string` | 否 | 按关键字搜索 (别名: `keyWord`) |
+
+## 执行逻辑 (Logic Flow)
+1. **意图解析**：识别目标平台账号及活动所属类别。
+2. **关键词过滤**：提取用户提到的活动名称作为 `keyword`。
+3. **参数装配**：构造 `action: "activities"` 负载。
+4. **指令执行**：调用 `node scripts/api.ts`。
+5. **挂载建议**：获取活动列表后，将 `activityId` 反馈给用户或自动准备发布 Payload。
+
+## 返回数据 (Response)
+
+返回包含活动对象的数组。参与活动时，请将对应的 `id` 填入发布表单。
 
 ## 调用指令 (Command)
 
 ```bash
-node scripts/api.ts --payload='{"action":"activities","account_id":"XXX","type":1}'
+node scripts/api.ts --payload='{"action":"activities","account_id":"YOUR_ACCOUNT_ID","type":"article"}'
 ```
-
-## 参数列表 (Payload Properties)
-
-| 字段名 | 类型 | 是否必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `account_id` | `string` | **是** | 蚁小二账号 ID (32位十六进制) |
-| `type`       | `number` | **是** | 发布类型：`1`: 文章，`2`: 视频，`3`: 图文 |
-| `categoryId` | `string` | 否   | 特定分类下的活动 |
-| `keyWord`    | `string` | 否   | 搜索活动关键字 |
-
-### 枚举值定义
-
-#### ContentTypeEnum (发布类型)
-- `video`: 2
-- `article`: 1
-- `imageText`: 3
-
-## 脚本逻辑 (Backend)
-
-- **脚本路径**: `scripts/api.ts`
-- **功能**: 封装蚁小二标准化活动查询接口 (`GET /platform-accounts/{platformAccountId}/activities`)。
-- **参数映射**: 将 `account_id` 映射为 URL 路径变量，将 `type`, `categoryId`, `keyWord` 映射为查询参数。
-
-## 输出结果 (Output)
-
-脚本返回活动列表数组，每个对象包含以下核心字段：
-
-| 字段名 | 类型 | 描述 |
-| :--- | :--- | :--- |
-| `yixiaoerId` | `string` | 活动在本系统的唯一标识 |
-| `yixiaoerName` | `string` | 活动名称 |
-| `yixiaoerDesc` | `string` | 活动描述 |
-| `yixiaoerImageUrl` | `string` | 活动封面图 URL |
-| `viewNum` | `string` | 浏览量/参与度指标 |
-| `raw` | `object` | 平台原始活动数据。如果在获取时该字段存在，发布表单中必须携带并完整透传 |
-

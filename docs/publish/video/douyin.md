@@ -4,8 +4,19 @@
 > **前提条件 (Prerequisite)**:
 > 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [视频发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
 
+## 触发场景 (Trigger)
+- **意图辨析**：用户指定在“抖音”平台发布视频，且需要配置如“地点挂载”、“合集关联”、“添加背景音乐”、“关联小程序/游戏”等抖音特有社交与变现功能时触发。
+- **典型提示词**：
+  - “把这个视频发布到抖音，并带上 #风景 话题”
+  - “在抖音发布时挂载这个小游戏”
+  - “查询抖音热门音乐并添加”
+  - “声明这个抖音视频是由 AI 生成的”
 
-在本平台视频发布通过 `contentPublishForm` 承载以下参数。
+## 执行逻辑 (Logic Flow)
+1. **意图细化**：识别抖音特有的增强功能需求（如地点、音乐、合集）。
+2. **辅助查询**：对于 `location`, `music`, `challenge` 等字段，必须先调用对应的 `get-*` action 获取标准 ID 及 `raw` 数据。
+3. **参数装配**：将细化参数封装至 `accountForms[i].contentPublishForm`。
+4. **指令执行**：调用 `node scripts/api.ts`。
 
 ## 1. contentPublishForm 参数定义
 
@@ -54,7 +65,6 @@
           "title": "记录美好生活",
           "description": "这是我在抖音的第一条视频 #美好生活 #见闻",
           "statement": 3,
-          "allow_save": 1,
           "location": {
             "yixiaoerId": "123",
             "yixiaoerName": "上海市",
@@ -86,7 +96,6 @@
 | :--- | :--- | :--- | :--- |
 | `sale_title` | `string` | **是** | 推广标题 (最多 10 字) |
 | `raw` | `object` | **是** | 平台原始数据 (透传) |
-| `brand_switch_value` | `number` | 否 | (团购专用) 0:不推荐, 1:推荐其他品牌, 2:只推荐同品牌 |
 
 ### 3.4 MusicItem (音乐)
 | 字段名 | 类型 | 必填 | 说明 |
@@ -94,7 +103,6 @@
 | `yixiaoerId` | `string` | **是** | 内部 ID |
 | `yixiaoerName` | `string` | **是** | 歌曲名称 |
 | `duration` | `number` | **是** | 时长 (秒) |
-| `playUrl` | `string` | **是** | 播放链接 |
 | `raw` | `object` | **是** | 原始数据 (透传) |
 
 ## 相关接口
@@ -104,7 +112,4 @@
 | `location` | `locations` | [获取位置信息](../../get-locations.md) |
 | `collection` | `collections` | [获取合集列表](../../get-collections.md) |
 | `shoppingCart` | `goods` | [获取商品列表](../../get-goods.md) |
-| `mini_app` | `miniapps` | [获取小程序列表](../../get-miniapps.md) |
-| `challenge` | `challenges` | [获取挑战列表](../../get-challenges.md) |
-| `music` | `music` | [获取背景音乐](../../get-music.md) |
-| `video.key` | `upload` | [资源上传](../../upload-resource.md) |
+| ... | ... | ... |

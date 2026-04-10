@@ -5,6 +5,18 @@
 > 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [视频发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
 
 
+## 触发场景 (Trigger)
+- **意图辨析**：用户指定在“Baijiahao”平台分发视频内容时触发。
+- **典型提示词**：
+  - “把这个视频发布到Baijiahao”
+  - “同步视频到Baijiahao”
+
+## 执行逻辑 (Logic Flow)
+1. **意图确认**：确认目标平台为Baijiahao。
+2. **参数装配**：识别并填充标题、描述等平台特定字段至 `contentPublishForm`。
+3. **指令执行**：调用 `node scripts/api.ts`。
+
+
 在本平台视频发布通过 `contentPublishForm` 承载以下参数。
 
 ## 1. contentPublishForm 参数定义

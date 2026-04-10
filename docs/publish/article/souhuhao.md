@@ -4,6 +4,18 @@
 > **前提条件 (Prerequisite)**:
 > 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [文章发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的 platform 差异化字段。
 
+
+## 触发场景 (Trigger)
+- **意图辨析**：用户指定在“Souhuhao”平台发布文章内容时触发。
+- **典型提示词**：
+  - “发布这篇文章到Souhuhao”
+  - “并在Souhuhao上同步更新”
+
+## 执行逻辑 (Logic Flow)
+1. **内容处理**：确保文章正文符合Souhuhao要求的格式。
+2. **参数装配**：提取标题、正文及封面信息至 `contentPublishForm`。
+3. **指令执行**：调用 `node scripts/api.ts`。
+
 本平台文章发布通过 `contentPublishForm` 承载以下参数。
 
 ## 1. contentPublishForm 参数定义

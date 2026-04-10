@@ -4,6 +4,18 @@
 > **前提条件 (Prerequisite)**:
 > 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [图文发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的 platform 差异化字段。
 
+
+## 触发场景 (Trigger)
+- **意图辨析**：用户指定在“Kuaishou”平台发布图文动态时触发。
+- **典型提示词**：
+  - “发几张图到Kuaishou”
+  - “同步这条动态到Kuaishou”
+
+## 执行逻辑 (Logic Flow)
+1. **资源校验**：确保所有图片均已上传并获得 Key。
+2. **参数装配**：填充描述及图片列表至 `contentPublishForm`。
+3. **指令执行**：调用 `node scripts/api.ts`。
+
 本平台图文发布通过 `contentPublishForm` 承载以下参数。
 
 ## 1. contentPublishForm 参数定义

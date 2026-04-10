@@ -2,11 +2,13 @@
 
 获取当前团队下各账号发布的作品数据统计信息。
 
-## 场景描述 (Usage)
-
-- "帮我查询一下最近 7 天所有抖音账号的作品播放量。"
-- "我想看看某个特定账号发布的所有视频的数据。"
-- "导出本月所有小红书账号的作品表现。"
+## 触发场景 (Trigger)
+- **意图辨析**：当用户需要查询、分析或导出已发布内容（视频、文章等）的传播数据（阅读量、点赞量、转发量等）时触发。
+- **典型提示词**：
+  - “我的抖音视频播放量怎么样了？”
+  - “查询最近 7 天所有账号的作品数据”
+  - “看看特定账号 A 的点赞情况”
+  - “由于最近流量下滑，查询表现最差的作品”
 
 ## 参数定义 (Parameters)
 
@@ -14,7 +16,7 @@
 
 | 字段名 | 类型 | 是否必填 | 描述 |
 | :--- | :--- | :--- | :--- |
-| `action` | `string` | 是 | 固定值：`content-overviews` |
+| `action` | `string` | **是** | 固定值：`content-overviews` |
 | `platform` | `string` | 否 | 指定查询某个平台。见 [平台定义](./platform.md)。 |
 | `platformAccountId` | `string` | 否 | 媒体账号 ID (ObjectId)。 |
 | `publishUserId` | `string` | 否 | 发布人 ID (ObjectId)。 |
@@ -24,6 +26,13 @@
 | `publishEndTime` | `number` | 否 | 发布时间范围结束（Unix 时间戳，毫秒）。 |
 | `page` | `number` | 否 | 当前页码，默认 `1`。 |
 | `size` | `number` | 否 | 每页数量，默认 `10`。 |
+
+## 执行逻辑 (Logic Flow)
+1. **需求解析**：识别用户查询的时间范围、平台及作品类型意图。
+2. **时间处理**：将相对时间（如“最近7天”）转换为 Unix 毫秒时间戳注入 `publishStartTime`。
+3. **参数装配**：构造 `action: "content-overviews"` 及其余过滤参数。
+4. **指令执行**：调用 `node scripts/api.ts --payload='{...}'`。
+5. **数据反馈**：对返回的 `contentData` 进行聚合或横向对比，直接回答用户关心的关键性指标。
 
 ## 返回结果说明 (Response Details)
 

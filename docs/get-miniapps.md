@@ -1,17 +1,37 @@
 # 获取小程序列表 (Get MiniApps)
 
-获取账号可用的挂载小程序列表。
+获取账号可用的挂载小程序列表。此功能常用于抖音、视频号等平台的组件挂载场景。
 
-## 1. 调用指令
+## 触发场景 (Trigger)
+- **意图辨析**：当用户需要在视频或图文中挂载特定的小程序入口（如：抽奖小程序、购物小程序、工具小程序）时触发。
+- **典型提示词**：
+  - “这个视频需要挂载一个小程序”
+  - “查询我可以使用的挂载小程序”
+  - “搜索名为‘抽奖助手’的小程序”
+
+## 参数定义 (Parameters)
+
+### 参数列表 (Payload Properties)
+
+| 字段名 | 类型 | 是否必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `action` | `string` | **是** | 固定值：`miniapps` |
+| `account_id` | `string` | **是** | 蚁小二账号 ID (ObjectId) |
+| `keyword` | `string` | 否 | 搜索小程序关键词 (别名: `keyWord`) |
+
+## 执行逻辑 (Logic Flow)
+1. **前置查询**：确认账号 `account_id`，确保该账号具备对应平台的小程序挂载权限。
+2. **参数装配**：识别搜索意图，注入 `keyword`。
+3. **指令执行**：调用 `node scripts/api.ts --payload='{"action":"miniapps",...}'`。
+4. **关联挂载**：获取小程序信息后，将其详情填入发布 Payload 的对应平台表单中。
+
+## 返回数据说明 (Response Details)
+
+返回包含小程序对象（`Category` 结构）的数组。
+每一个对象通常包含：`id`, `name`, `appId` 等关键字段。
+
+## 调用指令 (Command)
 
 ```bash
-node scripts/api.ts --payload='{
-  "action": "miniapps",
-  "account_id": "YOUR_ACCOUNT_ID",
-  "keyword": "搜索词"
-}'
+node scripts/api.ts --payload='{"action":"miniapps","account_id":"YOUR_ACCOUNT_ID","keyword":"搜索词"}'
 ```
-
-## 2. 返回数据结构
-
-返回 `Category` 数组。

@@ -5,12 +5,23 @@
 > 本文档是 **所有平台** 视频发布的 **唯一入口** 和 **基础 DTO 定义**。
 > 在查阅具体的平台文档（如 `douyin.md`）之前，你 **必须** 首先查阅本文档以理解 Payload 的根结构，否则将导致生成的 JSON 无法通过校验。
 
-所有通过 `api.ts`（指定 `action: "publish"`）执行的视频发布任务均遵循以下数据结构。
+## 触发场景 (Trigger)
+- **意图辨析**：当用户下达分发视频指令（无论是单平台发布还是多平台矩阵分发）时触发。涵盖从本地视频上传到最终推送的全链路。
+- **典型提示词**：
+  - “把这个视频发布到全平台”
+  - “帮我同步这个短剧到抖音和快手”
+  - “我的视频号要更新了，标题是 XXX”
+  - “使用本地模式分发这个视频”
 
-> [!IMPORTANT]
-> **发布合规性要求**:
-> 所有的封面 (`cover`)、视频 (`video`) 均**必须**使用通过[资源上传接口](../../upload-resource.md)获得的资源 `key`。
-> **严禁**直接填写外部网络 URL 或在该填入 Key 的地方留空。
+## 执行逻辑 (Logic Flow)
+1. **资源预处理**：
+   - 调用 `upload` action 将本地或 URL 视频及封面图上传至云端，并持有获得的 `key`。
+   - 严禁在 `publish` 负载中直接透传原始 URL。
+2. **账号与平台选取**：识别目标 `platforms` 列表及具体的 `platformAccountId`（通过 `accounts` 查询）。
+3. **参数深度补全**：若涉及分类、地理位置、音乐等动态字段，调用对应 `get-*` 接口获取合法 ID。
+4. **Payload 装配**：按照本文档 1.1 - 1.3 节定义的 DTO 结构，组装包含 `action: "publish"` 的完整 JSON。
+5. **指令交付**：调用 `node scripts/api.ts --payload='{...}'` 执行发布。
+6. **状态跟踪**：记录返回的 `taskSetId`，以便后续通过 `records` 查询进度。
 
 ## 1. 数据结构 (Data Structure)
 
@@ -20,13 +31,14 @@
 
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
+| `action` | `string` | **是** | 固定值：`publish` | - |
 | `publishType` | `string` | **是** | 固定为 `video` | - |
 | `platforms` | `string[]` | **是** | 目标平台枚举数组，详见下方平台列表 | - |
 | `coverKey` | `string` | **是** | 任务封面资源 Key | - |
 | `publishArgs` | `Object` | **是** | 发布参数核心容器 | - |
 | `taskSetId` | `string` | 否 | 任务集唯一标识 (草稿发布时必填) | - |
 | `desc` | `string` | 否 | 任务描述/摘要 | - |
-| `publishChannel` | `string` | 否 | `cloud` (云端) 或 `local` (本机) | `local` |
+| `publishChannel` | `string` | 否 | `cloud` (云端) 或 `local` (本机) | `cloud` |
 | `clientId` | `string` | 否 | 客户端连接 ID (`local` 发布时必填) | - |
 | `isDraft` | `boolean` | 否 | 是否仅保存为草稿 (蚁小二草稿) | `false` |
 
@@ -84,41 +96,14 @@
 ## 3. 支持平台列表 (Support Platforms)
 
 以下平台支持通过 `publishType: "video"` 进行发布。
-contentPublishForm 中的字段需要从以下文档中获取。
 
 | 平台名称 | 标识符 | 文档链接 |
 | :--- | :--- | :--- |
 | **头条号** | `Toutiaohao` | [toutiaohao.md](./toutiaohao.md) |
 | **哔哩哔哩** | `Bilibili` | [bilibili.md](./bilibili.md) |
-| **哔哩哔哩-Open** | `BilibiliOpen` | [bilibili-open.md](./bilibili-open.md) |
-| **百家号** | `Baijiahao` | [baijiahao.md](./baijiahao.md) |
-| **快手** | `Kuaishou` | [kuaishou.md](./kuaishou.md) |
-| **快手-Open** | `KuaishouOpen` | [kuaishou-open.md](./kuaishou-open.md) |
-| **新浪微博** | `Xinlangweibo` | [xinlangweibo.md](./xinlangweibo.md) |
-| **视频号** | `Shipinghao` | [shipinghao.md](./shipinghao.md) |
-| **知乎** | `Zhihu` | [zhihu.md](./zhihu.md) |
-| **企鹅号** | `Qiehao` | [qiehao.md](./qiehao.md) |
-| **爱奇艺** | `Aiqiyi` | [aiqiyi.md](./aiqiyi.md) |
-| **网易号** | `Wangyihao` | [wangyihao.md](./wangyihao.md) |
-| **一点号** | `Yidianhao` | [yidianhao.md](./yidianhao.md) |
-| **搜狐号** | `Souhuhao` | [souhuhao.md](./souhuhao.md) |
-| **腾讯微视** | `Weishi` | [weishi.md](./weishi.md) |
-| **搜狐视频** | `Souhushipin` | [souhushipin.md](./souhushipin.md) |
-| **皮皮虾** | `Pipixia` | [pipixia.md](./pipixia.md) |
-| **腾讯视频** | `TencentVideo` | [tengxunshipin.md](./tengxunshipin.md) |
-| **多多视频** | `DuoduoVideo` | [duoduoshipin.md](./duoduoshipin.md) |
-| **美拍** | `Meipai` | [meipai.md](./meipai.md) |
-| **AcFun** | `AcFun` | [acfun.md](./acfun.md) |
-| **大鱼号** | `Dayuhao` | [dayuhao.md](./dayuhao.md) |
-| **车家号** | `Chejiahao` | [chejiahao.md](./chejiahao.md) |
-| **蜂网** | `Fengwang` | [fengwang.md](./fengwang.md) |
-| **得物** | `Dewu` | [dewu.md](./dewu.md) |
-| **美柚** | `Meiyou` | [meiyou.md](./meiyou.md) |
-| **小红书商家号** | `Xiaohongshushop` | [xiaohongshushop.md](./xiaohongshushop.md) |
-| **小红书** | `Xiaohongshu` | [xiaohongshu.md](./xiaohongshu.md) |
 | **抖音** | `Douyin` | [douyin.md](./douyin.md) |
-| **易车号** | `Yichehao` | [yichehao.md](./yichehao.md) |
+| **视频号** | `Shipinghao` | [shipinghao.md](./shipinghao.md) |
+| ... | ... | ... |
 
 > [!TIP]
-> 持续增加中... 请参考后端 DTO `*VideoForm` 扩展新平台。
-
+> 完整列表请参考 [SKILL.md](../../SKILL.md)。

@@ -1,83 +1,42 @@
-# 查询发布记录 (Query Publish Records)
+# 查询发布记录 (Get Publish Records)
 
-该能力允许用户查询任务集（TaskSet）的历史发布记录，包括分页查看、状态筛选、发布方式（本地/云端）和关键词搜索。
+获取历史发布的任务集（TaskSet）概览列表，支持按平台、状态、时间等维度进行筛选。
+
+## 触发场景 (Trigger)
+- **意图辨析**：当用户需要确认任务是否发布成功、查看历史任务状态、获取任务 ID 以便查询详情或执行重发/删除操作时触发。
+- **典型提示词**：
+  - “查看我昨天的发布记录”
+  - “帮我查一下抖音发布失败的任务”
+  - “列出最近 10 条发布记录”
+  - “确认一下任务 ID 为 TS123 的执行状态”
+
+## 参数定义 (Parameters)
+
+### 参数列表 (Payload Properties)
+
+| 字段名 | 类型 | 是否必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `action` | `string` | **是** | 固定值：`records` |
+| `platforms` | `string[]` | 否 | 平台过滤。见 [平台定义](./platform.md)。 |
+| `status` | `number[]` | 否 | 状态过滤：0-发布中, 1-发布成功, 2-发布失败, 3-已取消, 4-待审核。 |
+| `keyword` | `string` | 否 | 标题关键词模糊搜索 (别名: `keyWord`) |
+| `start_time` | `number` | 否 | 开始时间戳 (Unix ms) |
+| `end_time` | `number` | 否 | 结束时间戳 (Unix ms) |
+| `page` | `number` | 否 | 分页，默认 1 |
+| `size` | `number` | 否 | 每页数量，默认 20 |
+
+## 执行逻辑 (Logic Flow)
+1. **维度提取**：识别用户查询的时间范围、关键词及状态意图。
+2. **参数装配**：构造 `action: "records"` 负载，处理 `status` 数组。
+3. **指令执行**：调用 `node scripts/api.ts --payload='{...}'`。
+4. **结果交付**：从 `data.data` 中提取关键字段（如 `task_set_id`, `status`）反馈给用户。若涉及失败任务，引导用户调用 `details` 进一步查询。
+
+## 返回数据说明 (Response Details)
+
+返回标准的任务集列表对象。每个任务集包含基础信息、状态汇总及关联的账号统计。
 
 ## 调用指令 (Command)
 
 ```bash
-node scripts/api.ts --payload='{"action":"records","page":1,"size":10}'
+node scripts/api.ts --payload='{"action":"records","status":[1,2],"page":1}'
 ```
-
-## 参数列表 (Payload Properties)
-
-| 字段名 | 类型 | 是否必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `page` | `number` | 否 | 当前页码，默认 `1` |
-| `size` | `number` | 否 | 每页条数，默认 `20` |
-| `platforms` | `string[]` | 否 | 按平台过滤，如 `["抖音"]` |
-| `publishStatus` | `number` | 否 | 状态过滤 |
-| `keywords` | `string` | 否 | 标题描述关键词搜索 |
-| `status` | `TaskSetStatusEnum` | 否 | 任务集状态过滤 |
-| `start_time` | `number` | 否 | 发布起始时间戳（毫秒） |
-| `end_time` | `number` | 否 | 发布截止时间戳（毫秒） |
-
-### 枚举值定义
-
-#### TaskSetStatusEnum (任务集总状态)
-- `pending`: 待发布
-- `publishing`: 发布中
-- `allsuccessful`: 全部发布成功
-- `partialsuccessful`: 部分发布成功
-- `allfailed`: 全部发布失败
-- `cancel`: 已取消
-
-## 调用示例 (Examples)
-
-### 1. 分页查询成功记录
-```bash
-node scripts/api.ts --payload='{"action":"records","page":1,"size":10,"status":"allsuccessful"}'
-```
-
-### 2. 查询特定任务集的子任务执行状态
-需要先从记录列表获取 `id`，然后调用 `get-publish-details`：
-```bash
-node scripts/api.ts --payload='{"action":"details","task_set_id":"TASK_SET_ID"}'
-```
-
-## 响应数据模型 (Response JSON)
-
-### 任务集列表 (TaskSet List)
-| 字段名 | 类型 | 描述 |
-| :--- | :--- | :--- |
-| `id` | `string` | 任务集 ID |
-| `title` | `string` | 标题 |
-| `taskSetStatus` | `string` | 总体执行状态 |
-| `publishChannel` | `string` | 发布渠道：`local` (本机), `cloud` (云端) |
-| `accountTotal` | `number` | 涉及的总账号数 |
-| `failedTotal` | `number` | 失败的账号数 |
-| `createdAt` | `number` | 创建时间戳 |
-
-### 子任务详情 (Sub-Task Detail)
-| 字段名 | 类型 | 描述 |
-| :--- | :--- | :--- |
-| `platformName` | `string` | 平台名称。见 [平台定义](./platform.md) |
-| `platformAccountName` | `string` | 账号名称 (昵称) |
-| `stageStatus` | `StageStatus` | 子任务当前阶段的状态 |
-| `stages` | `TaskStages` | 子任务当前所处阶段 |
-| `openUrl` | `string` | 发布成功后的内容链接（若有） |
-| `errorMessage` | `string` | 失败原因描述 |
-
-#### StageStatus (阶段状态)
-- `waiting`: 等待中
-- `running`: 执行中
-- `success`: 成功
-- `failed`: 失败
-- `cancel`: 取消
-
-#### TaskStages (任务阶段)
-- `upload`: 上传
-- `push`: 推送
-- `transcoding`: 转码
-- `review`: 审核
-- `scheduled`: 定时
-- `success`: 成功

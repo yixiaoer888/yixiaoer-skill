@@ -15,6 +15,7 @@ author: wangzhengjiao
 2.  **文档即指引**: `docs/` 下的 Markdown 文档用于解释对应接口的参数规则、必填项与约束。
 3.  **分级阅读原则**: 所有的发布任务文档采用“内容类型首页 (Index) + 平台详情页 (Platform)”的二级结构。
 4.  **零映射透传**: 鼓励调用者使用 `api.ts` 透明地提交符合 DTO 要求的 JSON Payload。
+5.  **AI 场景化驱动**: 所有的文档均包含 `Trigger` (触发场景) 和 `Logic Flow` (执行逻辑) 模块，旨在通过自然语言语义引导 Agent 进行精确的意图识别与参数构造。
 
 > [!IMPORTANT]
 > **严格合规性与执行标准 (Strict Compliance & Standard)**:
