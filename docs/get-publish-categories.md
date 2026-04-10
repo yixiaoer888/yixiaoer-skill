@@ -28,16 +28,28 @@
 
 ## 返回数据说明 (Response Details)
 
-返回包含分类对象（`Category` 结构）的数组。
-- **铺平处理 (Flatten)**：脚本会自动将多级嵌套的分类（二级分类等）铺平为一级数组，方便 Agent 直接匹配。
-- **`child` 字段 (重要)**：每一个分类对象都会附带一个 `child` 数组。
-  - **内容**：包含了从根节点到当前节点的完整路径序列。例如：`[{ "yixiaoerName": "科技", ... }, { "yixiaoerName": "人工智能", ... }]`。
-  - **填表规范**：对于要求多级分类的平台（如 Bilibili），Agent **必须**直接将该 `child` 数组填入发布 Payload 的 `category` 字段。
+返回包含分类对象（`Category` 结构）的树形或扁平结构。
+- **Agent 手动铺平 (Flattening)**：若返回的数据包含嵌套的 `children` 数组，Agent **必须自行递归遍历**，以便在组装发布表单时能够获取任何层级的分类。
+- **层级路径组装 (Cascading Path)**：
+  - 对于要求多级分类的平台 (如 Bilibili)，Agent 在组装表单时，不能只填入最终选中的子分类。
+  - **必须组装一个数组**：包含从根节点到选中节点的所有路径对象。
+  - **包含 `raw` 对象**：路径中每一个对象除 `yixiaoerId` 和 `yixiaoerName` 外，**必须同步传入其对应的 `raw` 对象**（若存在）。
 
 ### 复杂对象：CategoryItem
 - `yixiaoerId`: 内部分类 ID。
 - `yixiaoerName`: 分类名称。
-- `child`: **完整路径对象数组**。如果分类有父子级关系，发布表单时通常需要在此处填入整个生成的 `child`。
+- `raw`: 原始平台返回的分类对象（组装表单时必须保留）。
+- `children`: 子分类数组（若存在，需递归处理）。
+  - **示例**：
+    - 父分类：`{"yixiaoerId": "18", "yixiaoerName": "动漫"}`
+    - 子分类：`{"yixiaoerId": "1", "yixiaoerName": "国产动漫"}`
+    - 最终处理后的 `category` 字段：
+      ```json
+      "category": [
+        { "yixiaoerId": "18", "yixiaoerName": "动漫", "raw": {} },
+        { "yixiaoerId": "1", "yixiaoerName": "国产动漫", "raw": {} }
+      ]
+      ```
 - `raw`: 原始平台返回的分类对象。
 
 ## 调用指令 (Command)

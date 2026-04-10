@@ -160,7 +160,7 @@ function validateSupport(payload: any) {
 
   // 1. 基础动作校验
   const supportedActions = [
-    'publish', 'accounts', 'upload', 'material', 'records', 'details',
+    'publish', 'save-draft', 'accounts', 'upload', 'material', 'records', 'details',
     'categories', 'activities', 'locations', 'music', 'music-category',
     'collections', 'groups', 'goods', 'hot-events', 'challenges',
     'miniapps', 'syncapps', 'games', 'proxies', 'proxy-areas',
@@ -172,7 +172,7 @@ function validateSupport(payload: any) {
   }
 
   // 2. 必填字段快速预检 (针对 publish 动作)
-  if (action === 'publish') {
+  if (action === 'publish' || action === 'save-draft') {
     if (!payload.publishArgs) {
       throw new Error(`"publish" 动作缺少必填的 "publishArgs" 对象。请参考对应平台的公开 DTO 架构文档。`);
     }
@@ -256,12 +256,22 @@ async function main() {
       case 'publish':    // 内容发布
         {
           const taskSetBody = buildTaskSetBody(payload);
-          const isDraft = !!taskSetBody.isDraft;
-          const endpoint = isDraft ? '/taskSets/drafts' : '/taskSets/v2';
-          const method = isDraft ? 'PUT' : 'POST';
+          // 在 publish 动作中，强制关闭 isDraft，确保其始终走向发布流程
+          // 平台草稿通过 contentPublishForm.pubType=0 控制，而非 isDraft=true
+          taskSetBody.isDraft = false;
 
-          result = await callApi(endpoint, {
-            method,
+          result = await callApi('/taskSets/v2', {
+            method: 'POST',
+            body: JSON.stringify(taskSetBody)
+          });
+        }
+        break;
+
+      case 'save-draft': // 保存为蚁小二草稿
+        {
+          const taskSetBody = buildTaskSetBody(payload, true); // 强制 isDraft = true
+          result = await callApi('/taskSets/drafts', {
+            method: 'PUT',
             body: JSON.stringify(taskSetBody)
           });
         }
@@ -321,8 +331,8 @@ async function main() {
         break;
 
       case 'categories': // 分类查询
-          const categoryUrl = new URL(`${API_URL}/platform-accounts/${payload.account_id}/categories`);
-          categoryUrl.searchParams.append('publishType', payload.type || 'video');
+        const categoryUrl = new URL(`${API_URL}/platform-accounts/${payload.account_id}/categories`);
+        categoryUrl.searchParams.append('publishType', payload.type || 'video');
         result = await callApi(categoryUrl.toString(), { method: 'GET' });
         break;
 

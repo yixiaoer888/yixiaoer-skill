@@ -118,8 +118,18 @@
 
 ### 4.1 级联分类组装 (Cascading Categories)
 许多平台要求传入由父及子的完整分类对象数组。
-- **组装逻辑**：每个扁平化后的分类对象（通过 `categories` 获取）都包含一个 **`child`** 字段，已预先为你组装好了“从一级分类到当前分类”的完整对象路径数组。
-- **填表规范**：Agent 在构造 `contentPublishForm.category` 时，**必须直接透传** 该 `child` 数组。
+- **组装逻辑**：Agent 从 `categories` 接口获取数据后，若存在层级关系，**必须自行构造** 路径数组。
+- **填表规范**：对于每一级，必须包含 `yixiaoerId`, `yixiaoerName` 以及对应的 **`raw`** 对象。
+- **层级示例**：
+  - 父分类：`{"yixiaoerId": "18", "yixiaoerName": "动漫", "raw": {...}}`
+  - 子分类：`{"yixiaoerId": "1", "yixiaoerName": "国产动漫", "raw": {...}}`
+  - **最终 Payload 形式**（Agent 需手动装配成此数组）：
+    ```json
+    "category": [
+      { "yixiaoerId": "18", "yixiaoerName": "动漫", "raw": {...} },
+      { "yixiaoerId": "1", "yixiaoerName": "国产动漫", "raw": {...} }
+    ]
+    ```
 
 > [!TIP]
 > 完整列表请参考 [SKILL.md](../../SKILL.md)。

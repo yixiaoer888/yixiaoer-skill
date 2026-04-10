@@ -40,7 +40,8 @@ API 调用时涉及的平台名称必须使用蚁小二定义的中文枚举或 
 
 | action 值 | 对应的能力描述 | 相关文档 |
 | :--- | :--- | :--- |
-| `publish` | 图文、视频、文章分发发布。支持**发布到平台**、**保存为蚁小二草稿**或**保存为平台草稿**。 | [文章](./docs/publish/article/index.md), [图文](./docs/publish/image-text/index.md), [视频](./docs/publish/video/index.md), [草稿指南](./docs/save-draft.md) |
+| `publish` | 图文、视频、文章分发发布。支持**发布到平台**或**保存为平台草稿**。 | [文章](./docs/publish/article/index.md), [图文](./docs/publish/image-text/index.md), [视频](./docs/publish/video/index.md), [草稿指南](./docs/save-draft.md) |
+| `save-draft` | 保存内容到**蚁小二草稿箱**。仅云端存储，不触发推送。 | [草稿指南](./docs/save-draft.md) |
 | `accounts` | 查询已绑定的账号列表 | [query-accounts.md](./docs/query-accounts.md) |
 | `upload` | 上传本地或 URL 图片/视频 | [upload-resource.md](./docs/upload-resource.md) |
 | `material` | 将已上传资源登记到**蚁小二素材库** | [material-resource.md](./docs/material-resource.md) |
@@ -64,7 +65,7 @@ API 调用时涉及的平台名称必须使用蚁小二定义的中文枚举或 
 | `account-overviews` | 账号表现汇总 (V2) | [get-account-overviews.md](./docs/get-account-overviews.md) |
 | `content-overviews` | 查看发布作品数据统计 | [get-content-overviews.md](./docs/get-content-overviews.md) |
 | `update-account` | 更新账号信息 (如设置代理) | [proxy-management.md](./docs/proxy-management.md) |
-| `drafts` | (Alias for save-draft) 草稿管理专用指南 | [save-draft.md](./docs/save-draft.md) |
+| `drafts` | (Read-only) 草稿列表管理指南 | [save-draft.md](./docs/save-draft.md) |
 
 ## 草稿识别标准 (Draft Recognition Standard)
 
@@ -73,11 +74,11 @@ API 调用时涉及的平台名称必须使用蚁小二定义的中文枚举或 
 1.  **蚁小二草稿 (YXE Draft)**:
     - **逻辑**：内容仅存储在蚁小二云端，不触发任何平台推送。
     - **Trigger**: “存为蚁小二草稿”、“暂存到草稿箱”、“存为 YXE 草稿”。
-    - **Payload**: 根对象注入 `"isDraft": true`。
+    - **Action**: `save-draft`
 2.  **平台草稿 (Platform Draft)**:
     - **逻辑**：内容会被推送到对应平台（如抖音、小红书）的草稿箱，用户可在 App 端二次编辑。
     - **Trigger**: “存为抖音草稿”、“推送到平台草稿箱”、“存为小红书草稿”。
-    - **Payload**: `accountForms` 内每项设置 `"contentPublishForm": { "pubType": 0 }`。
+    - **Action**: `publish` (并在 `accountForms` 内每项设置 `"contentPublishForm": { "pubType": 0 }`)
 
 ### 调用示例 (Example)
 

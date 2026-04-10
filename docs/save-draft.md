@@ -1,7 +1,7 @@
 # 草稿管理 (Draft Management)
 
 在蚁小二生态中，存在两种“草稿”能力，需按目标选择：
-- 保存到**蚁小二草稿箱**（`action: publish` + `isDraft: true`）
+- 保存到**蚁小二草稿箱**（`action: save-draft`）
 - 保存到**目标平台草稿箱**（`action: publish` + `pubType: 0`）
 
 ## 触发场景 (Trigger)
@@ -18,15 +18,14 @@
 
 ## 执行逻辑 (Logic Flow)
 1. **意图深度研判**：根据提示词关键字选取模式。
-2. **蚁小二草稿模式 (`isDraft: true`)**：
-   - 注入根级别字段 `"isDraft": true`。
-   - `contentPublishForm.pubType` 可设为 1 (发布) 或 0 (草稿)，但在 `isDraft: true` 时后端通常仅做存储。
-3. **平台草稿模式 (`pubType: 0`)**：
-   - 根级别 `"isDraft": false` (或省略)。
+2. **蚁小二草稿模式 (`action: save-draft`)**：
+   - 构造 `action: "save-draft"`。
+   - `contentPublishForm.pubType` 可设为 1 (发布) 或 0 (草稿)，后端仅做云端存储。
+3. **平台草稿模式 (`action: publish` + `pubType: 0`)**：
+   - 根级别注入 `action: "publish"`。
    - `accountForms` 内每个账号的 `contentPublishForm.pubType` 必须设为 `0`。
-4. **根参数构造**：构造 `action: "publish"`。
-3. **指令执行**：调用 `node scripts/api.ts --payload='{...}'`。
-4. **状态反馈**：告知用户草稿保存位置及对应的 `taskSetId`。
+4. **指令执行**：调用 `node scripts/api.ts --payload='{...}'`。
+5. **状态反馈**：告知用户草稿保存位置及对应的 `taskSetId`。
 
 ## 快速区分 (Draft Types)
 
@@ -34,8 +33,8 @@
 | :--- | :--- | :--- |
 | **定义** | 仅保存在蚁小二系统数据库中 | 发送到目标平台（如抖音、B站）的草稿箱 |
 | **是否触发任务** | 否 (仅存储) | 是 (执行推送流程) |
-| **调用 Action** | `publish` | `publish` |
-| **核心区分参数** | `isDraft: true` | `contentPublishForm.pubType: 0` |
+| **调用 Action** | `save-draft` | `publish` |
+| **核心参数** | `action: "save-draft"` | `contentPublishForm.pubType: 0` |
 | **主要用途** | 跨端同步编辑、团队预审 | 将内容预推送到平台后台，方便手动二次微调 |
 
 ---
@@ -47,16 +46,14 @@
 ### 参数列表 (Key Parameters)
 | 字段名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| `action` | `string` | **是** | 固定值：`publish` |
-| `isDraft` | `boolean` | **是** | 固定值：`true` |
+| `action` | `string` | **是** | 固定值：`save-draft` |
 | `publishType` | `string` | **是** | `video` (视频) 或 `article` (文章) |
 
 ### 调用指令 (Command)
 
 ```bash
 node scripts/api.ts --payload='{
-  "action": "publish",
-  "isDraft": true,
+  "action": "save-draft",
   "publishType": "video",
   "platforms": ["抖音", "视频号"],
   "desc": "这是一个蚁小二草稿",
