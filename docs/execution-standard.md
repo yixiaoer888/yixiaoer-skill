@@ -61,7 +61,12 @@ Agent 在执行任务时必须遵循以下“分级检索”逻辑：
 
 ## 6. 错误处理与自检流程 (Error Handling & Self-Diagnosis)
 
-当脚本执行失败并返回 `success: false` 时，Agent 或开发者**必须**按照以下顺序进行“三步自检”：
+当脚本执行失败并返回 `success: false` 时，Agent 或开发者**必须**按照以下顺序进行自检：
+
+### 第零步：优先匹配避坑指南 (Step 0: Check Troubleshooting Guide)
+- 在进行任何深度调试前，**必须首先查阅**：[🛡️ 蚁小二 Skill 避坑与故障排查手册](./troubleshooting-guide.md)。
+- 检查出错现象是否符合手册中的“常见四大坑点”（版本、设备在线、表单架构、签名一致性）。如果匹配，直接按方案修正。
+
 
 ### 第一步：检查版本一致性 (Check Version)
 - 检查当前运行环境中的 `SKILL.md` 版本号。

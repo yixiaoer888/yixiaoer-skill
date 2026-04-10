@@ -20,7 +20,8 @@ author: wangzhengjiao
 > [!IMPORTANT]
 > **严格合规性与执行标准 (Strict Compliance & Standard)**:
 > 1. **执行标准**: 所有 Agent 的调用行为、版本校验、错误处理**必须**遵循 [yixiaoer-skill 严格执行标准](./docs/execution-standard.md)。
-> 2. **文档检索顺序**: 针对 `publish` 行为，查询文档时**必须**首先查阅对应内容类型的 `index.md`（如 `docs/publish/article/index.md`），以获取基础 JSON 结构。**严禁**跳过 Index 直接访问平台级文档（如 `douyin.md`），否则可能导致 Payload 根结构缺失。
+> 2. **首选排错指南**: 在遇到任何脚本报错、发布失败或逻辑异常时，**必须优先查阅** [蚁小二 Skill 避坑与故障排查手册](./docs/troubleshooting-guide.md)。该手册汇总了 90% 以上常见失败场景的解决方案。
+> 3. **文档检索顺序**: 针对 `publish` 行为，查询文档时**必须**首先查阅对应内容类型的 `index.md`（如 `docs/publish/article/index.md`），以获取基础 JSON 结构。**严禁**跳过 Index 直接访问平台级文档（如 `douyin.md`），否则可能导致 Payload根结构缺失。
 > 3. 所有接口调用**必须**严格遵守各文档中定义的**必填字段 (`必填: 是`)** 以及对应的**数据格式要求**。
 > 4. **资源引用规范**: 所有的**封面图 (cover)**、**图文图片 (images)** 以及 **视频文件 (video)** 必须先通过[资源上传接口](./docs/upload-resource.md)上传至系统并获得唯一的 `key`。禁止填入非系统内的网络 URL 或随意留空，否则会导致发布任务执行失败。
 
@@ -85,9 +86,7 @@ node scripts/api.ts --payload='{"action": "accounts", "platform": "抖音"}'
 > 如果用户没有发送clientId，则默认使用云发布，publishChannel: cloud
 > 
 > **故障诊断与常见问题 (Troubleshooting FAQ)**:
-> 1. **获取在线设备失败**: 若提示客户端不在线，请确保 **蚁小二客户端已启动并处于在线状态**（本机发布需客户端支持），或者将 `publishChannel` 改为 `2` (云发布)。
-> 2. **签名不匹配 (SignatureDoesNotMatch)**: 必须确保 `upload` 获取地址时声明的 `contentType` 与实际 PUT 上传时的 Header **严格一致**。
-> 3. **表单错误**: 请严格校验请求 JSON 是否符合 `docs/` 下对应的 **DTO 架构要求**。
-> 4. **版本不支持**: 检查 `SKILL.md` 的 `version` 是否满足功能要求。
+> 
+> 请**立即参阅**最权威的避坑指南：[🛡️ 蚁小二 Skill 避坑与故障排查手册](./docs/troubleshooting-guide.md)
 > 
 > 更多详情请参阅：[YiXiaoEr Skill 严格执行标准](./docs/execution-standard.md)
