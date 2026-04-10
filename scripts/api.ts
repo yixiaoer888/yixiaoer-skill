@@ -126,24 +126,65 @@ export async function uploadResource(
  * 统一错误处理并输出到标准输出
  */
 export function handleError(error: any, context: string, errorCode: string = 'YIXIAOER_REMOTE_ERR') {
-  // 识别特定错误类型并自动归类
   let finalErrorCode = errorCode;
   const message = error instanceof Error ? error.message : String(error);
 
-  if (message.includes('Missing required') || message.includes('Invalid JSON') || message.includes('Unsupported action')) {
+  // 识别特定错误类型并自动归类
+  if (message.includes('Missing required') || message.includes('Invalid JSON')) {
+    finalErrorCode = 'YIXIAOER_USAGE_ERR';
+  } else if (message.includes('不支持') || message.includes('Unsupported') || message.includes('Invalid platform')) {
     finalErrorCode = 'YIXIAOER_USAGE_ERR';
   } else if (message.includes('API_KEY')) {
     finalErrorCode = 'YIXIAOER_AUTH_ERR';
   }
 
-  console.error(JSON.stringify({
+  const response = {
     success: false,
     errorCode: finalErrorCode,
-    message: `Failed to ${context}`,
+    message: message.includes('不支持') ? message : `Failed to ${context}`,
     details: message,
-    suggestion: "请依次检查: 1. 技能版本号是否一致; 2. 请求参数是否符合 DTO 规范 (重点检查封面 cover、视频 video、分类 categories/标签 等必填项是否符合平台标准); 3. 是否存在过期的缓存文件。"
-  }, null, 2));
+    suggestion: message.includes('不支持') 
+      ? "请检查发布类型 (publishType) 组合是否正确。例如小红书仅支持 'image-text' 或 'video'，不支持 'article'。"
+      : "请依次检查: 1. 技能版本号是否一致; 2. 请求参数是否符合 DTO 规范; 3. 查阅 [避坑指南](./docs/troubleshooting-guide.md)。"
+  };
+
+  console.error(JSON.stringify(response, null, 2));
   process.exit(1);
+}
+
+/**
+ * 平台与类型及其动作的支持矩阵预检
+ */
+function validateSupport(payload: any) {
+  const { action, publishType, platforms } = payload;
+
+  // 1. 基础动作校验
+  const supportedActions = [
+    'publish', 'accounts', 'upload', 'material', 'records', 'details', 
+    'categories', 'activities', 'locations', 'music', 'music-category', 
+    'collections', 'groups', 'goods', 'hot-events', 'challenges', 
+    'miniapps', 'syncapps', 'games', 'proxies', 'proxy-areas', 
+    'account-overviews', 'content-overviews', 'update-account'
+  ];
+  
+  if (action && !supportedActions.includes(action)) {
+    throw new Error(`不支持的动作 (Unsupported action): "${action}"。请参考 SKILL.md 中的动作列表。`);
+  }
+
+  // 2. 发布类型与平台组合校验 (针对 publish 动作)
+  if (action === 'publish' && publishType && platforms) {
+    const platformList = Array.isArray(platforms) ? platforms : [platforms];
+    
+    // 示例：小红书不支持文章发布
+    if (publishType === 'article') {
+      const unsupported = platformList.filter(p => p === '小红书' || p === 'XiaoHongShu');
+      if (unsupported.length > 0) {
+        throw new Error(`平台不支持: "小红书" 目前不支持 "article" (文章) 类型发布。请使用 "image-text" (图文) 或 "video" (视频) 动作。`);
+      }
+    }
+
+    // 可以在此继续扩展其他明确不支持的硬性约束
+  }
 }
 
 function buildTaskSetBody(payload: Record<string, any>, forceDraft: boolean = false) {
@@ -169,6 +210,10 @@ async function main() {
 
   try {
     const payload = getPayload();
+    
+    // 动作与平台支持预检测
+    validateSupport(payload);
+
     const action = payload.action;
 
     if (!action) {
