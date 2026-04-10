@@ -9,6 +9,13 @@
   - “我的宣传片已经传好了，帮我入库”
   - “将这个 Key 对应的图片登记到素材管理中”
 
+> [!CAUTION]
+> **强制两步流程 (Mandatory Two-Step)**: 
+> 当用户意图为“上传到素材库”时，**禁止单元操作**。Agent 必须严格执行：
+> 1. **upload** (上传到 OSS 并获取 Key，建议使用 `bucket: "material-library"`)
+> 2. **material** (将获得的 Key 登记到库，产出素材 ID)
+> **错误演示**: 只执行 `upload` 而不执行 `material` 属于逻辑截断，会导致用户看不见素材。
+
 ## 参数定义 (Parameters)
 
 ### 参数列表 (Payload Properties)
