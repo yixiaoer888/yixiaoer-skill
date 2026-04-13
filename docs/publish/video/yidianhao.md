@@ -1,85 +1,80 @@
-# 一点号 视频发布
+# 📄 一点号 视频 参数 (Yidianhao Video)
 
 > [!IMPORTANT]
-> **前提条件 (Prerequisite)**:
-> 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [视频发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
+> **阅读前置规则**: 本文档仅描述 `platformForms` (或账号级 `contentPublishForm`) 内部的平台差异化字段。在开始前，你 **必须** 已经掌握并应用了 [视频发布通用索引](./index.md) 中的根 Payload 结构。
 
+## 1. 触发场景 (Trigger)
 
-## 触发场景 (Trigger)
-- **意图辨析**：用户指定在“Yidianhao”平台分发视频内容时触发。
-- **典型提示词**：
-  - “把这个视频发布到Yidianhao”
-  - “同步视频到Yidianhao”
+当用户指定在“一点资讯 (一点号)”平台分发视频动态、资讯快讯或生活见闻时触发：
+- **全网信息流投放**：将视频推送至一点资讯及相关合作端。
+- **原创属性申明**：标注原创身份并提供准确的合规申明。
 
-## 执行逻辑 (Logic Flow)
-1. **意图确认**：确认目标平台为Yidianhao。
-2. **参数装配**：识别并填充标题、描述等平台特定字段至 `contentPublishForm`。
-3. **指令执行**：调用 `node scripts/api.ts`。
+## 2. 交互协议 (Interactive Protocol)
 
+Agent 在拼装一点号视频 Payload 时需遵守：
+1. **分类级联必填**：一点号对内容精准分类有强校验。必须通过 `categories` 接口获取并在 `category` 数组中透传完整的 `raw` 元数据。
+2. **原创与申明双核**：必须同时锁定 `type` (0-非原创, 1-原创) 和 `declaration` (申明)。Agent 需确保两者在逻辑上不冲突。
+3. **资源引用规范**：确保视频资源的 `key` 已通过 `upload` 动作获取。
+4. **意图确认**：若内容包含 AI 创作，Agent 应主动提醒并设置 `declaration: 4`。
 
-## 1. contentPublishForm 数据结构
+## 3. 参数定义 (Parameters)
 
-| 字段名 | 类型 | 必填 | 说明 | 默认值 |
+### 3.1 核心表单参数 (contentPublishForm)
+
+| 字段名 | 类型 | 必填 | 描述 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| formType | string | 是 | 固定为 `task` | `task` |
-| title | string | 是 | 视频标题 | - |
-| description | string | 是 | 视频描述 | - |
-| tags | string[] | 是 | 视频标签 | - |
-| category | object[] | 是 | 视频分类，使用 `CascadingPlatformDataItem[]` 结构 | - |
-| declaration | number | 否 | 声明：3-内容取材网络, 4-内容由AI生成, 5-虚构情节内容 | - |
-| type | number | 是 | 视频原创类型：0-非原创, 1-原创 | 0 |
-| scheduledTime | number | 否 | 定时发布时间戳（单位：秒） | - |
+| **`formType`** | `string` | **是** | 固定为 `task`。 | `task` |
+| **`title`** | `string` | **是** | 视频标题。 | - |
+| **`description`** | `string` | **是** | 视频描述内容。 | - |
+| **`tags`** | `string[]` | **是** | 视频标签。建议 1-10 个。 | - |
+| **`category`** | `Array` | **是** | **视频分类**: 使用 `CascadingPlatformDataItem[]` 结构。 | - |
+| **`type`** | `number` | **是** | **原创类型**: `0`-非原创, `1`-原创。 | `1` |
+| `declaration` | `number` | 否 | **声明**: `3`-素材取自网络, `4`-内容由 AI 生成, `5`-虚构情节。 | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间戳 (单位: 秒)。 | - |
 
-## 2. 复杂对象结构
+### 3.2 复杂结构说明
 
-### CascadingPlatformDataItem
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| id | string | 是 | 选项ID |
-| text | string | 是 | 选项文本 |
-| children | object[] | 否 | 子级选项列表 (CascadingPlatformDataItem[]) |
-| raw | object | 是 | 平台原始数据 |
+- **CascadingPlatformDataItem**: 必须包含 `id`, `text`, `raw` 原始对象。
 
-## 3. JSON 示例
+## 4. 执行指令示例 (Command)
 
-```json
-{
+```bash
+# 发布一点号原创 AI 视频
+node scripts/api.ts --payload='{
+  "action": "publish",
   "publishType": "video",
   "platforms": ["Yidianhao"],
   "publishArgs": {
     "accountForms": [
       {
-        "platformAccountId": "YIDIAN_ACC_ID",
-        "video": {
-          "key": "v_key",
-          "size": 1024000,
-          "width": 1920,
-          "height": 1080,
-          "duration": 60
-        },
+        "platformAccountId": "YD_ACC_01",
+        "video": { "key": "yd_v_1", "size": 1024000, "width": 1920, "height": 1080, "duration": 60 },
         "contentPublishForm": {
           "formType": "task",
-          "title": "一点号视频标题示例",
-          "description": "这是发布在一点号平台的视频详情描述文字。",
-          "tags": ["资讯", "社会"],
-          "category": [
-            {
-              "id": "1",
-              "text": "社会",
-              "raw": {}
-            }
-          ],
+          "title": "2026：人工智能进化的分水岭",
+          "description": "探讨 AI 如何重塑我们的日常生活。",
+          "tags": ["AI", "未来", "科技"],
+          "category": [{ "id": "1", "text": "社会", "raw": {...} }],
           "type": 1,
           "declaration": 4
         }
       }
     ]
   }
-}
+}'
 ```
 
-## 相关接口
+---
 
-| 目标数据 | 对应 Action | 相关文档 |
+## 5. 常见问题排查 (Troubleshooting)
+
+| 报错信息 / 现象 | 可能原因 | 处理建议 |
 | :--- | :--- | :--- |
-| `video.key` | `upload` | [资源上传](../../upload-resource.md) |
+| **分类 ID 未命中** | `category.raw` 数据格式不满足一点号接口规范。 | 必须实时重新获取并完整透传。 |
+| **申明与原创冲突** | `type` 为 1 但 `declaration` 描述为网络素材。 | 逻辑自洽检查，修正申明项。 |
+| **标签解析失败** | 解析后的 tags 字符串超长。 | 减少标签数量或精简关键词长度。 |
+| **封面上传失败** | 缺失 `coverKey`。 | 请执行 `upload` 获取图片 key。 |
+
+---
+> [!TIP]
+> **精准分发模型**: 一点号具有极强的兴趣图谱匹配能力。Agent 建议分类选择应尽可能下钻，并配合垂直化的描述内容以触达精准读者。

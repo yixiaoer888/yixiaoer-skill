@@ -1,79 +1,74 @@
-# 美拍 视频发布
+# 📄 美拍 视频 参数 (Meipai Video)
 
 > [!IMPORTANT]
-> **前提条件 (Prerequisite)**:
-> 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [视频发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
+> **阅读前置规则**: 本文档仅描述 `platformForms` (或账号级 `contentPublishForm`) 内部的平台差异化字段。在开始前，你 **必须** 已经掌握并应用了 [视频发布通用索引](./index.md) 中的根 Payload 结构。
 
+## 1. 触发场景 (Trigger)
 
-## 触发场景 (Trigger)
-- **意图辨析**：用户指定在“Meipai”平台分发视频内容时触发。
-- **典型提示词**：
-  - “把这个视频发布到Meipai”
-  - “同步视频到Meipai”
+当用户指定在“美拍”平台发布美妆、穿搭、才艺展示或高颜值短视频时触发：
+- **精品短视频分发**：利用美拍的高颜值社区属性进行内容触达。
+- **高活跃分享**：同步生活方式相关的精致短片。
 
-## 执行逻辑 (Logic Flow)
-1. **意图确认**：确认目标平台为Meipai。
-2. **参数装配**：识别并填充标题、描述等平台特定字段至 `contentPublishForm`。
-3. **指令执行**：调用 `node scripts/api.ts`。
+## 2. 交互协议 (Interactive Protocol)
 
+Agent 在拼装美拍视频 Payload 时需遵守：
+1. **分类精准对齐**：美拍对分类（频道）有较强的依赖。必须通过 `categories` 接口获取并在 `category` 数组中透传 `raw` 原始数据。
+2. **标题必填原则**：美拍对 `title` 是强校验。Agent 需确保其具备足够的吸引力且不超过字数限制。
+3. **资源引用规范**：必须通过 `upload` 动作获取视频和封面的 `key`。
+4. **定时发布校验**：支持 `scheduledTime`，请确保时间点处于未来时。
 
-## 1. contentPublishForm 数据结构
+## 3. 参数定义 (Parameters)
 
-| 字段名 | 类型 | 必填 | 说明 | 默认值 |
+### 3.1 核心表单参数 (contentPublishForm)
+
+| 字段名 | 类型 | 必填 | 描述 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| formType | string | 是 | 固定为 `task` | `task` |
-| title | string | 是 | 视频标题 | - |
-| description | string | 否 | 视频描述 | - |
-| category | object[] | 否 | 视频分类，使用 `CascadingPlatformDataItem[]` 结构 | - |
-| scheduledTime | number | 否 | 定时发布时间戳（单位：秒） | - |
+| **`formType`** | `string` | **是** | 固定为 `task`。 | `task` |
+| **`title`** | `string` | **是** | 视频标题。 | - |
+| **`category`** | `Array` | **是** | **视频分类**: 使用 `CascadingPlatformDataItem[]` 结构。 | - |
+| `description` | `string` | 否 | 视频描述内容。 | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间戳 (单位: 秒)。 | - |
 
-## 2. 复杂对象结构
+### 3.2 复杂结构说明
 
-### CascadingPlatformDataItem
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| id | string | 是 | 选项ID |
-| text | string | 是 | 选项文本 |
-| children | object[] | 否 | 子级选项列表 (CascadingPlatformDataItem[]) |
-| raw | object | 是 | 平台原始数据 |
+- **CascadingPlatformDataItem**: 必须包含 `id`, `text`, `raw` 元数据。
 
-## 3. JSON 示例
+## 4. 执行指令示例 (Command)
 
-```json
-{
+```bash
+# 发布美拍精品短视频
+node scripts/api.ts --payload='{
+  "action": "publish",
   "publishType": "video",
   "platforms": ["Meipai"],
   "publishArgs": {
     "accountForms": [
       {
-        "platformAccountId": "MEIPAI_ACC_ID",
-        "video": {
-          "key": "v_key",
-          "size": 1024000,
-          "width": 1080,
-          "height": 1920,
-          "duration": 15
-        },
+        "platformAccountId": "MP_ACC_01",
+        "video": { "key": "mp_v_1", "size": 1024000, "width": 1080, "height": 1920, "duration": 15 },
         "contentPublishForm": {
           "formType": "task",
-          "title": "美拍视频标题示例",
-          "description": "这是美拍平台的一段精彩短视频内容描述。",
-          "category": [
-            {
-              "id": "1",
-              "text": "生活",
-              "raw": {}
-            }
-          ]
+          "title": "夏日清透果汁感妆容教学",
+          "description": "今天教大家画一个超简单的夏日妆容！",
+          "category": [{ "id": "1", "text": "生活", "raw": {...} }]
         }
       }
     ]
   }
-}
+}'
 ```
 
-## 相关接口
+---
 
-| 目标数据 | 对应 Action | 相关文档 |
+## 5. 常见问题排查 (Troubleshooting)
+
+| 报错信息 / 现象 | 可能原因 | 处理建议 |
 | :--- | :--- | :--- |
-| `video.key` | `upload` | [资源上传](../../upload-resource.md) |
+| **标题缺失** | 未传 `title` 字段。 | 美拍要求标题必填，请补全。 |
+| **分类不匹配** | `category.raw` 中的频道数据已过期。 | 重新执行 `categories` 动作以刷新获取。 |
+| **视频画质被降权** | 视频清晰度低于 720P。 | 建议使用 1080P 素材以获得平台精品推荐。 |
+| **描述包含敏感词** | 美拍社区环境审核较严。 | 检查并替换夸大其词或诱导类的文案。 |
+
+---
+> [!TIP]
+> **颜值社区属性**: 美拍用户对画面美感要求极高。Agent 建议视频封面应选用色彩明亮的精美截图，并配合带有正向情绪的标题以提升转化。

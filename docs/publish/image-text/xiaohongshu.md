@@ -1,88 +1,79 @@
-# 小红书图文发布参数 (Xiaohongshu Image-Text)
+# 📄 小红书图文发布参数 (Xiaohongshu Image-Text)
 
 > [!IMPORTANT]
 > **前提条件 (Prerequisite)**:
-> 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [图文发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
+> 在进入细分参数前，你 **必须** 已经阅读并理解了 [图文发布通用索引](./index.md) 中定义的 Payload 根结构。本文档仅描述 `contentPublishForm` 内部的平台差异化字段。
 
-## 触发场景 (Trigger)
-- **意图辨析**：用户指定在“小红书”平台发布图文笔记，且需要配置如“标记话题”、“地点挂载”、“多级分类挂载”或“定时发布”等功能时触发。
-- **典型提示词**：
-  - “帮我发一篇小红书笔记，带上 #穿搭 话题”
-  - “小红书发布，地点选在上海东方明珠”
-  - “把这两张图存为小红书草稿，设置仅好友可见”
-  - “查询小红书的分类并设置”
+## 1. 触发场景 (Trigger)
 
-## 执行逻辑 (Logic Flow)
-1. **内容识别**：识别笔记标题、正文及内嵌话题（小红书正文支持 HTML 话题标签）。
-2. **辅助检索**：
-   - 话题：调用 `challenges` 获取标准话题 DTO。
-   - 地点：调用 `locations` 获取 POI 数据。
-   - 音乐：若需要，调用 `music` 获取。
-3. **参数装配**：将处理后的字段填入 `accountForms[i].contentPublishForm`。
-4. **状态执行**：调用 `node scripts/api.ts`。
+当用户明确要在“小红书”发布图文笔记，且涉及以下特有需求时触发：
+- **精品笔记**：发布高质量多图笔记（1-9 张）、配置笔记标题。
+- **互动/搜索**：挂载 POI 地理位置、设置笔记话题（正文内嵌或专属标签）。
+- **可见性控制**：设置公开、私密或仅好友可见。
 
-## 1. contentPublishForm 参数 definition
+## 2. 交互协议 (Interactive Protocol)
 
-| 字段名 | 类型 | 必填 | 说明 | 默认值 |
+Agent 在构造小红书图文 Payload 时需遵守：
+1. **标题长度红线**：小红书标题严格限制在 **20 字** 以内。Agent 应主动对超长标题进行截断。
+2. **正文 HTML 规范**：`description` 支持 HTML。话题应使用 `<topic text='...' raw='...'>#话题</topic>` 格式内嵌。
+3. **数据透传要求**：对于 `location`, `collection`, `music` 等，必须完整透传接口返回的 `raw` 原始数据。
+4. **可见性提示**：默认为公开 (0)，若涉及隐私内容需提示用户切换为私密 (1)。
+
+## 3. contentPublishForm 参数定义
+
+| 字段名 | 类型 | 必填 | 描述 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| `formType` | `string` | **是** | 固定值: `task` | `task` |
-| `title` | `string` | 否 | 标题 (笔记标题，最多 20 字) | - |
-| `description` | `string` | **是** | 笔记描述，支持 HTML (`<p>`, `<topic>`)。最多 1000 字符。 | - |
-| `images` | `Array` | **是** | 图片数组 (`OldImage[]`) | - |
-| `location` | `Object` | 否 | 位置对象 (`PlatformDataItem`) | - |
-| `music` | `Object` | 否 | 音乐对象 (`MusicItem`) | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
-| `collection` | `Object` | 否 | 合集信息，使用 `Collection` 结构 | - |
-| `visibleType` | `number` | **是** | 可见类型: 0-公开, 1-私密, 3-好友可见 | 0 |
+| **`formType`** | `string` | **是** | 固定值: `task` | `task` |
+| `title` | `string` | 否 | **笔记标题** (最多 20 字)。建议包含关键词以提升搜索权重。 | - |
+| **`description`** | `string` | **是** | **笔记正文**，支持 HTML (`<p>`, `<topic>`)。最多 1000 字符。 | - |
+| **`images`** | `Array` | **是** | 图片数组，支持 1-9 张。使用 `OldImage[]` 结构。 | - |
+| `location` | `Object` | 否 | **位置信息**: 使用 `PlatformDataItem` 结构。 | - |
+| `music` | `Object` | 否 | **音乐信息**: 使用 `MusicItem` 结构。 | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，单位: 秒)。 | - |
+| `collection` | `Object` | 否 | **合集信息**: 使用 `Collection` 结构。 | - |
+| **`visibleType`** | `number` | **是** | **可见类型**: `0`-公开, `1`-私密, `3`-好友可见。 | `0` |
 
-## 2. 复杂对象结构说明
+### 3.1 复杂对象结构 (Data Schemas)
 
-### OldImage
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `width` | `number` | **是** | 图片宽度 |
-| `height` | `number` | **是** | 图片高度 |
-| `size` | `number` | **是** | 文件大小 (Bytes) |
-| `key` | `string` | **是** | 资源 Key (通过上传接口获取) |
-| `format` | `string` | **是** | 文件格式 (e.g., `jpg`, `png`) |
+- **OldImage**: 必须包含 `key`, `size`, `width`, `height`, `format`。
+- **PlatformDataItem / Collection / MusicItem**: 所有统一结构必须包含 `yixiaoerId`, `yixiaoerName` 及其对应的 **`raw`** 对象。
 
-### PlatformDataItem (基础结构)
-包含 `yixiaoerId`, `yixiaoerName`, `raw`。
+## 4. 执行指令示例 (Command)
 
-### MusicItem (音乐)
-包含 `yixiaoerId`, `yixiaoerName`, `duration`, `playUrl`, `raw` 等。
-
-## 3. Payload 完整示例
-
-```json
-{
+```bash
+# 小红书图文发布：带话题和可见性设置
+node scripts/api.ts --payload='{
   "action": "publish",
   "publishType": "imageText",
-  "platforms": ["小红书"],
+  "platforms": ["Xiaohongshu"],
   "publishArgs": {
-    "accountForms": [
-      {
-        "platformAccountId": "XHS_ACC_ID",
-        "contentPublishForm": {
-          "formType": "task",
-          "title": "今日穿搭",
-          "description": "<p>今日穿搭分享 <topic text='穿搭' raw='{\"id\":\"xxx\",\"name\":\"穿搭\"}'>#穿搭</topic></p>",
-          "images": [
-            { "key": "img_xhs_01", "size": 1024, "width": 1080, "height": 1440, "format": "jpg" }
-          ],
-          "visibleType": 0
-        }
+    "accountForms": [{
+      "platformAccountId": "XHS_ACC_100",
+      "contentPublishForm": {
+        "formType": "task",
+        "title": "今日好物分享",
+        "description": "<p>真的超级好用！ <topic text=\"好物推荐\">#好物推荐</topic></p>",
+        "images": [
+          { "key": "xhs_img_1", "size": 204800, "width": 1080, "height": 1440, "format": "jpg" }
+        ],
+        "visibleType": 0
       }
-    ]
+    }]
   }
-}
+}'
 ```
 
-## 相关接口
+---
 
-| 目标字段 | 对应 Action | 文档参考 |
+## 5. 常见问题排查 (Troubleshooting)
+
+| 报错信息 / 现象 | 可能原因 | 处理建议 |
 | :--- | :--- | :--- |
-| `location` | `locations` | [获取位置信息](../../get-locations.md) |
-| `collection` | `collections` | [获取合集列表](../../get-collections.md) |
-| `tags/topic`| `challenges` | [获取话题/挑战](../../get-challenges.md) |
-| `images.key`| `upload` | [资源上传](../../upload-resource.md) |
+| **标题超出长度** | 字符数超过了 20 字的物理限制。 | 向用户解释小红书规范并提供 20 字内的精简版标题。 |
+| **图片数量超限** | `images` 数组中的图片超过了 9 张。 | 提醒用户小红书最多只能发布 9 张图片。 |
+| **话题不生效** | `<topic>` 标签中的 `raw` 数据格式不正确。 | 严格按照 `challenges` 接口返回的数据结构填入。 |
+| **无法定时发布** | `scheduledTime` 设置的时间点已被过，或账号权限不足。 | 校对时间，并确保该账号在蚁小二中状态正常。 |
+
+---
+> [!IMPORTANT]
+> **描述内容策略**：小红书是搜索型社区。Agent 在生成 `description` 时，除了遵循 HTML 话题规范外，应建议用户在文中多埋入搜索热词（如“怎么破”、“神器”等）。

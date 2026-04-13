@@ -1,75 +1,59 @@
-# 脚本公共 API 使用说明 (`api.ts`)
+# 📄 脚本公共 API 开发指南 (Script API Guide)
 
-为了简化脚本开发并保持代码一致性，我们抽象了公共的 `api.ts` 模块。所有位于 `scripts/` 目录下的 TypeScript 脚本应当优先引入此模块进行 API 调用和参数解析。
+本指南定义了 `scripts/api.ts` 公共模块的使用规范。所有开发者在为蚁小二 (YiXiaoEr) 编写新 Action 脚本时，应当优先引入此模块以确保“零依赖”和“自诊断”目标的实现。
 
-## 引入模块
+> [!IMPORTANT]
+> **安全准则**：严禁在脚本中硬编码 `API Key`。必须通过环境变量 `YIXIAOER_API_KEY` 进行读取。
 
-在脚本中引入常用的工具函数：
+## 1. 核心工具函数 (Core Functions)
+
+### 1.1 `getPayload<T>()`
+解析命令行参数 `--payload='{...}'` 中的 JSON 内容。Agent 在调用脚本时应遵循此传参规范。
+
+### 1.2 `callApi(endpoint, options)`
+封装 `fetch` 请求，自动注入鉴权头和内容类型。支持错误自动捕获。
+
+### 1.3 `uploadResource(urlOrPath, ...)`
+资产搬运的核心函数。支持将远程 URL 或本地路径物理转储到 OSS，并返回系统互认的 `key`。
+
+## 2. 交互协议 (Interactive Protocol)
+
+1. **输入一致性**：脚本必须支持解析标准化 Payload 结构。
+2. **输出标准化**：脚本成功执行后，必须输出符合 DTO 定义的 JSON 字符串。
+3. **静默执行**：除了最终的结果 JSON，严禁在 `stdout` 中打印调试信息，以防 Agent 解析失败。
+
+## 3. 错误分类原则 (Error Standards)
+
+| 错误代码 (errorCode) | 含义 | 处理策略 |
+| :--- | :--- | :--- |
+| `YIXIAOER_USAGE_ERR` | 参数或 JSON 格式错误 | Agent 重新读文档核对字段必填性。 |
+| `YIXIAOER_REMOTE_ERR` | 远端 API 或后端逻辑错误 | 按 [🛡️ 排障手册](../troubleshooting-guide.md) 排查。 |
+| `YIXIAOER_AUTH_ERR` | 鉴权或账号状态失效 | 引导用户通过 `accounts` 更新状态。 |
+
+## 4. 示例代码 (Code Example)
 
 ```typescript
-import { getPayload, callApi, uploadResource, handleError } from './api';
-```
+import { getPayload, callApi, handleError } from './api';
 
-## 核心功能介绍
-
-### 1. `getPayload<T>()`
-
-**作用**：解析命令行参数 `--payload='{...}'` 中的 JSON 内容并返回。
-
-**示例**：
-```typescript
-interface MyPayload {
-  name: string;
+async function main() {
+  try {
+    const payload = getPayload<{ action: string }>();
+    const result = await callApi('/some-endpoint');
+    console.log(JSON.stringify(result));
+  } catch (err) {
+    handleError(err, "Execute custom action", "YIXIAOER_USAGE_ERR");
+  }
 }
-const payload = getPayload<MyPayload>();
-console.log(payload.name);
+main();
 ```
 
-### 2. `callApi(endpoint: string, options?: RequestInit)`
+## 5. 常见问题排查 (Troubleshooting)
 
-**作用**：封装了 `fetch` 请求，自动处理 `Authorization` (API Key) 头和 `Content-Type: application/json`。支持相对路径或完整 URL。
-
-**示例**：
-```typescript
-const result = await callApi('/taskSets/v2', {
-  method: 'POST',
-  body: JSON.stringify(taskBody)
-});
-```
-
-### 3. `uploadResource(urlOrPath: string, bucket?: string, contentType?: string, size?: number)`
-
-**作用**：跨平台的资源上传辅助函数。支持输入本地文件路径或远程 HTTP URL，并上传到指定 bucket（默认 `cloud-publish`）。最后返回文件的统一 `key`。
-
-**示例**：
-```typescript
-const key = await uploadResource('https://example.com/video.mp4', 'material-library', 'video/mp4');
-```
-
-### 4. `handleError(error: any, context: string, errorCode?: string)`
-
-**作用**：按照[严格执行标准](../execution-standard.md)进行统一的错误输出。当脚本发生异常时，它会输出包含 `errorCode` 的 JSON 格式的错误信息并以状态码 `1` 退出程序。
-
-**常用 ErrorCode**:
-- `YIXIAOER_USAGE_ERR`: 参数或调用逻辑错误。
-- `YIXIAOER_REMOTE_ERR`: 后端接口返回错误。
-- `YIXIAOER_AUTH_ERR`: 鉴权信息缺失或失效。
-
-**示例**：
-```typescript
-try {
-  // logic...
-} catch (error) {
-  handleError(error, "submit the task", "YIXIAOER_USAGE_ERR");
-}
-```
-
-## 脚本编写规范
-
-1. **环境依赖**：确保系统环境变量中配置了 `YIXIAOER_API_KEY`。可选配置 `YIXIAOER_API_URL`。
-2. **错误处理**：所有 `main` 函数内的逻辑应当被 `try...catch` 包裹，并调用 `handleError`。必须提供明确的错误上下文。
-3. **输出格式**：作为自动化工具，正常执行的输出内容必须为符合[标准响应格式](../execution-standard.md#5-%E8%BE%93%E5%87%BA%E6%A0%BC%E5%BC%8F%E8%A7%84%E8%8C%83-output-schema)的 JSON。
+| 现象 | 可能原因 | 处理建议 |
+| :--- | :--- | :--- |
+| **TS2307: Cannot find module** | 未安装 peer dependencies。 | 虽然项目倾向零依赖，但开发环境需确保 `typescript` 和 `@types/node` 可用。 |
+| **API 返回 401** | `YIXIAOER_API_KEY` 配置错误。 | 重新检查环境变量配置。 |
 
 ---
-
-*蚁小二 开源开发团队*
+> [!NOTE]
+> **维护说明**：本指南随 `api.ts` 版本同步更新。若接口发生 Breaking Change，必须在此文档首部进行显著声明。

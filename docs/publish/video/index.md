@@ -1,143 +1,81 @@
-# 视频发布 (Video Publish)
+# 📄 视频 发布 参数 (Video Publish Index)
 
-> [!CAUTION]
-> **阅读规范 (Reading Protocol)**:
-> 本文档是 **所有平台** 视频发布的 **唯一入口** 和 **基础 DTO 定义**。
-> 在查阅具体的平台文档（如 `douyin.md`）之前，你 **必须** 首先查阅本文档以理解 Payload 的根结构，否则将导致生成的 JSON 无法通过校验。
+本文档定义了蚁小二所有平台视频发布的 **根 Payload 结构**。在查阅具体平台（如抖音、视频号）文档前，**必须**先理解并遵循本索引定义的 DTO 规范。
 
-## 触发场景 (Trigger)
-- **意图辨析**：当用户下达分发视频指令（无论是单平台发布还是多平台矩阵分发）时触发。涵盖从本地视频上传到最终推送的全链路。
-- **典型提示词**：
-  - “把这个视频发布到全平台”
-  - “帮我同步这个短剧到抖音和快手”
-  - “我的视频号要更新了，标题是 XXX”
-  - “使用本地模式分发这个视频”
+## 1. 触发场景 (Trigger)
 
-## 执行逻辑 (Logic Flow)
-1. **资源预处理**：
-   - 调用 `upload` action 将本地或 URL 视频及封面图上传至云端，并持有获得的 `key`。
-   - 严禁在 `publish` 负载中直接透传原始 URL。
-2. **账号与平台选取**：识别目标 `platforms` 列表及具体的 `platformAccountId`（通过 `accounts` 查询）。
-3. **参数深度补全**：若涉及分类、地理位置、音乐等动态字段，调用对应 `get-*` 接口获取合法 ID。
-4. **Payload 装配**：按照本文档 1.1 - 1.3 节定义的 DTO 结构，组装包含 `action: "publish"` 的完整 JSON。
-5. **指令交付**：调用 `node scripts/api.ts --payload='{...}'` 执行发布。
-6. **状态跟踪**：记录返回的 `taskSetId`，以便后续通过 `records` 查询进度。
+当用户下达分发视频指令（单账号或多账号矩阵）时触发：
+- **全平台同步**：“把这个视频发到我所有账号”。
+- **特定平台分发**：“帮我同步这个短剧到抖音和快手”。
+- **草稿保存**：“把这段素材先存到蚁小二视频草稿箱”。
 
-## 1. 数据结构 (Data Structure)
+## 2. 交互协议 (Interactive Protocol)
 
-接口要求传入 `CloudTaskPushRequest` 结构。
+Agent 在构造发布指令前需遵守：
+1. **资源先行原则**：禁止直接使用外部 URL。必须先调用 `upload` 动作将视频和封面物理上传至 OSS，获取 `key`。
+2. **账号校验原则**：必须先通过 `accounts` 确认 `platformAccountId` 的 `status: 1` (在线)。
+3. **分步确认原则**：构造好 Payload 后，必须列表展示：**[平台] - [账号昵称] - [标题]**，征得用户同意后再执行。
+4. **模式判别原则**：明确区分 `publishChannel: "cloud"` (云端代理发布) 与 `"local"` (本机客户端发布)。
 
-### 1.1 基础结构 (Base Structure)
+## 3. 参数定义 (Parameters)
 
-| 字段名 | 类型 | 必填 | 说明 | 默认值 |
+| 字段名 | 类型 | 必填 | 默认值 | 描述 |
 | :--- | :--- | :--- | :--- | :--- |
-| `action` | `string` | **是** | 固定值：`publish` | - |
-| `publishType` | `string` | **是** | 固定为 `video` | - |
-| `platforms` | `string[]` | **是** | 目标平台枚举数组，详见下方平台列表 | - |
-| `coverKey` | `string` | **是** | 任务封面资源 Key | - |
-| `publishArgs` | `Object` | **是** | 发布参数核心容器 | - |
-| `taskSetId` | `string` | 否 | 任务集唯一标识 (草稿发布时必填) | - |
-| `desc` | `string` | 否 | 任务描述/摘要 | - |
-| `publishChannel` | `string` | 否 | `cloud` (云端) 或 `local` (本机) | `cloud` |
-| `clientId` | `string` | 否 | 客户端连接 ID (`local` 发布时必填) | - |
-| `isDraft` | `boolean` | 否 | 是否仅保存为草稿 (蚁小二草稿) | `false` |
+| **`action`** | `string` | **是** | `publish` | 固定值。 |
+| **`publishType`** | `string` | **是** | `video` | 发布类型。 |
+| **`platforms`** | `string[]` | **是** | - | 目标平台标识数组（如 `["Douyin", "ShiPinHao"]`）。 |
+| `publishArgs` | `object` | **是** | - | 详见下方 [3.1 publishArgs](#31-publishargs-定义)。 |
+| `publishChannel` | `string` | 否 | `cloud` | 发布通道。`cloud` (云发布) 或 `local` (本机发布)。 |
+| `isDraft` | `boolean` | 否 | `false` | 若为 `true`，则仅保存至蚁小二草稿箱，不推送到平台。 |
+| `taskSetId` | `string` | 否 | - | 若从草稿箱重新发起发布，需透传此 ID。 |
 
-### 1.2 草稿模式选取 (Draft Selection)
+### 3.1 publishArgs 定义
 
-| 场景 | 蚁小二草稿箱 | 目标平台草稿箱 |
-| :--- | :--- | :--- |
-| **位置** | `Payload` 根路径 | `accountForms` -> `contentPublishForm` |
-| **参数** | `"isDraft": true` | `"pubType": 0` (若平台不支持，见下方说明) |
-| **效果** | 仅保存在蚁小二系统，不发起平台推送 | 执行推送流程，但最终结果为平台端的草稿态 |
-| **用户话术** | “存为蚁小二草稿”、“以后再发” | “存到抖音草稿箱”、“推送到小红书草稿” |
+| 字段名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| **`accountForms`** | `Array` | **是** | 账号发布表单列表。每个元素对应一个账号。 |
 
-> [!TIP]
-> **字段兼容性补丁 (Draft Fallback Rule)**:
-> Agent 在处理“存为平台草稿”时必须遵循以下优先级：
-> 1.  **首选 (pubType)**：若目标平台文档定义了 `pubType` 字段，必须设置 `"pubType": 0`。
-> 2.  **次选 (visibleType)**：若无 `pubType` 但定义了 `visibleType`，则将其设置为 **`1` (私密)**。对应的，`0` 表示公开。
-> 3.  **不支持**：若上述两个字段均未定义，则说明该平台不支持草稿或私密保存，Agent 应告知用户并询问是否直接公开发布。
+### 3.2 accountForms 元素定义 (AccountFormItem)
 
+| 字段名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| **`platformAccountId`** | `string` | **是** | `accounts` 接口返回的 `id`。 |
+| **`video`** | `object` | **是** | **VideoFormItem**: 须含 `key`, `width`, `height`, `size` (Bytes), `duration` (秒)。 |
+| **`cover`** | `object` | **是** | **ImageFormItem**: 须含 `key`, `width`, `height`, `size`。 |
+| **`coverKey`** | `string` | **是** | 必须与 `cover.key` 保持一致，用于快速检索。 |
+| **`contentPublishForm`**| `object` | **是** | **核心差异层**: 内部字段见各平台专属文档。 |
 
-### 1.3 发布参数 (publishArgs)
+## 4. 执行指令示例 (Command)
 
-| 字段名 | 类型 | 必填 | 说明 | 默认值 |
-| :--- | :--- | :--- | :--- | :--- |
-| `accountForms` | `Array` | **是** | 账号发布表单列表 | - |
-
-### 1.4 账号表单项 (accountForms Item)
-
-| 字段名 | 类型 | 必填 | 说明 | 默认值 |
-| :--- | :--- | :--- | :--- | :--- |
-| `platformAccountId` | `string` | **是** | 蚁小二平台账号唯一 ID | - |
-| `video` | `Object` | **是** | **VideoFormItem**: 视频对象 (`key`, `width`, `height`, `size`) | - |
-| `cover` | `Object` | **是** | **ImageFormItem**: 主封面对象 | - |
-| `contentPublishForm`| `Object` | **是** | **透传层**: `{}` | - |
-| `coverKey` | `string` | **是** | 账号级封面 Key (必须与 `cover.key` 一致) | - |
-| `fps` | `number` | 否 | 视频发布帧率 (海外平台使用) | - |
-
-## 2. 发布示例 (Payload Example)
-
-```json
-{
+```bash
+# 简单的视频发布指令
+node scripts/api.ts --payload='{
   "action": "publish",
   "publishType": "video",
-  "platforms": ["抖音"],
-  "coverKey": "video_cover_key",
+  "platforms": ["Douyin"],
   "publishArgs": {
-    "accountForms": [
-      {
-        "platformAccountId": "acc_vid_003",
-        "video": {
-          "key": "video_oss_key",
-          "width": 1080,
-          "height": 1920,
-          "size": 52428800
-        },
-        "coverKey": "video_cover_key",
-        "cover": {
-          "key": "video_cover_key",
-          "width": 1080,
-          "height": 1920,
-          "size": 307200
-        },
-        "contentPublishForm": {
-          "formType": "task"
-        }
-      }
-    ]
+    "accountForms": [{
+      "platformAccountId": "ACC_001",
+      "video": {"key": "v_123", "width": 1080, "height": 1920, "size": 52428800},
+      "cover": {"key": "c_123", "width": 1080, "height": 1920, "size": 307200},
+      "coverKey": "c_123",
+      "contentPublishForm": { "formType": "task", "title": "示例视频" }
+    }]
   }
-}
+}'
 ```
 
-## 3. 支持平台列表 (Support Platforms)
+---
 
-以下平台支持通过 `publishType: "video"` 进行发布。
+## 5. 常见问题排查 (Troubleshooting)
 
-| 平台名称 | 标识符 | 文档链接 |
+| 报错信息 / 现象 | 可能原因 | 处理建议 |
 | :--- | :--- | :--- |
-| **头条号** | `Toutiaohao` | [toutiaohao.md](./toutiaohao.md) |
-| **哔哩哔哩** | `Bilibili` | [bilibili.md](./bilibili.md) |
-| **抖音** | `Douyin` | [douyin.md](./douyin.md) |
-| **视频号** | `Shipinghao` | [shipinghao.md](./shipinghao.md) |
-| ... | ... | ... |
+| **API 调用无响应** | 脚本未安装或 `YIXIAOER_API_KEY` 缺失。 | 检查环境变量配置。 |
+| **JSON 校验失败** | 遗漏了 `publishType` 或 `coverKey`。 | 重新对照 [3. 根结构参数定义](#3-根结构参数定义)。 |
+| **获取在线设备失败** | 设置了 `publishChannel: "local"` 但客户端不在线。 | 切换至 `cloud` 模式或启动蚁小二客户端。 |
+| **资源非法 (400)** | `video.key` 传入了 HTTP URL。 | 必须通过 `upload-resource` 先获取 OSS key。 |
 
-## 4. 通用规则 (Common DTO Rules)
-
-### 4.1 级联分类组装 (Cascading Categories)
-许多平台要求传入由父及子的完整分类对象数组。
-- **组装逻辑**：Agent 从 `categories` 接口获取数据后，若存在层级关系，**必须自行构造** 路径数组。
-- **填表规范**：对于每一级，必须包含 `yixiaoerId`, `yixiaoerName` 以及对应的 **`raw`** 对象。
-- **层级示例**：
-  - 父分类：`{"yixiaoerId": "18", "yixiaoerName": "动漫", "raw": {...}}`
-  - 子分类：`{"yixiaoerId": "1", "yixiaoerName": "国产动漫", "raw": {...}}`
-  - **最终 Payload 形式**（Agent 需手动装配成此数组）：
-    ```json
-    "category": [
-      { "yixiaoerId": "18", "yixiaoerName": "动漫", "raw": {...} },
-      { "yixiaoerId": "1", "yixiaoerName": "国产动漫", "raw": {...} }
-    ]
-    ```
-
-> [!TIP]
-> 完整列表请参考 [SKILL.md](../../SKILL.md)。
+---
+> [!IMPORTANT]
+> **发布前置自检**：执行前必须确认 `publishArgs.accountForms` 中的每个 `platformAccountId` 都属于 `platforms` 数组中声明的平台，严禁跨平台错位。

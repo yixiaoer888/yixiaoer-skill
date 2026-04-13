@@ -1,96 +1,78 @@
-# 百家号文章发布参数 (BaiJiaHao Article)
+# 📄 百家号文章发布参数 (BaiJiaHao Article)
 
 > [!IMPORTANT]
 > **前提条件 (Prerequisite)**:
-> 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [文章发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的 platform 差异化字段。
+> 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [文章发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
 
+## 1. 触发场景 (Trigger)
 
-## 触发场景 (Trigger)
-- **意图辨析**：用户指定在“Baijiahao”平台发布文章内容时触发。
-- **典型提示词**：
-  - “发布这篇文章到Baijiahao”
-  - “并在Baijiahao上同步更新”
+当用户明确要在“百家号”发布文章（长文），且需要配置如“选择分类”、“设置封面”或“参与征文活动”等功能时触发。
 
-## 执行逻辑 (Logic Flow)
-1. **内容处理**：确保文章正文符合Baijiahao要求的格式。
-2. **参数装配**：提取标题、正文及封面信息至 `contentPublishForm`。
-3. **指令执行**：调用 `node scripts/api.ts`。
+## 2. 交互协议 (Interactive Protocol)
 
-本平台文章发布通过 `contentPublishForm` 承载以下参数。
+Agent 在拼装百家号文章 Payload 时需遵守：
+1. **标题/正文限制**：标题必须在 2-30 字符内，正文 HTML 必须在 9-10000 字符内。
+2. **分类必选要求**：百家号必须提供 `category` 数据（1-2 个）。必须先调用 `categories` 接口获取。
+3. **活动关联引导**：若用户提到“参加活动”，必须调用 `activities` 获取最新活动列表并填入 `activity` 字段。
+4. **资源合规**：文章封面 `covers` 必须包含 1-3 张图片。
 
-## 1. contentPublishForm 参数定义
+## 3. contentPublishForm 参数定义
 
-| 字段名 | 类型 | 必填 | 说明 | 默认值 |
+| 字段名 | 类型 | 必填 | 描述 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| `formType` | `string` | **是** | 固定值: `task` | `task` |
-| `title` | `string` | **是** | 文章标题 (2-30 字符) | - |
-| `content` | `string` | **是** | 文章正文 (HTML 格式, 9-10000 字符) | - |
-| `covers` | `Array` | **是** | 文章封面列表 (`OldCover[]`, 1-3 张) | - |
-| `category` | `Array` | **是** | 文章分类列表 (`Category[]`, 1-2 个) | - |
-| `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | - |
-| `declaration` | `number` | 否 | 内容声明: 0-不声明, 1-内容由 AI 生成 | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
-| `activity` | `Object` | 否 | 征文活动数据对象，使用 `Activity` 结构 | - |
+| **`formType`** | `string` | **是** | 固定值: `task` | `task` |
+| **`title`** | `string` | **是** | 文章标题 (2-30 字符)。 | - |
+| **`content`** | `string` | **是** | 文章正文 (HTML 格式, 9-10000 字符)。 | - |
+| **`covers`** | `Array` | **是** | 文章封面列表 (`OldCover[]`, 1-3 张)。 | - |
+| **`category`** | `Array` | **是** | 文章分类列表 (`Category[]`, 1-2 个)。 | - |
+| **`pubType`** | `number` | **是** | 发布类型: `0`-草稿, `1`-直接发布。 | - |
+| `declaration` | `number` | 否 | 内容声明: `0`-不声明, `1`-内容由 AI 生成。 | `0` |
+| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，单位: 秒)。 | - |
+| `activity` | `Object` | 否 | **征文活动**: 使用 `Activity` 结构。 | - |
 
-## 2. Payload 完整示例
+### 3.1 复杂对象结构 (Data Schemas)
 
-```json
-{
+- **OldCover**: 包含 `key`, `size`, `width`, `height`。
+- **Category (分类)**: 必须包含 `yixiaoerId`, `yixiaoerName` 和 **完整的 `raw` 对象**。
+- **Activity (活动)**: 包含 `yixiaoerId`, `yixiaoerName`。
+
+## 4. 执行指令示例 (Command)
+
+```bash
+# 百家号文章发布：带分类和 AI 声明
+node scripts/api.ts --payload='{
   "action": "publish",
   "publishType": "article",
   "platforms": ["百家号"],
   "publishArgs": {
-    "content": "<h1>文章标题</h1><p>正文内容至少需要9个字以上。</p>",
-    "accountForms": [
-      {
-        "platformAccountId": "acc_bjh_001",
-        "cover": { "key": "article_cover_key", "size": 102400, "width": 800, "height": 600 },
-        "contentPublishForm": {
-          "formType": "task",
-          "title": "百家号文章标题",
-          "content": "<h1>文章标题</h1><p>正文内容至少需要9个字以上。</p>",
-          "covers": [
-            { "key": "article_cover_key", "size": 102400, "width": 800, "height": 600 }
-          ],
-          "category": [
-            { "yixiaoerId": "cat_001", "yixiaoerName": "文化", "raw": {} }
-          ],
-          "pubType": 1,
-          "declaration": 0
-        }
+    "content": "<h1>百家号发布测试</h1><p>正文内容至少需要9个字以上。</p>",
+    "accountForms": [{
+      "platformAccountId": "BJH_001",
+      "contentPublishForm": {
+        "formType": "task",
+        "title": "今日科技头条",
+        "content": "<h1>百家号发布测试</h1><p>正文内容至少需要9个字以上。</p>",
+        "covers": [{"key": "c_001", "size": 102400, "width": 800, "height": 600}],
+        "category": [{ "yixiaoerId": "cat_001", "yixiaoerName": "文化", "raw": {...} }],
+        "pubType": 1,
+        "declaration": 1
       }
-    ]
+    }]
   }
-}
+}'
 ```
 
-## 3. 复杂对象结构说明
+---
 
-### 3.1 OldCover
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `key` | `string` | **是** | OSS 资源 Key |
-| `size` | `number` | **是** | 文件大小 (Bytes) |
-| `width` | `number` | **是** | 宽度 |
-| `height` | `number` | **是** | 高度 |
+## 5. 常见问题排查 (Troubleshooting)
 
-### 3.2 Category (分类)
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `yixiaoerId` | `string` | **是** | 分类 ID |
-| `yixiaoerName` | `string` | **是** | 分类名称 |
-| `raw` | `object` | 否 | 原始分类对象 |
-
-### 3.3 Activity (活动)
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `yixiaoerId` | `string` | **是** | 活动 ID |
-| `yixiaoerName` | `string` | **是** | 活动名称 |
-
-## 相关接口
-
-| 目标数据 | 对应 Action | 文档参考 |
+| 报错信息 / 现象 | 可能原因 | 处理建议 |
 | :--- | :--- | :--- |
-| `category` | `categories` | [获取账号分类](../../get-publish-categories.md) |
-| `activity` | `activities` | [获取征文活动](../../get-publish-activities.md) |
-| `covers.key` | `upload` | [资源上传](../../upload-resource.md) |
+| **标题长度不符** | 标题少于 2 字或多于 30 字。 | 实时检查标题字数并提示用户。 |
+| **正文内容过短** | HTML 正文物理字符少于 9 个字。 | 提醒用户增加正文丰富度。 |
+| **分类信息错误** | `category.raw` 数据格式不完整。 | 重新执行 `categories` 查询流程获取。 |
+| **封面数量不匹配** | `covers` 数组长度不在 1-3 之间。 | 引导用户至少选择 1 张封面图。 |
+
+---
+> [!IMPORTANT]
+> **百度分发流量提示**：百家号对文章分类的准确度非常敏感。Agent 建议用户优先选择二级或三级细分分类以获得更精准的百度搜索流量分配。

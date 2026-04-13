@@ -1,59 +1,54 @@
-# 获取发布分类/话题 (Get Categories)
+# 📄 发布分类 查询 参数 (Publish Categories Query)
 
-获取特定平台账号支持的文章分类、视频分类或话题标签列表。
+获取指定媒体账号在发布内容时可选的合法分类、分区或话题标签。
 
-## 触发场景 (Trigger)
-- **意图辨析**：在准备发布内容时，为了确保 `platformSettings` 中的分类/话题符合平台标准，不产生非法值，必须预先查询合法值。
+> [!IMPORTANT]
+> **先行查询原则**：在正式发布前，若分类字段为动态获取，Agent **必须**先调用此动作获取合法值及其 `raw` 数据。**严禁**凭常识构造分类 ID。
+
+## 1. 触发场景 (Trigger)
+
+- **意图辨析**：用户准备发布内容，但不知道该平台支持哪些具体的细分领域（如：B 站的分区）。
 - **典型提示词**：
-  - “获取这个抖音号的视频分类”
-  - “查看百家号支持的文章类别”
-  - “查询可以挂载的话题”
+  - “查一下这个抖音号支持哪些视频分类”
+  - “获取百家号的可选文章类别”
 
-## 参数定义 (Parameters)
+## 2. 交互协议 (Interactive Protocol)
 
-### 参数列表 (Payload Properties)
+1. **多级路径协议 (Full Path)**：对于多级分类（如：动漫 -> 国产动漫），Agent 在填充发布表单时**必须**使用包含所有父子层级的对象数组，而不只是末级 ID。
+2. **数据处理要求**：Agent 应递归地处理返回的 `children` 结构。
+3. **透传要求**：组装表单时，必须将选定分类的 `raw` 对象完整保留并透传。
 
-| 字段名 | 类型 | 是否必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `action` | `string` | **是** | 固定值：`categories` |
-| `account_id` | `string` | **是** | 蚁小二账号 ID (ObjectId) |
-| `type` | `string` | 否 | 发布类型：`video` (默认) 或 `article` |
+## 3. 参数定义 (Parameters)
 
-## 执行逻辑 (Logic Flow)
-1. **身份锚定**：识别目标账号 `account_id`（通过 `accounts` action 获取）。
-2. **场景对齐**：根据发布内容决定 `type`。
-3. **参数装配**：构造 `action: "categories"` 负载。
-4. **指令执行**：调用 `node scripts/api.ts --payload='{...}'`。
-5. **值注入**：将返回的分类 `id` 或 `name` 填入发布 Payload 的对应位置。
+| 字段名 | 类型 | 必填 | 默认值 | 描述 |
+| :--- | :--- | :--- | :--- | :--- |
+| **`action`** | `string` | **是** | `categories` | 固定值。 |
+| **`account_id`** | `string` | **是** | - | 蚁小二账号 ID (`platformAccountId`)。 |
+| `type` | `string` | 否 | `video` | 发布类型：`video` (视频) 或 `article` (文章)。 |
 
-## 返回数据说明 (Response Details)
+### 3.1 返回结果结构 (CategoryItem)
 
-返回包含分类对象（`Category` 结构）的树形或扁平结构。
-- **Agent 手动铺平 (Flattening)**：若返回的数据包含嵌套的 `children` 数组，Agent **必须自行递归遍历**，以便在组装发布表单时能够获取任何层级的分类。
-- **层级路径组装 (Cascading Path)**：
-  - 对于要求多级分类的平台 (如 Bilibili)，Agent 在组装表单时，不能只填入最终选中的子分类。
-  - **必须组装一个数组**：包含从根节点到选中节点的所有路径对象。
-  - **包含 `raw` 对象**：路径中每一个对象除 `yixiaoerId` 和 `yixiaoerName` 外，**必须同步传入其对应的 `raw` 对象**（若存在）。
+| 字段 | 类型 | 描述 |
+| :--- | :--- | :--- |
+| `yixiaoerId` | `string` | 分类 ID |
+| `yixiaoerName` | `string` | 分类显示名称 |
+| `raw` | `object` | **核心透传对象**。 |
+| `children` | `array` | 子分类列表。若包含子分类，需继续向下钻取。 |
 
-### 复杂对象：CategoryItem
-- `yixiaoerId`: 内部分类 ID。
-- `yixiaoerName`: 分类名称。
-- `raw`: 原始平台返回的分类对象（组装表单时必须保留）。
-- `children`: 子分类数组（若存在，需递归处理）。
-  - **示例**：
-    - 父分类：`{"yixiaoerId": "18", "yixiaoerName": "动漫"}`
-    - 子分类：`{"yixiaoerId": "1", "yixiaoerName": "国产动漫"}`
-    - 最终处理后的 `category` 字段：
-      ```json
-      "category": [
-        { "yixiaoerId": "18", "yixiaoerName": "动漫", "raw": {} },
-        { "yixiaoerId": "1", "yixiaoerName": "国产动漫", "raw": {} }
-      ]
-      ```
-- `raw`: 原始平台返回的分类对象。
-
-## 调用指令 (Command)
+## 4. 执行指令示例 (Command)
 
 ```bash
-node scripts/api.ts --payload='{"action":"categories","account_id":"YOUR_ACCOUNT_ID","type":"video"}'
+node scripts/api.ts --payload='{"action":"categories","account_id":"67fb2f1735eeb3cf31db3d65","type":"video"}'
 ```
+
+## 5. 常见问题排查 (Troubleshooting)
+
+| 现象 | 可能原因 | 处理建议 |
+| :--- | :--- | :--- |
+| **分类未同步** | 平台近期新增了分区，但蚁小二尚未抓取。 | 引导用户在客户端点击“同步数据”后再试。 |
+| **表单校验不通过** | 未使用完整路径数组。 | 检查 `category` 字段是否填入了包含父级的整个数组链条。 |
+| **分类为空** | 账号权限不足或该平台无需手动指定分类。 | 核实是否可以通过 `action: "syncapps"` 查询到同步配置。 |
+
+---
+> [!TIP]
+> **精确分类建议**：精准的垂直分类有助于算法更准确地捕捉受众人群。Agent 在结果较多时，应引导用户进行二次关键词筛选。

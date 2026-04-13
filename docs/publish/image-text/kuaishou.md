@@ -1,83 +1,49 @@
-# 快手图文发布参数 (Kuaishou Image-Text)
+# 📄 快手 图文 参数 (Kuaishou Image-Text)
 
 > [!IMPORTANT]
-> **前提条件 (Prerequisite)**:
-> 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [图文发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的 platform 差异化字段。
+> **阅读前置规则**: 本文档仅描述 `platformForms` (或账号级 `contentPublishForm`) 内部的平台差异化字段。在开始前，你 **必须** 已经掌握并应用了 [图文发布通用索引](./index.md) 中的根 Payload 结构。
 
+## 1. 触发场景 (Trigger)
 
-## 触发场景 (Trigger)
-- **意图辨析**：用户指定在“Kuaishou”平台发布图文动态时触发。
-- **典型提示词**：
-  - “发几张图到Kuaishou”
-  - “同步这条动态到Kuaishou”
+当用户明确要在“快手”发布图文笔记或动态，且涉及以下特有需求时触发：
+- **精品动态**：发布多图动态（支持 HTML 格式描述）。
+- **互动增强**：挂载 POI 地理位置、内嵌 #话题 标签、关联背景音乐。
+- **发布控制**：设置公开、私密或好友可见，或安排定时发布。
 
-## 执行逻辑 (Logic Flow)
-1. **资源校验**：确保所有图片均已上传并获得 Key。
-2. **参数装配**：填充描述及图片列表至 `contentPublishForm`。
-3. **指令执行**：调用 `node scripts/api.ts`。
+## 2. 交互协议 (Interactive Protocol)
 
-本平台图文发布通过 `contentPublishForm` 承载以下参数。
+Agent 在拼装快手图文 Payload 时需遵守：
+1. **HTML 话题内嵌**：`description` 支持 HTML 标签。话题必须使用 `<topic text='...' raw='...'>#话题</topic>` 格式。
+2. **资源先行上传**：所有 `images` 必须先调用 `upload` 动作获取 `key`。
+3. **数据完整性**：对于 `location`, `music`, `collection` 等复杂字段，**严禁手动构造**，必须调用相关接口获取并完整透传 `raw` 对象。
+4. **可见性校验**：默认为公开 (0)，若涉及个人隐私，Agent 应提醒用户确认是否需要设置为私密 (1)。
 
-## 1. contentPublishForm 参数定义
+## 3. 参数定义 (Parameters)
 
-| 字段名 | 类型 | 必填 | 说明 | 默认值 |
+### 3.1 核心表单参数 (contentPublishForm)
+
+| 字段名 | 类型 | 必填 | 描述 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| `formType` | `string` | **是** | 固定值: `task` | `task` |
-| `description` | `string` | **否** | 图文描述，支持 HTML (`<p>`, `<topic>`)。最多 1000 字符。 | - |
-| `images` | `OldImage[]` | **是** | 图片数组 | - |
-| `location` | `PlatformDataItem` | **否** | 位置信息 | - |
-| `music` | `PlatformDataItem` | **否** | 音乐信息 | - |
-| `visibleType` | `number` | **是** | 可见类型: 0-公开, 1-私密, 3-好友可见 | 0 |
-| `scheduledTime` | `number` | **否** | 定时发布时间 (Unix 时间戳，单位: 秒) | - |
-| `collection` | `Category` | **否** | 合集信息 | - |
+| **`formType`** | `string` | **是** | 固定值: `task` | `task` |
+| **`description`** | `string` | **是** | 图文描述，支持 HTML (`<p>`, `<topic>`)。最多 1000 字符。 | - |
+| **`images`** | `Array` | **是** | 图片数组。使用 `OldImage[]` 结构。 | - |
+| **`visibleType`** | `number` | **是** | **可见类型**: `0`-公开, `1`-私密, `3`-好友可见。 | `0` |
+| `location` | `Object` | 否 | **位置信息**: 使用 `PlatformDataItem` 结构。 | - |
+| `music` | `Object` | 否 | **音乐信息**: 使用 `MusicItem` 结构。 | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，单位: 秒)。 | - |
+| `collection` | `Object` | 否 | **合集信息**: 使用 `Category` 结构。 | - |
 
-## 2. 复杂对象结构说明
+### 3.2 复杂结构说明
 
-### OldImage
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `key` | `string` | **是** | OSS 资源 Key |
-| `size` | `number` | **是** | 文件大小 (Bytes) |
-| `width` | `number` | **是** | 宽度 |
-| `height` | `number` | **是** | 高度 |
-| `format` | `string` | **是** | 文件格式 (如 `jpg`, `png`) |
+- **OldImage**: 包含 `key`, `size`, `width`, `height`, `format`。
+- **PlatformDataItem / Category / Collection**: 必须包含 `yixiaoerId`, `yixiaoerName` 及其对应的 **`raw`** 对象。
+- **MusicItem**: 包含 `yixiaoerId`, `yixiaoerName`, `duration`, `playUrl`, `artist` 及其对应的 **`raw`** 对象。
 
-### Category
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `yixiaoerId` | `string` | **是** | 蚁小二内部 ID |
-| `yixiaoerName` | `string` | **是** | 显示名称 |
-| `raw` | `object` | **是** | 平台原始数据 (如果接口返回，必须原样回传) |
+## 4. 执行指令示例 (Command)
 
-### PlatformDataItem
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `yixiaoerId` | `string` | **是** | 统一 ID |
-| `yixiaoerName` | `string` | **是** | 显示名称 |
-| `raw` | `object` | **是** | 平台原始数据 (如果接口返回，必须原样回传) |
-
-### MusicItem (音乐)
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `yixiaoerId` | `string` | **是** | 蚁小二端统一音乐 ID |
-| `yixiaoerName` | `string` | **是** | 歌曲名称 |
-| `duration` | `number` | **是** | 音乐时长（秒） |
-| `playUrl` | `string` | **是** | 试听/播放链接 |
-| `artist` | `string` | **否** | 歌手/作者名 |
-| `raw` | `object` | **是** | 平台原始数据 (如果接口返回，必须原样回传) |
-
-## 3. 依赖接口说明
-
-若字段值需通过查询获得，需注明：
-- **位置 (location)**: 需通过 `[获取位置](../../get-location.md)` 获得对应的 `PlatformDataItem`。
-- **音乐 (music)**: 需通过 `[获取音乐](../../get-music.md)` 获得对应的 `PlatformDataItem`。
-- **话题 (topic)**: 在 `description` 中使用 `<topic>` 标签时，话题数据需通过 `[获取话题](../../get-topics.md)` 获得。
-- **合集 (collection)**: 需通过 `[获取合集](../../get-collections.md)` 获得对应的 `Category`。
-
-## 4. Payload 完整示例
-
-```json
-{
+```bash
+# 发布快手图文动态：带位置和话题
+node scripts/api.ts --payload='{
   "action": "publish",
   "publishType": "imageText",
   "platforms": ["快手"],
@@ -87,20 +53,30 @@
         "platformAccountId": "acc_ks_it_001",
         "contentPublishForm": {
           "formType": "task",
-          "description": "<p>快手动态内容 <topic text='快手' raw='{\"id\":\"xxx\",\"name\":\"快手\"}'>#快手</topic></p>",
+          "description": "<p>快手动态测试 <topic text=\"快手\" raw=\"{\\\"id\\\":\\\"ks_01\\\",\\\"name\\\":\\\"快手\\\"}\">#快手</topic></p>",
           "images": [
-            { "key": "img_ks_01", "size": 1024, "width": 1080, "height": 1440, "format": "jpg" }
+            { "key": "ks_img_001", "size": 204800, "width": 1080, "height": 1440, "format": "jpg" }
           ],
+          "location": { "yixiaoerId": "poi_001", "yixiaoerName": "快手总部", "raw": {...} },
           "visibleType": 0
         }
       }
     ]
   }
-}
+}'
 ```
 
-## 相关接口
+---
 
-| 目标数据 | 对应 Action | 相关文档 |
+## 5. 常见问题排查 (Troubleshooting)
+
+| 报错信息 / 现象 | 可能原因 | 处理建议 |
 | :--- | :--- | :--- |
-| `images.key` | `upload` | [资源上传](../../upload-resource.md) |
+| **描述内容超限** | 字数超过 1000 字符限制。 | 精简描述内容。 |
+| **话题标签不生效** | `<topic>` 标签格式不正确或缺少 `raw` 属性。 | 严格按照规范拼装 HTML。 |
+| **封面/图片获取失败** | `images` 数组中的 `key` 无效或资源已过期。 | 重新执行 `upload` 动作获取最新的 `key`。 |
+| **位置/音乐加载异常** | `raw` 数据过期或与该账号平台不匹配。 | 重新调用对应的 `get-*` action 获取最新数据。 |
+
+---
+> [!TIP]
+> **快手流量建议**: 快手社区倾向于生活化和互动性强的内容，建议在 `description` 中多使用表情符号并积极引导评论。

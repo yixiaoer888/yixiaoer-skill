@@ -1,33 +1,51 @@
-# 获取合集列表 (Get Collections)
+# 📄 获取合集列表 Query 参数 (Get Collections Query)
 
-获取账号已创建的合集列表。主要用于抖音、今日头条等支持合集的平台。
+获取账号已创建的合集（或专栏）列表。主要用于抖音、今日头条、哔哩哔哩等支持内容聚合展示的平台。
 
-## 调用指令 (Command)
+> [!IMPORTANT]
+> **数据完整性原则**：在发布表单（如 `contentPublishForm.collection`）中使用合集时，**必须**透传本接口返回的 `raw` 原始对象，以确保平台服务能正确识别合集 UUID。
+
+## 1. 触发场景 (Trigger)
+
+- **意图辨析**：用户希望将正在发布的视频/文章归类到已有的系列专题中。
+- **典型提示词**：
+  - “把这个视频加到我的‘美食系列’合集里”
+  - “查询一下这个抖音号有哪些合集”
+
+## 2. 交互协议 (Interactive Protocol)
+
+1. **账号校验**：合集是账号维度的资产。Agent 在查询前需确认该账号是否已绑定且状态有效。
+2. **选择引导**：展示合集名称，引导用户从中选择一个（或新建，若平台支持）。
+3. **静默注入**：若用户明确提到合集名，Agent 可静默执行查询并匹配 `yixiaoerId`。
+
+## 3. 参数定义 (Parameters)
+
+| 字段名 | 类型 | 必填 | 默认值 | 描述 |
+| :--- | :--- | :--- | :--- | :--- |
+| **`action`** | `string` | **是** | `collections` | 固定操作码。 |
+| **`account_id`** | `string` | **是** | - | 蚁小二账号 ID (`platformAccountId`)。 |
+
+### 3.1 返回结果结构
+
+| 字段 | 类型 | 描述 |
+| :--- | :--- | :--- |
+| `yixiaoerId` | `string` | 蚁小二内部合集标识 |
+| `yixiaoerName` | `string` | 合集显示名称 |
+| `raw` | `object` | **核心透传对象**。包含平台原始的合集元数据。 |
+
+## 4. 执行指令示例 (Command)
 
 ```bash
-node scripts/api.ts --payload='{"action":"collections","account_id":"ACCOUNT_ID"}'
+node scripts/api.ts --payload='{"action":"collections","account_id":"67fb2f1735eeb3cf31db3d65"}'
 ```
 
-## 参数列表 (Payload Properties)
+## 5. 常见问题排查 (Troubleshooting)
 
-| 字段名 | 类型 | 是否必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `account_id` | `string` | **是** | 蚁小二账号 ID (32位十六进制) |
+| 现象 | 可能原因 | 处理建议 |
+| :--- | :--- | :--- |
+| **找不到刚创建的合集** | 数据同步延迟。 | 引导用户在蚁小二客户端点击“同步数据”或稍后重试。 |
+| **列表返回为空** | 账号尚未在平台创建任何合集。 | 建议用户前往平台手机端 App 先创建一个合集。 |
 
-返回一个 `Category` 数组。可以直接将其中的对象作为 `collection` 参数传递给发布脚本。如果在获取时 `raw` 字段有值，发布表单中必须完整保留并透传。
-
-```json
-[
-  {
-    "yixiaoerId": "col_123",
-    "yixiaoerName": "美食系列",
-    "raw": { ... }
-  }
-]
-```
-
-## 脚本逻辑 (Backend)
-
-- **脚本路径**: `scripts/api.ts`
-- **功能**: 封装蚁小二标准化合集查询接口 (`GET /platform-accounts/{platformAccountId}/collections`)。
-- **参数映射**: 将 `account_id` 映射为 URL 路径变量，将 `type` 映射为 `publishType` 查询参数。
+---
+> [!TIP]
+> **SEO 建议**：将内容加入合集有助于提升系列流量和粉丝留存，Agent 应在发布时主动建议用户进行合集挂载。

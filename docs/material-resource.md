@@ -1,60 +1,57 @@
-# 上传到素材库 (Material Library Save)
+# 📄 素材库保存 动作 参数 (Material Library Save Action)
 
-将已上传到蚁小二 OSS 的资源登记到素材库，生成可在素材管理中复用的视频或图片记录。
+将已物理上传至蚁小二 OSS 的资源（图片或视频）正式登记到素材库中，生成可在蚁小二全端复用的固定资产记录。
 
-## 触发场景 (Trigger)
-- **意图辨析**：当用户希望将已上传的临时资源“持久化”或“资产化”，以便后续多次复用、团队共享或在网页端素材库中进行统一管理时触发。
+> [!IMPORTANT]
+> **串行执行规范**：素材入库是一个两步走的闭环。Agent **必须**先执行 `upload` (建议设置 `bucket: "material-library"`) 获取 Key，然后立即执行本文档定义的 `material` 动作。
+
+## 1. 触发场景 (Trigger)
+
+- **意图辨析**：用户希望将临时的上传资源“资产化”，以便后续在不同任务中多次复用、团队共享，或在蚁小二网页端进行素材管理。
 - **典型提示词**：
-  - “把这个视频存进素材库方便以后调用”
-  - “我的宣传片已经传好了，帮我入库”
-  - “将这个 Key 对应的图片登记到素材管理中”
+  - “帮我把这个视频存入我的素材库”
+  - “将这个文件入库，起名叫‘周年庆宣传片’”
 
-> [!CAUTION]
-> **强制两步流程 (Mandatory Two-Step)**: 
-> 当用户意图为“上传到素材库”时，**禁止单元操作**。Agent 必须严格执行：
-> 1. **upload** (上传到 OSS 并获取 Key，建议使用 `bucket: "material-library"`)
-> 2. **material** (将获得的 Key 登记到库，产出素材 ID)
-> **错误演示**: 只执行 `upload` 而不执行 `material` 属于逻辑截断，会导致用户看不见素材。
+## 2. 交互协议 (Interactive Protocol)
 
-## 参数定义 (Parameters)
+1. **两步连动提醒**：若用户直接说“上传”，Agent 应询问是否需要同时存入素材库以便日后查看。
+2. **元数据嗅探**：Agent 应尽可能从原始文件中提取 `width`, `height` 等元数据，严禁在 `fileName` 中填入随机乱码。
+3. **完成反馈**：登记成功后，告知用户素材已在“素材管理”中可见。
 
-### 参数列表 (Payload Properties)
+## 3. 参数定义 (Parameters)
 
-| 字段名 | 类型 | 是否必填 | 描述 |
-| :--- | :--- | :--- | :--- |
-| `action` | `string` | **是** | 固定值: `material` |
-| `filePath` | `string` | **是** | 已上传到蚁小二 OSS 的资源 `key`（通过 `upload` 获取） |
-| `fileName` | `string` | **是** | 展示用文件名，建议保留扩展名 |
-| `width` | `number` | **是** | 素材宽度 |
-| `height` | `number` | **是** | 素材高度 |
-| `type` | `string` | **是** | 素材类型。常用值为 `video` 或 `image` |
-| `thumbPath` | `string` | 否 | 缩略图资源 `key`。视频建议传封面，图片可不传 |
+| 字段名 | 类型 | 必填 | 默认值 | 描述 |
+| :--- | :--- | :--- | :--- | :--- |
+| **`action`** | `string` | **是** | `material` | 固定操作码。 |
+| **`filePath`** | `string` | **是** | - | 通过 `upload` 动作获取的资源 `key`。 |
+| **`fileName`** | `string` | **是** | - | 素材展示名称（建议带上扩展名）。 |
+| **`width`** | `number` | **是** | - | 资源宽度 (像素)。 |
+| **`height`** | `number` | **是** | - | 资源高度 (像素)。 |
+| **`type`** | `string` | **是** | - | 类型：`video` 或 `image`。 |
+| `thumbPath` | `string` | 否 | - | 缩略图 `key` (视频建议上传封面图作为缩略图)。 |
 
-## 执行逻辑 (Logic Flow)
-1. **链路检查**：确认资源是否已通过 `upload` 动作上传（建议使用 `bucket: "material-library"`）。
-2. **元数据提取**：识别文件的真实名称、宽高及类型。
-3. **参数装配**：构造 `action: "material"` 及完整元数据。
-4. **指令执行**：调用 `node scripts/api.ts`。
-5. **入库反馈**：向用户确认素材 ID 及入库成功状态。
-
-## 推荐链路 (Recommended Flow)
-
-1. 先调用 `action: "upload"` 上传原始文件，获得资源 `key`
-2. 再调用 `action: "material"`，把 `key` 写入素材库
-
-## 调用指令 (Command)
+## 4. 执行指令示例 (Command)
 
 ```bash
+# 示例：将一段已上传的周年庆视频登记入库
 node scripts/api.ts --payload='{
   "action": "material",
-  "filePath": "cloud-publish/2026/04/08/demo/video.mp4",
-  "fileName": "演示视频.mp4",
+  "filePath": "material-library/v/demo_clip.mp4",
+  "fileName": "周年庆正式版.mp4",
   "width": 1080,
   "height": 1920,
   "type": "video"
 }'
 ```
 
-## 注意事项
-- **Bucket 匹配**：若目标是素材库，请在上传步骤显式使用 `bucket: "material-library"`。
-- **重复校验**：若相同资源已入库，后端可能返回已有记录。
+## 5. 常见问题排查 (Troubleshooting)
+
+| 现象 | 可能原因 | 处理建议 |
+| :--- | :--- | :--- |
+| **登记失败：Key 不存在** | `upload` 动作未成功或 `bucket` 选错。 | 确保上传时使用了 `material-library` 桶，并检查 `upload` 的返回结果。 |
+| **预览图无法显示** | `thumbPath` 为空或指向了错误的图片资源。 | 如果是视频入库，强烈建议先上传一张封面图并将 Key 作为 `thumbPath` 传入。 |
+| **素材名称重合** | 库中已存在同名素材。 | 系统通常支持重名，但建议 Agent 在名称后添加时间戳或版本号以示区分。 |
+
+---
+> [!CAUTION]
+> **物理存储隔离**：严禁将 `bucket: "cloud-publish"` 下的临时发布 Key 直接用于素材库登记，否则该资源可能会在 7 天后被系统自动清理。

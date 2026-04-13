@@ -1,81 +1,54 @@
-# 查询账号列表 (Query Account List)
+# 📄 账号列表 查询 参数 (Query Accounts List)
 
-获取当前租户下绑定的自媒体平台账号列表及其 UID 信息。
+获取当前租户下绑定的自媒体平台账号列表及其 UID 信息。使用任何发布能力前，**必须**先调用此接口确认账号状态。
 
-## 触发场景 (Trigger)
-- **意图辨析**：用户需要获取、筛选或确认其在蚁小二平台上绑定的自媒体账号信息（如 UID、昵称、登录状态、分组等）时触发。
+> [!IMPORTANT]
+> **风险提示**：Agent 在执行发布任务前，必须验证账号 `status` 是否为 1 (在线)。若为 2 (失效)，严禁构建发布 Payload，应立即提示用户扫码。
+
+## 1. 触发场景 (Trigger)
+
+- **意图辨析**：用户需要查看资产、进行健康检查（看哪些号掉了）或获取 `platformAccountId` (id) 以进行后续发布。
 - **典型提示词**：
-  - “列出我所有的抖音号”
-  - “看看我有哪些账号登录失效了”
-  - “查询分组 A 下的账号”
-  - “确认一下视频号的作者 ID”
+  - “列一下我旗下所有的抖音号”
+  - “我的哪些账号登录失效了？”
+  - “获取张三负责的账号列表”
 
-## 参数定义 (Parameters)
+## 2. 交互协议 (Interactive Protocol)
 
-### 参数列表 (Payload Properties)
+1. **状态自动过滤**：
+   - 用户问“哪些账号掉了” -> 自动注入 `loginStatus: 2`。
+   - 用户问“哪些可用” -> 自动注入 `loginStatus: 1`。
+2. **输出结构化**：交付结果时，应按“在线”和“失效”分类展示，并清晰标识账号昵称和所属平台。
+3. **ID 记录**：返回的 `id` 字段是发布接口所需的唯一标识，Agent 需准确提取。
 
-| 字段名 | 类型 | 是否必填 | 描述 |
-| :--- | :--- | :--- | :--- |
-| `action` | `string` | **是** | 固定值：`accounts` |
-| `platform` | `string` | 否 | 指定展示某个平台。见 [平台定义](./platform.md)。 |
-| `name` | `string` | 否 | 按账号昵称模糊查询。 |
-| `group` | `string` | 否 | 按分组名称查询。 |
-| `page` | `number` | 否 | 当前页码，默认 `1`。 |
-| `size` | `number` | 否 | 每页数量，默认 `20`，最大 `1000`。 |
-| `platforms` | `string[]` | 否 | 平台批量查询，支持多个。见 [平台定义](./platform.md)。 |
-| `platformType` | `number[]` | 否 | 平台类型批量查询。见 [平台定义-平台类型](./platform.md#平台类型枚举-platformtype)。 |
-| `loginStatus` | `number` | 否 | 账号登录状态查询。见下方【登录状态枚举】。 |
-| `isolation` | `string` | 否 | 是否显示隔离数据，`true`|`false`，默认 `false`。 |
-| `parentId` | `string` | 否 | 父级ID，用于查询子账号列表。 |
-| `time` | `number` | 否 | 查询此时间戳之后是否有新消息（unix ms）。 |
+## 3. 参数定义 (Parameters)
 
-### 枚举定义 (Enumerations)
+| 字段名 | 类型 | 必填 | 默认值 | 描述 |
+| :--- | :--- | :--- | :--- | :--- |
+| **`action`** | `string` | **是** | `accounts` | 固定操作码。 |
+| `platform` | `string` | 否 | - | 单平台筛选。见 [平台定义](./platform.md)。 |
+| `platforms` | `string[]` | 否 | - | 平台批量筛选。 |
+| `name` | `string` | 否 | - | 按账号昵称模糊匹配。 |
+| `group` | `string` | 否 | - | 按分组名称完全匹配。 |
+| `loginStatus` | `number` | 否 | - | `1`: 正常, `2`: 过期, `3`: 错误, `0`: 未登录。 |
+| `page` | `number` | 否 | `1` | 页码。 |
+| `size` | `number` | 否 | `20` | 每页数量。 |
 
-#### 登录状态 (LoginStatus)
-| 值 | 定义 | 说明 |
-| :--- | :--- | :--- |
-| `0` | `Never` | 未曾登录/待登录 |
-| `1` | `Succesed` | 登录成功 |
-| `2` | `Expired` | 登录过期/失效。**提示：在查询时传 2 会同时匹配 2(过期), 3(失败), 4(取消授权)** |
-| `3` | `Failed` | 登录失败 |
-| `4` | `CancelAuth` | 取消授权 |
-
-
-## 执行逻辑 (Logic Flow)
-1. **意图解析**：识别查询意图，提取关键词（如平台名称、分组名、昵称片段）。
-2. **状态前置**：若涉及“失效账号查询”，自动注入 `loginStatus: 2` 参数。
-3. **参数装配**：构造 `action: "accounts"` 及其余过滤参数（如 `page`, `size`）。
-4. **指令执行**：调用 `node scripts/api.ts --payload='{...}'`。
-5. **结果解析**：处理返回的 `PlatformAccountDTO` 列表，重点提取 `id` 和 `status` 供后续操作。
-
-## 返回结果说明 (Response Details)
-
-脚本返回标准的 JSON 数组或对象。每一个账号对象 (`PlatformAccountDTO`) 包含：
-
-| 字段 | 类型 | 描述 |
-| :--- | :--- | :--- |
-| `id` | `string` | 平台内部账号 ID |
-| `platformAccountName` | `string` | 账号昵称 |
-| `platformName` | `string` | 平台名称（如：抖音、百家号） |
-| `platformAvatar` | `string` | 账号头像地址 |
-| `platformAuthorId` | `string` | 平台方的 UID / 作者 ID |
-| `status` | `number` | 登录状态（见上方枚举） |
-| `platformType` | `number` | 平台类型（见上方枚举） |
-| `parentId` | `string` | 父账号 ID（针对微信视频号等子账号结构） |
-| `groups` | `string[]` | 账号所属的分组 ID 列表 |
-| `proxyId` | `string` | 绑定的团队代理 ID (如果有) |
-| `kuaidailiArea` | `string` | 绑定的内置代理地区编码 (如果有) |
-| `favorites` | `Object[]` | 账号收藏夹列表。包含 `id`, `name`, `websiteUrl` |
-| `isOperate` | `boolean` | 当前用户是否拥有该账号的运营权限 |
-| `isFreeze` | `boolean` | 账号是否被冻结 |
-| `createdAt` | `number` | 账号创建时间戳 |
-
-## 调用指令 (Command)
+## 4. 执行指令示例 (Command)
 
 ```bash
-node scripts/api.ts --payload='{"action":"accounts","platform":"抖音","name":"昵称","page":1,"size":20}'
+# 查询抖音平台下昵称包含“运营”的在线账号
+node scripts/api.ts --payload='{"action":"accounts","platform":"抖音","name":"运营","loginStatus":1,"page":1,"size":20}'
 ```
 
-## 注意事项
-- 请确保环境变量 `YIXIAOER_API_KEY` 已设置。
-- **账号有效性提示**：发布前应校验账号 `status` 是否为 `1`。
+## 5. 常见问题排查 (Troubleshooting)
+
+| 现象 | 可能原因 | 处理建议 |
+| :--- | :--- | :--- |
+| **结果为空** | 过滤器太严（如 `name` 拼写错误）或该平台暂未绑定账号。 | 去掉过滤参数执行全量查询确认资产状况。 |
+| **Status 始终为 2** | Cookie 过期或环境变更。 | 引导用户点击客户端“刷新”按钮或重新扫码登录。 |
+| **鉴权失败 (401)** | `YIXIAOER_API_KEY` 错误或已过期。 | 检查并重新配置环境变量。 |
+
+---
+> [!TIP]
+> **资产管理**：定期调用全量 `accounts` 查询并缓存(短期)有助于在用户发起发布指令时快速匹配目标账号。

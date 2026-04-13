@@ -1,117 +1,81 @@
-# 小红书视频发布参数 (XiaoHongShu Video)
+# 📄 小红书视频发布参数 (XiaoHongShu Video)
 
 > [!IMPORTANT]
-> **前提条件 (Prerequisite)**:
-> 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [视频发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
+> **阅读前置规则**: 本文档仅描述 `contentPublishForm` 内部的平台差异化字段。在开始前，你 **必须** 已经掌握并应用了 [视频发布通用索引](./index.md) 中的根 Payload 结构。
 
+## 1. 触发场景 (Trigger)
 
-## 触发场景 (Trigger)
-- **意图辨析**：用户指定在“Xiaohongshu”平台分发视频内容时触发。
-- **典型提示词**：
-  - “把这个视频发布到Xiaohongshu”
-  - “同步视频到Xiaohongshu”
+当用户明确要在“小红书”发布视频笔记，且涉及以下需求时触发：
+- **内容标注**：虚构演绎申明、AI 合成内容申明。
+- **社交关联**：挂载地理位置、加入合集、关联群聊或直播预告。
+- **商业化**：挂载小红书内部店铺商品。
 
-## 执行逻辑 (Logic Flow)
-1. **意图确认**：确认目标平台为Xiaohongshu。
-2. **参数装配**：识别并填充标题、描述等平台特定字段至 `contentPublishForm`。
-3. **指令执行**：调用 `node scripts/api.ts`。
+## 2. 交互协议 (Interactive Protocol)
 
+Agent 在拼装小红书 Payload 时需遵守：
+1. **标题字数敏感**：小红书标题上限仅 **20 字**，请务必精简。
+2. **描述话题规范**：正文描述上限 1000 字，建议包含 **#话题**。
+3. **可见性状态确认**：默认为公开 (visibleType: 0)，可按需设为私密 (1) 或好友可见 (3)。
+4. **动态数据透传**：对于位置、合集、商品等，必须先行调用查询接口获取 `raw` 对象且完整透传。
 
-在本平台视频发布通过 `contentPublishForm`承载以下参数。
+## 3. contentPublishForm 参数定义
 
-## 1. contentPublishForm 参数定义
-
-| 字段名 | 类型 | 必填 | 说明 | 默认值 |
+| 字段名 | 类型 | 必填 | 描述 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| `formType` | `string` | **是** | 固定为 `task` | `task` |
-| `title` | `string` | 否 | 视频标题 (最多 20 字) | - |
-| `description` | `string` | 否 | 视频描述 (最多 1000 字) | - |
-| `declaration` | `number` | 否 | 内容类型申明: 1-虚构演绎, 2-笔记含 AI 合成内容 | - |
-| `createType` | `number` | 否 | 创作类型: 1-原创, 0-不申明 | 0 |
-| `location` | `object` | 否 | 视频位置，使用 `PlatformDataItem` 结构 | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间戳 (单位: 秒) | - |
-| `visibleType` | `number` | **是** | 可见类型: 0-公开, 1-私密, 3-好友可见 | 0 |
-| `collection` | `object` | 否 | 合集信息，使用 `Collection` 结构 | - |
-| `group` | `object` | 否 | 群聊信息，使用 `Group` 结构 | - |
-| `bind_live_info` | `object` | 否 | 直播预告信息，使用 `LiveInfo` 结构 | - |
-| `shopping_cart` | `object[]` | 否 | 关联商品信息，使用 `ShoppingCartItem` 结构数组 | - |
+| **`formType`** | `string` | **是** | 固定为 `task`。 | `task` |
+| `title` | `string` | 否 | 视频标题 (**最高 20 字**)。建议吸引眼球。 | - |
+| `description` | `string` | 否 | 视频描述 (最高 1000 字)。支持 Emoji。 | - |
+| `declaration` | `number` | 否 | **内容类型申明**: `1`-虚构演绎, `2`-笔记含 AI 合成内容。 | - |
+| `createType` | `number` | 否 | **创作类型**: `1`-原创, `0`-不申明。 | `0` |
+| `location` | `object` | 否 | **地理位置**: 使用 `PlatformDataItem` 结构。 | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间戳 (单位: 秒)。 | - |
+| **`visibleType`** | `number` | **是** | **可见类型**: `0`-公开, `1`-私密, `3`-好友可见。 | `0` |
+| `collection` | `object` | 否 | **合集信息**: 使用 `Collection` 结构。 | - |
+| `group` | `object` | 否 | **群聊信息**: 使用 `Group` 结构。 | - |
+| `bind_live_info` | `object` | 否 | **直播预告信息**: 使用 `LiveInfo` 结构。 | - |
+| `shopping_cart` | `object[]` | 否 | **关联商品信息**: 使用 `ShoppingCartItem` 结构数组。 | - |
 
-## 2. Payload 完整示例
+### 3.1 复杂结构补充 (Complex Structures)
 
-```json
-{
+- **PlatformDataItem / Collection / Group / LiveInfo / ShoppingCartItem**: 所有复杂对象必须包含 `yixiaoerId`, `yixiaoerName` 和 **完整的 `raw` 对象**。
+
+## 4. 执行指令示例 (Command)
+
+```bash
+# 小红书视频发布：全字段适配演示
+node scripts/api.ts --payload='{
   "action": "publish",
   "publishType": "video",
   "platforms": ["Xiaohongshu"],
   "publishArgs": {
-    "accountForms": [
-      {
-        "platformAccountId": "XHS_ACC_ID",
-        "video": {
-          "key": "v_key",
-          "size": 1024000,
-          "width": 1080,
-          "height": 1440,
-          "duration": 30
-        },
-        "contentPublishForm": {
-          "formType": "task",
-          "title": "小红书视频标题",
-          "description": "这是在小红书分享的一段精彩视频 #好物分享 #生活",
-          "createType": 1,
-          "visibleType": 0,
-          "declaration": 2
-        }
+    "accountForms": [{
+      "platformAccountId": "XHS_001",
+      "video": {"key": "v_key", "width": 1080, "height": 1440, "size": 1024000},
+      "cover": {"key": "c_key", "width": 1080, "height": 1440, "size": 300000},
+      "coverKey": "c_key",
+      "contentPublishForm": {
+        "formType": "task",
+        "title": "测试标题",
+        "description": "内容描述 #话题",
+        "visibleType": 0,
+        "createType": 1
       }
-    ]
+    }]
   }
-}
+}'
 ```
 
-## 3. 复杂对象结构说明
+---
 
-### 3.1 PlatformDataItem (位置)
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `yixiaoerId` | `string` | **是** | 统一 ID |
-| `yixiaoerName` | `string` | **是** | 显示名称 |
-| `raw` | `object` | **是** | 平台原始数据 (必须完整透传) |
+## 5. 常见问题排查 (Troubleshooting)
 
-### 3.2 Collection (合集)
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `yixiaoerId` | `string` | **是** | 合集 ID |
-| `yixiaoerName` | `string` | **是** | 合集名称 |
-| `child` | `object[]` | 否 | 子级合集列表 |
-| `raw` | `object` | **是** | 平台原始数据 (透传) |
-
-### 3.3 Group (群聊)
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `yixiaoerId` | `string` | **是** | 群聊 ID |
-| `yixiaoerName` | `string` | **是** | 群聊标题 |
-| `raw` | `object` | **是** | 平台原始数据 (透传) |
-
-### 3.4 LiveInfo (直播预告)
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `yixiaoerId` | `string` | **是** | 直播预告 ID |
-| `yixiaoerName` | `string` | **是** | 直播预告标题 |
-| `raw` | `object` | **是** | 平台原始数据 (透传) |
-
-### 3.5 ShoppingCartItem (商品)
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `yixiaoerId` | `string` | **是** | 商品 ID |
-| `yixiaoerName` | `string` | **是** | 商品名称 |
-| `raw` | `object` | **是** | 平台原始数据 (透传) |
-
-## 相关接口
-
-| 目标字段 | 对应 Action | 文档参考 |
+| 报错信息 / 现象 | 可能原因 | 处理建议 |
 | :--- | :--- | :--- |
-| `location` | `locations` | [获取位置信息](../../get-locations.md) |
-| `collection` | `collections` | [获取合集列表](../../get-collections.md) |
-| `group` | `groups` | [获取群聊列表](../../get-groups.md) |
-| `shopping_cart` | `goods` | [获取商品列表](../../get-goods.md) |
-| `video.key` | `upload` | [资源上传](../../upload-resource.md) |
+| **标题太长 (20字限)** | 用户提供的标题超过了平台物理限制。 | 提示用户“小红书标题不能超过20字”并展示截断版本。 |
+| **视频比例拦截** | 小红书对非 3:4 或 9:16 的视频可能有黑边。 | 建议在 Agent 辅助确认时提示视频比例。 |
+| **复杂参数缺失** | `raw` 对象为空或 ID 不匹配。 | 确保先执行了对应数据的查询操作（如 `goods`, `locations`）。 |
+| **发布频率受限** | 在短时间内连续发布大量内容触发风控。 | 建议增加任务执行间隔。 |
+
+---
+> [!IMPORTANT]
+> **资源引用提示**：小红书是一个极度看重封面的平台。建议 `coverKey` 关联的图片具有高清晰度，并确保经过 `upload` 动作产生 key。

@@ -1,80 +1,61 @@
-# 网易号 视频发布
+# 📄 网易号 视频 参数 (WangYiHao Video)
 
 > [!IMPORTANT]
-> **前提条件 (Prerequisite)**:
-> 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [视频发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
+> **阅读前置规则**: 本文档仅描述 `platformForms` (或账号级 `contentPublishForm`) 内部的平台差异化字段。在开始前，你 **必须** 已经掌握并应用了 [视频发布通用索引](./index.md) 中的根 Payload 结构。
 
+## 1. 触发场景 (Trigger)
 
-## 触发场景 (Trigger)
-- **意图辨析**：用户指定在“Wangyihao”平台分发视频内容时触发。
-- **典型提示词**：
-  - “把这个视频发布到Wangyihao”
-  - “同步视频到Wangyihao”
+当用户指定在“网易号”平台分发网易新闻相关的资讯、评论或原创专栏视频时触发：
+- **新闻分发**：触达网易新闻 App 的高价值用户群。
+- **原创权益护航**：标注原创类型并配置详细的创作申明。
 
-## 执行逻辑 (Logic Flow)
-1. **意图确认**：确认目标平台为Wangyihao。
-2. **参数装配**：识别并填充标题、描述等平台特定字段至 `contentPublishForm`。
-3. **指令执行**：调用 `node scripts/api.ts`。
+## 2. 交互协议 (Interactive Protocol)
 
+Agent 在拼装网易号视频 Payload 时需遵守：
+1. **分类级联必填**：网易号对频道分区有严格要求。必须通过 `categories` 接口获取并在 `category` 数组中透传 `raw` 原始数据。
+2. **双重原创申明**：包含 `createType` (创作类型) 和 `declaration` (申明)。Agent 应根据用户提示词同时锁定这两个字段的逻辑一致性。
+3. **标签强索引**：必须提供 `tags` 字符串数组作为分发引擎的抓取依据。
+4. **资源引用规范**：必须通过 `upload` 动作产生视频 key 及封面 key。
 
-## 1. contentPublishForm 数据结构
+## 3. 参数定义 (Parameters)
 
-| 字段名 | 类型 | 必填 | 说明 | 默认值 |
+### 3.1 核心表单参数 (contentPublishForm)
+
+| 字段名 | 类型 | 必填 | 描述 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| `formType` | `string` | **是** | 固定为 `task` | `task` |
-| `title` | `string` | **是** | 视频标题 | - |
-| `description` | `string` | 否 | 视频描述 | - |
-| `tags` | `string[]` | **是** | 视频标签 | - |
-| `category` | `object[]` | **是** | 视频分类，使用 `CascadingPlatformDataItem[]` 结构 | - |
-| `declaration` | `number` | 否 | 创作申明：1-内容由AI生成, 2-个人原创, 3-取材网络, 4-虚构演绎 | - |
-| `createType` | `number` | 否 | 创作类型：0-非原创, 1-原创 | 0 |
-| `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
-| `scheduledTime` | `number` | 否 | 定时发布时间戳（单位：秒） | - |
+| **`formType`** | `string` | **是** | 固定为 `task`。 | `task` |
+| **`title`** | `string` | **是** | 视频标题。 | - |
+| **`tags`** | `string[]` | **是** | 视频标签。建议 1-10 个。 | - |
+| **`category`** | `Array` | **是** | **视频分类**: 使用 `CascadingPlatformDataItem[]` 结构。 | - |
+| **`pubType`** | `number` | **是** | **存储模式**: `0`-草稿, `1`-发布。 | `1` |
+| `declaration` | `number` | 否 | **创作申明**: 1-AI生成, 2-个人原创, 3-取材网络, 4-虚构演绎。 | - |
+| `createType` | `number` | 否 | **创作类型**: `0`-非原创, `1`-原创。 | `0` |
+| `description` | `string` | 否 | 视频描述内容。 | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间戳 (单位: 秒)。 | - |
 
-## 2. 复杂对象结构
+### 3.2 复杂结构说明
 
-### 3.1 CascadingPlatformDataItem (级联分类对象)
+- **CascadingPlatformDataItem**: 必须包含 `yixiaoerId`, `yixiaoerName` 及其对应的 **`raw`** 对象。
 
-> [!IMPORTANT]
-> **规则 (Rule)**:
-> 所有的 `raw` 数据必须透传通过分类接口获取的原始对象。
+## 4. 执行指令示例 (Command)
 
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `yixiaoerId` | `string` | **是** | 蚁小二分类 ID |
-| `yixiaoerName` | `string` | **是** | 蚁小二分类名称 |
-| `children` | `object[]` | 否 | 子级分类列表 (`CascadingPlatformDataItem[]`) |
-| `raw` | `object` | **是** | 平台原始数据 (必须透传) |
-
-## 3. JSON 示例
-
-```json
-{
+```bash
+# 发布网易号个人原创视频
+node scripts/api.ts --payload='{
+  "action": "publish",
   "publishType": "video",
   "platforms": ["网易号"],
   "publishArgs": {
     "accountForms": [
       {
-        "platformAccountId": "acc_wy_002",
-        "video": {
-          "key": "v_key",
-          "size": 1024000,
-          "width": 1920,
-          "height": 1080,
-          "duration": 60
-        },
+        "platformAccountId": "acc_wy_v_02",
+        "video": { "key": "wy_v_key", "size": 1024000, "width": 1920, "height": 1080, "duration": 60 },
         "contentPublishForm": {
           "formType": "task",
-          "title": "网易号视频标题示例",
-          "description": "这是网易号平台的视频内容描述。",
-          "tags": ["科技", "前沿", "AI"],
-          "category": [
-            {
-              "yixiaoerId": "cat_002",
-              "yixiaoerName": "科技",
-              "raw": { "id": "1", "name": "科技" }
-            }
-          ],
+          "title": "网易生态视频分发实战策略",
+          "description": "探讨网易号长短视频的融合运营技巧。",
+          "tags": ["自媒体", "网易", "解析"],
+          "category": [{ "yixiaoerId": "cat_id_01", "yixiaoerName": "科技", "raw": {...} }],
           "createType": 1,
           "declaration": 2,
           "pubType": 1
@@ -82,12 +63,20 @@
       }
     ]
   }
-}
+}'
 ```
 
-## 相关接口
+---
 
-| 目标数据 | 对应 Action | 相关文档 |
+## 5. 常见问题排查 (Troubleshooting)
+
+| 报错信息 / 现象 | 可能原因 | 处理建议 |
 | :--- | :--- | :--- |
-| `video.key` | `upload` | [资源上传](../../upload-resource.md) |
-| `category` | `category` | [获取分类](../../platform-category.md) |
+| **级联分类不匹配** | `category.raw` 数据格式不满足网易接口要求。 | 必须实时调用 `categories` 获取最新原始对象。 |
+| **申明与类型冲突** | 勾选了原创 `createType: 1` 但申明为 `declaration: 3` (网络取材)。 | 修正合规逻辑，确保申明的一致性。 |
+| **封面上传失败** | `coverKey` 无效。 | 请重新执行 `upload` 动作。 |
+| **发布频率过快** | 短时间内对同一网易号连续发布。 | 建议增加时间间隔。 |
+
+---
+> [!TIP]
+> **网易态度生态**: 网易用户偏好有深度、有态度的内容。Agent 建议视频标题应具备观点性，并在描述中引入用户关心的社会或科技话题。

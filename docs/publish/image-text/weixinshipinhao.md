@@ -1,106 +1,83 @@
-# 视频号图文发布参数 (WeChat Video Account Image-Text)
+# 📄 视频号 图文 参数 (WeChat Video Account Image-Text)
 
 > [!IMPORTANT]
-> **前提条件 (Prerequisite)**:
-> 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [图文发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
+> **阅读前置规则**: 本文档仅描述 `platformForms` (或账号级 `contentPublishForm`) 内部的平台差异化字段。在开始前，你 **必须** 已经掌握并应用了 [图文发布通用索引](./index.md) 中的根 Payload 结构。
 
+## 1. 触发场景 (Trigger)
 
-## 触发场景 (Trigger)
-- **意图辨析**：用户指定在“Weixinshipinhao”平台发布图文动态时触发。
-- **典型提示词**：
-  - “发几张图到Weixinshipinhao”
-  - “同步这条动态到Weixinshipinhao”
+当用户指定在“微信视频号”发布图文笔记、短动态或朋友圈风格内容时触发：
+- **精品图文**：发布高质量多图（1-9 张）笔记，支持标题和长描述。
+- **互动/挂载**：挂载 POI 位置、引用话题、关联合集或设置背景音乐。
 
-## 执行逻辑 (Logic Flow)
-1. **资源校验**：确保所有图片均已上传并获得 Key。
-2. **参数装配**：填充描述及图片列表至 `contentPublishForm`。
-3. **指令执行**：调用 `node scripts/api.ts`。
+## 2. 交互协议 (Interactive Protocol)
 
+Agent 在拼装视频号图文 Payload 时需遵守：
+1. **HTML 话题内嵌**：`description` 支持 HTML。话题必须使用 `<topic text='...' raw='...'>#话题</topic>` 格式进行包裹。
+2. **三位一体资源**：`images` 必须上传至 OSS，且每个成员需具备完整的 `OldImage` 结构。
+3. **复杂对象透传**：对于 `location`, `music`, `collection` 等字段，必须通过相应接口获取并完整透传 `raw` 原始数据，严禁重构对象属性。
+4. **发布模式锁定**：确认用户是希望“存为平台草稿 (pubType: 0)”还是“直接推送至视频号 (pubType: 1)”。
 
-本平台图文发布通过 `contentPublishForm` 承载以下参数。
+## 3. 参数定义 (Parameters)
 
-## 1. contentPublishForm 参数定义
+### 3.1 核心表单参数 (contentPublishForm)
 
-| 字段名 | 类型 | 必填 | 说明 | 默认值 |
+| 字段名 | 类型 | 必填 | 描述 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| `formType` | `string` | **是** | 固定值: `task` | `task` |
-| `title` | `string` | 否 | 标题 | - |
+| **`formType`** | `string` | **是** | 固定值: `task` | `task` |
+| **`images`** | `Array` | **是** | 图片数组 (1-9 张)。使用 `OldImage[]` 结构。 | - |
+| **`pubType`** | `number` | **是** | **存储模式**: `0`-草稿, `1`-发布。 | `1` |
+| `title` | `string` | 否 | 笔记标题。建议包含核心关键词。 | - |
 | `description` | `string` | 否 | 图文描述，支持 HTML (`<p>`, `<topic>`)。最多 1000 字符。 | - |
-| `images` | `Array` | **是** | 图片数组 (`OldImage[]`) | - |
-| `location` | `Object` | 否 | 位置对象 (`PlatformDataItem`) | - |
-| `music` | `Object` | 否 | 音乐对象 (`MusicItem`) | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳) | - |
-| `collection` | `Object` | 否 | 合集信息，使用 `Collection` 结构 | - |
-| `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
+| `location` | `Object` | 否 | **地理位置**: 使用 `PlatformDataItem` 结构。 | - |
+| `music` | `Object` | 否 | **背景音乐**: 使用 `MusicItem` 结构。 | - |
+| `collection` | `Object` | 否 | **合集信息**: 使用 `Collection` 结构。 | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，单位: 秒)。 | - |
 
-## 2. 复杂对象结构说明
+### 3.2 复杂结构说明
 
-### OldImage
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `width` | `number` | **是** | 图片宽度 |
-| `height` | `number` | **是** | 图片高度 |
-| `size` | `number` | **是** | 文件大小 (Bytes) |
-| `key` | `string` | **是** | 资源 Key (通过上传接口获取) |
-| `format` | `string` | **是** | 文件格式 (e.g., `jpg`, `png`) |
+- **OldImage**: 包含 `key`, `size`, `width`, `height`, `format`。
+- **PlatformDataItem / Collection**: 必须包含 `yixiaoerId`, `yixiaoerName` 及其对应的 **`raw`** 对象。
+- **MusicItem**: 包含 `yixiaoerId`, `yixiaoerName`, `duration`, `playUrl`, `artist` 及其对应的 **`raw`** 对象。
 
-### PlatformDataItem (基础结构)
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `yixiaoerId` | `string` | 是 | 统一 ID |
-| `yixiaoerName` | `string` | 是 | 显示名称 |
-| `raw` | `object` | 是 | 平台原始数据 |
+## 4. 执行指令示例 (Command)
 
-### Collection
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `yixiaoerId` | `string` | 是 | 合集 ID |
-| `yixiaoerName` | `string` | 是 | 合集名称 |
-| `raw` | `object` | 否 | 平台原始数据 |
-
-### MusicItem (音乐)
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `yixiaoerId` | `string` | 是 | 蚁小二端统一音乐 ID |
-| `yixiaoerName` | `string` | 是 | 歌曲名称 |
-| `duration` | `number` | 是 | 音乐时长（秒） |
-| `playUrl` | `string` | 是 | 试听/播放链接 |
-| `artist` | `string` | 否 | 歌手/作者名 |
-| `raw` | `object` | 否 | 平台原始数据。如果在音乐列表获取时该字段存在，发布表单中必须携带并完整透传 |
-
-
-
-## 3. Payload 完整示例
-
-```json
-{
+```bash
+# 发布视频号精品图文：带音乐和话题
+node scripts/api.ts --payload='{
   "action": "publish",
   "publishType": "imageText",
   "platforms": ["视频号"],
   "publishArgs": {
     "accountForms": [
       {
-        "platformAccountId": "SPH_ACC_ID",
+        "platformAccountId": "SPH_ACC_001",
         "contentPublishForm": {
           "formType": "task",
-          "title": "视频号动态标题",
-          "description": "<p>视频号图文内容 <topic text='微信' raw='{\"id\":\"xxx\",\"name\":\"微信\"}'>#微信</topic></p>",
+          "title": "视频号图文实操案例",
+          "description": "<p>今日分享一个实操案例 <topic text=\"自媒体\" raw=\"{\\\"id\\\":\\\"wx_01\\\",\\\"name\\\":\\\"自媒体\\\"}\">#自媒体</topic></p>",
           "images": [
-            { "key": "img_sph_01", "size": 1024, "width": 1080, "height": 1440, "format": "jpg" }
-          ]
+            { "key": "sph_img_01", "size": 307200, "width": 1080, "height": 1440, "format": "jpg" }
+          ],
+          "music": { "yixiaoerId": "m_1", "yixiaoerName": "轻快背景音", "duration":60, "playUrl":"...", "raw": {...} },
+          "pubType": 1
         }
       }
     ]
   }
-}
+}'
 ```
 
-## 相关接口
+---
 
-| 目标字段 | 对应 Action | 文档参考 |
+## 5. 常见问题排查 (Troubleshooting)
+
+| 报错信息 / 现象 | 可能原因 | 处理建议 |
 | :--- | :--- | :--- |
-| `location` | `locations` | [获取位置信息](../../get-locations.md) |
-| `collection` | `collections` | [获取合集列表](../../get-collections.md) |
-| `music` | `music` | [获取背景音乐](../../get-music.md) |
-| `tags` | `challenges` | [获取话题/挑战](../../get-challenges.md) |
-| `images.key` | `upload` | [资源上传](../../upload-resource.md) |
+| **话题标签不生效** | `<topic>` 标签中的 `raw` 数据过期或格式错误。 | 必须重新调用 `challenges` 接口获取最新的话题元数据。 |
+| **封面/图片加载失败** | `images` 中的 `key` 缺失或关联资源未上传。 | 确认所有图片已通过 `upload` 动作并正确透传 key。 |
+| **音乐挂载异常** | 目标音乐 ID 在当前账号下不可用或版权受限。 | 检查该视频号账号在平台上的音乐可用库。 |
+| **位置偏移或无效** | `location.raw` 未被视频号服务端识别。 | 建议在 Agent 辅助下重新筛选最匹配的 POI。 |
+
+---
+> [!TIP]
+> **微信社交联动**: 视频号图文与朋友圈具有直接的社交分发属性。Agent 建议描述内容具有亲和力，通过 HTML 话题锚点引导用户进入更高流量的相关社群。

@@ -1,47 +1,57 @@
-# 获取地理位置 (Get Locations)
+# 📄 获取地理位置 Query 参数 (Get Locations Query)
 
-获取在发布内容时可选的地理位置列表（支持 POI 搜索、门店地址、带货地址等）。
+获取在发布内容时可选的地理位置列表。支持 POI 搜索、门店地址、同城地址及带货相关地址。
 
-## 调用指令 (Command)
+> [!IMPORTANT]
+> **地点透传规范**：在发布表单（如 `contentPublishForm.location`）中设置地点时，**必须**完整透传本接口返回的 `raw` 原始对象，否则会导致地点显示不准确或挂载失败。
+
+## 1. 触发场景 (Trigger)
+
+- **意图辨析**：用户在发布视频或图文时，希望标记具体物理位置以获取同城流量曝光。
+- **典型提示词**：
+  - “搜索一下深圳南山区的地点”
+  - “帮我找个位于西湖附近的 POI 挂载”
+  - “获取这个账号支持的海外位置”
+
+## 2. 交互协议 (Interactive Protocol)
+
+1. **关键词搜索**：强制推荐用户提供 `keyword`，以便在庞大的 POI 数据库中精确匹配。
+2. **场景分类**：根据用户需求调整 `type` 参数（如：本地、国内、海外）。
+3. **列表交付**：展示地点名称 `yixiaoerName` 和详细地址 `yixiaoerDesc`。
+
+## 3. 参数定义 (Parameters)
+
+| 字段名 | 类型 | 必填 | 默认值 | 描述 |
+| :--- | :--- | :--- | :--- | :--- |
+| **`action`** | `string` | **是** | `locations` | 固定操作码。 |
+| **`account_id`** | `string` | **是** | - | 蚁小二账号 ID (`platformAccountId`)。 |
+| `keyword` | `string` | 否 | - | 地点名称关键词。 |
+| `type` | `number` | 否 | `1` | 类型：`0`-全部, `1`-本地, `2`-国内, `3`-海外。 |
+| `nextPage` | `string` | 否 | - | 分页标识。 |
+
+### 3.1 返回结果结构
+
+| 字段 | 类型 | 描述 |
+| :--- | :--- | :--- |
+| `yixiaoerId` | `string` | 地点唯一 ID |
+| `yixiaoerName` | `string` | 地点显示名称 |
+| `yixiaoerDesc` | `string` | 详细地址说明 |
+| `raw` | `object` | **核心透传对象**。 |
+
+## 4. 执行指令示例 (Command)
 
 ```bash
-node scripts/api.ts --payload='{"action":"locations","account_id":"XXX","keyword":"深圳","type":1}'
+node scripts/api.ts --payload='{"action":"locations","account_id":"67fb2f1735eeb3cf31db3d65","keyword":"深圳南山"}'
 ```
 
-## 参数列表 (Payload Properties)
+## 5. 常见问题排查 (Troubleshooting)
 
-| 字段名 | 类型 | 是否必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `account_id` | `string` | **是** | 蚁小二账号 ID (32位十六进制) |
-| `keyword` | `string` | 否 | 搜索关键词 |
-| `type` | `number` | 否 | 地址权限/搜索类型：`0`: 全部, `1`: 本地 (默认), `2`: 国内, `3`: 海外 |
-| `nextPage` | `string` | 否 | 分页标识，在返回结果中获取 |
+| 现象 | 可能原因 | 处理建议 |
+| :--- | :--- | :--- |
+| **找不到特定门店** | 搜索词不够精确或地点尚未被高德/百度地图收录。 | 建议使用全称搜索，或更换附近的标志性建筑名称。 |
+| **提示跨区搜索失败** | `type` 与目标地点所在的地理范围不匹配。 | 调整 `type` 为 `0`（全部）重试。 |
+| **挂载后位置偏移** | 平台地图偏移或 `raw` 数据处理错误。 | 确保 `raw` 数据的原始经纬度、ID 等信息未被篡改。 |
 
-## 返回结果 (Response)
-
-返回一个包含地理位置对象的数组。发布时请将整个对象（其基础结构符合 `yixiaoerId`, `yixiaoerName`, `raw`）作为 `location` 参数传递给发布脚本。
-
-```json
-[
-  {
-    "yixiaoerId": "POI_12345",
-    "yixiaoerName": "深圳市南山区...",
-    "yixiaoerDesc": "详细地址描述",
-    "productCount": "100",
-    "cpsProductCount": "50",
-    "raw": { ... }
-  }
-]
-```
-
-### 基础结构 (Base Structure)
-- `yixiaoerId`: (必填) 内部唯一 ID。
-- `yixiaoerName`: (必填) 地理位置名称。
-- `raw`: (必填) 原始平台返回的地理位置对象。如果在获取时该字段存在，发布表单中必须携带并完整透传。
-- `yixiaoerDesc`: (可选) 地理位置详细说明。
-
-## 脚本逻辑 (Backend)
-
-- **脚本路径**: `scripts/api.ts`
-- **功能**: 封装蚁小二标准地理位置查询接口 (`GET /platform-accounts/{platformAccountId}/location`)。
-- **参数映射**: 将 `account_id` 映射为路径变量，将 `keyWord`, `locationType`, `nextPage` 映射为查询参数。
+---
+> [!TIP]
+> **流量权重**：在抖音等平台中，标记真实且具有一定热度的 POI 地点能显著提升“同城”频道的推荐几率。

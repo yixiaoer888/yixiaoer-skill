@@ -1,59 +1,69 @@
-# 简书文章发布参数 (JianShu Article)
+# 📄 简书 文章 参数 (JianShu Article)
 
 > [!IMPORTANT]
-> **前提条件 (Prerequisite)**:
-> 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [文章发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
+> **阅读前置规则**: 本文档仅描述 `platformForms` (或账号级 `contentPublishForm`) 内部的平台差异化字段。在开始前，你 **必须** 已经掌握并应用了 [文章发布通用索引](./index.md) 中的根 Payload 结构。
 
+## 1. 触发场景 (Trigger)
 
-## 触发场景 (Trigger)
-- **意图辨析**：用户指定在“Jianshu”平台发布文章内容时触发。
-- **典型提示词**：
-  - “发布这篇文章到Jianshu”
-  - “并在Jianshu上同步更新”
+当用户指定在“简书”平台发布随笔、短文、技术分享或文学作品时触发：
+- **极简发布**：快速将文字内容同步到简书社区。
+- **草稿同步**：将内容保存到简书后台以便后续精修。
 
-## 执行逻辑 (Logic Flow)
-1. **内容处理**：确保文章正文符合Jianshu要求的格式。
-2. **参数装配**：提取标题、正文及封面信息至 `contentPublishForm`。
-3. **指令执行**：调用 `node scripts/api.ts`。
+## 2. 交互协议 (Interactive Protocol)
 
+Agent 在拼装简书 Payload 时需遵守：
+1. **轻量化原则**：简书对参数要求相对简单，主要聚焦于标题和 HTML 正文。
+2. **正文转换**：确保 `content` 为 HTML 格式，简书对 Markdown 渲染支持良好，但 Payload 传输建议使用 HTML。
+3. **可见性逻辑**：简书默认发布即公开，若需私密保存，建议设置 `pubType: 0` (草稿)。
+4. **资源策略**：简书正文内引用的图片建议通过 `upload` 动作预先转换。
 
-本平台文章发布通过 `contentPublishForm` 承载以下参数。
+## 3. 参数定义 (Parameters)
 
-## 1. contentPublishForm 参数定义
+### 3.1 核心表单参数 (contentPublishForm)
 
-| 字段名 | 类型 | 必填 | 说明 | 默认值 |
+| 字段名 | 类型 | 必填 | 描述 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| `formType` | `string` | **是** | 固定值: `task` | `task` |
-| `title` | `string` | **是** | 文章标题 | - |
-| `content` | `string` | **是** | 文章内容 (HTML 格式) | - |
-| `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
+| **`formType`** | `string` | **是** | 固定值: `task` | `task` |
+| **`title`** | `string` | **是** | 文章标题。 | - |
+| **`content`** | `string` | **是** | 文章内容 (HTML 格式)。 | - |
+| **`pubType`** | `number` | **是** | **存储模式**: `0`-草稿, `1`-发布。 | `1` |
 
-## 2. Payload 完整示例
+## 4. 执行指令示例 (Command)
 
-```json
-{
+```bash
+# 在简书发布一篇技术随笔
+node scripts/api.ts --payload='{
   "action": "publish",
   "publishType": "article",
   "platforms": ["简书"],
   "publishArgs": {
-    "content": "<h1>简书文章标题</h1><p>内容正文...</p>",
+    "content": "<h1>我的简书创作日记</h1><p>今日分享内容...</p>",
     "accountForms": [
       {
         "platformAccountId": "acc_js_001",
         "contentPublishForm": {
           "formType": "task",
-          "title": "这是文章标题",
-          "content": "<h1>简书文章标题</h1><p>内容正文...</p>",
+          "title": "我的简书创作日记",
+          "content": "<h1>我的简书创作日记</h1><p>今日分享内容...</p>",
           "pubType": 1
         }
       }
     ]
   }
-}
+}'
 ```
 
-## 相关接口
+---
 
-| 目标数据 | 对应 Action | 相关文档 |
+## 5. 常见问题排查 (Troubleshooting)
+
+| 报错信息 / 现象 | 可能原因 | 处理建议 |
 | :--- | :--- | :--- |
-| `covers.key` | `upload` | [资源上传](../../upload-resource.md) |
+| **标题重复报错** | 简书限制发布完全相同标题的内容。 | 稍微修改标题或增加唯一性后缀。 |
+| **HTML 标签丢失** | 正文中包含了简书不支持的复杂自定义标签。 | 保持正文结构简单，仅使用基础图文标签。 |
+| **发布频率受限** | 账号短时间内发布过多内容。 | 建议设置时间间隔，或分阶段发布。 |
+| **草稿同步失败** | 简书后台接口波动。 | 尝试重新执行发布动作。 |
+
+---
+> [!TIP]
+> **社区调性**: 简书是一个鼓励原创的写作社区。Agent 建议用户在文章末尾增加“版权申明”或引导关注的文字，以提升个人品牌。

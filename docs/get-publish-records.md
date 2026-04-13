@@ -1,42 +1,51 @@
-# 查询发布记录 (Get Publish Records)
+# 📄 获取发布记录 Query 参数 (Get Publish Records Query)
 
-获取历史发布的任务集（TaskSet）概览列表，支持按平台、状态、时间等维度进行筛选。
+获取历史发布的任务集 (TaskSet) 概览列表。支持按平台、状态、关键词及时间维度进行综合筛选。
 
-## 触发场景 (Trigger)
-- **意图辨析**：当用户需要确认任务是否发布成功、查看历史任务状态、获取任务 ID 以便查询详情或执行重发/删除操作时触发。
+> [!TIP]
+> **排障第一步**：当用户反馈“发布没反应”时，应首先调用此接口查看是否存在处于“发布中”或“发布失败”的任务集。
+
+## 1. 触发场景 (Trigger)
+
+- **意图辨析**：用户需要确认任务执行结果、追溯历史作品、或获取任务 ID 以便进行详情查询。
 - **典型提示词**：
   - “查看我昨天的发布记录”
   - “帮我查一下抖音发布失败的任务”
-  - “列出最近 10 条发布记录”
   - “确认一下任务 ID 为 TS123 的执行状态”
 
-## 参数定义 (Parameters)
+## 2. 交互协议 (Interactive Protocol)
 
-### 参数列表 (Payload Properties)
+1. **自动过滤**：若用户说“查查失败的”，Agent 应自动注入 `status: [2]`。
+2. **列表交付**：展示 `task_set_id`、任务标题及最终状态。
+3. **后续引导**：若发现任务失败，主动提示用户可调用 `records-detail` 查看具体的账号报错详情。
 
-| 字段名 | 类型 | 是否必填 | 描述 |
-| :--- | :--- | :--- | :--- |
-| `action` | `string` | **是** | 固定值：`records` |
-| `platforms` | `string[]` | 否 | 平台过滤。见 [平台定义](./platform.md)。 |
-| `status` | `number[]` | 否 | 状态过滤：0-发布中, 1-发布成功, 2-发布失败, 3-已取消, 4-待审核。 |
-| `keyword` | `string` | 否 | 标题关键词模糊搜索 (别名: `keyWord`) |
-| `start_time` | `number` | 否 | 开始时间戳 (Unix ms) |
-| `end_time` | `number` | 否 | 结束时间戳 (Unix ms) |
-| `page` | `number` | 否 | 分页，默认 1 |
-| `size` | `number` | 否 | 每页数量，默认 20 |
+## 3. 参数定义 (Parameters)
 
-## 执行逻辑 (Logic Flow)
-1. **维度提取**：识别用户查询的时间范围、关键词及状态意图。
-2. **参数装配**：构造 `action: "records"` 负载，处理 `status` 数组。
-3. **指令执行**：调用 `node scripts/api.ts --payload='{...}'`。
-4. **结果交付**：从 `data.data` 中提取关键字段（如 `task_set_id`, `status`）反馈给用户。若涉及失败任务，引导用户调用 `details` 进一步查询。
+| 字段名 | 类型 | 必填 | 默认值 | 描述 |
+| :--- | :--- | :--- | :--- | :--- |
+| **`action`** | `string` | **是** | `records` | 固定值。 |
+| `platforms` | `string[]` | 否 | - | 按平台筛选。见 [平台定义](./platform.md)。 |
+| `status` | `number[]` | 否 | - | 状态过滤：`0`-发布中, `1`-成功, `2`-失败, `3`-已取消。 |
+| `keyword` | `string` | 否 | - | 标题关键词搜索。 |
+| `start_time` | `number` | 否 | - | 开始时间 (Unix 毫秒)。 |
+| `end_time` | `number` | 否 | - | 结束时间 (Unix 毫秒)。 |
+| `page` | `number` | 否 | `1` | 页码。 |
+| `size` | `number` | 否 | `20` | 每页数量。 |
 
-## 返回数据说明 (Response Details)
-
-返回标准的任务集列表对象。每个任务集包含基础信息、状态汇总及关联的账号统计。
-
-## 调用指令 (Command)
+## 4. 执行指令示例 (Command)
 
 ```bash
-node scripts/api.ts --payload='{"action":"records","status":[1,2],"page":1}'
+node scripts/api.ts --payload='{"action":"records","status":[1,2],"page":1,"size":10}'
 ```
+
+## 5. 常见问题排查 (Troubleshooting)
+
+| 现象 | 可能原因 | 处理建议 |
+| :--- | :--- | :--- |
+| **查不最近的记录** | 数据同步可能存在 1-2 分钟的引擎回调延迟。 | 引导用户稍等片刻后刷新查询。 |
+| **状态一直是 0 (发布中)** | 任务可能卡在资源上传或引擎排队。 | 建议检查蚁小二客户端是否在线（若为本机发布）。 |
+| **记录过多无法定位** | 筛选条件太宽。 | 结合 `keyword` 或 `platforms` 重试。 |
+
+---
+> [!NOTE]
+> **任务 ID 溯源**：返回项中的 `id` 字段即为 `taskSetId`，是调用详情查询、删除或重发接口的关键凭证。

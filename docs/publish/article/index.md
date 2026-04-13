@@ -1,123 +1,98 @@
-# 文章发布 (Article Publish)
-
-> [!CAUTION]
-> **阅读规范 (Reading Protocol)**:
-> 本文档是 **所有平台** 文章发布的 **唯一入口** 和 **基础 DTO 定义**。
-> 在查阅具体的平台文档（如 `weixingongzhonghao.md`）之前，你 **必须** 首先查阅本文档以理解 Payload 的根结构，否则将导致生成的 JSON 无法通过校验。
-
-## 触发场景 (Trigger)
-- **意图辨析**：当用户下达长图文、深度文章或多图文消息（仅限微信公众号）分发指令时触发。
-- **典型提示词**：
-  - “发布这篇公众号文章，内容是...”
-  - “帮我同步这篇长文章到知乎和 CSDN”
-  - “把这一周的推文定时在周日发布”
-
-## 执行逻辑 (Logic Flow)
-1. **内容转换**：确保正文为 HTML 格式。若用户提供的是 Markdown 或纯文本，需先进行转换。
-2. **资源补全**：
-   - 调用 `upload` action 上传文章封面图。
-   - 正文内嵌图片也建议先行上传获取 Key（视频号卡片、公众号卡片同理）。
-3. **平台策略分配**：
-   - **微信公众号**：必须单独发布，推荐使用 `platformForms` 结构。
-   - **通用平台**（知乎、简书等）：使用 `accountForms` 结构进行分发。
-4. **参数装配**：注入 `action: "publish"` 及其余 DTO 字段。
-5. **指令执行**：调用 `node scripts/api.ts`。
-
-## 1. 数据结构 (Data Structure)
-
-接口要求传入 `CloudTaskPushRequest` 结构。
-
-### 1.1 基础结构 (Base Structure)
-
-| 字段名 | 类型 | 必填 | 说明 | 默认值 |
-| :--- | :--- | :--- | :--- | :--- |
-| `action` | `string` | **是** | 固定值：`publish` | - |
-| `publishType` | `string` | **是** | 固定为 `article` | - |
-| `platforms` | `string[]` | **是** | 目标平台枚举数组，详见下方平台列表 | - |
-| `coverKey` | `string` | **是** | 任务封面资源 Key | - |
-| `publishArgs` | `Object` | **是** | 发布参数核心容器 | - |
-| `taskSetId` | `string` | 否 | 任务集唯一标识 (草稿发布时必填) | - |
-| `desc` | `string` | 否 | 任务描述/摘要 | - |
-| `publishChannel` | `string` | 否 | `cloud` (云端) 或 `local` (本机) | `cloud` |
-| `clientId` | `string` | 否 | 客户端连接 ID (`local` 发布时必填) | - |
-| `isDraft` | `boolean` | 否 | 是否仅保存为 draft (蚁小二草稿箱) | `false` |
-
-### 1.2 草稿模式选取 (Draft Selection)
-
-| 场景 | 蚁小二草稿箱 | 目标平台草稿箱 |
-| :--- | :--- | :--- |
-| **位置** | `Payload` 根路径 | `accountForms` -> `contentPublishForm` |
-| **参数** | `"isDraft": true` | `"pubType": 0` (若平台不支持，见下方说明) |
-| **效果** | 仅保存在蚁小二系统，不发起平台推送 | 执行推送流程，但最终结果为平台端的草稿态 |
-| **用户话术** | “存为蚁小二草稿”、“以后再发” | “存到百家号草稿箱”、“推送到知乎草稿” |
-
-> [!TIP]
-> **字段兼容性补丁 (Draft Fallback Rule)**:
-> Agent 在处理“存为平台草稿”时必须遵循以下优先级：
-> 1.  **首选 (pubType)**：若目标平台文档定义了 `pubType` 字段，必须设置 `"pubType": 0`。
-> 2.  **次选 (visibleType)**：若无 `pubType` 但定义了 `visibleType` 或 `status`/`privacy` 字段，则将其设置为 **`1` (私密/仅自己可见)**。对应的，`0` 表示公开。
-> 3.  **不支持**：若上述两个字段均未在平台文档中定义，则说明该平台不支持草稿或私密保存，Agent 应告知用户并询问是否直接公开发布。
-
-
-### 1.3 发布参数 (publishArgs)
-
-| 字段名 | 类型 | 必填 | 说明 | 默认值 |
-| :--- | :--- | :--- | :--- | :--- |
-| `content` | `string` | **是** | **文章正文**: HTML 格式字符串 | - |
-| `accountForms` | `Array` | **是** | 账号发布表单列表 (定义目标账号) | - |
-| `platformForms` | `Object` | 否 | **平台级表单**: 仅限 `微信公众号` 使用。按平台名称组织的共享配置字典 | - |
+﻿# 📄 文章发布通用索引 (Article Publish Index)
 
 > [!IMPORTANT]
-> **配置架构约束**:
-> - **微信公众号专用性**: **微信公众号必须单独发布**。在一个发布请求中，如果包含微信公众号，则不能包含其他任何平台；反之亦然。
-> - **platformForms**: **仅限微信公众号使用**。
-> - **优先级**: 后端将优先尝试从 `platformForms` 中获取对应平台的配置，若不存在则回退至账号级的 `contentPublishForm`。
+> **能力定位**: 本文档定义了“文章”类内容发布的根 Payload 结构与核心校验逻辑。在查阅具体的平台文档（如 `weixingongzhonghao.md`, `zhihu.md`）之前，Agent **必须** 首先掌握本文档，以确保根部结构的完整性。
 
-### 1.4 账号表单项 (accountForms Item)
+## 1. 触发场景 (Trigger)
 
-| 字段名 | 类型 | 必填 | 说明 | 默认值 |
+当系统分析到用户的意图为“分发长图文内容”时加载。典型提示词包括：
+- “发布这篇文章到知乎和 CSDN”。
+- “把这段 HTML 发布到我的所有公众号”。
+- “同步这篇博文，并设置封面图”。
+- “帮我把这个内容存为蚁小二草稿”。
+
+## 2. 交互协议 (Interactive Protocol)
+
+Agent 在构造文章发布 Payload 时，必须遵循以下“三步法”：
+
+1. **资源预处理 (Pre-processing)**：
+   - **格式转换**：确保正文 `content` 已转换为标准的 HTML 格式。
+   - **封面锁定**：检查封面图。若为外部 URL，**必须** 先调用 `upload` 动作获取系统 `key`，严禁直接透传原始 URL。
+2. **发布模式判定 (Mode Selection)**：
+   - **微信公众号模式**：若包含“微信公众号”，则 `platforms` 数组中**严禁** 出现其他平台。必须使用 `platformForms` 结构进行精细化控制（详见其专属文档）。
+   - **多平台通用模式**：使用 `accountForms` 数组承载多个账号的配置，支持不同账号使用不同的分类或封面。
+3. **级联分类处理 (Cascading Categories)**：
+   - 许多平台（如 B 站、公众号、百家号）要求传入由父及子的完整分类路径。
+   - Agent **必须** 自行装配 `category` 数组，每一级均需包含 `yixiaoerId`, `yixiaoerName` 及 `raw` 对象。
+4. **预览确认 (Preview & Confirm)**：
+   - 在执行前，向用户展示生成的标题、选中的封面缩略图及目标平台列表。**明确获得用户“发布”指令后**方可调用脚本。
+
+## 3. 参数定义 (Parameters)
+
+### 3.1 根 Payload 结构 (Root Structure)
+
+| 字段名 | 类型 | 必填 | 描述 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| `platformAccountId` | `string` | **是** | 蚁小二平台账号唯一 ID | - |
-| `cover` | `Object` | **是** | **ImageFormItem**: 主封面对象 (`key`, `width`, `height`, `size`) | - |
-| `contentPublishForm`| `Object` | 否 | **账号级透传配置**: 若未配置 `platformForms` 则从此读取 | `{}` |
-| `coverKey` | `string` | 否 | 账号级封面 Key (通常与 `cover.key` 一致) | - |
+| **`action`** | `string` | **是** | 固定值：`publish` | `publish` |
+| **`publishType`** | `string` | **是** | 固定值：`article` | `article` |
+| **`platforms`** | `string[]` | **是** | 目标平台枚举数组。例如 `["知乎", "CSDN"]`。 | - |
+| **`publishArgs`** | `Object` | **是** | 核心发布参数，包含正文与账号配置。 | - |
+| `isDraft` | `boolean` | 否 | 若为 `true`，则仅作为蚁小二系统的“内部草稿”保存，不执行远端分发。 | `false` |
 
-## 2. 发布示例 (Payload Example)
+### 3.2 核心发布参数 (publishArgs)
 
-```json
-{
+| 字段名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| **`content`** | `string` | **是** | **HTML 格式** 的正文内容。 |
+| **`accountForms`** | `Array` | **是** | 账号级发布配置列表。包含账号 ID、封面等信息。 |
+| `platformForms` | `Object | 否 | **仅限微信公众号使用**。用于承载多图文、设置同步开关等。 |
+
+### 3.3 账号配置项 (accountForms Item)
+
+| 字段名 | 类型 | 必填 | 描述 |
+| :--- | :--- | :--- | :--- |
+| **`platformAccountId`** | `string` | **是** | 蚁小二平台账号唯一 ID。 |
+| **`cover`** | `Object` | **是** | **ImageFormItem**: 主封面对象。包含 `key`, `width`, `height`, `size`。 |
+| `contentPublishForm` | `Object` | 否 | **平台私有字段容器**：若目标平台有特殊需求（如 AcFun 的标签），在此填入。 |
+| `coverKey` | `string | 否 | 冗余字段。通常与 `cover.key` 保持一致，建议填入。 |
+
+---
+
+## 4. 执行指令示例 (Command)
+
+`ash
+# 通用文章发布示例：同步到知乎与 CSDN
+node scripts/api.ts --payload='{
   "action": "publish",
   "publishType": "article",
-  "platforms": ["微信公众号"],
+  "platforms": ["知乎", "CSDN"],
   "publishArgs": {
-    "content": "<h1>演示文章标题</h1><p>这是一个演示文章的正文内容...</p>",
+    "content": "<h1>深度：AI 驱动的写作变革</h1><p>正文内容...</p>",
     "accountForms": [
       {
-        "platformAccountId": "acc_art_001",
+        "platformAccountId": "ACC_ZH_001",
         "cover": {
-          "key": "article_cover_key",
-          "width": 900,
-          "height": 500,
-          "size": 150000
+          "key": "article_cover_key_001",
+          "width": 800,
+          "height": 600,
+          "size": 102400
         },
-        "coverKey": "article_cover_key"
+        "coverKey": "article_cover_key_001"
       }
     ]
   }
-}
-```
+}'
+`
 
-### 4.1 级联分类组装 (Cascading Categories)
-许多平台要求传入由父及子的完整分类对象数组。
-- **组装逻辑**：Agent 从 `categories` 接口获取数据后，若存在层级关系，**必须自行构造** 路径数组。
-- **填表规范**：对于每一级，必须包含 `yixiaoerId`, `yixiaoerName` 以及对应的 **`raw`** 对象。
-- **层级示例**：
-  - 父分类：`{"yixiaoerId": "18", "yixiaoerName": "动漫", "raw": {...}}`
-  - 子分类：`{"yixiaoerId": "1", "yixiaoerName": "国产动漫", "raw": {...}}`
-  - **最终 Payload 形式**（Agent 需手动装配成此数组）：
-    ```json
-    "category": [
-      { "yixiaoerId": "18", "yixiaoerName": "动漫", "raw": {...} },
-      { "yixiaoerId": "1", "yixiaoerName": "国产动漫", "raw": {...} }
-    ]
-    ```
+## 5. 常见问题排查 (Troubleshooting)
+
+| 报错信息 / 现象 | 可能原因 | 处理建议 |
+| :--- | :--- | :--- |
+| **`YIXIAOER_USAGE_ERR`** | 正文包含非法标签或内容字段缺失。 | 检查 `content` 是否为有效的 HTML。确认 `accountForms` 是否为空。 |
+| **分类不识别 / ID 非法** | `category` 仅传入了末级 ID。 | **必须满足级联要求**：提供从根分类到子分类的完整对象数组，并包含 `raw` 透传数据。 |
+| **封面显示破损** | 使用了外部 URL 且未通过 `upload` 动作转换。 | **禁止透传外链**：必须先执行 `upload` 动作获取系统内部 `key` 后再引用。 |
+| **多图文发布冲突** | 将“微信公众号”与其他通用平台在同一个 Payload 中混发。 | **物理隔离原则**：微信公众号必须作为一个独立的发布动作执行。 |
+
+---
+> [!CAUTION]
+> **严禁生成代码**：Agent 必须严格按照上述 JSON 结构构造 Payload。严禁直接调用文件操作工具尝试生成 `.ts` 或脚本文件。

@@ -1,58 +1,57 @@
-# 上传资源 (Upload Resource)
+# 📄 资源上传 动作 参数 (Upload Resource Action)
 
-将图片、视频或其它素材上传至蚁小二云端存储 (OSS)，并获取用于发布的资源 Key。这是自动化发布的前置步骤。
-
-## 触发场景 (Trigger)
-- **意图辨析**：当用户提供原始 URL 或本地路径，并准备进行发布 (publish) 或存入素材库 (material) 之前，必须先将资源“物理上传”以获得系统可识别的 Key。
-- **典型提示词**：
-  - “把这个视频传上去”
-  - “准备发布，上传封面图”
-  - “获取这个短剧资源的 Key”
-
-> [!IMPORTANT]
-> **素材库上传特殊说明**: 当用户明确要求“上传到素材库”时，这只是第一步 (`upload`)，完成后**必须**紧接着执行第二步 (`material`) 登记入库，否则上传仅停留在临时 OSS 空间。
-
-## 参数定义 (Parameters)
-
-### 参数列表 (Payload Properties)
-
-| 字段名 | 类型 | 是否必填 | 描述 |
-| :--- | :--- | :--- | :--- |
-| `action` | `string` | **是** | 固定值：`upload` |
-| `url` | `string` | **是** | 资源的远程 URL 或本地绝对路径 |
-| `bucket` | `string` | **否** | OSS 存储桶。默认 `cloud-publish`；若后续要调用素材库 `action: "material"`，必须使用 `material-library` |
-| `contentType` | `string` | **是** | 资源的 MIME 类型 (如 `video/mp4`, `image/png`)。**严格要求**: 请求预签名 URL 时声明的 `contentType` 必须与执行 PUT 上传时 Header 中的 `Content-Type` **完全一致**。 |
-| `size` | `number` | 否 | 资源大小 (字节)。 |
-
-## 执行逻辑 (Logic Flow)
-1. **源检测**：识别 URL 是远程地址还是本地物理路径。
-2. **目标桶确认**：根据用户是否提到“素材库”决定 `bucket`（`cloud-publish` vs `material-library`）。
-3. **类型嗅探**：尝试根据后缀名自动推断 `contentType`，若失败则提示用户或使用通用流类型。
-4. **指令执行**：调用 `node scripts/api.ts --payload='{"action":"upload",...}'`。
-5. **Key 提取**：获取返回的 `key`，并作为后续发布 Payload 的输入（如 `coverKey`, `video.key`）。
-
-## 输出结果 (Output)
-
-输出生成的资源标识，供发布脚本引用：
-```json
-{
-  "key": "cloud-publish/2026/03/26/66b2xxx/xxx.jpg",
-  "name": "xxx.jpg",
-  "bucket": "cloud-publish"
-}
-```
-**注意**: 在发布文章或视频时，请直接传入返回的 `key` 字符串作为封面或图片地址。
-
-## 调用指令 (Command)
-
-```bash
-node scripts/api.ts --payload='{"action":"upload","url":"https://example.com/image.jpg","bucket":"cloud-publish"}'
-```
-
-> [!IMPORTANT]
-> **发布合规性提醒**:
-> 所有的封面图、图文图片、视频文件均**严禁直接使用外部网络 URL**，必须通过本项目提供的上传接口进行处理并获取 `key` 后进行发布。不遵守此规范将直接导致任务失败。
+将图片、视频或其它素材上传至蚁小二云端存储 (OSS)，获取用于发布的资源 Key。这是所有自动化发布任务的必须前置步骤。
 
 > [!CAUTION]
-> **ContentType 签名一致性**:
-> 在上传资源时，必须确保获取上传地址所传入的 `contentType` 参数与 PUT 请求实际发送的 `Content-Type` Header **完全一致**。
+> **发布合规性禁令**：严禁在 `publish` 接口中直接透传外部 HTTP URL。所有外部资源必须通过本文档定义的 `upload` 动作转换为 `key` 后方可使用。
+
+## 1. 触发场景 (Trigger)
+
+- **意图辨析**：用户提供了原始 URL 或本地路径，并准备进行发布或存入素材库。
+- **典型提示词**：
+  - “帮我传这张图到蚁小二”
+  - “获取这个视频的上传 Key”
+  - “上传这个封面”
+
+## 2. 交互协议 (Interactive Protocol)
+
+1. **类型匹配协议**：Agent 应识别文件后缀，并自动映射为标准的 `contentType` (如 `.png` -> `image/png`)。
+2. **桶策略选择**：
+   - 默认发布 -> `bucket: "cloud-publish"`。
+   - 明确说“存入素材库” -> `bucket: "material-library"`。
+3. **两步连动协议**：执行完上传并获得 Key 后，Agent 应立即根据场景引导用户进行下一步（发布或素材入库登记）。
+
+## 3. 参数定义 (Parameters)
+
+| 字段名 | 类型 | 必填 | 默认值 | 描述 |
+| :--- | :--- | :--- | :--- | :--- |
+| **`action`** | `string` | **是** | `upload` | 固定值。 |
+| **`url`** | `string` | **是** | - | 资源的远程 URL 或本地绝对路径。 |
+| `bucket` | `string` | 否 | `cloud-publish` | 存储桶：`cloud-publish` (发布用) 或 `material-library` (入库用)。 |
+| `contentType` | `string` | 否 | - | MIME 类型。必须与随后的物理上传 Header 强一致。 |
+
+### 3.1 返回结果结构 (Response)
+
+| 字段 | 类型 | 描述 |
+| :--- | :--- | :--- |
+| `key` | `string` | **核心资源标识**。在后续发布表单中填入此值而非原始 URL。 |
+| `uploadUrl` | `string` | 物理上传的目标地址。 |
+
+## 4. 执行指令示例 (Command)
+
+```bash
+# 上传一张封面图
+node scripts/api.ts --payload='{"action":"upload","url":"https://example.com/cover.jpg","bucket":"cloud-publish","contentType":"image/jpeg"}'
+```
+
+## 5. 常见问题排查 (Troubleshooting)
+
+| 现象 | 可能原因 | 处理建议 |
+| :--- | :--- | :--- |
+| **SignatureDoesNotMatch** | 获取 Key 时的 `contentType` 与实际物理上传时的 Header 不一致。 | 确保 Content-Type 字符串（含大小写）完全重合。 |
+| **Timeout / 连接超时** | 蚁小二服务器无法访问该远程 URL，或文件过大。 | 检查 URL 是否公开，或尝试下载到本地后使用本地路径重传。 |
+| **403 Forbidden** | API Key 权限不足。 | 重置并更新环境变量中的 `YIXIAOER_API_KEY`。 |
+
+---
+> [!IMPORTANT]
+> **Key 的引用**：返回的 `key` 适用于所有发布组件（如 `images` 数组、`video.key` 或 `coverKey`）。

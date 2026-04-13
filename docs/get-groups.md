@@ -1,38 +1,51 @@
-# 获取群聊列表 (Get Groups)
+# 📄 获取群聊列表 Query 参数 (Get Groups Query)
 
-此接口用于获取指定媒体账号在平台上已创建或加入的群聊列表，以便在发布视频时进行绑定。
+获取指定媒体账号在平台上已创建或加入的粉丝群、互动群列表。用于在发布时引导观众加入群聊，沉淀私域流量。
 
-## 1. 调用指令
+> [!IMPORTANT]
+> **资源透传原则**：在发布表单（如 `contentPublishForm.group`）绑定群聊时，**必须**完整透传本接口返回的 `raw` 原始对象，否则会导致挂载组件失效。
+
+## 1. 触发场景 (Trigger)
+
+- **意图辨析**：用户希望将发布的内容关联到其粉丝群，以便在播放页面显示一键加群入口。
+- **典型提示词**：
+  - “列一下这个号可以挂载的粉丝群”
+  - “帮我把这个视频绑定到我的官方交友群”
+
+## 2. 交互协议 (Interactive Protocol)
+
+1. **权限前提**：挂载群聊通常对账号等级或认证状态有要求。Agent 应在执行前简单提示相关前提。
+2. **列表交付**：展示群名称 `yixiaoerName` 和头像 `yixiaoerImageUrl`，方便用户确认。
+
+## 3. 参数定义 (Parameters)
+
+| 字段名 | 类型 | 必填 | 默认值 | 描述 |
+| :--- | :--- | :--- | :--- | :--- |
+| **`action`** | `string` | **是** | `groups` | 固定操作码。 |
+| **`account_id`** | `string` | **是** | - | 蚁小二账号 ID (`platformAccountId`)。 |
+
+### 3.1 返回结果结构
+
+| 字段 | 类型 | 描述 |
+| :--- | :--- | :--- |
+| `yixiaoerId` | `string` | 群聊唯一标识 |
+| `yixiaoerName` | `string` | 群标题 |
+| `yixiaoerImageUrl` | `string` | 群头像 URL |
+| `raw` | `object` | **核心透传对象**。包含平台特定的群聊元数据。 |
+
+## 4. 执行指令示例 (Command)
 
 ```bash
-node scripts/api.ts --payload='{
-  "action": "groups",
-  "account_id": "YOUR_ACCOUNT_ID"
-}'
+node scripts/api.ts --payload='{"action":"groups","account_id":"67fb2f1735eeb3cf31db3d65"}'
 ```
 
-## 2. 请求参数
+## 5. 常见问题排查 (Troubleshooting)
 
-| 参数名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| action | string | 是 | 固定为 `groups` |
-| account_id | string | 是 | 蚁小二系统内的媒体账号 ID |
-
-## 3. 返回数据结构
-
-返回一个包含 `Group` 对象的数组。
-
-### Group 结构说明
-| 字段名 | 类型 | 说明 |
+| 现象 | 可能原因 | 处理建议 |
 | :--- | :--- | :--- |
-| yixiaoerId | string | 群聊 ID |
-| yixiaoerName | string | 群聊标题 |
-| yixiaoerDesc | string | 群聊描述 |
-| yixiaoerImageUrl | string | 群聊头像 URL |
-| `raw` | `object` | 平台原始数据。如果在获取时该字段存在，发布表单中必须携带并完整透传 |
+| **列表为空** | 账号未创建粉丝群，或不满足挂载门槛（如：等级、信用分）。 | 引导用户先前往平台 App 端手动创建或检查群聊权限。 |
+| **绑定的群不显示** | `raw` 数据有误，或该群聊已被平台封禁。 | 核实群聊健康状态，并重新获取最新的 `raw` 对象。 |
 
-## 脚本逻辑 (Backend)
-
-- **脚本路径**: `scripts/api.ts`
-- **功能**: 封装蚁小二标准化群聊查询接口 (`GET /platform-accounts/{platformAccountId}/group-chats`)。
-- **参数映射**: 将 `account_id` 映射为 URL 路径变量。
+---
+> [!TIP]
+> **私域建议**：将高质量视频内容与活跃粉丝群绑定，是快速提升私域粉丝密度的有效手段。

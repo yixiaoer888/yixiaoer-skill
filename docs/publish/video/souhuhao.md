@@ -1,91 +1,80 @@
-# 搜狐号视频发布参数 (SouHuHao Video)
+# 📄 搜狐号 视频 参数 (SouHuHao Video)
 
 > [!IMPORTANT]
-> **前提条件 (Prerequisite)**:
-> 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [视频发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
+> **阅读前置规则**: 本文档仅描述 `platformForms` (或账号级 `contentPublishForm`) 内部的平台差异化字段。在开始前，你 **必须** 已经掌握并应用了 [视频发布通用索引](./index.md) 中的根 Payload 结构。
 
+## 1. 触发场景 (Trigger)
 
-## 触发场景 (Trigger)
-- **意图辨析**：用户指定在“Souhuhao”平台分发视频内容时触发。
-- **典型提示词**：
-  - “把这个视频发布到Souhuhao”
-  - “同步视频到Souhuhao”
+当用户指定在“搜狐号”平台分发视频动态、行业资讯或生活 VLOG 时触发：
+- **搜狐信息流分发**：利用搜狐网及其手机端的庞大用户群进行触达。
+- **原创品牌建设**：标注原创身份并提供准确分类以获取收录。
 
-## 执行逻辑 (Logic Flow)
-1. **意图确认**：确认目标平台为Souhuhao。
-2. **参数装配**：识别并填充标题、描述等平台特定字段至 `contentPublishForm`。
-3. **指令执行**：调用 `node scripts/api.ts`。
+## 2. 交互协议 (Interactive Protocol)
 
-本平台视频发布通过 `contentPublishForm` 承载以下参数。
+Agent 在拼装搜狐号视频 Payload 时需遵守：
+1. **分类级联必填**：搜狐号分类对搜索引擎抓取具有极高权值。必须通过 `categories` 接口获取并在 `category` 数组中透传 `raw` 原始数据。
+2. **标题与描述红线**：标题需控制在 5-72 字，描述需在 5-200 字。Agent 应校验输入字数。
+3. **原创申明判定**：搜狐号强制要求 `declaration` 字段数值。根据内容特征设置（如自行拍摄设为 `2`）。
+4. **资源引用规范**：必须通过 `upload` 动作获取视频和封面的 `key`。
 
-## 1. contentPublishForm 参数定义
+## 3. 参数定义 (Parameters)
 
-| 字段名 | 类型 | 必填 | 说明 | 默认值 |
+### 3.1 核心表单参数 (contentPublishForm)
+
+| 字段名 | 类型 | 必填 | 描述 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| `formType` | `string` | **是** | 固定值: `task` | `task` |
-| `title` | `string` | **是** | 视频标题 (5-72 字符) | - |
-| `description` | `string` | **是** | 视频描述 (5-200 字符) | - |
-| `tags` | `string[]` | **是** | 视频标签 | - |
-| `category` | `Array` | **是** | 视频分类 (`CascadingPlatformDataItem[]`) | - |
-| `declaration` | `number` | **是** | 原创类型: 0-无特别声明, 1-引用申明, 2-自行拍摄, 3-包含AI创作内容, 4-包含虚构创作 | 0 |
-| `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
+| **`formType`** | `string` | **是** | 固定为 `task`。 | `task` |
+| **`title`** | `string` | **是** | 视频标题 (5-72 字符)。 | - |
+| **`description`** | `string` | **是** | 视频描述 (5-200 字符)。 | - |
+| **`tags`** | `string[]` | **是** | 视频标签。 | - |
+| **`category`** | `Array` | **是** | **视频分类**: 使用 `CascadingPlatformDataItem[]` 结构。 | - |
+| **`declaration`** | `number` | **是** | **创作申明**: `0`-无, `1`-引用, `2`-自行拍摄, `3`-AI创作, `4`-虚构。 | `0` |
+| **`pubType`** | `number` | **是** | **存储模式**: `0`-草稿, `1`-发布。 | `1` |
+| `scheduledTime` | `number` | 否 | 定时发布时间戳 (单位: 秒)。 | - |
 
-## 2. 复杂对象结构
+### 3.2 复杂结构说明
 
-### CascadingPlatformDataItem (级联分类)
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | `string` | **是** | 选项 ID |
-| `text` | `string` | **是** | 选项文本 |
-| `children` | `Array` | 否 | 子级选项列表 (`PlatformDataItem[]`) |
-| `raw` | `object` | **是** | 平台原始数据 |
+- **CascadingPlatformDataItem**: 必须包含 `id`, `text`, `raw` 元数据。
 
-## 3. Payload 完整示例
+## 4. 执行指令示例 (Command)
 
-```json
-{
+```bash
+# 发布搜狐号原创实拍视频
+node scripts/api.ts --payload='{
   "action": "publish",
   "publishType": "video",
   "platforms": ["搜狐号"],
   "publishArgs": {
     "accountForms": [
       {
-        "platformAccountId": "acc_sh_video_001",
-        "video": {
-          "key": "video_resource_key",
-          "size": 10240000,
-          "width": 1920,
-          "height": 1080,
-          "duration": 60
-        },
+        "platformAccountId": "acc_sh_v_001",
+        "video": { "key": "sh_v_1", "size": 1024000, "width": 1920, "height": 1080, "duration": 60 },
         "contentPublishForm": {
           "formType": "task",
-          "title": "搜狐号视频发布标题示例",
-          "description": "这是关于在该平台发布视频的描述信息内容。",
-          "tags": ["科技", "数码"],
-          "category": [
-            {
-              "id": "1",
-              "text": "科技",
-              "raw": { "id": "1", "name": "科技" }
-            }
-          ],
+          "title": "搜狐号：自媒体时代的流量常青树",
+          "description": "探讨搜狐号在 2026 年的流量分发逻辑。",
+          "tags": ["运营", "搜狐", "经验"],
+          "category": [{ "id": "1", "text": "科技", "raw": {...} }],
           "declaration": 2,
           "pubType": 1
         }
       }
     ]
   }
-}
+}'
 ```
 
-## 相关接口
+---
 
-| 目标字段 | 对应 Action | 文档参考 |
+## 5. 常见问题排查 (Troubleshooting)
+
+| 报错信息 / 现象 | 可能原因 | 处理建议 |
 | :--- | :--- | :--- |
-| `category` | `categories` | [获取账号分类](../../get-publish-categories.md) |
-| `video.key` | `upload` | [资源上传](../../upload-resource.md) |
-| 目标数据 | 对应 Action | 相关文档 |
-| :--- | :--- | :--- |
-| `video.key` | `upload` | [资源上传](../../upload-resource.md) |
+| **标题太短或过长** | 字数不在 5-72 范围内。 | 修改标题内容长度。 |
+| **原创申明缺失** | 未传 `declaration` 数值。 | 搜狐号视频通道对声明通常为强校验，请补全。 |
+| **分类数据错误** | `category.raw` 缺失或非原始对象。 | 必须实时从接口获取并透传。 |
+| **标签解析失败** | 标签含特殊字符或敏感词汇。 | 移除不合规标签。 |
+
+---
+> [!TIP]
+> **SEO 全渠道分发**: 搜狐内容在搜索引擎中权重极高。Agent 建议标题尽量贴合用户的搜索意图（如“怎么做的”、“最新技巧”），并配以专业化的分类。

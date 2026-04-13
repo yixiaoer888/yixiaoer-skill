@@ -1,37 +1,55 @@
-# 获取商品列表 (Get Goods)
+# 📄 获取推广商品 Query 参数 (Get Goods Query)
 
-此接口用于获取指定媒体账号在平台上关联的商品、团购或小店商品列表，以便在发布视频时进行商业推广。
+获取指定媒体账号在平台上关联的商品、团购或小店商品列表。主要用于“视频带货”场景。
 
-## 1. 调用指令
+> [!IMPORTANT]
+> **商业合规与透传**：在发布表单（如 `contentPublishForm.goods`）挂载商品时，**必须**完整透传本接口返回的 `raw` 原始对象，否则会导致挂载链接失效或佣金计算错误。
+
+## 1. 触发场景 (Trigger)
+
+- **意图辨析**：用户在进行电商带货、探店团购或推广小店商品时，需要精确挂载目标链接。
+- **典型提示词**：
+  - “获取我小店里的商品列表”
+  - “搜索这个账号下关于‘防晒霜’的推广商品”
+
+## 2. 交互协议 (Interactive Protocol)
+
+1. **带货权限校验**：挂载商品通常需要账号开通“橱窗”或“团购”功能。Agent 应在结果为空时提示用户确认账号权限。
+2. **多维度展示**：Agent 在交付结果时，应同时展示商品名称 `yixiaoerName` 和价格 `price`（换算为元），方便用户确认。
+
+## 3. 参数定义 (Parameters)
+
+| 字段名 | 类型 | 必填 | 默认值 | 描述 |
+| :--- | :--- | :--- | :--- | :--- |
+| **`action`** | `string` | **是** | `goods` | 固定操作码。 |
+| **`account_id`** | `string` | **是** | - | 蚁小二账号 ID (`platformAccountId`)。 |
+| `keyword` | `string` | 否 | - | 商品名称搜索关键词。 |
+
+### 3.1 返回结果结构 (ShoppingCartItem)
+
+| 字段 | 类型 | 描述 |
+| :--- | :--- | :--- |
+| `yixiaoerId` | `string` | 商品唯一标识 |
+| `yixiaoerName` | `string` | 商品名称 |
+| `yixiaoerImageUrl` | `string` | 商品封面图 |
+| `price` | `number` | 售价 (分) |
+| `earnPrice` | `number` | 预估佣金 (分) |
+| `raw` | `object` | **核心透传对象**。 |
+
+## 4. 执行指令示例 (Command)
 
 ```bash
-node scripts/api.ts --payload='{
-  "action": "goods",
-  "account_id": "YOUR_ACCOUNT_ID",
-  "keyword": "可选搜索词"
-}'
+node scripts/api.ts --payload='{"action":"goods","account_id":"67fb2f1735eeb3cf31db3d65","keyword":"口红"}'
 ```
 
-## 2. 请求参数
+## 5. 常见问题排查 (Troubleshooting)
 
-| 参数名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| action | string | 是 | 固定为 `goods` |
-| account_id | string | 是 | 蚁小二系统内的媒体账号 ID |
-| keyword | string | 否 | 搜索商品的关键词 |
-
-## 3. 返回数据结构
-
-返回一个包含 `ShoppingCartItem` 对象的数组及分页信息。
-
-### ShoppingCartItem 结构说明
-| 字段名 | 类型 | 说明 |
+| 现象 | 可能原因 | 处理建议 |
 | :--- | :--- | :--- |
-| `yixiaoerId` | `string` | (必填) 商品 ID |
-| `yixiaoerName` | `string` | (必填) 商品名称 |
-| `raw` | `object` | (必填) 平台原始商品对象。如果在获取时该字段存在，发布表单中必须携带并完整透传 |
-| `yixiaoerDesc` | `string` | 商品规格说明 |
-| `yixiaoerImageUrl` | `string` | 商品图片 URL |
-| `price` | `number` | 商品价格（单位：分） |
-| `earnPrice` | `number` | 预估佣金（单位：分） |
-| `count` | `number` | 剩余库存 |
+| **列表返回为空** | 账号未开通电商功能，或橱窗中暂无商品。 | 引导用户先前往平台 App 完成选品并加入橱窗。 |
+| **佣金显示为 0** | 该商品可能不属于推广计划，或者是自营商品。 | 核实商品类型。 |
+| **挂载报错：商品已下架** | 获取列表与发布动作间隔时间太长，商品状态已变更。 | 建议立即通过本接口刷新状态。 |
+
+---
+> [!TIP]
+> **转化建议**：由于短视频带货受限较多，建议挂载近期高转化的热门商品，并确保视频内容与商品本身强相关。
