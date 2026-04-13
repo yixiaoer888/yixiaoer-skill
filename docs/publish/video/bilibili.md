@@ -13,7 +13,7 @@
 ## 2. 交互协议 (Interactive Protocol)
 
 Agent 在拼装 B 站 Payload 时需遵守：
-1. **级联分类校验**：B 站投稿对分类要求极严。必须包含父子级 DTO。**严禁手动指定 ID**，必须通过 `categories` 接口获取并在 `category` 数组中透传 `raw` 数据。
+1. **级联分类校验**：B 站投稿对分类要求极严。必须通过 `categories` 接口获取并在 `category` 数组中透传 `raw` 数据。**若分区有子类，必须选中二级子分区**，严禁仅使用一级分区 ID。
 2. **标签规范化**：`tags` 应包含视频的核心关键词（1-10 个）。若用户未提供，Agent 应根据标题和描述自动提取。
 3. **申明判定**：若 `createType` 设为 `2` (转载)，必须强制要求用户提供 `contentSourceUrl`。
 4. **资源引用**：必须通过 `upload` 动作获取视频和封面的 `key`。
@@ -28,7 +28,7 @@ Agent 在拼装 B 站 Payload 时需遵守：
 | **`title`** | `string` | **是** | 视频标题 (最多 80 字符)。 | - |
 | `description` | `string` | 否 | 视频描述 (最多 2000 字符)。 | - |
 | **`tags`** | `string[]` | **是** | 视频标签数组 (1-10 个)。 | - |
-| **`category`** | `Array` | **是** | 视频分类。使用 `CascadingPlatformDataItem[]` 结构。 | - |
+| **`category`** | `Array` | **是** | 视频分类。使用 `CascadingPlatformDataItem[]` 结构。**必须选中二级子分区**。 | - |
 | **`createType`** | `number` | **是** | **类型**: `1`-自制, `2`-转载。 | `1` |
 | **`pubType`** | `number` | **是** | **发布类型**: `0`-草稿, `1`-直接发布。 | `1` |
 | `declaration` | `number` | 否 | **创作者申明**: `0`-无, `1`-AI合成, `2`-危险行为, `3`-仅供娱乐, `4`-引人不适, `5`-理性消费, `6`-个人观点。 | `0` |

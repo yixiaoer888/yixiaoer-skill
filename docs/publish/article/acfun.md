@@ -14,7 +14,7 @@
 
 Agent 在拼装 AcFun Payload 时需遵守：
 1. **原创申明逻辑**：若用户提到“原创”，必须将 `type` 设为 `1`。若是转载，需提醒用户提供原文链接 `contentSourceUrl`。
-2. **分类必选原则**：AcFun 文章发布强制要求分类 `category`。Agent 必须通过 `categories` 接口获取合法分类数组，并包含 `raw` 透传数据。
+2. **分类必选与深度原则**：AcFun 文章发布强制要求分类 `category`。Agent 必须通过 `categories` 接口获取。若存在子分类，**必须** 选中叶子节点，严禁停留在一级大类。数据需包含 `raw` 透传。
 3. **封面规范**：必须通过 `covers` 数组提供至少一张封面图，且包含完整的 `OldCover` 结构（key, size, width, height）。
 4. **话题限制**：支持添加 `tags` 话题，但建议数量不要超过 1 个，以符合其文章分发习惯。
 
@@ -28,7 +28,7 @@ Agent 在拼装 AcFun Payload 时需遵守：
 | **`title`** | `string` | **是** | 文章标题 (最多 50 字符)。 | - |
 | **`content`** | `string` | **是** | 文章正文 (HTML 格式，最多 50000 字符)。 | - |
 | **`covers`** | `Array` | **是** | 封面列表。详见 [3.2 OldCover 定义](#32-oldcover-定义)。 | - |
-| **`category`** | `Array` | **是** | 文章分类。详见 [3.3 Category 定义](#33-category-定义)。 | - |
+| **`category`** | `Array` | **是** | 文章分类。**必须选中子分类（若存在）**。详见 [3.3 Category 定义](#33-category-定义)。 | - |
 | **`type`** | `number` | **是** | **创作类型**: `0`-不申明, `1`-申明原创。 | `0` |
 | `desc` | `string` | 否 | 文章摘要/描述 (最多 200 字)。 | - |
 | `tags` | `string[]` | 否 | 话题标签 (最多 1 个)。 | - |

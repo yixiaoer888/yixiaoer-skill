@@ -16,6 +16,7 @@ Agent 在构造发布指令前需遵守：
 2. **账号校验原则**：必须先通过 `accounts` 确认 `platformAccountId` 的 `status: 1` (在线)。
 3. **分步确认原则**：构造好 Payload 后，必须列表展示：**[平台] - [账号昵称] - [标题]**，征得用户同意后再执行。
 4. **模式判别原则**：明确区分 `publishChannel: "cloud"` (云端代理发布) 与 `"local"` (本机客户端发布)。
+5. **分类下钻准则 (Leaf Node First)**：若平台视频发布涉及分类/分区选择（如 B 站、百家号），Agent **必须** 引导至最深层的子分类。严禁仅停留在父级大类（除非该大类无子类）。
 
 ## 3. 参数定义 (Parameters)
 
@@ -75,6 +76,7 @@ node scripts/api.ts --payload='{
 | **JSON 校验失败** | 遗漏了 `publishType` 或 `coverKey`。 | 重新对照 [3. 根结构参数定义](#3-根结构参数定义)。 |
 | **获取在线设备失败** | 设置了 `publishChannel: "local"` 但客户端不在线。 | 切换至 `cloud` 模式或启动蚁小二客户端。 |
 | **资源非法 (400)** | `video.key` 传入了 HTTP URL。 | 必须通过 `upload-resource` 先获取 OSS key。 |
+| **分类选择不完整** | 仅选择了一级大类而未下钻至必选的子分类。 | **全平台通用要求**：必须调用 `categories` 确认层级，并选中末级分类（叶子节点）。 |
 
 ---
 > [!IMPORTANT]
