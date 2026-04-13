@@ -54,7 +54,10 @@ node scripts/api.ts --payload='{
         "title": "今日科技头条",
         "content": "<h1>百家号发布测试</h1><p>正文内容至少需要9个字以上。</p>",
         "covers": [{"key": "c_001", "size": 102400, "width": 800, "height": 600}],
-        "category": [{ "yixiaoerId": "cat_001", "yixiaoerName": "文化", "raw": {...} }],
+        "category": [
+          { "yixiaoerId": "父ID", "yixiaoerName": "文化", "raw": {...} },
+          { "yixiaoerId": "子ID", "yixiaoerName": "历史", "raw": {...} }
+        ],
         "pubType": 1,
         "declaration": 1
       }
