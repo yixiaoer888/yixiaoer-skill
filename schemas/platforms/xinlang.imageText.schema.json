@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://www.yixiaoer.cn/schemas/platforms/xinlang.imageText.schema.json",
+  "title": "新浪微博图文发布表单 (Xinlang Image-Text)",
+  "type": "object",
+  "required": ["formType", "description", "images"],
+  "properties": {
+    "formType":      { "type": "string", "const": "task" },
+    "description":    { "type": "string", "minLength": 1, "maxLength": 2000 },
+    "images": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 9,
+      "items": {
+        "type": "object",
+        "required": ["key", "size", "width", "height"],
+        "properties": {
+          "key":    { "type": "string" },
+          "size":   { "type": "integer", "minimum": 1 },
+          "width":  { "type": "integer", "minimum": 1 },
+          "height": { "type": "integer", "minimum": 1 },
+          "format": { "type": "string", "enum": ["jpg", "jpeg", "png", "webp", "gif"] }
+        }
+      }
+    },
+    "location": {
+      "type": "object",
+      "required": ["yixiaoerId", "yixiaoerName", "raw"],
+      "properties": {
+        "yixiaoerId":   { "type": "string" },
+        "yixiaoerName": { "type": "string" },
+        "raw":            { "type": "object" }
+      }
+    },
+    "scheduledTime": { "type": "number", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

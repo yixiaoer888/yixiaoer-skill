@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://www.yixiaoer.cn/schemas/platforms/xueqiuhao.article.schema.json",
+  "title": "雪球号文章发布表单 (XueQiuHao Article)",
+  "type": "object",
+  "required": ["formType", "title", "content", "pubType", "visibleType"],
+  "properties": {
+    "formType":       { "type": "string", "const": "task" },
+    "title":           { "type": "string", "minLength": 9, "maxLength": 100 },
+    "content":         { "type": "string", "minLength": 1 },
+    "pubType":         { "type": "number", "enum": [0, 1], "default": 1 },
+    "visibleType":     { "type": "number", "enum": [0, 1], "default": 0 },
+    "covers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "size", "width", "height"],
+        "properties": {
+          "key":    { "type": "string" },
+          "size":   { "type": "integer", "minimum": 1 },
+          "width":  { "type": "integer", "minimum": 1 },
+          "height": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "declaration":     { "type": "number", "enum": [0, 1], "default": 0 },
+    "scheduledTime":  { "type": "number", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

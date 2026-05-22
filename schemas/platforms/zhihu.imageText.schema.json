@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://www.yixiaoer.cn/schemas/platforms/zhihu.image-text.json",
+  "title": "Zhihu Image-Text Publish Form (Strict Standards)",
+  "type": "object",
+  "required": ["formType", "description"],
+  "properties": {
+    "formType": { "type": "string", "const": "task" },
+    "title": { "type": "string", "maxLength": 50 },
+    "description": { "type": "string", "minLength": 2 },
+    "images": {
+      "type": "array",
+      "maxItems": 9,
+      "items": {
+        "type": "object",
+        "required": ["key", "size", "width", "height", "format"],
+        "properties": {
+          "key": { "type": "string" },
+          "size": { "type": "integer" },
+          "width": { "type": "integer" },
+          "height": { "type": "integer" },
+          "format": { "type": "string", "enum": ["jpg", "jpeg", "png", "gif", "webp"] }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

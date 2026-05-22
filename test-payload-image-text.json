@@ -1,0 +1,29 @@
+{
+  "accountForms": [
+    {
+      "platformAccountId": "test_account_001",
+      "contentPublishForm": {
+        "formType": "task",
+        "title": "测试图文标题",
+        "description": "这是一条测试图文描述，用于验证 ajv 校验是否生效。",
+        "images": [
+          {
+            "key": "img_test001",
+            "size": 512000,
+            "width": 1080,
+            "height": 1440,
+            "format": "jpg"
+          }
+        ],
+        "cover": {
+          "key": "img_test001",
+          "size": 512000,
+          "width": 1080,
+          "height": 1440
+        },
+        "coverKey": "img_test001",
+        "allowTake": true
+      }
+    }
+  ]
+}

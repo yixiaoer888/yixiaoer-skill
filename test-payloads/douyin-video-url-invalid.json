@@ -1,0 +1,18 @@
+{
+  "accountForms": [
+    {
+      "platformAccountId": "acc_001",
+      "video": {
+        "key": "https://example.com/video.mp4",
+        "size": 1024000,
+        "width": 1080,
+        "height": 1920
+      },
+      "contentPublishForm": {
+        "formType": "task",
+        "title": "URL should be rejected",
+        "description": "Agent must upload resources first."
+      }
+    }
+  ]
+}

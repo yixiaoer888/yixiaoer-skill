@@ -1,0 +1,20 @@
+﻿{
+  "formType": "task",
+  "title": "好物分享",
+  "description": "今天分享一个好用的好物 #好物推荐",
+  "visibleType": 0,
+  "video": {
+    "key": "xhs_video_001",
+    "size": 512000,
+    "width": 1080,
+    "height": 1440,
+    "duration": 30
+  },
+  "cover": {
+    "key": "xhs_cover_001",
+    "size": 200000,
+    "width": 1080,
+    "height": 1440
+  },
+  "coverKey": "xhs_cover_001"
+}

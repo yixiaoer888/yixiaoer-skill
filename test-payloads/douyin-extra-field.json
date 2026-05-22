@@ -1,0 +1,9 @@
+{
+  "formType": "task",
+  "title": "有多余字段",
+  "description": "测试",
+  "tags": [
+    "测试"
+  ],
+  "extraField": 123
+}

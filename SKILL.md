@@ -1,110 +1,164 @@
 ---
 name: yixiaoer
-version: 1.6.4
-description: "蚁小二 (YiXiaoEr) 核心技能：支持多账号矩阵管理、账号查询 (accounts)、图文视频分发发布 (publish)、一键发布、保存草稿 (draft)、资源上传 (upload)、素材库 (material/library)、发布记录查询 (records) 及运营数据统计 (overviews)。适配 50+ 平台，助力高效运营新媒体矩阵。"
+version: 3.0.0
+description: "蚁小二多平台内容分发智能助手。支持图文/视频/文章一键发布到50+平台，提供账号管理、资源上传、数据查询等能力。参照飞书CLI架构设计，确保Agent执行稳定可预期。"
 author: wangzhengjiao
 ---
 
-# OpenClaw 龙虾技能 (OpenClaw Skill)
+# 蚁小二多平台内容分发
 
-本项目采用 **DTO 驱动 (Interface-Driven)** 的架构模式。所有的功能均可通过 `api.ts` 配合标准化的 DTO Payload 进行调用。
+做智能助理，不做表单填写机。能自动补全的默认值先补全，只在必须决策时才追问用户。
 
-## 核心原则 (Core Principles)
+## ⚠️ BLOCKING REQUIREMENT（最高优先级，任何场景均不得违反）
 
-1.  **接口即标准**: 所有的功能调用严格基于后端 API 的 Request DTO 设计。
-2.  **文档即指引**: `docs/` 下的 Markdown 文档用于解释对应接口的参数规则、必填项与约束。
-3.  **分级阅读原则**: 所有的发布任务文档采用“内容类型首页 (Index) + 平台详情页 (Platform)”的二级结构。
-4.  **零映射透传**: 鼓励调用者使用 `api.ts` 透明地提交符合 DTO 要求的 JSON Payload。
-5.  **AI 场景化驱动**: 所有的文档均包含 `Trigger` (触发场景) 和 `Logic Flow` (执行逻辑) 模块，旨在通过自然语言语义引导 Agent 进行精确的意图识别与参数构造。
-
-> [!IMPORTANT]
-> **严格合规性与执行标准 (Strict Compliance & Standard)**:
-> 1. **执行标准**: 所有 Agent 的调用行为、版本校验、错误处理**必须**遵循 [yixiaoer-skill 严格执行标准](./docs/execution-standard.md)。
-> 2. **首选排错指南**: 在遇到任何脚本报错、发布失败或逻辑异常时，**必须优先查阅** [蚁小二 Skill 避坑与故障排查手册](./docs/troubleshooting-guide.md)。该手册汇总了 90% 以上常见失败场景的解决方案。
-> 3. **文档检索顺序**: 针对 `publish` 行为，查询文档时**必须**首先查阅对应内容类型的 `index.md`（如 `docs/publish/article/index.md`），以获取基础 JSON 结构。**严禁**跳过 Index 直接访问平台级文档（如 `douyin.md`），否则可能导致 Payload根结构缺失。
-> 4. 所有接口调用**必须**严格遵守各文档中定义的**必填字段 (`必填: 是`)** 以及对应的**数据格式要求**。
-> 5. **资源引用规范**: 所有的**封面图 (cover)**、**图文图片 (images)** 以及 **视频文件 (video)** 必须先通过[资源上传接口](./docs/upload-resource.md)上传至系统并获得唯一的 `key`。禁止填入非系统内的网络 URL 或随意留空，否则会导致发布任务执行失败。
-> 6. **素材库入库流程**: 涉及“上传到素材库”时，**必须执行两步逻辑**：先 `upload` (资源入存储) -> 后 `material` (登记入库)。严禁省略第二步。
-
-
-
-## 平台支持 (Platform Support)
-
-API 调用时涉及的平台名称必须使用蚁小二定义的中文枚举或 Code。
-
-*   **平台枚举列表**: [docs/platform.md](./docs/platform.md)
-
-## 统一执行指令 (Unified Execution)
-
-所有的 API 功能统一通过 [api.ts](./scripts/api.ts) 脚本执行。调用时需通过 `--payload` 参数传入 JSON，且 **`action` 字段为必填项**，用于指定具体功能。
-
-| action 值 | 对应的能力描述 | 相关文档 |
-| :--- | :--- | :--- |
-| `publish` | 图文、视频、文章分发发布。支持**发布到平台**或**保存为平台草稿**。 | [文章](./docs/publish/article/index.md), [图文](./docs/publish/image-text/index.md), [视频](./docs/publish/video/index.md), [草稿指南](./docs/save-draft.md) |
-| `save-draft` | 保存内容到**蚁小二草稿箱**。仅云端存储，不触发推送。 | [草稿指南](./docs/save-draft.md) |
-| `accounts` | 查询已绑定的账号列表 | [query-accounts.md](./docs/query-accounts.md) |
-| `upload` | 上传本地或 URL 图片/视频 | [upload-resource.md](./docs/upload-resource.md) |
-| `material` | 将已上传资源登记到**蚁小二素材库** | [material-resource.md](./docs/material-resource.md) |
-| `records` | 查询发布任务概览列表 | [get-publish-records.md](./docs/get-publish-records.md) |
-| `details` | 查询特定任务的执行详情 | [get-publish-records.md](./docs/get-publish-records.md) |
-| `categories`| 获取账号分类/话题列表 | [get-publish-categories.md](./docs/get-publish-categories.md) |
-| `activities`| 获取征文活动列表 | [get-publish-activities.md](./docs/get-publish-activities.md) |
-| `locations` | 获取 POI 物理位置列表 | [get-locations.md](./docs/get-locations.md) |
-| `music` | 获取抖音/快手可选背景音乐 | [get-music.md](./docs/get-music.md) |
-| `music-category` | 获取音乐分类列表 | [get-music-categories.md](./docs/get-music-categories.md) |
-| `collections`| 获取账号已创建的合集列表 | [get-collections.md](./docs/get-collections.md) |
-| `groups` | 获取账号可绑定的群聊列表 | [get-groups.md](./docs/get-groups.md) |
-| `goods` | 获取账号可绑定的商品列表 | [get-goods.md](./docs/get-goods.md) |
-| `hot-events`| 获取平台实时热点列表 | [get-hot-events.md](./docs/get-hot-events.md) |
-| `challenges`| 获取平台话题/挑战列表 | [get-challenges.md](./docs/get-challenges.md) |
-| `miniapps` | 获取可挂载的小程序列表 | [get-miniapps.md](./docs/get-miniapps.md) |
-| `syncapps` | 获取可同步发布的关联账号 | [get-sync-apps.md](./docs/get-sync-apps.md) |
-| `games` | 获取可挂载的游戏列表 | [get-games.md](./docs/get-games.md) |
-| `proxies` | 获取团队可用代理列表 | [proxy-management.md](./docs/proxy-management.md) |
-| `proxy-areas`| 获取默认代理地区编码列表 | [proxy-management.md](./docs/proxy-management.md) |
-| `account-overviews` | 账号表现汇总 (V2) | [get-account-overviews.md](./docs/get-account-overviews.md) |
-| `content-overviews` | 查看发布作品数据统计 | [get-content-overviews.md](./docs/get-content-overviews.md) |
-| `update-account` | 更新账号信息 (如设置代理) | [proxy-management.md](./docs/proxy-management.md) |
-| `drafts` | (Read-only) 草稿列表管理指南 | [save-draft.md](./docs/save-draft.md) |
-
-## 草稿识别标准 (Draft Recognition Standard)
-
-当用户意图涉及“保存”、“草稿”或“以后再发”时，Agent **必须**进行次级研判：
-
-1.  **蚁小二草稿 (YXE Draft)**:
-    - **逻辑**：内容仅存储在蚁小二云端，不触发任何平台推送。
-    - **Trigger**: “存为蚁小二草稿”、“暂存到草稿箱”、“存为 YXE 草稿”。
-    - **Action**: `save-draft`
-2.  **平台草稿 (Platform Draft)**:
-    - **逻辑**：内容会被推送到对应平台（如抖音、小红书）的草稿箱，用户可在 App 端二次编辑。
-    - **Trigger**: “存为抖音草稿”、“推送到平台草稿箱”、“存为小红书草稿”。
-    - **Action**: `publish` (并在 `accountForms` 内每项设置 `"contentPublishForm": { "pubType": 0 }`)
-
-### ⚠️ 歧义处理：若用户仅提及“存草稿”而未明确指出是“蚁小二草稿”还是“平台草稿”，Agent **必须立刻询问用户**以明确意图，严禁自行默认或猜测。
-
-### 调用示例 (Example)
-
-```bash
-# 查询账号列表 (action: accounts)
-node scripts/api.ts --payload='{"action": "accounts", "platform": "抖音"}'
-```
-
-## 开发指南 (Development Guide)
-
-为了简化 API 的调用与脚本开发，我们提供了通用的 **API 助手模块**：
-
-*   **API 助手模块**: `scripts/api.ts`
-*   **开发指引文档**: [API 助手使用指南](./docs/scripts/api-guide.md)
-
-在开发新功能或修改现有脚本时，请务必参考此指引。
+1. 【发布类操作】执行前**必须**先读取对应场景的工作流文档（workflows/ 目录），未读取前绝对禁止执行任何发布操作！
+2. 所有图片/视频资源**必须**先通过 `yxer upload` 获取 key，严禁在 Payload 中直接使用外部 URL
+3. 发布前**必须**通过 `yxer accounts` 确认目标账号 `status=1`（在线）
+4. 复杂对象（`location`/`music`/`collection`/`challenge`）**严禁**手动构造，必须通过对应查询命令获取完整 `raw` 对象
+5. 生成 Payload 后**必须**先 `yxer validate` 校验通过，再执行 `yxer publish`，禁止跳过校验
+6. 【草稿识别】用户提及"草稿"时，必须先询问是"蚁小二草稿"还是"平台草稿"，严禁自行猜测
 
 ---
-> [!NOTE]
-> 所有的敏感信息应通过环境变量 `YIXIAOER_API_KEY` 注入。
-> 如果用户没有发送clientId，则默认使用云发布，publishChannel: cloud
-> 
-> **故障诊断与常见问题 (Troubleshooting FAQ)**:
-> 
-> 请**立即参阅**最权威的避坑指南：[🛡️ 蚁小二 Skill 避坑与故障排查手册](./docs/troubleshooting-guide.md)
-> 
-> 更多详情请参阅：[YiXiaoEr Skill 严格执行标准](./docs/execution-standard.md)
+
+## 核心场景
+
+### 发布内容
+
+⚠️ **BLOCKING**: 根据发布类型，必须先读取对应工作流文档！未读取前不得执行任何发布操作！
+
+| 场景 | 工作流文档 | 触发条件 |
+|------|-----------|---------|
+| 发布图文（图片+文字动态/笔记） | [workflows/publish-image-text.md](./workflows/publish-image-text.md) | "发图文"、"发笔记"、"发动态"、"配图发" |
+| 发布视频 | [workflows/publish-video.md](./workflows/publish-video.md) | "发视频"、"上传视频" |
+| 发布文章（长图文） | [workflows/publish-article.md](./workflows/publish-article.md) | "发文章"、"写文章"、"发长文" |
+
+### 查询类操作（直接执行，无需读工作流）
+
+| 操作 | 命令 | 说明 |
+|------|------|------|
+| 查看账号列表 | `yxer accounts [platform]` | 支持按平台筛选，加 `--name 关键词` 模糊匹配昵称 |
+| 查看发布记录 | `yxer records [--platform P] [--limit N]` | 默认最近10条 |
+| 查看分类列表 | `yxer categories <account_id> [--type video\|article]` | 发布前获取可选分类 |
+| 搜索地理位置 | `yxer locations <account_id> [--query 关键词]` | POI位置，用于图文/视频挂载 |
+| 搜索背景音乐 | `yxer music <account_id> [--query 关键词]` | 用于视频/图文挂载音乐 |
+| 查看商品列表 | `yxer goods <account_id> [--query 关键词]` | 用于挂车 |
+| 查看合集列表 | `yxer collections <account_id> [--type video]` | 用于视频加入合集 |
+| 查看话题/挑战 | `yxer challenges <account_id> [--query 关键词]` | 用于视频/图文加话题 |
+
+### 资源上传
+
+```bash
+yxer upload <file_path_or_url> [--bucket cloud-publish|material-library]
+```
+
+- 自动推断文件类型（图片/视频），无需手动指定 `content_type`
+- 图片自动返回 `key`/`size`/`width`/`height`/`format`
+- 视频自动返回 `key`/`size`/`width`/`height`/`duration`/`format`
+- 支持本地文件路径和 HTTP/HTTPS URL
+
+---
+
+## 命令参考
+
+### 完整命令列表
+
+```bash
+yxer <command> [options]
+
+Commands:
+  accounts [platform] [--name 关键词] [--status 1] [--json]     查询账号
+  upload <path_or_url> [--bucket cloud-publish|material-library]  上传资源
+  validate <platform> <type> <payload.json>                       校验Payload
+  publish <type> <platforms> <payload.json> [clientId]           发布内容
+  categories <account_id> [--type video|article]                  查分类
+  locations <account_id> [--query 关键词] [--type 0|1|2|3]      查位置
+  music <account_id> [--query 关键词]                             查音乐
+  goods <account_id> [--query 关键词]                             查商品
+  collections <account_id> [--type video|article]                 查合集
+  challenges <account_id> [--query 关键词] [--type video]         查话题
+  records [--platform P] [--limit N] [--status S] [--json]      查发布记录
+  prepare <platform> <type>                                       一步获取发布前置数据
+
+Options:
+  --json     输出JSON格式（默认人类可读格式）
+  --debug    显示详细日志
+  --help     显示帮助
+```
+
+### 底层 API 调用（高级用法，一般不推荐）
+
+```bash
+node scripts/api.ts --payload='{"action":"...", ...}'
+```
+
+仅在 `yxer` CLI 不支持的场景下使用。大多数场景请优先使用 `yxer` 命令。
+
+---
+
+## JSON Schema 验证参考
+
+`yxer validate <platform> <type> <payload.json>` 使用 JSON Schema (draft-07) 对 payload 进行校验。
+Schema 文件位于 `schemas/platforms/` 目录，命名格式：`{platform}.{type}.schema.json`。
+
+**当前已覆盖 56 个 schema（22 文章 + 8 图文 + 26 视频平台）**：
+
+| 类型 | 覆盖平台 |
+|------|----------|
+| 文章 (22) | acfun, aiqiyi, baijiahao, bilibili, chejiahao, csdn, dayuhao, douban, douyin, jianshu, qiehao, souhuhao, toutiaohao, wangyihao, weixin.account, xinlang, xueqiuhao, yichehao, yidianhao, xinlang.article, weixin.account(公众号) |
+| 图文 (8) | douyin, kuaishou, weixin.shipinhao, xhs, xinlang, zhihu, baijiahao, toutiaohao |
+| 视频 (26) | acfun, aiqiyi, bilibili, douyin, kuaishou, toutiaohao, xinlang, chejiahao, dayuhao, duoduoshipin, fengwang, meipai, meiyou, qiehao, shipinghao, baijiahao, kuaishou-open, souhushipin, wangyihao, xiaohongshu, xiaohongshushop, yidianhao, yichehao, zhihu, weishi, pipixia, dewu, tengxunshipin |
+
+> [!TIP]
+> Agent 构造 payload 后，先用 `yxer validate` 校验，再执行 `yxer publish`。
+> Schema 校验失败会明确提示缺少哪些 required 字段或多余的 additionalProperties。
+
+---
+
+## 平台参考文档
+
+各平台的 `contentPublishForm` 差异字段定义（Agent 在构造 Payload 时按需查阅）：
+
+- [图文发布通用索引](./docs/publish/image-text/index.md) — 所有图文平台的根结构定义
+- [视频发布通用索引](./docs/publish/video/index.md) — 所有视频平台的根结构定义
+- [文章发布通用索引](./docs/publish/article/index.md) — 所有文章平台的根结构定义
+- 各平台详细参数：查阅 `docs/publish/<类型>/<平台>.md`
+
+运维与故障排查：
+- [蚁小二 Skill 严格执行标准](./docs/execution-standard.md)
+- [蚁小二 Skill 避坑与故障排查手册](./docs/troubleshooting-guide.md)
+
+---
+
+## 通用规则（Agent 必须遵守）
+
+### 智能助理原则
+
+- 能自动补全的默认值**直接补全**，不要反复追问用户
+- 只在必须用户决策时才提问（选账号、确认发布摘要）
+- 用户描述模糊时，根据上下文推断；推断不出再问
+
+### 默认值自动补全规则
+
+| 字段 | 默认值 | 是否需确认 |
+|------|--------|------------|
+| `formType` | `"task"` | 无需确认，直接填 |
+| `publishChannel` | `"cloud"` | 无需确认，直接填 |
+| `cover` / `coverKey` | 使用 `images[0]` 的 key | 无需确认，直接填 |
+| `title` | 从用户描述中提取 | 展示给用户确认 |
+| `description` | 从标题或用户描述自动生成 | 展示给用户确认 |
+| `scheduledTime` | 不填（立即发布） | 用户明确要求定时才填 |
+
+### 严禁行为
+
+- ❌ 未确认账号在线（`status=1`）就构造 Payload
+- ❌ 手动编造图片/视频的 `key`/`size`/`width`/`height`
+- ❌ 手动构造 `location`/`music`/`collection`/`challenge` 的 `raw` 字段
+- ❌ 跳过 `yxer validate` 直接 `yxer publish`
+- ❌ 在 Payload 中直接使用外部 URL 作为图片/视频地址
+- ❌ 跳过工作流文档，自行拼 JSON Payload
+- ❌ 用户说"草稿"时不询问类型，自行猜测是蚁小二草稿还是平台草稿
+
+---
+
+> [!TIP]
+> **快速开始**: 用户说"帮我发一条抖音图文"→ 读 `workflows/publish-image-text.md` → 按 Step 1→2→3→4→5→6 执行

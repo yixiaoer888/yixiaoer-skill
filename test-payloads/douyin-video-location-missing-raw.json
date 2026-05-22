@@ -1,0 +1,22 @@
+{
+  "accountForms": [
+    {
+      "platformAccountId": "acc_001",
+      "video": {
+        "key": "video_key_123",
+        "size": 1024000,
+        "width": 1080,
+        "height": 1920
+      },
+      "contentPublishForm": {
+        "formType": "task",
+        "title": "Location raw should be required",
+        "description": "Dynamic objects must come from yxer query commands.",
+        "location": {
+          "yixiaoerId": "poi_001",
+          "yixiaoerName": "Somewhere"
+        }
+      }
+    }
+  ]
+}

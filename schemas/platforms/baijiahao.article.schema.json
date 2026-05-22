@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://www.yixiaoer.cn/schemas/platforms/baijiahao.article.json",
+  "title": "百家号文章发布表单 (BaijiaHao Article)",
+  "type": "object",
+  "required": ["formType", "title", "content", "cover"],
+  "properties": {
+    "formType":    { "type": "string", "const": "task" },
+    "title":       { "type": "string", "minLength": 1, "maxLength": 64 },
+    "content":     { "type": "string", "minLength": 1, "maxLength": 50000 },
+    "cover": {
+      "type": "object",
+      "required": ["key", "size", "width", "height"],
+      "properties": {
+        "key":    { "type": "string" },
+        "size":   { "type": "integer", "minimum": 1 },
+        "width":  { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "coverKey": { "type": "string" },
+    "thumbMediaId": { "type": "string" },
+    "category": {
+      "type": "object",
+      "required": ["yixiaoerId", "yixiaoerName", "raw"],
+      "properties": {
+        "yixiaoerId":   { "type": "string" },
+        "yixiaoerName": { "type": "string" },
+        "raw":            { "type": "object" }
+      }
+    },
+    "original":      { "type": "boolean", "default": false },
+    "originalType":   { "type": "number", "enum": [0, 1, 2] },
+    "originalUrl":    { "type": "string", "format": "uri" },
+    "reprintType":    { "type": "number", "enum": [0, 1] },
+    "publishTime":     { "type": "string", "format": "date-time" },
+    "statement":      { "type": "number", "enum": [1, 2, 3] }
+  },
+  "additionalProperties": false
+}

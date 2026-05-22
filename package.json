@@ -1,0 +1,22 @@
+{
+  "name": "yixiaoer-skill",
+  "version": "2.0.0-alpha",
+  "description": "Yixiaoer CLI and Skill Schema",
+  "main": "scripts/yxer.ts",
+  "bin": {
+    "yxer": "./scripts/yxer.ts"
+  },
+  "scripts": {
+    "yxer": "ts-node scripts/yxer.ts",
+    "test": "ts-node test-validate.ts"
+  },
+  "dependencies": {
+    "ajv": "^8.12.0",
+    "ajv-formats": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.0"
+  }
+}

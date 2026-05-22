@@ -1,0 +1,22 @@
+{
+  "accountForms": [
+    {
+      "platformAccountId": "test_account_001",
+      "contentPublishForm": {
+        "formType": "wrong_value",
+        "title": "测试标题",
+        "description": "描述内容",
+        "images": [
+          {
+            "key": "img_test001",
+            "size": 512000,
+            "width": 1080,
+            "height": 1440,
+            "format": "jpg"
+          }
+        ],
+        "extraUnknownField": "should cause error"
+      }
+    }
+  ]
+}

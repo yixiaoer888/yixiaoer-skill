@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://www.yixiaoer.cn/schemas/platforms/bilibili.video.json",
+  "title": "B站视频发布表单 (Bilibili Video)",
+  "type": "object",
+  "required": ["formType", "title", "description", "video", "cover"],
+  "properties": {
+    "formType":    { "type": "string", "const": "task" },
+    "title":       { "type": "string", "minLength": 1, "maxLength": 80 },
+    "description": { "type": "string", "minLength": 0, "maxLength": 2000 },
+    "video": {
+      "type": "object",
+      "required": ["key", "size", "width", "height"],
+      "properties": {
+        "key":    { "type": "string" },
+        "size":   { "type": "integer", "minimum": 1 },
+        "width":  { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "duration": { "type": "number", "minimum": 1 },
+        "format":  { "type": "string", "enum": ["mp4", "mov", "flv"] }
+      }
+    },
+    "cover": {
+      "type": "object",
+      "required": ["key", "size", "width", "height"],
+      "properties": {
+        "key":    { "type": "string" },
+        "size":   { "type": "integer" },
+        "width":  { "type": "integer" },
+        "height": { "type": "integer" }
+      }
+    },
+    "coverKey": { "type": "string" },
+    "tag": {
+      "type": "array",
+      "maxItems": 10,
+      "items": { "type": "string", "maxLength": 20 }
+    },
+    "category": {
+      "type": "object",
+      "required": ["yixiaoerId", "yixiaoerName", "raw"],
+      "properties": {
+        "yixiaoerId":   { "type": "string" },
+        "yixiaoerName": { "type": "string" },
+        "raw":            { "type": "object" }
+      }
+    },
+    "topic": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "statement": { "type": "number", "enum": [0, 1, 2] },
+    "pubType":   { "type": "number", "enum": [0, 1], "default": 1 },
+    "visibleType": { "type": "number", "enum": [0, 1, 2], "default": 0 }
+  },
+  "additionalProperties": false
+}

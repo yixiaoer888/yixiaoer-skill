@@ -1,0 +1,13 @@
+﻿{
+  "formType": "task",
+  "title": "2026年AI趋势深度解析",
+  "description": "本视频深入探讨2026年人工智能的发展趋势",
+  "tags": ["AI", "科技", "趋势"],
+  "syncComment": false,
+  "video": {
+    "key": "test_video_key_123",
+    "size": 1024000,
+    "width": 1080,
+    "height": 1920
+  }
+}

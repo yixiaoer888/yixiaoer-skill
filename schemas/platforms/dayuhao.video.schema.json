@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://www.yixiaoer.cn/schemas/platforms/dayuhao.video.schema.json",
+  "title": "大鱼号视频发布表单 (DaYuHao Video)",
+  "type": "object",
+  "required": ["formType", "title", "description", "tags", "pubType"],
+  "properties": {
+    "formType":      { "type": "string", "const": "task" },
+    "title":          { "type": "string", "minLength": 1, "maxLength": 50 },
+    "description":    { "type": "string", "minLength": 1, "maxLength": 1000 },
+    "tags": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 6,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "pubType":        { "type": "number", "enum": [0, 1], "default": 1 },
+    "category": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["yixiaoerId", "yixiaoerName", "raw"],
+        "properties": {
+          "yixiaoerId":   { "type": "string" },
+          "yixiaoerName": { "type": "string" },
+          "raw":            { "type": "object" }
+        }
+      }
+    },
+    "createType":     { "type": "number", "enum": [0, 1], "default": 0 },
+    "declaration":     { "type": "number", "enum": [0, 3, 4], "default": 0 },
+    "video": {
+      "type": "object",
+      "required": ["key", "size", "width", "height"],
+      "properties": {
+        "key":      { "type": "string" },
+        "size":     { "type": "integer", "minimum": 1 },
+        "width":    { "type": "integer", "minimum": 1 },
+        "height":   { "type": "integer", "minimum": 1 },
+        "duration": { "type": "number", "minimum": 1 },
+        "format":   { "type": "string", "enum": ["mp4", "mov", "flv", "mkv"] }
+      }
+    },
+    "cover": {
+      "type": "object",
+      "required": ["key", "size", "width", "height"],
+      "properties": {
+        "key":    { "type": "string" },
+        "size":   { "type": "integer" },
+        "width":  { "type": "integer" },
+        "height": { "type": "integer" }
+      }
+    },
+    "coverKey":      { "type": "string" },
+    "scheduledTime": { "type": "number", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

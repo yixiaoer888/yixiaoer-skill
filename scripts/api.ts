@@ -29,17 +29,17 @@ export function getPayload<T = any>(): T {
 /**
  * 低级 API 调用封装
  */
-export async function callApi(endpoint: string, options: RequestInit = {}) {
+export async function callApi(endpoint: string, options: RequestInit = {}): Promise<any> {
   if (!API_KEY) {
     throw new Error("Missing YIXIAOER_API_KEY environment variable");
   }
 
   const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
 
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Authorization': API_KEY,
     'Content-Type': 'application/json',
-    ...(options.headers || {})
+    ...((options.headers || {}) as Record<string, string>)
   };
 
   const response = await fetch(url, {
