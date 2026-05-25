@@ -1,0 +1,30 @@
+{
+  "accountForms": [
+    {
+      "platformAccountId": "69fedaf2524a96ae2ada718d",
+      "contentPublishForm": {
+        "formType": "task",
+        "title": "CLI测试图文发布",
+        "description": "这是一条通过yxer CLI测试的图文内容",
+        "images": [
+          {
+            "key": "yfb/test/t-6821ac8d50bc5fd636fa9801/huoyin1.jpg",
+            "size": 44719,
+            "width": 1920,
+            "height": 1080,
+            "format": "jpg"
+          }
+        ],
+        "cover": {
+          "key": "yfb/test/t-6821ac8d50bc5fd636fa9801/huoyin1.jpg",
+          "size": 44719,
+          "width": 1920,
+          "height": 1080,
+          "format": "jpg"
+        }
+      }
+    }
+  ],
+  "formType": "task",
+  "publishChannel": "cloud"
+}

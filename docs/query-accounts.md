@@ -17,7 +17,7 @@
 | 字段名 | 类型 | 是否必填 | 描述 |
 | :--- | :--- | :--- | :--- |
 | `action` | `string` | **是** | 固定值：`accounts` |
-| `platform` | `string` | 否 | 指定展示某个平台。见 [平台定义](./platform.md)。 |
+| `platform` | `string` | 否 | 指定展示某个平台，必须传平台中文名，如 `抖音`。见 [平台定义](./platform.md)。 |
 | `name` | `string` | 否 | 按账号昵称模糊查询。 |
 | `group` | `string` | 否 | 按分组名称查询。 |
 | `page` | `number` | 否 | 当前页码，默认 `1`。 |
@@ -45,7 +45,7 @@
 1. **意图解析**：识别查询意图，提取关键词（如平台名称、分组名、昵称片段）。
 2. **状态前置**：若涉及“失效账号查询”，自动注入 `loginStatus: 2` 参数。
 3. **参数装配**：构造 `action: "accounts"` 及其余过滤参数（如 `page`, `size`）。
-4. **指令执行**：调用 `node scripts/api.ts --payload='{...}'`。
+4. **指令执行**：调用 `yxer accounts [platform] [--name 关键词] [--status 1] [--json]`。
 5. **结果解析**：处理返回的 `PlatformAccountDTO` 列表，重点提取 `id` 和 `status` 供后续操作。
 
 ## 返回结果说明 (Response Details)
@@ -73,7 +73,7 @@
 ## 调用指令 (Command)
 
 ```bash
-node scripts/api.ts --payload='{"action":"accounts","platform":"抖音","name":"昵称","page":1,"size":20}'
+yxer accounts 抖音 --name 昵称 --json
 ```
 
 ## 注意事项

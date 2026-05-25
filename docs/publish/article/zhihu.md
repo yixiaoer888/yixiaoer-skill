@@ -17,7 +17,7 @@
 2. **辅助话题检索**：调用 `challenges` 接口获取知乎支持的 Topic 列表（限制最多 3 个）。
 3. **申明装配**：根据文章属性注入 `declaration` 枚举值（如 5-AI辅助）。
 4. **参数装配**：构造 `accountForms[i].contentPublishForm`。
-5. **指令执行**：执行 `node scripts/api.ts`。
+5. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
 
 ## 1. contentPublishForm 参数定义
 
@@ -38,7 +38,7 @@
 {
   "action": "publish",
   "publishType": "article",
-  "platforms": ["Zhihu"],
+  "platforms": ["知乎"],
   "publishArgs": {
     "accountForms": [
       {

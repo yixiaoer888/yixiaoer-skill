@@ -1,57 +1,151 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://www.yixiaoer.cn/schemas/platforms/xinlang.video.schema.json",
   "title": "新浪微博视频发布表单 (Xinlang Video)",
   "type": "object",
-  "required": ["formType", "title", "description", "type", "video"],
+  "required": [
+    "formType",
+    "title",
+    "description",
+    "type",
+    "video"
+  ],
   "properties": {
-    "formType":    { "type": "string", "const": "task" },
-    "title":       { "type": "string", "minLength": 1, "maxLength": 80 },
-    "description": { "type": "string", "minLength": 1, "maxLength": 2000 },
-    "type":        { "type": "number", "enum": [1, 2, 3], "default": 1 },
+    "formType": {
+      "type": "string",
+      "const": "task"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "type": {
+      "type": "number",
+      "enum": [
+        1,
+        2,
+        3
+      ],
+      "default": 1
+    },
     "video": {
       "type": "object",
-      "required": ["key", "size", "width", "height"],
+      "required": [
+        "key",
+        "size",
+        "width",
+        "height"
+      ],
       "properties": {
-        "key":     { "type": "string" },
-        "size":    { "type": "integer", "minimum": 1 },
-        "width":   { "type": "integer", "minimum": 1 },
-        "height":  { "type": "integer", "minimum": 1 },
-        "duration": { "type": "number", "minimum": 1 },
-        "format":   { "type": "string", "enum": ["mp4", "mov", "flv"] }
+        "key": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "duration": {
+          "type": "number",
+          "minimum": 1
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "mp4",
+            "mov",
+            "flv"
+          ]
+        }
       }
     },
     "cover": {
       "type": "object",
-      "required": ["key", "size", "width", "height"],
+      "required": [
+        "key",
+        "size",
+        "width",
+        "height"
+      ],
       "properties": {
-        "key":    { "type": "string" },
-        "size":   { "type": "integer" },
-        "width":  { "type": "integer" },
-        "height": { "type": "integer" }
+        "key": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "width": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
+        }
       }
     },
-    "coverKey": { "type": "string" },
+    "coverKey": {
+      "type": "string"
+    },
     "location": {
       "type": "object",
-      "required": ["yixiaoerId", "yixiaoerName", "raw"],
+      "required": [
+        "yixiaoerId",
+        "yixiaoerName",
+        "raw"
+      ],
       "properties": {
-        "yixiaoerId":   { "type": "string" },
-        "yixiaoerName": { "type": "string" },
-        "raw":            { "type": "object" }
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
       }
     },
     "collection": {
       "type": "object",
-      "required": ["yixiaoerId", "yixiaoerName", "raw"],
+      "required": [
+        "yixiaoerId",
+        "yixiaoerName",
+        "raw"
+      ],
       "properties": {
-        "yixiaoerId":   { "type": "string" },
-        "yixiaoerName": { "type": "string" },
-        "raw":            { "type": "object" }
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
       }
     },
-    "scheduledTime": { "type": "number", "minimum": 0 },
-    "pubType": { "type": "number", "enum": [0, 1], "default": 1 }
+    "scheduledTime": {
+      "type": "number",
+      "minimum": 0
+    },
+    "pubType": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    }
   },
   "additionalProperties": false
 }

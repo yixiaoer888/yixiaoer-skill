@@ -1,11 +1,11 @@
-# 获取地理位置 (Get Locations)
+﻿# 获取地理位置 (Get Locations)
 
 获取在发布内容时可选的地理位置列表（支持 POI 搜索、门店地址、带货地址等）。
 
 ## 调用指令 (Command)
 
 ```bash
-node scripts/api.ts --payload='{"action":"locations","account_id":"XXX","keyword":"深圳","type":1}'
+yxer locations XXX --query 深圳 --type 1 --json
 ```
 
 ## 参数列表 (Payload Properties)
@@ -45,3 +45,4 @@ node scripts/api.ts --payload='{"action":"locations","account_id":"XXX","keyword
 - **脚本路径**: `scripts/api.ts`
 - **功能**: 封装蚁小二标准地理位置查询接口 (`GET /platform-accounts/{platformAccountId}/location`)。
 - **参数映射**: 将 `account_id` 映射为路径变量，将 `keyWord`, `locationType`, `nextPage` 映射为查询参数。
+

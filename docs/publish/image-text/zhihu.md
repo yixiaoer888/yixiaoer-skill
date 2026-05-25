@@ -6,15 +6,15 @@
 
 
 ## 触发场景 (Trigger)
-- **意图辨析**：用户指定在“Zhihu”平台发布图文动态时触发。
+- **意图辨析**：用户指定在“知乎”平台发布图文动态时触发。
 - **典型提示词**：
-  - “发几张图到Zhihu”
-  - “同步这条动态到Zhihu”
+  - “发几张图到知乎”
+  - “同步这条动态到知乎”
 
 ## 执行逻辑 (Logic Flow)
 1. **资源校验**：确保所有图片均已上传并获得 Key。
 2. **参数装配**：填充描述及图片列表至 `contentPublishForm`。
-3. **指令执行**：调用 `node scripts/api.ts`。
+3. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
 
 本平台图文发布通过 `contentPublishForm` 承载以下参数。
 
@@ -62,7 +62,7 @@
 {
   "action": "publish",
   "publishType": "imageText",
-  "platforms": ["Zhihu"],
+  "platforms": ["知乎"],
   "publishArgs": {
     "accountForms": [
       {

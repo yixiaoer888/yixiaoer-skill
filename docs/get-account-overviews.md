@@ -28,7 +28,7 @@
 1. **维度确定**：识别查询的目标平台（`platform` 为必填）。
 2. **权限过滤**：若提到特定人员，解析并注入其 `memberIds`。
 3. **参数装配**：构造 `action: "account-overviews"` 及分页参数。
-4. **指令执行**：调用 `node scripts/api.ts`。
+4. **指令执行**：当前能力正在迁移到 `yxer` CLI，本文档不再推荐脚本直调。
 5. **看板交付**：提取 `overviewData` 中的总粉丝数、总播放量等关键指标反馈给用户。
 
 ## 返回结果说明 (Response Details)
@@ -48,7 +48,7 @@
 ## 调用指令 (Command)
 
 ```bash
-node scripts/api.ts --payload='{"action":"account-overviews","platform":"抖音","page":1,"size":10}'
+# 该能力正在迁移到 yxer CLI，当前不要再使用 node scripts/api.ts 作为公开入口
 ```
 
 ## 注意事项

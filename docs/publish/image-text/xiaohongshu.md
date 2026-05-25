@@ -19,7 +19,7 @@
    - 地点：调用 `locations` 获取 POI 数据。
    - 音乐：若需要，调用 `music` 获取。
 3. **参数装配**：将处理后的字段填入 `accountForms[i].contentPublishForm`。
-4. **状态执行**：调用 `node scripts/api.ts`。
+4. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
 
 ## 1. contentPublishForm 参数 definition
 

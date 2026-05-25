@@ -85,6 +85,10 @@ yxer goods <account_id> [--query "关键词"]
 
 根据目标平台查阅对应文档，了解 `contentPublishForm` 的差异字段：
 
+```bash
+yxer schema <platform> image-text
+```
+
 | 平台 | 文档路径 |
 |------|---------|
 | 抖音图文 | [docs/publish/image-text/douyin.md](./docs/publish/image-text/douyin.md) |
@@ -173,6 +177,8 @@ yxer validate <platform> image-text ./publish-payload.json
 ```bash
 yxer publish image-text <platform> ./publish-payload.json
 ```
+
+> 多平台发布时，Agent 必须为每个平台分别执行 Step 1 到 Step 7，分别构造 payload、校验并发布；不要使用逗号分隔平台合并成一次发布。
 
 ---
 

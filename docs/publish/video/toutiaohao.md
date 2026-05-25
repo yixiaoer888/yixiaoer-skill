@@ -17,7 +17,7 @@
 2. **标签装配**：识别用户提供的关键词，转换为 `tags` 字符串数组（限制 1-5 个）。
 3. **申明校验**：根据内容来源注入 `declaration` 枚举；若涉及 AI 创作，必须标注为 `3-AI生成`。
 4. **参数装配**：构造 `accountForms[i].contentPublishForm`。
-5. **执行推送**：调用 `node scripts/api.ts`。
+5. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
 
 ## 1. contentPublishForm 参数定义
 

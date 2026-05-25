@@ -14,7 +14,7 @@
 ## 执行逻辑 (Logic Flow)
 1. **意图确认**：确认目标平台为Yidianhao。
 2. **参数装配**：识别并填充标题、描述等平台特定字段至 `contentPublishForm`。
-3. **指令执行**：调用 `node scripts/api.ts`。
+3. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
 
 
 ## 1. contentPublishForm 数据结构

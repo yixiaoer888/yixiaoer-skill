@@ -19,7 +19,7 @@
    - 活动：调用 `activities` 获取活动 ID。
    - 商品：调用 `goods` 获取带货商品信息。
 3. **参数装配**：将获取的 `raw` 结构与 `yixiaoerId` 组装进 `accountForms[i].contentPublishForm`。
-4. **指令执行**：调用 `node scripts/api.ts`。
+4. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
 
 ## 1. contentPublishForm 参数定义
 
@@ -44,7 +44,7 @@
 {
   "action": "publish",
   "publishType": "video",
-  "platforms": ["Shipinghao"],
+  "platforms": ["视频号"],
   "publishArgs": {
     "accountForms": [
       {

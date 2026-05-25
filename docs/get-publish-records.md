@@ -1,4 +1,4 @@
-# 查询发布记录 (Get Publish Records)
+﻿# 查询发布记录 (Get Publish Records)
 
 获取历史发布的任务集（TaskSet）概览列表，支持按平台、状态、时间等维度进行筛选。
 
@@ -28,7 +28,7 @@
 ## 执行逻辑 (Logic Flow)
 1. **维度提取**：识别用户查询的时间范围、关键词及状态意图。
 2. **参数装配**：构造 `action: "records"` 负载，处理 `status` 数组。
-3. **指令执行**：调用 `node scripts/api.ts --payload='{...}'`。
+3. **指令执行**：调用 `yxer records [--platform P] [--limit N] [--status S] [--json]`。
 4. **结果交付**：从 `data.data` 中提取关键字段（如 `task_set_id`, `status`）反馈给用户。若涉及失败任务，引导用户调用 `details` 进一步查询。
 
 ## 返回数据说明 (Response Details)
@@ -38,5 +38,6 @@
 ## 调用指令 (Command)
 
 ```bash
-node scripts/api.ts --payload='{"action":"records","status":[1,2],"page":1}'
+yxer records --status 1 --json
 ```
+

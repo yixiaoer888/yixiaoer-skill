@@ -1,0 +1,104 @@
+{
+  "title": "知乎文章发布表单 (Zhihu Article)",
+  "type": "object",
+  "required": [
+    "formType",
+    "title",
+    "content",
+    "pubType"
+  ],
+  "properties": {
+    "formType": {
+      "type": "string",
+      "const": "task"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 9,
+      "maxLength": 100
+    },
+    "content": {
+      "type": "string",
+      "minLength": 9,
+      "maxLength": 10000
+    },
+    "covers": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "size",
+          "width",
+          "height"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "topics": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "yixiaoerId",
+          "yixiaoerName",
+          "raw"
+        ],
+        "properties": {
+          "yixiaoerId": {
+            "type": "string"
+          },
+          "yixiaoerName": {
+            "type": "string"
+          },
+          "raw": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "declaration": {
+      "type": "number",
+      "enum": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "default": 0
+    },
+    "pubType": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "scheduledTime": {
+      "type": "number",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false
+}

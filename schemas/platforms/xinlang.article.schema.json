@@ -1,29 +1,69 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://www.yixiaoer.cn/schemas/platforms/xinlang.article.schema.json",
   "title": "新浪微博文章发布表单 (Xinlang Article)",
   "type": "object",
-  "required": ["formType", "title", "content", "covers"],
+  "required": [
+    "formType",
+    "title",
+    "content",
+    "covers"
+  ],
   "properties": {
-    "formType":      { "type": "string", "const": "task" },
-    "title":         { "type": "string", "minLength": 1, "maxLength": 30 },
-    "content":       { "type": "string", "minLength": 1, "maxLength": 50000 },
+    "formType": {
+      "type": "string",
+      "const": "task"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 30
+    },
+    "content": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50000
+    },
     "covers": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["key", "size", "width", "height"],
+        "required": [
+          "key",
+          "size",
+          "width",
+          "height"
+        ],
         "properties": {
-          "key":    { "type": "string" },
-          "size":   { "type": "integer", "minimum": 1 },
-          "width":  { "type": "integer", "minimum": 1 },
-          "height": { "type": "integer", "minimum": 1 }
+          "key": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1
+          }
         }
       }
     },
-    "pubType":       { "type": "number", "enum": [0, 1], "default": 1 },
-    "scheduledTime": { "type": "number", "minimum": 0 }
+    "pubType": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "scheduledTime": {
+      "type": "number",
+      "minimum": 0
+    }
   },
   "additionalProperties": false
 }

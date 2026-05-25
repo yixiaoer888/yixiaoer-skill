@@ -8,8 +8,8 @@ const path = require('path');
 const Ajv  = require('ajv');
 const addFormats = require('ajv-formats');
 
-const SCHEMA_DIR = path.join(__dirname, 'schemas', 'platforms');
-const TEST_DIR  = path.join(__dirname, 'test-payloads');
+const SCHEMA_DIR = path.join(__dirname, '..', '..', 'schemas', 'platforms');
+const TEST_DIR  = path.join(__dirname, '..', 'fixtures', 'payloads');
 
 const ajv = new Ajv({ allErrors: true, strict: false, verbose: true });
 addFormats(ajv);
@@ -32,7 +32,7 @@ function ensureTestFiles() {
   const files = {
     'douyin-video-valid.json': {
       formType: 'task', title: '2026年AI趋势', description: '深入探讨AI发展',
-      tags: ['AI','科技'], syncComment: false
+      tags: ['AI','科技']
     },
     'douyin-video-invalid.json': {
       formType: 'task', description: '缺少标题的视频', tags: ['测试']

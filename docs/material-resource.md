@@ -34,7 +34,7 @@
 1. **链路检查**：确认资源是否已通过 `upload` 动作上传（建议使用 `bucket: "material-library"`）。
 2. **元数据提取**：识别文件的真实名称、宽高及类型。
 3. **参数装配**：构造 `action: "material"` 及完整元数据。
-4. **指令执行**：调用 `node scripts/api.ts`。
+4. **指令执行**：先调用 `yxer upload --bucket material-library`，再调用 `yxer material create <payload.json>`。
 5. **入库反馈**：向用户确认素材 ID 及入库成功状态。
 
 ## 推荐链路 (Recommended Flow)
@@ -45,14 +45,25 @@
 ## 调用指令 (Command)
 
 ```bash
-node scripts/api.ts --payload='{
-  "action": "material",
-  "filePath": "cloud-publish/2026/04/08/demo/video.mp4",
-  "fileName": "演示视频.mp4",
+yxer material create material-payload.json
+```
+
+推荐先执行：
+
+```bash
+yxer upload ./demo.mp4 --bucket material-library
+```
+
+再将返回的 `key` 组装进 `material-payload.json`：
+
+```json
+{
+  "filePath": "uploaded/demo.mp4",
+  "fileName": "demo.mp4",
   "width": 1080,
   "height": 1920,
   "type": "video"
-}'
+}
 ```
 
 ## 注意事项

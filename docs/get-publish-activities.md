@@ -25,7 +25,7 @@
 1. **意图解析**：识别目标平台账号及活动所属类别。
 2. **关键词过滤**：提取用户提到的活动名称作为 `keyword`。
 3. **参数装配**：构造 `action: "activities"` 负载。
-4. **指令执行**：调用 `node scripts/api.ts`。
+4. **指令执行**：当前能力正在迁移到 `yxer` CLI，本文档不再推荐脚本直调。
 5. **挂载建议**：获取活动列表后，将 `activityId` 反馈给用户或自动准备发布 Payload。
 
 ## 返回数据 (Response)
@@ -35,5 +35,5 @@
 ## 调用指令 (Command)
 
 ```bash
-node scripts/api.ts --payload='{"action":"activities","account_id":"YOUR_ACCOUNT_ID","type":"article"}'
+# 该能力正在迁移到 yxer CLI，当前不要再使用 node scripts/api.ts 作为公开入口
 ```

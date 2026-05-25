@@ -16,7 +16,9 @@
 1. **意图细化**：识别抖音特有的增强功能需求（如地点、音乐、合集）。
 2. **辅助查询**：对于 `location`, `music`, `challenge` 等字段，必须先调用对应的 `get-*` action 获取标准 ID 及 `raw` 数据。
 3. **参数装配**：将细化参数封装至 `accountForms[i].contentPublishForm`。
-4. **指令执行**：调用 `node scripts/api.ts`。
+4. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
+
+> 说明：仓库当前不再把 `syncComment` 作为公开 schema 字段暴露，因为现有文档、查询命令和工作流里都没有它的稳定来源或获取流程。
 
 ## 1. contentPublishForm 参数定义
 
@@ -48,7 +50,7 @@
 {
   "action": "publish",
   "publishType": "video",
-  "platforms": ["Douyin"],
+  "platforms": ["抖音"],
   "publishArgs": {
     "accountForms": [
       {

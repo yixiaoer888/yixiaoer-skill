@@ -23,7 +23,7 @@
 1. **身份锚定**：必须先确定目标 `account_id`。
 2. **关键词构造**：根据用户提供的游戏名称作为 `keyword` 注入。
 3. **参数装配**：构造 `action: "games"` 负载。
-4. **指令执行**：调用 `node scripts/api.ts --payload='{...}'`。
+4. **指令执行**：当前能力正在迁移到 `yxer` CLI，本文档不再推荐脚本直调。
 5. **结果解析**：将筛选出的可用游戏信息反馈给用户，引导其在 `publish` 任务的 `platformSettings` 中完成最终挂载配置。
 
 ## 返回数据说明 (Response Details)
@@ -34,5 +34,5 @@
 ## 调用指令 (Command)
 
 ```bash
-node scripts/api.ts --payload='{"action":"games","account_id":"YOUR_ACCOUNT_ID","keyword":"王者"}'
+# 该能力正在迁移到 yxer CLI，当前不要再使用 node scripts/api.ts 作为公开入口
 ```

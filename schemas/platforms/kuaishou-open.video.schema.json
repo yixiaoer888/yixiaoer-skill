@@ -1,39 +1,107 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://www.yixiaoer.cn/schemas/platforms/kuaishou-open.video.schema.json",
   "title": "快手Open视频发布表单 (KuaiShou-Open Video)",
   "type": "object",
-  "required": ["formType", "visibleType"],
+  "required": [
+    "formType",
+    "visibleType"
+  ],
   "properties": {
-    "formType":       { "type": "string", "const": "task" },
-    "visibleType":     { "type": "number", "enum": [0, 1, 3], "default": 0 },
-    "title":           { "type": "string" },
-    "description":     { "type": "string" },
+    "formType": {
+      "type": "string",
+      "const": "task"
+    },
+    "visibleType": {
+      "type": "number",
+      "enum": [
+        0,
+        1,
+        3
+      ],
+      "default": 0
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
     "video": {
       "type": "object",
-      "required": ["key", "size", "width", "height"],
+      "required": [
+        "key",
+        "size",
+        "width",
+        "height"
+      ],
       "properties": {
-        "key":      { "type": "string" },
-        "size":     { "type": "integer", "minimum": 1 },
-        "width":    { "type": "integer", "minimum": 1 },
-        "height":   { "type": "integer", "minimum": 1 },
-        "duration": { "type": "number", "minimum": 1 },
-        "format":   { "type": "string", "enum": ["mp4", "mov", "flv", "avi"] }
+        "key": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "duration": {
+          "type": "number",
+          "minimum": 1
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "mp4",
+            "mov",
+            "flv",
+            "avi"
+          ]
+        }
       }
     },
     "cover": {
       "type": "object",
-      "required": ["key", "size", "width", "height"],
+      "required": [
+        "key",
+        "size",
+        "width",
+        "height"
+      ],
       "properties": {
-        "key":    { "type": "string" },
-        "size":   { "type": "integer" },
-        "width":  { "type": "integer" },
-        "height": { "type": "integer" }
+        "key": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "width": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
+        }
       }
     },
-    "coverKey":       { "type": "string" },
-    "scheduledTime":  { "type": "number", "minimum": 0 },
-    "pubType":         { "type": "number", "enum": [0, 1], "default": 1 }
+    "coverKey": {
+      "type": "string"
+    },
+    "scheduledTime": {
+      "type": "number",
+      "minimum": 0
+    },
+    "pubType": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    }
   },
   "additionalProperties": false
 }

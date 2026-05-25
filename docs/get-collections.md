@@ -1,11 +1,11 @@
-# 获取合集列表 (Get Collections)
+﻿# 获取合集列表 (Get Collections)
 
 获取账号已创建的合集列表。主要用于抖音、今日头条等支持合集的平台。
 
 ## 调用指令 (Command)
 
 ```bash
-node scripts/api.ts --payload='{"action":"collections","account_id":"ACCOUNT_ID"}'
+yxer collections ACCOUNT_ID --json
 ```
 
 ## 参数列表 (Payload Properties)
@@ -31,3 +31,4 @@ node scripts/api.ts --payload='{"action":"collections","account_id":"ACCOUNT_ID"
 - **脚本路径**: `scripts/api.ts`
 - **功能**: 封装蚁小二标准化合集查询接口 (`GET /platform-accounts/{platformAccountId}/collections`)。
 - **参数映射**: 将 `account_id` 映射为 URL 路径变量，将 `type` 映射为 `publishType` 查询参数。
+

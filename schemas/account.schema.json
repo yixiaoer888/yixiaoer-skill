@@ -1,0 +1,19 @@
+{
+  "title": "YiXiaoEr Account Schema Root",
+  "type": "object",
+  "required": [
+    "platformAccountId"
+  ],
+  "properties": {
+    "platformAccountId": {
+      "type": "string"
+    },
+    "status": {
+      "type": "number"
+    },
+    "nickname": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

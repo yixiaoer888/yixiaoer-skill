@@ -1,11 +1,13 @@
-# 获取发布分类/话题 (Get Categories)
+﻿# 获取发布分类/话题 (Get Categories)
 
 获取特定平台账号支持的文章分类、视频分类或话题标签列表。
+
+当前支持平台：百家号、爱奇艺、哔哩哔哩、企鹅号、网易号、一点号、知乎、蜂网、AcFun。
 
 ## 触发场景 (Trigger)
 - **意图辨析**：在准备发布内容时，为了确保 `platformSettings` 中的分类/话题符合平台标准，不产生非法值，必须预先查询合法值。
 - **典型提示词**：
-  - “获取这个抖音号的视频分类”
+  - “获取这个百家号的视频分类”
   - “查看百家号支持的文章类别”
   - “查询可以挂载的话题”
 
@@ -23,7 +25,7 @@
 1. **身份锚定**：识别目标账号 `account_id`（通过 `accounts` action 获取）。
 2. **场景对齐**：根据发布内容决定 `type`。
 3. **参数装配**：构造 `action: "categories"` 负载。
-4. **指令执行**：调用 `node scripts/api.ts --payload='{...}'`。
+4. **指令执行**：调用 `yxer categories <account_id> [--type video|article] [--json]`。
 5. **值注入**：将返回的分类 `id` 或 `name` 填入发布 Payload 的对应位置。
 
 ## 返回数据说明 (Response Details)
@@ -55,5 +57,6 @@
 ## 调用指令 (Command)
 
 ```bash
-node scripts/api.ts --payload='{"action":"categories","account_id":"YOUR_ACCOUNT_ID","type":"video"}'
+yxer categories YOUR_ACCOUNT_ID --type video --json
 ```
+

@@ -1,54 +1,134 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://www.yixiaoer.cn/schemas/platforms/douyin.video.json",
   "title": "Douyin Video Publish Form (Strict Standards)",
   "type": "object",
-  "required": ["formType", "title", "description"],
+  "required": [
+    "formType",
+    "title",
+    "description"
+  ],
   "properties": {
-    "formType": { "type": "string", "const": "task" },
-    "title": { "type": "string", "minLength": 1, "maxLength": 50 },
-    "description": { "type": "string", "minLength": 1, "maxLength": 500 },
-    "tags": { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 10 },
-    "syncComment": { "type": "boolean", "default": false },
+    "formType": {
+      "type": "string",
+      "const": "task"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "maxItems": 10
+    },
     "video": {
       "type": "object",
       "properties": {
-        "key": { "type": "string" },
-        "size": { "type": "integer" },
-        "width": { "type": "integer" },
-        "height": { "type": "integer" }
+        "key": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "width": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
+        }
       }
     },
-    "visibleType": { "type": "number", "enum": [0, 1, 2], "default": 0 },
-    "pubType": { "type": "number", "enum": [0, 1], "default": 1 },
+    "visibleType": {
+      "type": "number",
+      "enum": [
+        0,
+        1,
+        2
+      ],
+      "default": 0
+    },
+    "pubType": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
     "location": {
       "type": "object",
-      "required": ["yixiaoerId", "yixiaoerName", "raw"],
+      "required": [
+        "yixiaoerId",
+        "yixiaoerName",
+        "raw"
+      ],
       "properties": {
-        "yixiaoerId": { "type": "string" },
-        "yixiaoerName": { "type": "string" },
-        "raw": { "type": "object" }
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
       }
     },
     "music": {
       "type": "object",
-      "required": ["yixiaoerId", "yixiaoerName", "raw"],
+      "required": [
+        "yixiaoerId",
+        "yixiaoerName",
+        "raw"
+      ],
       "properties": {
-        "yixiaoerId": { "type": "string" },
-        "yixiaoerName": { "type": "string" },
-        "raw": { "type": "object" }
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
       }
     },
     "challenge": {
       "type": "object",
-      "required": ["yixiaoerId", "yixiaoerName", "raw"],
+      "required": [
+        "yixiaoerId",
+        "yixiaoerName",
+        "raw"
+      ],
       "properties": {
-        "yixiaoerId": { "type": "string" },
-        "yixiaoerName": { "type": "string" },
-        "raw": { "type": "object" }
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
       }
     },
-    "statement": { "type": "number", "enum": [3, 4, 5, 6] }
+    "statement": {
+      "type": "number",
+      "enum": [
+        3,
+        4,
+        5,
+        6
+      ]
+    }
   },
   "additionalProperties": false
 }

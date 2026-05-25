@@ -8,7 +8,7 @@ const path = require('path');
 const Ajv  = require('ajv');
 const addFormats = require('ajv-formats');
 
-const SCHEMA_DIR = path.join(__dirname, 'schemas', 'platforms');
+const SCHEMA_DIR = path.join(__dirname, '..', '..', 'schemas', 'platforms');
 
 const ajv = new Ajv({ allErrors: true, strict: false, verbose: true });
 addFormats(ajv);
@@ -64,8 +64,7 @@ testOne('douyin.video.schema.json', {
   formType: 'task',
   title: '2026年AI趋势',
   description: '深入探讨AI发展',
-  tags: ['AI', '科技'],
-  syncComment: false
+  tags: ['AI', '科技']
 }, true, '抖音视频(正确)');
 
 // 2. 抖音视频 - 缺 title（应该失败）

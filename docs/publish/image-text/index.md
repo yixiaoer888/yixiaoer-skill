@@ -19,7 +19,7 @@
 2. **账号确权**：获取目标账号对应的 `platformAccountId`。
 3. **平台细化**：针对小红书等平台，查阅对应文档补齐“话题”、“地点”等字段。
 4. **Payload 装配**：按照 1.1 - 1.3 节结构，构造包含 `action: "publish"` 的 JSON。
-5. **指令交付**：执行 `node scripts/api.ts --payload='{...}'`。
+5. **指令交付**：先执行 `yxer validate <platform> image-text <payload.json>`，再执行 `yxer publish image-text <platform> <payload.json> [clientId]`。
 
 ## 1. 数据结构 (Data Structure)
 

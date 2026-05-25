@@ -5,7 +5,7 @@
 ## 调用指令 (Command)
 
 ```bash
-node scripts/api.ts --payload='{"action":"music-category","account_id":"XXX"}'
+# 该能力正在迁移到 yxer CLI，当前不要再使用 node scripts/api.ts 作为公开入口
 ```
 
 ## 参数列表 (Payload Properties)

@@ -22,7 +22,7 @@
 ## 执行逻辑 (Logic Flow)
 1. **前置查询**：确认账号 `account_id`，确保该账号具备对应平台的小程序挂载权限。
 2. **参数装配**：识别搜索意图，注入 `keyword`。
-3. **指令执行**：调用 `node scripts/api.ts --payload='{"action":"miniapps",...}'`。
+3. **指令执行**：当前能力正在迁移到 `yxer` CLI，本文档不再推荐脚本直调。
 4. **关联挂载**：获取小程序信息后，将其详情填入发布 Payload 的对应平台表单中。
 
 ## 返回数据说明 (Response Details)
@@ -33,5 +33,5 @@
 ## 调用指令 (Command)
 
 ```bash
-node scripts/api.ts --payload='{"action":"miniapps","account_id":"YOUR_ACCOUNT_ID","keyword":"搜索词"}'
+# 该能力正在迁移到 yxer CLI，当前不要再使用 node scripts/api.ts 作为公开入口
 ```

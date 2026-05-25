@@ -1,24 +1,61 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://www.yixiaoer.cn/schemas/platforms/dayuhao.article.schema.json",
   "title": "大鱼号文章发布表单 (DaYuHao Article)",
   "type": "object",
-  "required": ["formType", "title", "content", "pubType"],
+  "required": [
+    "formType",
+    "title",
+    "content",
+    "pubType"
+  ],
   "properties": {
-    "formType":        { "type": "string", "const": "task" },
-    "title":           { "type": "string", "minLength": 1, "maxLength": 50 },
-    "content":          { "type": "string", "minLength": 1, "maxLength": 50000 },
-    "pubType":         { "type": "number", "enum": [0, 1], "default": 1 },
+    "formType": {
+      "type": "string",
+      "const": "task"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50
+    },
+    "content": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50000
+    },
+    "pubType": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
     "covers": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["key", "size", "width", "height"],
+        "required": [
+          "key",
+          "size",
+          "width",
+          "height"
+        ],
         "properties": {
-          "key":    { "type": "string" },
-          "size":   { "type": "integer", "minimum": 1 },
-          "width":  { "type": "integer", "minimum": 1 },
-          "height": { "type": "integer", "minimum": 1 }
+          "key": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1
+          }
         }
       }
     },
@@ -26,17 +63,44 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["key", "size", "width", "height"],
+        "required": [
+          "key",
+          "size",
+          "width",
+          "height"
+        ],
         "properties": {
-          "key":    { "type": "string" },
-          "size":   { "type": "integer", "minimum": 1 },
-          "width":  { "type": "integer", "minimum": 1 },
-          "height": { "type": "integer", "minimum": 1 }
+          "key": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1
+          }
         }
       }
     },
-    "declaration":     { "type": "number", "enum": [0, 3, 4], "default": 0 },
-    "scheduledTime":  { "type": "number", "minimum": 0 }
+    "declaration": {
+      "type": "number",
+      "enum": [
+        0,
+        3,
+        4
+      ],
+      "default": 0
+    },
+    "scheduledTime": {
+      "type": "number",
+      "minimum": 0
+    }
   },
   "additionalProperties": false
 }

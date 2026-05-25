@@ -24,7 +24,7 @@
 3. **平台草稿模式 (`action: publish` + `pubType: 0`)**：
    - 根级别注入 `action: "publish"`。
    - `accountForms` 内每个账号的 `contentPublishForm.pubType` 必须设为 `0`。
-4. **指令执行**：调用 `node scripts/api.ts --payload='{...}'`。
+4. **指令执行**：调用 `yxer draft save <payload.json>` 保存蚁小二草稿；平台草稿仍走 `yxer publish`。
 5. **状态反馈**：告知用户草稿保存位置及对应的 `taskSetId`。
 
 ## 快速区分 (Draft Types)
@@ -52,26 +52,10 @@
 ### 调用指令 (Command)
 
 ```bash
-node scripts/api.ts --payload='{
-  "action": "save-draft",
-  "publishType": "video",
-  "platforms": ["抖音", "视频号"],
-  "desc": "这是一个蚁小二草稿",
-  "publishArgs": {
-    "accountForms": [
-      {
-        "platformAccountId": "67fb2f1735eeb3cf31db3d65",
-        "video": { "key": "v-xxxxxx" },
-        "coverKey": "c-xxxxxx",
-        "contentPublishForm": {
-          "pubType": 1,
-          "title": "这是一个蚁小二草稿"
-        }
-      }
-    ]
-  }
-}'
+yxer draft save draft-payload.json
 ```
+
+`draft-payload.json` 中应包含原始发布结构，例如 `publishType`、`platforms`、`publishArgs`、`accountForms` 等字段；CLI 会自动按草稿模式提交。
 
 ---
 
@@ -82,22 +66,6 @@ node scripts/api.ts --payload='{
 ### 调用指令 (Command)
 
 ```bash
-node scripts/api.ts --payload='{
-  "action": "publish",
-  "publishType": "video",
-  "platforms": ["抖音"],
-  "publishArgs": {
-    "accountForms": [
-      {
-        "platformAccountId": "acc_vid_003",
-        "video": { "key": "v_key" },
-        "coverKey": "c_key",
-        "contentPublishForm": {
-          "pubType": 0,
-          "title": "存入抖音草稿箱的内容"
-        }
-      }
-    ]
-  }
-}'
+# 平台草稿仍应收口到 yxer publish 流程
+# 例如：yxer publish video 抖音 publish-payload.json
 ```

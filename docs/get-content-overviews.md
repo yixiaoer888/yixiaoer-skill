@@ -31,7 +31,7 @@
 1. **需求解析**：识别用户查询的时间范围、平台及作品类型意图。
 2. **时间处理**：将相对时间（如“最近7天”）转换为 Unix 毫秒时间戳注入 `publishStartTime`。
 3. **参数装配**：构造 `action: "content-overviews"` 及其余过滤参数。
-4. **指令执行**：调用 `node scripts/api.ts --payload='{...}'`。
+4. **指令执行**：当前能力正在迁移到 `yxer` CLI，本文档不再推荐脚本直调。
 5. **数据反馈**：对返回的 `contentData` 进行聚合或横向对比，直接回答用户关心的关键性指标。
 
 ## 返回结果说明 (Response Details)
@@ -51,7 +51,7 @@
 ## 调用指令 (Command)
 
 ```bash
-node scripts/api.ts --payload='{"action":"content-overviews","platform":"抖音","page":1,"size":10}'
+# 该能力正在迁移到 yxer CLI，当前不要再使用 node scripts/api.ts 作为公开入口
 ```
 
 ## 注意事项

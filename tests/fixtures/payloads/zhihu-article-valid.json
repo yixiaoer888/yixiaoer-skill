@@ -1,0 +1,14 @@
+{
+  "formType": "task",
+  "title": "如何评价2026年的AI发展",
+  "content": "<p>这是一篇关于AI发展的文章</p>",
+  "pubType": 1,
+  "covers": [
+    {
+      "key": "zhihu_cover_001",
+      "size": 500000,
+      "width": 1920,
+      "height": 1080
+    }
+  ]
+}

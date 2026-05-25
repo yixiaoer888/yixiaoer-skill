@@ -5,10 +5,7 @@
 ## 1. 调用指令
 
 ```bash
-node scripts/api.ts --payload='{
-  "action": "groups",
-  "account_id": "YOUR_ACCOUNT_ID"
-}'
+# 该能力正在迁移到 yxer CLI，当前不要再使用 node scripts/api.ts 作为公开入口
 ```
 
 ## 2. 请求参数

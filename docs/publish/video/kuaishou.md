@@ -18,7 +18,7 @@
    - 位置：若需要，调用 `locations` 获取 POI 数据。
    - 合集：调用 `collections` 获取可用合集 ID。
 3. **参数装配**：构造 `accountForms[i].contentPublishForm`，注意布尔值字段（如 `nearby_show`）的映射。
-4. **指令提交**：执行 `node scripts/api.ts`。
+4. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
 
 ## 1. contentPublishForm 参数定义
 

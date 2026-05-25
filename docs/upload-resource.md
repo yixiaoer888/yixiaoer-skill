@@ -1,4 +1,4 @@
-# 上传资源 (Upload Resource)
+﻿# 上传资源 (Upload Resource)
 
 将图片、视频或其它素材上传至蚁小二云端存储 (OSS)，并获取用于发布的资源 Key。这是自动化发布的前置步骤。
 
@@ -28,7 +28,7 @@
 1. **源检测**：识别 URL 是远程地址还是本地物理路径。
 2. **目标桶确认**：根据用户是否提到“素材库”决定 `bucket`（`cloud-publish` vs `material-library`）。
 3. **类型嗅探**：尝试根据后缀名自动推断 `contentType`，若失败则提示用户或使用通用流类型。
-4. **指令执行**：调用 `node scripts/api.ts --payload='{"action":"upload",...}'`。
+4. **指令执行**：调用 `yxer upload <file_path_or_url> [--bucket cloud-publish|material-library]`。
 5. **Key 提取**：获取返回的 `key`，并作为后续发布 Payload 的输入（如 `coverKey`, `video.key`）。
 
 ## 输出结果 (Output)
@@ -46,7 +46,7 @@
 ## 调用指令 (Command)
 
 ```bash
-node scripts/api.ts --payload='{"action":"upload","url":"https://example.com/image.jpg","bucket":"cloud-publish"}'
+yxer upload https://example.com/image.jpg --bucket cloud-publish
 ```
 
 > [!IMPORTANT]
@@ -56,3 +56,4 @@ node scripts/api.ts --payload='{"action":"upload","url":"https://example.com/ima
 > [!CAUTION]
 > **ContentType 签名一致性**:
 > 在上传资源时，必须确保获取上传地址所传入的 `contentType` 参数与 PUT 请求实际发送的 `Content-Type` Header **完全一致**。
+

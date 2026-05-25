@@ -1,0 +1,21 @@
+{
+  "accountForms": [
+    {
+      "platformAccountId": "6a0ab9f940df1867147b4677",
+      "contentPublishForm": {
+        "formType": "task",
+        "description": "CLI测试图文发布",
+        "visibleType": 0,
+        "images": [
+          {
+            "key": "yfb/test/t-6821ac8d50bc5fd636fa9801/huoyin1.jpg",
+            "size": 44719,
+            "width": 1920,
+            "height": 1080,
+            "format": "jpg"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,137 @@
+package api
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"mime"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
+)
+
+type UploadResult struct {
+	Key         string `json:"key"`
+	ContentType string `json:"contentType"`
+	Bucket      string `json:"bucket"`
+	Size        int64  `json:"size,omitempty"`
+	Width       int    `json:"width,omitempty"`
+	Height      int    `json:"height,omitempty"`
+	Format      string `json:"format,omitempty"`
+}
+
+func (c *Client) Upload(pathOrURL, bucket string) (UploadResult, error) {
+	if bucket == "" {
+		bucket = "cloud-publish"
+	}
+	contentType := DetectContentType(pathOrURL)
+	buffer, fileName, size, err := readUploadContent(pathOrURL)
+	if err != nil {
+		return UploadResult{}, err
+	}
+
+	params := map[string]string{
+		"fileKey":     fileName,
+		"contentType": contentType,
+	}
+	if size > 0 {
+		params["size"] = fmt.Sprint(size)
+	}
+
+	var uploadInfo map[string]interface{}
+	if err := c.Get(Query("/storages/"+bucket+"/upload-url", params), &uploadInfo); err != nil {
+		return UploadResult{}, err
+	}
+	data, _ := DataOrSelf(uploadInfo).(map[string]interface{})
+	serviceURL, _ := data["serviceUrl"].(string)
+	key, _ := data["key"].(string)
+	if serviceURL == "" || key == "" {
+		return UploadResult{}, fmt.Errorf("invalid upload info response: %v", uploadInfo)
+	}
+
+	req, err := http.NewRequest(http.MethodPut, serviceURL, bytes.NewReader(buffer))
+	if err != nil {
+		return UploadResult{}, err
+	}
+	req.Header.Set("Content-Type", contentType)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return UploadResult{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		raw, _ := io.ReadAll(resp.Body)
+		return UploadResult{}, fmt.Errorf("failed to upload to OSS: %s", string(raw))
+	}
+
+	width, height := imageDimensions(pathOrURL, buffer, contentType)
+	return UploadResult{
+		Key:         key,
+		ContentType: contentType,
+		Bucket:      bucket,
+		Size:        size,
+		Width:       width,
+		Height:      height,
+		Format:      strings.TrimPrefix(strings.ToLower(filepath.Ext(fileName)), "."),
+	}, nil
+}
+
+func DetectContentType(pathOrURL string) string {
+	ext := strings.ToLower(filepath.Ext(pathOrURL))
+	if guessed := mime.TypeByExtension(ext); guessed != "" {
+		if strings.Contains(guessed, ";") {
+			return strings.Split(guessed, ";")[0]
+		}
+		return guessed
+	}
+	switch ext {
+	case ".mp4":
+		return "video/mp4"
+	case ".mov":
+		return "video/quicktime"
+	default:
+		return "application/octet-stream"
+	}
+}
+
+func readUploadContent(pathOrURL string) ([]byte, string, int64, error) {
+	if strings.HasPrefix(pathOrURL, "http://") || strings.HasPrefix(pathOrURL, "https://") {
+		resp, err := http.Get(pathOrURL)
+		if err != nil {
+			return nil, "", 0, err
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			return nil, "", 0, fmt.Errorf("HTTP error downloading file during sync upload: %d", resp.StatusCode)
+		}
+		raw, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, "", 0, err
+		}
+		parsed, _ := url.Parse(pathOrURL)
+		fileName := filepath.Base(parsed.Path)
+		if fileName == "." || fileName == "/" || fileName == "" {
+			fileName = "file.jpg"
+		}
+		if filepath.Ext(fileName) == "" {
+			fileName += ".jpg"
+		}
+		return raw, fileName, int64(len(raw)), nil
+	}
+
+	abs, err := filepath.Abs(pathOrURL)
+	if err != nil {
+		return nil, "", 0, err
+	}
+	raw, err := os.ReadFile(abs)
+	if err != nil {
+		return nil, "", 0, err
+	}
+	stat, err := os.Stat(abs)
+	if err != nil {
+		return nil, "", 0, err
+	}
+	return raw, filepath.Base(abs), stat.Size(), nil
+}

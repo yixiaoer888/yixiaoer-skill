@@ -14,7 +14,7 @@
 ## 执行逻辑 (Logic Flow)
 1. **内容处理**：确保文章正文符合Acfun要求的格式。
 2. **参数装配**：提取标题、正文及封面信息至 `contentPublishForm`。
-3. **指令执行**：调用 `node scripts/api.ts`。
+3. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
 
 
 本平台文章发布通过 `contentPublishForm` 承载以下参数。

@@ -4,7 +4,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { SchemaValidator } from './scripts/validator';
+import { SchemaValidator } from '../../scripts/validator';
 
 const validator = new SchemaValidator();
 
@@ -15,12 +15,12 @@ function readJsonFile(filePath: string) {
 
 const testCases = [
   // [platform, type, payloadFile, expectValid]
-  ['douyin', 'video',     'test-payloads/douyin-video-valid.json',   true],
-  ['douyin', 'video',     'test-payloads/douyin-video-invalid.json', false],
-  ['douyin', 'video',     'test-payloads/douyin-video-url-invalid.json', false],
-  ['douyin', 'video',     'test-payloads/douyin-video-location-missing-raw.json', false],
-  ['Xiaohongshu', 'video', 'test-payloads/xiaohongshu-video-valid.json', true],
-  ['zhihu', 'article',   'test-payloads/zhihu-article-valid.json',  true],
+  ['douyin', 'video',     '../fixtures/payloads/douyin-video-valid.json',   true],
+  ['douyin', 'video',     '../fixtures/payloads/douyin-video-invalid.json', false],
+  ['douyin', 'video',     '../fixtures/payloads/douyin-video-url-invalid.json', false],
+  ['douyin', 'video',     '../fixtures/payloads/douyin-video-location-missing-raw.json', false],
+  ['Xiaohongshu', 'video', '../fixtures/payloads/xiaohongshu-video-valid.json', true],
+  ['zhihu', 'article',   '../fixtures/payloads/zhihu-article-valid.json',  true],
 ];
 
 function localPreflight(type: string, data: any): string[] {

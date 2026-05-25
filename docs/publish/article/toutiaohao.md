@@ -17,7 +17,7 @@
 2. **位置检索**：若需精准挂载位置，调用 `locations` 接口获取 DTO。
 3. **收益装配**：根据意图注入 `advertisement: 3`（赚取收益）或 `2`（不投放广告）。
 4. **参数装配**：构造 `accountForms[i].contentPublishForm`。
-5. **指令执行**：执行 `node scripts/api.ts`。
+5. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
 
 ## 1. contentPublishForm 参数定义
 

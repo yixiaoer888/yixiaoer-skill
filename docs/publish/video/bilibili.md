@@ -17,7 +17,7 @@
 2. **标签装配**：识别用户提供的关键词，转换为 `tags` 字符串数组（B 站限制 1-10 个）。
 3. **申明判定**：根据 `createType`（自制/转载）自动匹配 `contentSourceUrl`。
 4. **参数装配**：构造 `accountForms[i].contentPublishForm`。
-5. **指令执行**：调用 `node scripts/api.ts`。
+5. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
 
 ## 1. contentPublishForm 参数定义
 
@@ -41,7 +41,7 @@
 {
   "action": "publish",
   "publishType": "video",
-  "platforms": ["Bilibili"],
+  "platforms": ["哔哩哔哩"],
   "publishArgs": {
     "accountForms": [
       {

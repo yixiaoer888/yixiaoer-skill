@@ -1,14 +1,33 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://www.yixiaoer.cn/schemas/platforms/jianshu.article.schema.json",
   "title": "简书文章发布表单 (JianShu Article)",
   "type": "object",
-  "required": ["formType", "title", "content", "pubType"],
+  "required": [
+    "formType",
+    "title",
+    "content",
+    "pubType"
+  ],
   "properties": {
-    "formType":    { "type": "string", "const": "task" },
-    "title":       { "type": "string", "minLength": 1 },
-    "content":     { "type": "string", "minLength": 1 },
-    "pubType":     { "type": "number", "enum": [0, 1], "default": 1 }
+    "formType": {
+      "type": "string",
+      "const": "task"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "content": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pubType": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    }
   },
   "additionalProperties": false
 }

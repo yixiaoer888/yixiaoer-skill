@@ -6,15 +6,15 @@
 
 
 ## 触发场景 (Trigger)
-- **意图辨析**：用户指定在“Xiaohongshu”平台分发视频内容时触发。
+- **意图辨析**：用户指定在“小红书”平台分发视频内容时触发。
 - **典型提示词**：
-  - “把这个视频发布到Xiaohongshu”
-  - “同步视频到Xiaohongshu”
+  - “把这个视频发布到小红书”
+  - “同步视频到小红书”
 
 ## 执行逻辑 (Logic Flow)
-1. **意图确认**：确认目标平台为Xiaohongshu。
+1. **意图确认**：确认目标平台为小红书。
 2. **参数装配**：识别并填充标题、描述等平台特定字段至 `contentPublishForm`。
-3. **指令执行**：调用 `node scripts/api.ts`。
+3. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
 
 
 在本平台视频发布通过 `contentPublishForm`承载以下参数。
@@ -42,7 +42,7 @@
 {
   "action": "publish",
   "publishType": "video",
-  "platforms": ["Xiaohongshu"],
+  "platforms": ["小红书"],
   "publishArgs": {
     "accountForms": [
       {

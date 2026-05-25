@@ -15,13 +15,13 @@
 
 ## 执行逻辑 (Logic Flow)
 1. **资源预处理**：
-   - 调用 `upload` action 将本地或 URL 视频及封面图上传至云端，并持有获得的 `key`。
+   - 调用 `yxer upload` 将本地或 URL 视频及封面图上传至云端，并持有获得的 `key`。
    - 严禁在 `publish` 负载中直接透传原始 URL。
-2. **账号与平台选取**：识别目标 `platforms` 列表及具体的 `platformAccountId`（通过 `accounts` 查询）。
-3. **参数深度补全**：若涉及分类、地理位置、音乐等动态字段，调用对应 `get-*` 接口获取合法 ID。
+2. **账号与平台选取**：识别目标 `platforms` 列表及具体的 `platformAccountId`（通过 `yxer accounts` 查询）。
+3. **参数深度补全**：若涉及分类、地理位置、音乐等动态字段，调用对应 `yxer categories`、`yxer locations`、`yxer music` 等命令获取合法对象。
 4. **Payload 装配**：按照本文档 1.1 - 1.3 节定义的 DTO 结构，组装包含 `action: "publish"` 的完整 JSON。
-5. **指令交付**：调用 `node scripts/api.ts --payload='{...}'` 执行发布。
-6. **状态跟踪**：记录返回的 `taskSetId`，以便后续通过 `records` 查询进度。
+5. **指令交付**：先执行 `yxer validate <platform> video <payload.json>`，再执行 `yxer publish video <platform> <payload.json> [clientId]`。
+6. **状态跟踪**：记录返回的 `taskSetId`，以便后续通过 `yxer records` 查询进度。
 
 ## 1. 数据结构 (Data Structure)
 

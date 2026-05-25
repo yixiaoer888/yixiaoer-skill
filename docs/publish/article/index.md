@@ -21,7 +21,7 @@
    - **微信公众号**：必须单独发布，推荐使用 `platformForms` 结构。
    - **通用平台**（知乎、简书等）：使用 `accountForms` 结构进行分发。
 4. **参数装配**：注入 `action: "publish"` 及其余 DTO 字段。
-5. **指令执行**：调用 `node scripts/api.ts`。
+5. **指令执行**：先执行 `yxer validate <platform> article <payload.json>`，再执行 `yxer publish article <platform> <payload.json> [clientId]`。
 
 ## 1. 数据结构 (Data Structure)
 

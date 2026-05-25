@@ -8,7 +8,7 @@ const path = require('path');
 const Ajv  = require('ajv');
 const addFormats = require('ajv-formats');
 
-const SCHEMA_DIR = path.join(__dirname, 'schemas', 'platforms');
+const SCHEMA_DIR = path.join(__dirname, '..', '..', 'schemas', 'platforms');
 const ajv = new Ajv({ allErrors: true, strict: false, verbose: true });
 addFormats(ajv);
 
@@ -77,7 +77,6 @@ passed += testOne('douyin.video.schema.json', {
   title: '2026年AI趋势',
   description: '深入探讨AI发展',
   tags: ['AI', '科技'],
-  syncComment: false,
 }, true, '抖音视频(正确)') ? 1 : 0;
 failed += (passed > 0 && testOne.toString().includes('dummy')) ? 0 : 0; // placeholder
 
@@ -95,7 +94,7 @@ function T(sf, pl, ev, label) {
 
 console.log('--- 视频类 ---');
 // 抖音
-T('douyin.video.schema.json', {formType:'task',title:'测试',description:'描述',tags:['A'],syncComment:false}, true, '抖音视频(正确)');
+T('douyin.video.schema.json', {formType:'task',title:'测试',description:'描述',tags:['A']}, true, '抖音视频(正确)');
 T('douyin.video.schema.json', {formType:'task',description:'缺title',tags:['A']}, false, '抖音视频(缺title)');
 T('douyin.video.schema.json', {formType:'task',title:'测',description:'描',tags:['A'],extra:1}, false, '抖音视频(多余字段)');
 

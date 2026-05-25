@@ -8,7 +8,7 @@ const path = require('path');
 const Ajv  = require('ajv');
 const addFormats = require('ajv-formats');
 
-const SCHEMA_DIR = path.join(__dirname, 'schemas', 'platforms');
+const SCHEMA_DIR = path.join(__dirname, '..', '..', 'schemas', 'platforms');
 const ajv = new Ajv({ allErrors: true, strict: false, verbose: true });
 addFormats(ajv);
 
@@ -50,7 +50,7 @@ console.log('=== Schema 验证测试 ===\n');
 
 // ── 抖音视频 ─────────────────────────────
 T('douyin.video.schema.json',
-  { formType:'task', title:'测试', description:'描述', tags:['AI'], syncComment:false },
+  { formType:'task', title:'测试', description:'描述', tags:['AI'] },
   true, '抖音视频(正确)');
 
 T('douyin.video.schema.json',
