@@ -144,7 +144,7 @@ export function handleError(error: any, context: string, errorCode: string = 'YI
     message: message.includes('不支持') ? message : `Failed to ${context}`,
     details: message,
     suggestion: message.includes('不支持')
-      ? "请检查发布类型 (publishType) 组合是否正确。例如小红书仅支持 'image-text' 或 'video'，不支持 'article'。"
+      ? "请检查发布类型 (publishType) 与目标平台的组合是否正确，并核对对应平台文档声明的支持范围。"
       : "请依次检查: 1. 技能版本号是否一致; 2. 请求参数是否符合 DTO 规范; 3. 查阅 [避坑指南](./docs/troubleshooting-guide.md)。"
   };
 

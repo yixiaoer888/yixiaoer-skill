@@ -11,7 +11,6 @@
 | `KuaiShou` | `快手` |
 | `ShiPinHao` | `视频号` |
 | `BiLiBiLi` | `哔哩哔哩` |
-| `XiaoHongShu` | `小红书` |
 | `BaiJiaHao` | `百家号` |
 | `TouTiaoHao` | `头条号` |
 | `XiGuaShiPin` | `西瓜视频` |
@@ -41,7 +40,6 @@
 | `KuaiChuanHao` | `快传号` |
 | `XueQiuHao` | `雪球号` |
 | `CheJiaHao` | `车家号` |
-| `XiaoHongShuShangJiaHao` | `小红书商家号` |
 | `YiCheHao` | `易车号` |
 | `FengWang` | `蜂网` |
 | `DouBan` | `豆瓣` |

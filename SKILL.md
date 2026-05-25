@@ -1,6 +1,6 @@
 ---
 name: yixiaoer
-version: 1.6.4
+version: 1.6.5
 description: "蚁小二 (YiXiaoEr) 核心技能：支持多账号矩阵管理、账号查询 (accounts)、图文视频分发发布 (publish)、一键发布、保存草稿 (draft)、资源上传 (upload)、素材库 (material/library)、发布记录查询 (records) 及运营数据统计 (overviews)。适配 50+ 平台，助力高效运营新媒体矩阵。"
 author: wangzhengjiao
 ---
@@ -76,8 +76,8 @@ API 调用时涉及的平台名称必须使用蚁小二定义的中文枚举或 
     - **Trigger**: “存为蚁小二草稿”、“暂存到草稿箱”、“存为 YXE 草稿”。
     - **Action**: `save-draft`
 2.  **平台草稿 (Platform Draft)**:
-    - **逻辑**：内容会被推送到对应平台（如抖音、小红书）的草稿箱，用户可在 App 端二次编辑。
-    - **Trigger**: “存为抖音草稿”、“推送到平台草稿箱”、“存为小红书草稿”。
+    - **逻辑**：内容会被推送到对应平台（如抖音、视频号）的草稿箱，用户可在 App 端二次编辑。
+    - **Trigger**: “存为抖音草稿”、“推送到平台草稿箱”、“存为视频号草稿”。
     - **Action**: `publish` (并在 `accountForms` 内每项设置 `"contentPublishForm": { "pubType": 0 }`)
 
 ### ⚠️ 歧义处理：若用户仅提及“存草稿”而未明确指出是“蚁小二草稿”还是“平台草稿”，Agent **必须立刻询问用户**以明确意图，严禁自行默认或猜测。
