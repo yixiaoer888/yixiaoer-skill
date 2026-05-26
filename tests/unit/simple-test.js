@@ -107,5 +107,14 @@ testOne('zhihu.article.schema.json', {
   // 缺少必填字段 content
 }, false, '知乎文章(缺content)');
 
+// 7. 抖音文章 - content 仅空白（schema 会过，业务层应拒绝）
+testOne('douyin.article.schema.json', {
+  formType: 'task',
+  title: '抖音文章标题',
+  content: '   ',
+  covers: [{ key: 'cover_key', size: 1024, width: 800, height: 600 }],
+  visibleType: 0
+}, true, '抖音文章(schema层允许空白content)');
+
 console.log(`\n=== 结果: ${passed} 通过, ${failed} 失败 ===`);
 process.exit(failed > 0 ? 1 : 0);

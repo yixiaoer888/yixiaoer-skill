@@ -1,0 +1,27 @@
+{
+  "accountForms": [
+    {
+      "platformAccountId": "DY_ACC_001",
+      "cover": {
+        "key": "cover_oss_key",
+        "size": 102400,
+        "width": 800,
+        "height": 600
+      },
+      "contentPublishForm": {
+        "formType": "task",
+        "title": "这是一篇抖音文章",
+        "content": "   ",
+        "covers": [
+          {
+            "key": "cover_oss_key",
+            "size": 102400,
+            "width": 800,
+            "height": 600
+          }
+        ],
+        "visibleType": 0
+      }
+    }
+  ]
+}

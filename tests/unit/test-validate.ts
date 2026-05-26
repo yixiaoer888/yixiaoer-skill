@@ -21,6 +21,7 @@ const testCases = [
   ['douyin', 'video',     '../fixtures/payloads/douyin-video-location-missing-raw.json', false],
   ['Xiaohongshu', 'video', '../fixtures/payloads/xiaohongshu-video-valid.json', true],
   ['zhihu', 'article',   '../fixtures/payloads/zhihu-article-valid.json',  true],
+  ['douyin', 'article',  '../fixtures/payloads/douyin-article-blank-content.json', false],
 ];
 
 function localPreflight(type: string, data: any): string[] {
@@ -76,6 +77,9 @@ function localPreflight(type: string, data: any): string[] {
           requireResource(image, `accountForms[${index}].images[${imageIndex}]`, ['size', 'width', 'height']);
         });
       }
+    }
+    if (type === 'article' && (typeof cpf.content !== 'string' || cpf.content.trim().length === 0)) {
+      errors.push(`accountForms[${index}].contentPublishForm.content: required and must not be blank`);
     }
     walk(form, value => {
       if (isUrl(value)) errors.push(`accountForms[${index}]: contains external URL`);

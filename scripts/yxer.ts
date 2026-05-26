@@ -77,6 +77,10 @@ function looksLikeExternalUrl(value: any): boolean {
   return typeof value === 'string' && /^https?:\/\//i.test(value);
 }
 
+function isBlankString(value: any): boolean {
+  return typeof value !== 'string' || value.trim().length === 0;
+}
+
 function requireUploadedResource(resource: any, pathLabel: string, requiredFields: string[], errors: string[]) {
   if (!resource || typeof resource !== 'object') {
     errors.push(`${pathLabel}: missing uploaded resource object`);
@@ -158,8 +162,8 @@ function preflightPublishPayload(type: string, platforms: string[], rawPayload: 
       if (cover) requireUploadedResource(cover, `${formPath}.cover`, ['size', 'width', 'height'], errors);
     }
 
-    if (type === 'article' && (!cpf?.content || typeof cpf.content !== 'string')) {
-      errors.push(`${formPath}.contentPublishForm.content: article publish requires content`);
+    if (type === 'article' && isBlankString(cpf?.content)) {
+      errors.push(`${formPath}.contentPublishForm.content: article publish requires non-blank content`);
     }
 
     walk(form, (value, valuePath) => {
