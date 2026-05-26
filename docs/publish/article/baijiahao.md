@@ -40,7 +40,6 @@
   "publishType": "article",
   "platforms": ["百家号"],
   "publishArgs": {
-    "content": "<h1>文章标题</h1><p>正文内容至少需要9个字以上。</p>",
     "accountForms": [
       {
         "platformAccountId": "acc_bjh_001",

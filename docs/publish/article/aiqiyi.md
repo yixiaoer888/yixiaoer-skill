@@ -34,7 +34,6 @@
   "publishType": "article",
   "platforms": ["爱奇艺"],
   "publishArgs": {
-    "content": "<h1>这是文章标题</h1><p>这是正文内容，支持 HTML 格式。</p>",
     "accountForms": [
       {
         "platformAccountId": "acc_aqy_001",

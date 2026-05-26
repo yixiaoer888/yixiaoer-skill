@@ -38,7 +38,6 @@
   "publishType": "article",
   "platforms": ["搜狐号"],
   "publishArgs": {
-    "content": "<h1>搜狐号文章</h1><p>正文内容...</p>",
     "accountForms": [
       {
         "platformAccountId": "acc_sh_001",

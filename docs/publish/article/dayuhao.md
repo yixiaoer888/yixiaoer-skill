@@ -40,7 +40,6 @@
   "publishType": "article",
   "platforms": ["大鱼号"],
   "publishArgs": {
-    "content": "<h1>大鱼号文章标题</h1><p>正文内容...</p>",
     "accountForms": [
       {
         "platformAccountId": "acc_dy_001",

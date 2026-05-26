@@ -63,7 +63,6 @@
 
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| `content` | `string` | **是** | **文章正文**: HTML 格式字符串 | - |
 | `accountForms` | `Array` | **是** | 账号发布表单列表 (定义目标账号) | - |
 | `platformForms` | `Object` | 否 | **平台级表单**: 仅限 `微信公众号` 使用。按平台名称组织的共享配置字典 | - |
 
@@ -79,7 +78,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `platformAccountId` | `string` | **是** | 蚁小二平台账号唯一 ID | - |
 | `cover` | `Object` | **是** | **ImageFormItem**: 主封面对象 (`key`, `width`, `height`, `size`) | - |
-| `contentPublishForm`| `Object` | 否 | **账号级透传配置**: 若未配置 `platformForms` 则从此读取 | `{}` |
+| `contentPublishForm`| `Object` | 否 | **账号级透传配置**: 若未配置 `platformForms` 则从此读取；正文 `content` 也放在这里 | `{}` |
 | `coverKey` | `string` | 否 | 账号级封面 Key (通常与 `cover.key` 一致) | - |
 
 ## 2. 发布示例 (Payload Example)
@@ -90,7 +89,6 @@
   "publishType": "article",
   "platforms": ["微信公众号"],
   "publishArgs": {
-    "content": "<h1>演示文章标题</h1><p>这是一个演示文章的正文内容...</p>",
     "accountForms": [
       {
         "platformAccountId": "acc_art_001",
@@ -100,7 +98,12 @@
           "height": 500,
           "size": 150000
         },
-        "coverKey": "article_cover_key"
+        "coverKey": "article_cover_key",
+        "contentPublishForm": {
+          "formType": "task",
+          "title": "演示文章标题",
+          "content": "<h1>演示文章标题</h1><p>这是一个演示文章的正文内容...</p>"
+        }
       }
     ]
   }

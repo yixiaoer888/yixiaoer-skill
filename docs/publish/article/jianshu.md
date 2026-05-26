@@ -36,7 +36,6 @@
   "publishType": "article",
   "platforms": ["简书"],
   "publishArgs": {
-    "content": "<h1>简书文章标题</h1><p>内容正文...</p>",
     "accountForms": [
       {
         "platformAccountId": "acc_js_001",

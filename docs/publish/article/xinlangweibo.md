@@ -48,7 +48,6 @@
   "publishType": "article",
   "platforms": ["新浪微博"],
   "publishArgs": {
-    "content": "<h1>微博长文章</h1><p>内容正文支持 HTML 渲染。</p>",
     "accountForms": [
       {
         "platformAccountId": "acc_weibo_001",

@@ -40,7 +40,6 @@
   "publishType": "article",
   "platforms": ["网易号"],
   "publishArgs": {
-    "content": "<h1>网易号文章标题</h1><p>内容正文...</p>",
     "accountForms": [
       {
         "platformAccountId": "acc_wy_001",

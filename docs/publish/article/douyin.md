@@ -42,7 +42,6 @@
   "publishType": "article",
   "platforms": ["抖音"],
   "publishArgs": {
-    "content": "<h1>抖音文章标题</h1><p>正文内容...</p>",
     "accountForms": [
       {
         "platformAccountId": "YOUR_ACCOUNT_ID",

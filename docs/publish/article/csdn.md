@@ -42,7 +42,6 @@
   "publishType": "article",
   "platforms": ["CSDN"],
   "publishArgs": {
-    "content": "<h1>CSDN 文章发布演示</h1><p>这是正文内容。</p>",
     "accountForms": [
       {
         "platformAccountId": "acc_csdn_001",

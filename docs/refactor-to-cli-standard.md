@@ -494,7 +494,7 @@ douyin
 
 统一规则：
 
-- 文章正文：`publishArgs.content`
+- 文章正文：`accountForms[].contentPublishForm.content`
 - 图文正文：`publishArgs.content`
 - 视频标题/描述：`accountForms[].contentPublishForm.title/description`
 

@@ -38,7 +38,6 @@
   "publishType": "article",
   "platforms": ["豆瓣"],
   "publishArgs": {
-    "content": "<h1>豆瓣日记</h1><p>正文内容...</p>",
     "accountForms": [
       {
         "platformAccountId": "acc_db_001",

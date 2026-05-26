@@ -41,7 +41,6 @@
   "publishType": "article",
   "platforms": ["哔哩哔哩"],
   "publishArgs": {
-    "content": "<h1>B站专栏文章</h1><p>正文内容...</p>",
     "accountForms": [
       {
         "platformAccountId": "acc_bili_001",

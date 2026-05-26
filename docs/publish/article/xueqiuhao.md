@@ -50,7 +50,6 @@
   "publishType": "article",
   "platforms": ["雪球号"],
   "publishArgs": {
-    "content": "<h1>雪球号财经文章</h1><p>内容正文...</p>",
     "accountForms": [
       {
         "platformAccountId": "acc_xq_001",

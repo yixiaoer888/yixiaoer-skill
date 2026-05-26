@@ -39,7 +39,6 @@
   "publishType": "article",
   "platforms": ["一点号"],
   "publishArgs": {
-    "content": "<h1>文章标题</h1><p>正文内容...</p>",
     "accountForms": [
       {
         "platformAccountId": "acc_yd_001",
