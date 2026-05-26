@@ -81,11 +81,13 @@ export class SchemaValidator {
         const target = targets[i];
         const idx = i;
         const valid = validate(target);
+        const prefix = targets.length > 1 ? `accountForms[${idx}].contentPublishForm: ` : '';
         if (!valid && validate.errors) {
-          const prefix = targets.length > 1 ? `accountForms[${idx}].contentPublishForm: ` : '';
           const errs = this.formatAjvErrors(validate.errors).map(e => prefix + e);
           allErrors.push(...errs);
         }
+        const businessErrors = this.validateBusinessRules(type, target).map(e => prefix + e);
+        allErrors.push(...businessErrors);
       }
 
       if (allErrors.length > 0) {
@@ -143,6 +145,18 @@ export class SchemaValidator {
     }
   }
 
+  private validateBusinessRules(type: string, data: any): string[] {
+    const errors: string[] = [];
+    if (type === 'article' && this.isBlankString(data?.content)) {
+      errors.push('content must not be blank');
+    }
+    return errors;
+  }
+
+  private isBlankString(value: any): boolean {
+    return typeof value !== 'string' || value.trim().length === 0;
+  }
+
   // ── Basic fallback validation (when schema missing or ajv fails) ───
   private basicValidate(data: any): { valid: boolean; errors?: string[] } {
     const errors: string[] = [];
@@ -178,8 +192,8 @@ export class SchemaValidator {
           }
           // Check content for article
           if (data.publishType === 'article') {
-            if (!cpf.content) {
-              errors.push(`accountForms[${idx}].contentPublishForm: content is required for article publish`);
+            if (this.isBlankString(cpf.content)) {
+              errors.push(`accountForms[${idx}].contentPublishForm: content is required for article publish and must not be blank`);
             }
           }
         } else {

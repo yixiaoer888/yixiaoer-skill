@@ -8,6 +8,10 @@ import * as path from 'path';
 export const API_KEY = process.env.YIXIAOER_API_KEY;
 export const API_URL = process.env.YIXIAOER_API_URL || 'https://www.yixiaoer.cn/api';
 
+function isBlankString(value: any): boolean {
+  return typeof value !== 'string' || value.trim().length === 0;
+}
+
 /**
  * 解析并获取 --payload 参数中的 JSON 对象
  */
@@ -203,8 +207,8 @@ function validateSupport(payload: any) {
       if (payload.publishType === 'video' && !form.video) {
         throw new Error(`"publishType" 为 "video" 时，accountForms[${index}] 必须包含 "video" 资源信息（key, size, width, height, duration）。`);
       }
-      if (payload.publishType === 'article' && !cpf.content) {
-        throw new Error(`"publishType" 为 "article" 时，contentPublishForm 必须包含 "content" 正文。`);
+      if (payload.publishType === 'article' && isBlankString(cpf.content)) {
+        throw new Error(`"publishType" 为 "article" 时，contentPublishForm 必须包含非空白的 "content" 正文。`);
       }
       if (payload.publishType === 'image-text' && (!form.images || form.images.length === 0)) {
         throw new Error(`"publishType" 为 "image-text" 时，accountForms[${index}] 必须包含 "images" 数组。`);
