@@ -28,7 +28,7 @@
 | `articles` | `Array` | **是** | 文章列表 (`WxGongZhongHaoContentFrom[]`, 1-8 篇) | - |
 | `notifySubscribers` | `number` | **是** | 是否群发: 0-不群发, 1-群发 | `0` |
 | `pubType` | `number` | **是** | 草稿: 0-草稿, 1-直接发布 | `1` |
-| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间 (13 位 Unix 时间戳，单位: 毫秒) | - |
 | `sex` | `number` | 否 | 群发性别: 0-全部, 1-男, 2-女 | `0` |
 | `country` | `string` | 否 | 群发国家 | - |
 | `province` | `string` | 否 | 群发省份 | - |

@@ -26,9 +26,9 @@
 | `title` | `string` | **是** | 抖音视频标题 (1-50 字) | - |
 | `description` | `string` | **是** | 抖音视频描述 (1-500 字) | - |
 | `horizontalCover` | `object` | 否 | 抖音视频横板封面，使用 `OldCover` 结构 | - |
-| `statement` | `number` | 否 | 声明: 3-内容从 AI 生成, 4-可能引人不适, 5-虚构演绎, 6-危险行为 | - |
+| `declaration` | `number` | 否 | 声明: 3-内容从 AI 生成, 4-可能引人不适, 5-虚构演绎, 6-危险行为 | - |
 | `location` | `object` | 否 | 抖音视频位置，使用 `PlatformDataItem` 结构 | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间戳 (单位: 秒) | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间戳 (13 位 Unix 时间戳，单位: 毫秒) | - |
 | `allow_save` | `number` | 否 | 保存权限: 0-不允许, 1-允许 | 0 |
 | `shoppingCart` | `object[]` | 否 | 购物车列表，使用 `ShoppingCart` 结构 | - |
 | `groupShopping` | `object` | 否 | 团购信息，使用 `ShoppingCart` 结构 | - |
@@ -64,7 +64,7 @@
           "formType": "task",
           "title": "记录美好生活",
           "description": "这是我在抖音的第一条视频 #美好生活 #见闻",
-          "statement": 3,
+          "declaration": 3,
           "location": {
             "yixiaoerId": "123",
             "yixiaoerName": "上海市",

@@ -29,7 +29,7 @@
 | `declaration` | `number` | 否 | 创作申明：1-内容由AI生成, 2-个人原创, 3-取材网络, 4-虚构演绎 | - |
 | `createType` | `number` | 否 | 创作类型：0-非原创, 1-原创 | 0 |
 | `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
-| `scheduledTime` | `number` | 否 | 定时发布时间戳（单位：秒） | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间戳（13 位 Unix 时间戳，单位：毫秒） | - |
 
 ## 2. 复杂对象结构
 

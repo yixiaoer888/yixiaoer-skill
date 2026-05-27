@@ -29,7 +29,7 @@
 | `covers` | `Array` | **是** | 文章封面列表 (`OldCover[]`, 1-9 张) | - |
 | `isFirst` | `boolean` | 否 | 是否头条首发 | `false` |
 | `location` | `Object` | 否 | 位置对象 (`PlatformDataItem`) | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间 (13 位 Unix 时间戳，单位: 毫秒) | - |
 | `advertisement` | `number` | 否 | 广告投放收益: 2-无收益, 3-投放广告赚收益 | `3` |
 | `declaration`| `number` | 否 | 创作类型 1:自行拍摄 2:取自站外 3:AI生成 6:虚构演绎 7:投资观点 8:健康医疗 | - |
 | `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |

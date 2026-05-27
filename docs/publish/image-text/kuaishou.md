@@ -28,7 +28,7 @@
 | `location` | `PlatformDataItem` | **否** | 位置信息 | - |
 | `music` | `PlatformDataItem` | **否** | 音乐信息 | - |
 | `visibleType` | `number` | **是** | 可见类型: 0-公开, 1-私密, 3-好友可见 | 0 |
-| `scheduledTime` | `number` | **否** | 定时发布时间 (Unix 时间戳，单位: 秒) | - |
+| `scheduledTime` | `number` | **否** | 定时发布时间 (13 位 Unix 时间戳，单位: 毫秒) | - |
 | `collection` | `Category` | **否** | 合集信息 | - |
 
 ## 2. 复杂对象结构说明

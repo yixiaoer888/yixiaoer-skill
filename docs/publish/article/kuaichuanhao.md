@@ -30,7 +30,7 @@
 | `tags` | `string[]` | 否 | 文章标签 | - |
 | `type`| `number` | **是** | 创作类型: 0-不申明, 1-申明原创 | 1 |
 | `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
-| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间 (13 位 Unix 时间戳，单位: 毫秒) | - |
 
 ## 2. Payload 完整示例
 

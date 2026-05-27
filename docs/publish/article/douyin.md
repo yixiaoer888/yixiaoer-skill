@@ -31,7 +31,7 @@
 | `headImage` | `Object` | 否 | 文章头图 (`OldCover`) | - |
 | `music` | `Object` | 否 | 平台音乐背景 (`MusicItem`) | - |
 | `topics` | `Array` | 否 | 话题标签列表 (`Category[]`, 最多 5 个) | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间 (13 位 Unix 时间戳，单位: 毫秒) | - |
 | `visibleType` | `number` | **是** | 可见性: 0-公开, 1-私密, 3-好友 | `0` |
 
 ## 2. Payload 完整示例

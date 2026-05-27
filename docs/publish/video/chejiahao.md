@@ -25,7 +25,7 @@
 | title | string | 是 | 视频标题 | - |
 | description | string | 是 | 视频描述 | - |
 | type | number | 是 | 创作类型：1-原创, 3-首发, 13-原创首发 | 1 |
-| scheduledTime | number | 否 | 定时发布时间戳（单位：秒） | - |
+| scheduledTime | number | 否 | 定时发布时间戳（13 位 Unix 时间戳，单位：毫秒） | - |
 
 ## 2. JSON 示例
 

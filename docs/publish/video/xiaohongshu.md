@@ -29,7 +29,7 @@
 | `declaration` | `number` | 否 | 内容类型申明: 1-虚构演绎, 2-笔记含 AI 合成内容 | - |
 | `createType` | `number` | 否 | 创作类型: 1-原创, 0-不申明 | 0 |
 | `location` | `object` | 否 | 视频位置，使用 `PlatformDataItem` 结构 | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间戳 (单位: 秒) | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间戳 (13 位 Unix 时间戳，单位: 毫秒) | - |
 | `visibleType` | `number` | **是** | 可见类型: 0-公开, 1-私密, 3-好友可见 | 0 |
 | `collection` | `object` | 否 | 合集信息，使用 `Collection` 结构 | - |
 | `group` | `object` | 否 | 群聊信息，使用 `Group` 结构 | - |

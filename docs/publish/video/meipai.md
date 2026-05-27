@@ -25,7 +25,7 @@
 | title | string | 是 | 视频标题 | - |
 | description | string | 否 | 视频描述 | - |
 | category | object[] | 否 | 视频分类，使用 `CascadingPlatformDataItem[]` 结构 | - |
-| scheduledTime | number | 否 | 定时发布时间戳（单位：秒） | - |
+| scheduledTime | number | 否 | 定时发布时间戳（13 位 Unix 时间戳，单位：毫秒） | - |
 
 ## 2. 复杂对象结构
 

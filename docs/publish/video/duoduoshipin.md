@@ -23,7 +23,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | formType | string | 是 | 固定为 `task` | `task` |
 | description | string | 否 | 多多视频描述 | - |
-| scheduledTime | number | 否 | 定时发布时间戳（单位：秒） | - |
+| scheduledTime | number | 否 | 定时发布时间戳（13 位 Unix 时间戳，单位：毫秒） | - |
 | shopping_cart | object | 否 | 关联商品信息（购物车） | - |
 
 ## 2. JSON 示例

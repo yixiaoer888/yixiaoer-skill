@@ -29,7 +29,7 @@
 | `images` | `Array` | **是** | 图片数组 (`OldImage[]`) | - |
 | `location` | `Object` | 否 | 位置对象 (`PlatformDataItem`) | - |
 | `music` | `Object` | 否 | 音乐对象 (`MusicItem`) | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳) | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间 (13 位 Unix 时间戳，单位: 毫秒) | - |
 | `collection` | `Object` | 否 | 合集信息，使用 `Collection` 结构 | - |
 | `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
 

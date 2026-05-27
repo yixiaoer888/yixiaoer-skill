@@ -30,7 +30,7 @@
 | `declaration` | `number` | **否** | 视频声明：0-不申明, 1-内容为 AI 生成, 2-演绎情节仅供娱乐, 3-个人观点仅供参考 | 0 |
 | `location` | `object` | **否** | 视频位置，使用 `PlatformDataItem` 结构 | - |
 | `visibleType` | `number` | **是** | 可见类型：0-公开, 1-私密, 3-好友可见 | 0 |
-| `scheduledTime` | `number` | **否** | 定时发布时间戳 (单位: 秒) | - |
+| `scheduledTime` | `number` | **否** | 定时发布时间戳 (13 位 Unix 时间戳，单位: 毫秒) | - |
 | `shopping_cart` | `object` | **否** | 关联商品信息 | - |
 | `collection` | `object` | **否** | 合集信息，使用 `Category` 结构 | - |
 | `mini_app` | `object` | **否** | 挂载小程序 (与购物车互斥) | - |

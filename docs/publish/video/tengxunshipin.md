@@ -25,7 +25,7 @@
 | title | string | 是 | 视频标题 | - |
 | tags | string[] | 否 | 视频标签 | - |
 | declaration | number | 否 | 腾讯视频申明：1-内容由AI生成, 2-剧情演绎仅供娱乐, 3-取材网络谨慎甄别, 4-个人观点仅供参考 | - |
-| scheduledTime | number | 否 | 定时发布时间戳（单位：秒） | - |
+| scheduledTime | number | 否 | 定时发布时间戳（13 位 Unix 时间戳，单位：毫秒） | - |
 
 ## 2. JSON 示例
 

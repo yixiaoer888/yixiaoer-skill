@@ -29,7 +29,7 @@
 | `tags` | `string[]` | 否 | 视频标签 (最多 6 个) | - |
 | `category` | `Array` | **是** | 视频分类，使用 `CascadingPlatformDataItem[]` 结构 | - |
 | `type` | `number` | **是** | 内容类型: 1-原创, 0-非原创 | 0 |
-| `scheduledTime` | `number` | 否 | 定时发布时间戳 (单位: 秒) | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间戳 (13 位 Unix 时间戳，单位: 毫秒) | - |
 
 ## 2. Payload 完整示例
 

@@ -29,7 +29,7 @@
 | `category` | `Array` | **是** | 视频分类 (`CascadingPlatformDataItem[]`) | - |
 | `declaration` | `number` | **是** | 原创类型: 0-无特别声明, 1-引用申明, 2-自行拍摄, 3-包含AI创作内容, 4-包含虚构创作 | 0 |
 | `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间 (13 位 Unix 时间戳，单位: 毫秒) | - |
 
 ## 2. 复杂对象结构
 

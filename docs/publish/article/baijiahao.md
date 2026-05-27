@@ -29,7 +29,7 @@
 | `category` | `Array` | **是** | 文章分类列表 (`Category[]`, 1-2 个) | - |
 | `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | - |
 | `declaration` | `number` | 否 | 内容声明: 0-不声明, 1-内容由 AI 生成 | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间 (13 位 Unix 时间戳，单位: 毫秒) | - |
 | `activity` | `Object` | 否 | 征文活动数据对象，使用 `Activity` 结构 | - |
 
 ## 2. Payload 完整示例

@@ -27,7 +27,7 @@
 | `description` | `string` | **是** | 微博博文内容，支持 HTML (`<p>`, `<topic>`)。最多 1000 字符。 | - |
 | `images` | `Array` | **是** | 图片数组 (`OldImage[]`) | - |
 | `location` | `Object` | 否 | 位置信息 (`PlatformDataItem`) | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳) | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间 (13 位 Unix 时间戳，单位: 毫秒) | - |
 
 ## 2. 复杂对象结构说明
 

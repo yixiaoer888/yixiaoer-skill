@@ -30,7 +30,7 @@
 | `topics` | `Array` | 否 | 话题列表 (`Category[]`, 最多3个) | - |
 | `declaration` | `number` | 否 | 创作申明: 0-无申明, 1-剧透, 2-医疗建议, 3-虚构创作, 4-理财内容, 5-AI辅助 | 0 |
 | `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
-| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间 (13 位 Unix 时间戳，单位: 毫秒) | - |
 
 ## 2. Payload 完整示例
 

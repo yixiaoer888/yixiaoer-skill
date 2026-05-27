@@ -30,7 +30,7 @@
 | `verticalCovers` | `Array` | **是** | 文章竖版封面列表 (`OldCover[]`) | - |
 | `type` | `number` | 否 | 创作类型: 1-原创, 3-首发, 13-原创首发 | 1 |
 | `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
-| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间 (13 位 Unix 时间戳，单位: 毫秒) | - |
 
 ## 2. Payload 完整示例
 
