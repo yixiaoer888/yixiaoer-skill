@@ -7,9 +7,11 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
+	"github.com/yixiaoer/yixiaoer-skill/internal/config"
 )
 
 func TestPublishCommandSuccessCallsTaskSetAPI(t *testing.T) {
@@ -44,6 +46,12 @@ func TestPublishCommandSuccessCallsTaskSetAPI(t *testing.T) {
 func TestPublishCommandWithClientIDUsesLocalChannel(t *testing.T) {
 	withRepoRoot(t)
 	payloadPath := writePublishPayload(t, validPublishPayload())
+	publishChannelFlag = ""
+	publishClientID = ""
+	t.Cleanup(func() {
+		publishChannelFlag = ""
+		publishClientID = ""
+	})
 
 	var publishCalls int
 	var publishBody map[string]interface{}
@@ -263,6 +271,117 @@ func TestPublishCommandAcceptsStandardRequestPayloadShape(t *testing.T) {
 	}
 	if publishBody["desc"] != "任务描述" || publishBody["coverKey"] != "top-cover-key" {
 		t.Fatalf("expected top-level standard fields to be preserved, got %+v", publishBody)
+	}
+	if publishBody["isAppContent"] != false || publishBody["isDraft"] != false {
+		t.Fatalf("expected standard outer flags to be preserved, got %+v", publishBody)
+	}
+}
+
+func TestPublishCommandUsesLocalFlagsLikeNodeExample(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, validPublishPayload())
+	publishChannelFlag = "local"
+	publishClientID = "flag_client_1"
+	t.Cleanup(func() {
+		publishChannelFlag = ""
+		publishClientID = ""
+	})
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := publishTestServer(t, 1, &publishCalls, &publishBody)
+	defer server.Close()
+	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if publishBody["publishChannel"] != "local" || publishBody["clientId"] != "flag_client_1" {
+		t.Fatalf("expected local publish config from flags, got %+v", publishBody)
+	}
+}
+
+func TestPublishCommandRejectsLocalWithoutClientID(t *testing.T) {
+	withRepoRoot(t)
+	configPath := filepath.Join(t.TempDir(), "yxer-config.json")
+	t.Setenv("YIXIAOER_CONFIG", configPath)
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "video",
+		"platforms":      []interface{}{"抖音"},
+		"publishChannel": "local",
+		"publishArgs":    validPublishPayload(),
+	})
+	publishChannelFlag = ""
+	publishClientID = ""
+	t.Cleanup(func() {
+		publishChannelFlag = ""
+		publishClientID = ""
+	})
+
+	var accountCalls int
+	var publishCalls int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			accountCalls++
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{
+					{"platformAccountId": "acc_001", "name": "账号", "status": 1},
+				},
+			})
+		case "/taskSets/v2":
+			publishCalls++
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	if err == nil {
+		t.Fatal("expected local publish to require clientId")
+	}
+	if !strings.Contains(err.Error(), `clientId is required when publishChannel is "local"`) {
+		t.Fatalf("expected local clientId requirement error, got %v", err)
+	}
+	if publishCalls != 0 {
+		t.Fatalf("expected no publish call, got %d", publishCalls)
+	}
+}
+
+func TestPublishCommandUsesConfiguredLocalClientID(t *testing.T) {
+	withRepoRoot(t)
+	configPath := filepath.Join(t.TempDir(), "yxer-config.json")
+	t.Setenv("YIXIAOER_CONFIG", configPath)
+	if _, err := config.SaveLocalClientID("configured_client_1"); err != nil {
+		t.Fatal(err)
+	}
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "video",
+		"platforms":      []interface{}{"抖音"},
+		"publishChannel": "local",
+		"publishArgs":    validPublishPayload(),
+	})
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := publishTestServer(t, 1, &publishCalls, &publishBody)
+	defer server.Close()
+	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if publishBody["publishChannel"] != "local" || publishBody["clientId"] != "configured_client_1" {
+		t.Fatalf("expected local publish config from saved config, got %+v", publishBody)
 	}
 }
 
