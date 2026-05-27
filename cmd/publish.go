@@ -9,6 +9,7 @@ import (
 	"github.com/yixiaoer/yixiaoer-skill/internal/config"
 	publishmod "github.com/yixiaoer/yixiaoer-skill/internal/modules/publish"
 	"github.com/yixiaoer/yixiaoer-skill/internal/output"
+	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
 	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
@@ -76,7 +77,7 @@ var publishCmd = &cobra.Command{
 }
 
 func copyOptionalPublishFields(dst, src map[string]interface{}) {
-	for _, field := range []string{"coverKey", "taskSetId", "desc", "isDraft"} {
+	for _, field := range []string{"cover", "coverKey", "taskSetId", "desc", "isDraft"} {
 		if value, ok := src[field]; ok {
 			dst[field] = value
 		}
@@ -94,7 +95,7 @@ func splitPlatforms(value string) []string {
 	for _, item := range strings.Split(value, ",") {
 		item = strings.TrimSpace(item)
 		if item != "" {
-			platforms = append(platforms, item)
+			platforms = append(platforms, platformutil.ChineseName(item))
 		}
 	}
 	return platforms

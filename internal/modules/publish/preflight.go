@@ -2,6 +2,7 @@ package publish
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"strings"
 )
@@ -16,6 +17,8 @@ var externalURLPattern = regexp.MustCompile(`(?i)^https?://`)
 func Preflight(publishType string, platforms []string, payload map[string]interface{}) PreflightResult {
 	var result PreflightResult
 	payload = ValidateAndExtractPublishArgs(publishType, platforms, payload, &result.Errors)
+	NormalizeStandardPublishArgs(payload)
+	NormalizeScheduledTimes(payload, &result.Errors)
 	if publishType != "video" && publishType != "image-text" && publishType != "article" {
 		result.Errors = append(result.Errors, fmt.Sprintf("publish type %q is not supported; expected video, image-text, or article", publishType))
 	}
@@ -147,6 +150,19 @@ func ValidateAndExtractPublishArgs(publishType string, platforms []string, paylo
 	if stringField(payload, "publishChannel") == "local" && stringField(payload, "clientId") == "" {
 		*errors = append(*errors, "clientId: required when publishChannel is local")
 	}
+	if _, exists := payload["cover"]; exists {
+		cover := objectField(payload, "cover")
+		if cover == nil {
+			*errors = append(*errors, "cover: expected object")
+		} else {
+			requireUploadedResource(cover, "cover", errors)
+			if coverKey := stringField(payload, "coverKey"); coverKey != "" {
+				if key := stringField(cover, "key"); key != "" && key != coverKey {
+					*errors = append(*errors, "coverKey: must match cover.key")
+				}
+			}
+		}
+	}
 	for _, field := range []string{"coverKey", "taskSetId", "desc", "clientId"} {
 		if value, ok := payload[field]; ok && !matchesString(value) {
 			*errors = append(*errors, fmt.Sprintf("%s: expected string", field))
@@ -158,6 +174,41 @@ func ValidateAndExtractPublishArgs(publishType string, platforms []string, paylo
 		}
 	}
 	return publishArgs
+}
+
+func NormalizeStandardPublishArgs(payload map[string]interface{}) {
+	accountForms, ok := payload["accountForms"].([]interface{})
+	if !ok || len(accountForms) == 0 {
+		return
+	}
+	for _, item := range accountForms {
+		form, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		copyIfMissing(form, payload, "video")
+		copyIfMissing(form, payload, "images")
+		copyIfMissing(form, payload, "cover")
+		copyIfMissing(form, payload, "coverKey")
+
+		cpf, _ := form["contentPublishForm"].(map[string]interface{})
+		if cpf == nil {
+			continue
+		}
+		copyIfMissing(cpf, payload, "content")
+	}
+}
+
+func copyIfMissing(dst, src map[string]interface{}, key string) {
+	if dst == nil || src == nil {
+		return
+	}
+	if _, exists := dst[key]; exists {
+		return
+	}
+	if value, exists := src[key]; exists {
+		dst[key] = value
+	}
 }
 
 func requireUploadedResource(resource map[string]interface{}, pathLabel string, errors *[]string) {
@@ -264,4 +315,62 @@ func empty(value interface{}) bool {
 		return text == ""
 	}
 	return false
+}
+
+func NormalizeScheduledTimes(value interface{}, errors *[]string) {
+	switch typed := value.(type) {
+	case map[string]interface{}:
+		for key, child := range typed {
+			if key == "scheduledTime" {
+				normalized, err := normalizeScheduledTime(child)
+				if err != "" {
+					*errors = append(*errors, "scheduledTime: "+err)
+				} else {
+					typed[key] = normalized
+				}
+				continue
+			}
+			NormalizeScheduledTimes(child, errors)
+		}
+	case []interface{}:
+		for _, child := range typed {
+			NormalizeScheduledTimes(child, errors)
+		}
+	}
+}
+
+func normalizeScheduledTime(value interface{}) (interface{}, string) {
+	switch typed := value.(type) {
+	case float64:
+		if typed != math.Trunc(typed) {
+			return nil, "must be an integer 13-digit Unix timestamp in milliseconds"
+		}
+		return normalizeScheduledTimeInt64(int64(typed))
+	case int64:
+		return normalizeScheduledTimeInt64(typed)
+	case int:
+		return normalizeScheduledTimeInt64(int64(typed))
+	case string:
+		text := strings.TrimSpace(typed)
+		if len(text) != 13 {
+			return nil, "must be a 13-digit Unix timestamp in milliseconds"
+		}
+		var n int64
+		for _, r := range text {
+			if r < '0' || r > '9' {
+				return nil, "must contain digits only"
+			}
+			n = n*10 + int64(r-'0')
+		}
+		return normalizeScheduledTimeInt64(n)
+	default:
+		return nil, "must be a 13-digit Unix timestamp in milliseconds"
+	}
+}
+
+func normalizeScheduledTimeInt64(value int64) (float64, string) {
+	if value < 1_000_000_000_000 || value > 9_999_999_999_999 {
+		return 0, "must be a 13-digit Unix timestamp in milliseconds"
+	}
+	return float64(value / 1000), ""
 }

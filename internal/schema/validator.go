@@ -297,6 +297,9 @@ func validateObject(schema map[string]interface{}, value map[string]interface{},
 	for key, child := range value {
 		childSchema, exists := properties[key]
 		if !exists {
+			if isCLICommonOptionalField(key) {
+				continue
+			}
 			if additional, ok := schema["additionalProperties"].(bool); ok && !additional {
 				errors = append(errors, fmt.Sprintf("%s%s: unexpected field \"%s\" (not in schema)", prefix, pathLabel, key))
 			}
@@ -313,6 +316,25 @@ func validateObject(schema map[string]interface{}, value map[string]interface{},
 
 func isOptionalResourceMetadata(key string) bool {
 	return key == "size" || key == "width" || key == "height"
+}
+
+func isCLICommonOptionalField(key string) bool {
+	switch key {
+	case "scheduledTime",
+		"video",
+		"images",
+		"cover",
+		"coverKey",
+		"content",
+		"mediaId",
+		"platformName",
+		"publishContentId",
+		"fps",
+		"isAppContent":
+		return true
+	default:
+		return false
+	}
 }
 
 func validateArray(schema map[string]interface{}, value []interface{}, pathLabel, prefix string) []string {

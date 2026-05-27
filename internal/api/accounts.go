@@ -1,11 +1,15 @@
 package api
 
-import "fmt"
+import (
+	"fmt"
+
+	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
+)
 
 func (c *Client) Accounts(platform string) ([]map[string]interface{}, error) {
 	endpoint := "/v2/platform/accounts"
 	if platform != "" {
-		endpoint = Query(endpoint, map[string]string{"platform": platform})
+		endpoint = Query(endpoint, map[string]string{"platform": platformutil.ChineseName(platform)})
 	}
 	var result map[string]interface{}
 	if err := c.Get(endpoint, &result); err != nil {

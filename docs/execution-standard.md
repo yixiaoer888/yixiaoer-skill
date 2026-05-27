@@ -38,6 +38,18 @@
         2. **material**：持有 resource key，调用逻辑将资源登记到素材库并获得素材 ID。
     - **错误规避**：严禁只执行 `upload` 而不执行 `material` 登记，否则用户在网页端将无法看到该素材。
 
+### 3.1 标准请求体兼容约定 (Standard Publish Request Compatibility)
+
+- CLI 现已兼容“标准请求体”输入格式。推荐将共享资源放在 `publishArgs` 根级，例如 `video`、`images`、`cover`、`coverKey`、`content`。
+- CLI 在执行 `validate` / `publish` 时，会在 `accountForms[]` 缺失对应资源字段时自动补齐：
+  - `publishArgs.video` -> `accountForms[i].video`
+  - `publishArgs.images` -> `accountForms[i].images`
+  - `publishArgs.cover` -> `accountForms[i].cover`
+  - `publishArgs.coverKey` -> `accountForms[i].coverKey`
+  - `publishArgs.content` -> `accountForms[i].contentPublishForm.content`
+- 业务扩展字段如 `mediaId`、`platformName`、`publishContentId`、`fps`、`isAppContent` 会被 CLI 保留并原样透传，不参与额外业务改写。
+- 命令层仍保持**单平台执行模型**：即使标准请求体本身可表达多平台，`yxer publish` 仍需按平台逐次调用。
+
 ## 4. 调用序列与检索规范 (Interaction Flow)
 
 Agent 在执行任务时必须遵循以下“分级检索”逻辑：

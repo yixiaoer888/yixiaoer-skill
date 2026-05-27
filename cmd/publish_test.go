@@ -64,6 +64,51 @@ func TestPublishCommandWithClientIDUsesLocalChannel(t *testing.T) {
 	}
 }
 
+func TestPublishCommandMapsPlatformKeyToChineseForAPIRequests(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, validPublishPayload())
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := publishTestServer(t, 1, &publishCalls, &publishBody)
+	defer server.Close()
+	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"video", "douyin", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if platforms := publishBody["platforms"].([]interface{}); platforms[0] != "抖音" {
+		t.Fatalf("expected platform key to map to Chinese platform name, got %+v", platforms)
+	}
+}
+
+func TestPublishCommandConvertsScheduledTimeMillisecondsToSeconds(t *testing.T) {
+	withRepoRoot(t)
+	payload := validPublishPayload()
+	cpf := payload["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	cpf["scheduledTime"] = float64(1760000000000)
+	payloadPath := writePublishPayload(t, payload)
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := publishTestServer(t, 1, &publishCalls, &publishBody)
+	defer server.Close()
+	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := publishBody["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})["scheduledTime"]
+	if got != float64(1760000000) {
+		t.Fatalf("expected scheduledTime seconds in publish body, got %#v", got)
+	}
+}
+
 func TestPublishCommandRejectsMultiPlatformArgument(t *testing.T) {
 	withRepoRoot(t)
 	payloadPath := writePublishPayload(t, validPublishPayload())
@@ -100,6 +145,12 @@ func TestPublishCommandAcceptsFullPublishRequestPayload(t *testing.T) {
 		"action":         "publish",
 		"publishType":    "video",
 		"platforms":      []interface{}{"抖音"},
+		"cover": map[string]interface{}{
+			"key":    "cover-key",
+			"size":   float64(512),
+			"width":  float64(1080),
+			"height": float64(1920),
+		},
 		"coverKey":       "cover-key",
 		"publishChannel": "cloud",
 		"publishArgs":    inner,
@@ -124,6 +175,94 @@ func TestPublishCommandAcceptsFullPublishRequestPayload(t *testing.T) {
 	}
 	if publishBody["coverKey"] != "cover-key" {
 		t.Fatalf("expected top-level coverKey to be preserved, got %+v", publishBody)
+	}
+	if publishBody["cover"].(map[string]interface{})["key"] != "cover-key" {
+		t.Fatalf("expected top-level cover to be preserved, got %+v", publishBody)
+	}
+}
+
+func TestPublishCommandAcceptsStandardRequestPayloadShape(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "video",
+		"platforms":      []interface{}{"抖音"},
+		"coverKey":       "top-cover-key",
+		"desc":           "任务描述",
+		"clientId":       "local-client",
+		"publishChannel": "local",
+		"isDraft":        false,
+		"isAppContent":   false,
+		"publishArgs": map[string]interface{}{
+			"video": map[string]interface{}{
+				"duration": float64(10),
+				"width":    float64(1000),
+				"height":   float64(1000),
+				"size":     float64(10000000),
+				"key":      "video-key",
+			},
+			"images": []interface{}{
+				map[string]interface{}{
+					"width":  float64(1000),
+					"height": float64(1000),
+					"size":   float64(1000000),
+					"key":    "image-key",
+				},
+			},
+			"cover": map[string]interface{}{
+				"width":  float64(1000),
+				"height": float64(1000),
+				"size":   float64(1000000),
+				"key":    "shared-cover-key",
+			},
+			"coverKey": "shared-cover-key",
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"mediaId":          "media_1",
+					"platformName":     "抖音",
+					"platformAccountId": "acc_001",
+					"publishContentId": "pub_1",
+					"fps":              float64(0),
+					"contentPublishForm": map[string]interface{}{
+						"formType":    "task",
+						"title":       "标题",
+						"description": "<p>视频内容</p>",
+						"tags":        []interface{}{"tag1"},
+					},
+				},
+			},
+			"content": "正文",
+		},
+	})
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := publishTestServer(t, 1, &publishCalls, &publishBody)
+	defer server.Close()
+	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	args := publishBody["publishArgs"].(map[string]interface{})
+	form := args["accountForms"].([]interface{})[0].(map[string]interface{})
+	if form["video"] == nil {
+		t.Fatalf("expected shared publishArgs.video to be available to account form, got %+v", form)
+	}
+	if form["cover"] == nil || form["coverKey"] != "shared-cover-key" {
+		t.Fatalf("expected shared cover fields on account form, got %+v", form)
+	}
+	if form["mediaId"] != "media_1" || form["platformName"] != "抖音" || form["publishContentId"] != "pub_1" {
+		t.Fatalf("expected business fields to be preserved, got %+v", form)
+	}
+	if publishBody["publishChannel"] != "local" || publishBody["clientId"] != "local-client" {
+		t.Fatalf("expected local publish config to be preserved, got %+v", publishBody)
+	}
+	if publishBody["desc"] != "任务描述" || publishBody["coverKey"] != "top-cover-key" {
+		t.Fatalf("expected top-level standard fields to be preserved, got %+v", publishBody)
 	}
 }
 
@@ -185,6 +324,45 @@ func TestPublishCommandPreflightFailureDoesNotCallAPIs(t *testing.T) {
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err == nil {
 		t.Fatal("expected preflight error")
+	}
+	if accountCalls != 0 || publishCalls != 0 {
+		t.Fatalf("expected no API calls, got accounts=%d publish=%d", accountCalls, publishCalls)
+	}
+}
+
+func TestPublishCommandRejectsInvalidTopLevelCoverInFullPublishRequest(t *testing.T) {
+	withRepoRoot(t)
+	inner := validPublishPayload()
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":      "publish",
+		"publishType": "video",
+		"platforms":   []interface{}{"抖音"},
+		"cover": map[string]interface{}{
+			"key": "https://example.com/cover.jpg",
+		},
+		"coverKey":    "cover-key",
+		"publishArgs": inner,
+	})
+
+	var accountCalls int
+	var publishCalls int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			accountCalls++
+		case "/taskSets/v2":
+			publishCalls++
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	if err == nil {
+		t.Fatal("expected top-level cover preflight error")
 	}
 	if accountCalls != 0 || publishCalls != 0 {
 		t.Fatalf("expected no API calls, got accounts=%d publish=%d", accountCalls, publishCalls)

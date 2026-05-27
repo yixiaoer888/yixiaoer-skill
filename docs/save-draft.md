@@ -57,6 +57,8 @@ yxer draft save draft-payload.json
 
 `draft-payload.json` 中应包含原始发布结构，例如 `publishType`、`platforms`、`publishArgs`、`accountForms` 等字段；CLI 会自动按草稿模式提交。
 
+若使用“标准请求体”格式，仍建议把共享资源放在 `publishArgs` 根级，例如 `cover`、`coverKey`、`content` / `video`，CLI 会在校验阶段自动补齐到对应 `accountForms[]`。
+
 ---
 
 ## 存为平台草稿 (`pubType: 0`)
@@ -69,3 +71,5 @@ yxer draft save draft-payload.json
 # 平台草稿仍应收口到 yxer publish 流程
 # 例如：yxer publish video 抖音 publish-payload.json
 ```
+
+平台草稿同样支持标准请求体输入格式；但命令层仍是单平台执行，且平台草稿仍需在 `contentPublishForm.pubType` 中表达，而不是依赖顶层 `isDraft=true`。

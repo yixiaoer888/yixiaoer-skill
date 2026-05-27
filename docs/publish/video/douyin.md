@@ -18,6 +18,9 @@
 3. **参数装配**：将细化参数封装至 `accountForms[i].contentPublishForm`。
 4. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
 
+> [!TIP]
+> 示例优先使用“标准请求体”格式：共享资源放在 `publishArgs` 根级，账号差异字段放在 `accountForms[]`。CLI 会在校验阶段自动补齐缺失资源字段。
+
 > 说明：仓库当前不再把 `syncComment` 作为公开 schema 字段暴露，因为现有文档、查询命令和工作流里都没有它的稳定来源或获取流程。
 
 ## 1. contentPublishForm 参数定义
@@ -51,17 +54,28 @@
   "action": "publish",
   "publishType": "video",
   "platforms": ["抖音"],
+  "coverKey": "cover_key",
   "publishArgs": {
+    "video": {
+      "key": "v_key",
+      "size": 1024000,
+      "width": 1080,
+      "height": 1920,
+      "duration": 15
+    },
+    "cover": {
+      "key": "cover_key",
+      "size": 102400,
+      "width": 1080,
+      "height": 1920
+    },
+    "coverKey": "cover_key",
     "accountForms": [
       {
         "platformAccountId": "DOUYIN_ACC_ID",
-        "video": {
-          "key": "v_key",
-          "size": 1024000,
-          "width": 1080,
-          "height": 1920,
-          "duration": 15
-        },
+        "mediaId": "media_001",
+        "platformName": "抖音",
+        "publishContentId": "publish_content_001",
         "contentPublishForm": {
           "formType": "task",
           "title": "记录美好生活",

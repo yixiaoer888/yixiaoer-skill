@@ -122,6 +122,55 @@ func TestValidateFullPayloadPrefixesAccountFormErrors(t *testing.T) {
 	}
 }
 
+func TestValidateAcceptsStandardPublishRequestBusinessFields(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	payload := map[string]interface{}{
+		"video": map[string]interface{}{
+			"key":    "video-key",
+			"size":   float64(100),
+			"width":  float64(10),
+			"height": float64(10),
+		},
+		"images": []interface{}{
+			map[string]interface{}{
+				"key":    "image-key",
+				"size":   float64(100),
+				"width":  float64(10),
+				"height": float64(10),
+			},
+		},
+		"cover": map[string]interface{}{
+			"key":    "cover-key",
+			"size":   float64(100),
+			"width":  float64(10),
+			"height": float64(10),
+		},
+		"coverKey": "cover-key",
+		"content":  "正文",
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_1",
+				"mediaId":           "media_1",
+				"platformName":      "抖音",
+				"publishContentId":  "content_1",
+				"fps":               float64(0),
+				"contentPublishForm": map[string]interface{}{
+					"formType":    "task",
+					"title":       "标题",
+					"description": "描述",
+					"scheduledTime": float64(1760000000000),
+				},
+			},
+		},
+		"isAppContent": false,
+	}
+
+	result := validator.Validate("抖音", "video", payload)
+	if !result.Valid {
+		t.Fatalf("expected standard business fields to be allowed, got %v", result.Errors)
+	}
+}
+
 func TestValidateMissingSchemaFallsBackToBasicValidation(t *testing.T) {
 	validator := NewValidator(t.TempDir())
 	payload := map[string]interface{}{

@@ -1,6 +1,10 @@
 package api
 
-import "fmt"
+import (
+	"fmt"
+
+	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
+)
 
 type PrepareData struct {
 	Platform        string                   `json:"platform"`
@@ -56,7 +60,7 @@ func (c *Client) Challenges(accountID, keyword, publishType string) (interface{}
 func (c *Client) Records(platform, limit, status string) (interface{}, error) {
 	return c.queryData(Query("/v2/taskSets", map[string]string{
 		"size":     limit,
-		"platform": platform,
+		"platform": platformutil.ChineseName(platform),
 		"status":   status,
 	}))
 }

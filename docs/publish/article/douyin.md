@@ -16,6 +16,8 @@
 2. **参数装配**：提取标题、正文及封面信息至 `contentPublishForm`。
 3. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
 
+> [!TIP]
+> 示例优先使用“标准请求体”格式：共享封面和正文放在 `publishArgs` 根级，账号差异字段放在 `accountForms[]`。CLI 会在校验阶段自动补齐缺失字段。
 
 本平台文章发布通过 `contentPublishForm` 承载以下参数。
 
@@ -41,16 +43,20 @@
   "action": "publish",
   "publishType": "article",
   "platforms": ["抖音"],
+  "coverKey": "cover_oss_key",
   "publishArgs": {
+    "cover": { "key": "cover_oss_key", "size": 102400, "width": 800, "height": 600 },
+    "coverKey": "cover_oss_key",
+    "content": "<h1>抖音文章标题</h1><p>正文内容...</p>",
     "accountForms": [
       {
         "platformAccountId": "YOUR_ACCOUNT_ID",
-        "coverKey": "cover_oss_key",
-        "cover": { "key": "cover_oss_key", "size": 102400, "width": 800, "height": 600 },
+        "mediaId": "media_001",
+        "platformName": "抖音",
+        "publishContentId": "publish_content_001",
         "contentPublishForm": {
           "formType": "task",
           "title": "这是一篇抖音文章",
-          "content": "<h1>抖音文章标题</h1><p>正文内容...</p>",
           "covers": [
             { "key": "cover_oss_key", "size": 102400, "width": 800, "height": 600 }
           ],

@@ -74,6 +74,21 @@ func TestPreflightValidatesFullPublishRequestFields(t *testing.T) {
 	assertHasError(t, result.Errors, "clientId: required when publishChannel is local")
 }
 
+func TestPreflightValidatesTopLevelCoverInFullPublishRequest(t *testing.T) {
+	payload := map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "video",
+		"platforms":      []interface{}{"抖音"},
+		"coverKey":       "outer-cover-key",
+		"cover":          uploadedResourceWithKey("wrong-cover-key"),
+		"publishChannel": "cloud",
+		"publishArgs":    validVideoPayload(),
+	}
+
+	result := Preflight("video", []string{"douyin"}, payload)
+	assertHasError(t, result.Errors, "coverKey: must match cover.key")
+}
+
 func TestPreflightRejectsMissingAccountIDAndContentForm(t *testing.T) {
 	payload := map[string]interface{}{
 		"accountForms": []interface{}{
@@ -109,6 +124,58 @@ func TestPreflightRejectsVideoMissingResourceKey(t *testing.T) {
 
 	result := Preflight("video", []string{"douyin"}, payload)
 	assertHasError(t, result.Errors, `accountForms[0].video: missing uploaded resource field "key"`)
+}
+
+func TestPreflightAcceptsStandardPublishArgsSharedResources(t *testing.T) {
+	payload := map[string]interface{}{
+		"video":    uploadedResource(),
+		"images":   []interface{}{uploadedResourceWithKey("image-key")},
+		"cover":    uploadedResourceWithKey("cover-key"),
+		"coverKey": "cover-key",
+		"content":  "文章正文",
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_001",
+				"contentPublishForm": map[string]interface{}{
+					"formType":    "task",
+					"title":       "视频",
+					"description": "描述",
+				},
+			},
+		},
+	}
+
+	result := Preflight("video", []string{"douyin"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected shared standard resources to be normalized, got %v", result.Errors)
+	}
+
+	form := payload["accountForms"].([]interface{})[0].(map[string]interface{})
+	if form["video"] == nil || form["cover"] == nil || form["coverKey"] != "cover-key" {
+		t.Fatalf("expected shared resource fields to copy into account form, got %+v", form)
+	}
+}
+
+func TestPreflightAcceptsStandardPublishArgsArticleContent(t *testing.T) {
+	payload := map[string]interface{}{
+		"cover":    uploadedResourceWithKey("cover-key"),
+		"coverKey": "cover-key",
+		"content":  "文章正文",
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_001",
+				"contentPublishForm": map[string]interface{}{
+					"formType": "task",
+					"title":    "文章标题",
+				},
+			},
+		},
+	}
+
+	result := Preflight("article", []string{"zhihu"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected top-level content to normalize into contentPublishForm, got %v", result.Errors)
+	}
 }
 
 func TestPreflightAcceptsImageTextImagesInContentPublishForm(t *testing.T) {
@@ -194,6 +261,29 @@ func TestPreflightAcceptsDynamicObjectWithRaw(t *testing.T) {
 	if len(result.Errors) > 0 {
 		t.Fatalf("expected dynamic raw object to pass, got %v", result.Errors)
 	}
+}
+
+func TestPreflightNormalizesScheduledTimeFromMilliseconds(t *testing.T) {
+	payload := validVideoPayload()
+	cpf := payload["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	cpf["scheduledTime"] = float64(1760000000000)
+
+	result := Preflight("video", []string{"douyin"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected scheduledTime normalization to pass, got %v", result.Errors)
+	}
+	if got := cpf["scheduledTime"]; got != float64(1760000000) {
+		t.Fatalf("expected scheduledTime to normalize to seconds, got %#v", got)
+	}
+}
+
+func TestPreflightRejectsSecondBasedScheduledTime(t *testing.T) {
+	payload := validVideoPayload()
+	cpf := payload["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	cpf["scheduledTime"] = float64(1760000000)
+
+	result := Preflight("video", []string{"douyin"}, payload)
+	assertHasError(t, result.Errors, "scheduledTime: must be a 13-digit Unix timestamp in milliseconds")
 }
 
 func TestPreflightRejectsMiniappsMissingRaw(t *testing.T) {

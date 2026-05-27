@@ -72,3 +72,22 @@ func TestAccountsAcceptsNestedPaginatedResponse(t *testing.T) {
 		t.Fatalf("unexpected status: %d", status)
 	}
 }
+
+func TestAccountsMapsPlatformKeyToChineseQuery(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query().Get("platform"); got != "抖音" {
+			t.Fatalf("unexpected platform query: %s", got)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": []map[string]interface{}{
+				{"platformAccountId": "acc_1", "name": "抖音账号", "status": 1},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	if _, err := client.Accounts("douyin"); err != nil {
+		t.Fatal(err)
+	}
+}

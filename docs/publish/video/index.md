@@ -41,6 +41,7 @@
 | `publishChannel` | `string` | 否 | `cloud` (云端) 或 `local` (本机) | `cloud` |
 | `clientId` | `string` | 否 | 客户端连接 ID (`local` 发布时必填) | - |
 | `isDraft` | `boolean` | 否 | 是否仅保存为草稿 (蚁小二草稿) | `false` |
+| `isAppContent` | `boolean` | 否 | 业务扩展标记，CLI 会原样透传 | - |
 
 ### 1.2 草稿模式选取 (Draft Selection)
 
@@ -64,6 +65,16 @@
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
 | `accountForms` | `Array` | **是** | 账号发布表单列表 | - |
+| `video` | `Object` | 否 | **标准请求体共享视频资源**。CLI 校验时会在缺失时复制到各 `accountForms[i].video` | - |
+| `images` | `Array` | 否 | **标准请求体共享图片资源**。视频场景通常仅作扩展透传 | - |
+| `cover` | `Object` | 否 | **标准请求体共享封面资源**。CLI 校验时会在缺失时复制到各 `accountForms[i].cover` | - |
+| `coverKey` | `string` | 否 | **标准请求体共享封面 Key**。CLI 校验时会在缺失时复制到各 `accountForms[i].coverKey` | - |
+
+> [!TIP]
+> **CLI 输入兼容规则**:
+> - 推荐优先使用“标准请求体”形态，即在 `publishArgs` 中声明共享的 `video`、`cover`、`coverKey`，再在 `accountForms[]` 中补平台差异字段。
+> - CLI 当前仍按**单平台命令**执行：`yxer publish video <platform> <payload.json> [clientId]`。即使请求体里可以表达多平台，命令本身仍需逐个平台调用。
+> - `yxer validate` 与 `yxer publish` 都接受完整标准请求体；在共享资源字段存在而账号项缺失时，CLI 会在校验阶段自动补齐到对应 `accountForms[]`。
 
 ### 1.4 账号表单项 (accountForms Item)
 
@@ -75,6 +86,9 @@
 | `contentPublishForm`| `Object` | **是** | **透传层**: `{}` | - |
 | `coverKey` | `string` | **是** | 账号级封面 Key (必须与 `cover.key` 一致) | - |
 | `fps` | `number` | 否 | 视频发布帧率 (海外平台使用) | - |
+| `mediaId` | `string` | 否 | 业务扩展字段，CLI 原样透传 | - |
+| `platformName` | `string` | 否 | 业务扩展字段，CLI 原样透传 | - |
+| `publishContentId` | `string` | 否 | 业务扩展字段，CLI 原样透传 | - |
 
 ## 2. 发布示例 (Payload Example)
 
@@ -84,25 +98,33 @@
   "publishType": "video",
   "platforms": ["抖音"],
   "coverKey": "video_cover_key",
+  "desc": "视频发布任务",
+  "publishChannel": "local",
+  "clientId": "local-client",
   "publishArgs": {
+    "video": {
+      "key": "video_oss_key",
+      "width": 1080,
+      "height": 1920,
+      "size": 52428800
+    },
+    "cover": {
+      "key": "video_cover_key",
+      "width": 1080,
+      "height": 1920,
+      "size": 307200
+    },
+    "coverKey": "video_cover_key",
     "accountForms": [
       {
         "platformAccountId": "acc_vid_003",
-        "video": {
-          "key": "video_oss_key",
-          "width": 1080,
-          "height": 1920,
-          "size": 52428800
-        },
-        "coverKey": "video_cover_key",
-        "cover": {
-          "key": "video_cover_key",
-          "width": 1080,
-          "height": 1920,
-          "size": 307200
-        },
+        "mediaId": "media_001",
+        "platformName": "抖音",
+        "publishContentId": "publish_content_001",
         "contentPublishForm": {
-          "formType": "task"
+          "formType": "task",
+          "title": "演示视频标题",
+          "description": "<p>演示视频简介</p>"
         }
       }
     ]

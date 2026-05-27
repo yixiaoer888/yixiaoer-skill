@@ -16,6 +16,8 @@
 2. **参数装配**：提取标题、正文及封面信息至 `contentPublishForm`。
 3. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
 
+> [!TIP]
+> 微信公众号仍推荐使用 `platformForms`；同时可以在 `publishArgs` 根级放共享封面或业务扩展字段。CLI 保持单平台执行模型。
 
 本平台文章发布推荐使用 `platformForms` 模式，以支持多账号共用单条图文包消息。
 
@@ -41,9 +43,20 @@
   "action": "publish",
   "publishType": "article",
   "platforms": ["微信公众号"],
+  "coverKey": "img_key_999",
   "publishArgs": {
+    "cover": {
+      "key": "img_key_999",
+      "size": 102400,
+      "width": 800,
+      "height": 600
+    },
+    "coverKey": "img_key_999",
     "accountForms": [
-      { "platformAccountId": "ACC_ID_001" }
+      {
+        "platformAccountId": "ACC_ID_001",
+        "platformName": "微信公众号"
+      }
     ],
     "platformForms": {
       "微信公众号": {

@@ -70,7 +70,7 @@ func TestQueryEndpoints(t *testing.T) {
 				return c.Records("xhs", "20", "failed")
 			},
 			path:      "/v2/taskSets",
-			queryWant: map[string]string{"platform": "xhs", "size": "20", "status": "failed"},
+			queryWant: map[string]string{"platform": "小红书", "size": "20", "status": "failed"},
 		},
 	}
 
@@ -110,7 +110,7 @@ func TestPrepareReturnsOnlineAccountsAndOptionalCategories(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/v2/platform/accounts":
-			if got := r.URL.Query().Get("platform"); got != "xhs" {
+			if got := r.URL.Query().Get("platform"); got != "小红书" {
 				t.Fatalf("unexpected platform query: %s", got)
 			}
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{

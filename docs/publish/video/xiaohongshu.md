@@ -16,6 +16,8 @@
 2. **参数装配**：识别并填充标题、描述等平台特定字段至 `contentPublishForm`。
 3. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
 
+> [!TIP]
+> 示例优先使用“标准请求体”格式：共享资源放在 `publishArgs` 根级，账号差异字段放在 `accountForms[]`。CLI 会在校验阶段自动补齐缺失资源字段。
 
 在本平台视频发布通过 `contentPublishForm`承载以下参数。
 
@@ -43,17 +45,28 @@
   "action": "publish",
   "publishType": "video",
   "platforms": ["小红书"],
+  "coverKey": "cover_key",
   "publishArgs": {
+    "video": {
+      "key": "v_key",
+      "size": 1024000,
+      "width": 1080,
+      "height": 1440,
+      "duration": 30
+    },
+    "cover": {
+      "key": "cover_key",
+      "size": 102400,
+      "width": 1080,
+      "height": 1440
+    },
+    "coverKey": "cover_key",
     "accountForms": [
       {
         "platformAccountId": "XHS_ACC_ID",
-        "video": {
-          "key": "v_key",
-          "size": 1024000,
-          "width": 1080,
-          "height": 1440,
-          "duration": 30
-        },
+        "mediaId": "media_001",
+        "platformName": "小红书",
+        "publishContentId": "publish_content_001",
         "contentPublishForm": {
           "formType": "task",
           "title": "小红书视频标题",

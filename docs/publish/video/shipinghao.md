@@ -21,6 +21,9 @@
 3. **参数装配**：将获取的 `raw` 结构与 `yixiaoerId` 组装进 `accountForms[i].contentPublishForm`。
 4. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
 
+> [!TIP]
+> 示例优先使用“标准请求体”格式：共享资源放在 `publishArgs` 根级，账号差异字段放在 `accountForms[]`。CLI 会在校验阶段自动补齐缺失资源字段。
+
 ## 1. contentPublishForm 参数定义
 
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
@@ -45,11 +48,17 @@
   "action": "publish",
   "publishType": "video",
   "platforms": ["视频号"],
+  "coverKey": "cover_key",
   "publishArgs": {
+    "video": { "key": "v_key", "size": 1024000, "width": 1080, "height": 1920, "duration": 15 },
+    "cover": { "key": "cover_key", "size": 102400, "width": 1080, "height": 1920 },
+    "coverKey": "cover_key",
     "accountForms": [
       {
         "platformAccountId": "SPH_ACC_ID",
-        "video": { "key": "v_key", "size": 1024000, "width": 1080, "height": 1920, "duration": 15 },
+        "mediaId": "media_001",
+        "platformName": "视频号",
+        "publishContentId": "publish_content_001",
         "contentPublishForm": {
           "formType": "task",
           "title": "记录美好瞬间",

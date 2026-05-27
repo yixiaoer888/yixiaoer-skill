@@ -41,6 +41,7 @@
 | `publishChannel` | `string` | 否 | `cloud` (云端) 或 `local` (本机) | `cloud` |
 | `clientId` | `string` | 否 | 客户端连接 ID (`local` 发布时必填) | - |
 | `isDraft` | `boolean` | 否 | 是否仅保存为 draft (蚁小二草稿箱) | `false` |
+| `isAppContent` | `boolean` | 否 | 业务扩展标记，CLI 会原样透传 | - |
 
 ### 1.2 草稿模式选取 (Draft Selection)
 
@@ -65,12 +66,21 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `accountForms` | `Array` | **是** | 账号发布表单列表 (定义目标账号) | - |
 | `platformForms` | `Object` | 否 | **平台级表单**: 仅限 `微信公众号` 使用。按平台名称组织的共享配置字典 | - |
+| `cover` | `Object` | 否 | **标准请求体共享封面资源**。CLI 校验时会在缺失时复制到各 `accountForms[i].cover` | - |
+| `coverKey` | `string` | 否 | **标准请求体共享封面 Key**。CLI 校验时会在缺失时复制到各 `accountForms[i].coverKey` | - |
+| `content` | `string` | 否 | **标准请求体共享正文**。CLI 校验时会在缺失时复制到各 `accountForms[i].contentPublishForm.content` | - |
 
 > [!IMPORTANT]
 > **配置架构约束**:
 > - **微信公众号专用性**: **微信公众号必须单独发布**。在一个发布请求中，如果包含微信公众号，则不能包含其他任何平台；反之亦然。
 > - **platformForms**: **仅限微信公众号使用**。
 > - **优先级**: 后端将优先尝试从 `platformForms` 中获取对应平台的配置，若不存在则回退至账号级的 `contentPublishForm`。
+
+> [!TIP]
+> **CLI 输入兼容规则**:
+> - 推荐优先使用“标准请求体”形态，在 `publishArgs` 中声明共享的 `cover`、`coverKey`、`content`，再在 `accountForms[]` 中补账号和平台差异字段。
+> - CLI 当前仍按**单平台命令**执行：`yxer publish article <platform> <payload.json> [clientId]`。
+> - `yxer validate` 与 `yxer publish` 都接受完整标准请求体；在共享字段存在而账号项缺失时，CLI 会在校验阶段自动补齐到对应 `accountForms[]`。
 
 ### 1.4 账号表单项 (accountForms Item)
 
@@ -80,6 +90,9 @@
 | `cover` | `Object` | **是** | **ImageFormItem**: 主封面对象 (`key`, `width`, `height`, `size`) | - |
 | `contentPublishForm`| `Object` | 否 | **账号级透传配置**: 若未配置 `platformForms` 则从此读取；正文 `content` 也放在这里 | `{}` |
 | `coverKey` | `string` | 否 | 账号级封面 Key (通常与 `cover.key` 一致) | - |
+| `mediaId` | `string` | 否 | 业务扩展字段，CLI 原样透传 | - |
+| `platformName` | `string` | 否 | 业务扩展字段，CLI 原样透传 | - |
+| `publishContentId` | `string` | 否 | 业务扩展字段，CLI 原样透传 | - |
 
 ## 2. 发布示例 (Payload Example)
 
@@ -87,22 +100,27 @@
 {
   "action": "publish",
   "publishType": "article",
-  "platforms": ["微信公众号"],
+  "platforms": ["知乎"],
+  "coverKey": "article_cover_key",
+  "desc": "文章发布任务",
   "publishArgs": {
+    "cover": {
+      "key": "article_cover_key",
+      "width": 900,
+      "height": 500,
+      "size": 150000
+    },
+    "coverKey": "article_cover_key",
+    "content": "<h1>演示文章标题</h1><p>这是一个演示文章的正文内容...</p>",
     "accountForms": [
       {
         "platformAccountId": "acc_art_001",
-        "cover": {
-          "key": "article_cover_key",
-          "width": 900,
-          "height": 500,
-          "size": 150000
-        },
-        "coverKey": "article_cover_key",
+        "mediaId": "media_001",
+        "platformName": "知乎",
+        "publishContentId": "publish_content_001",
         "contentPublishForm": {
           "formType": "task",
-          "title": "演示文章标题",
-          "content": "<h1>演示文章标题</h1><p>这是一个演示文章的正文内容...</p>"
+          "title": "演示文章标题"
         }
       }
     ]
