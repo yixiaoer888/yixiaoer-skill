@@ -3,9 +3,7 @@
   "type": "object",
   "required": [
     "formType",
-    "title",
-    "description",
-    "video"
+    "visibleType"
   ],
   "properties": {
     "formType": {
@@ -167,22 +165,78 @@
         }
       }
     },
-    "pubType": {
-      "type": "number",
-      "enum": [
-        0,
-        1
-      ],
-      "default": 1
-    },
     "visibleType": {
       "type": "number",
       "enum": [
         0,
         1,
-        2
+        3
       ],
       "default": 0
+    },
+    "declaration": {
+      "type": "number",
+      "enum": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "default": 0
+    },
+    "scheduledTime": {
+      "type": "number",
+      "minimum": 0
+    },
+    "shopping_cart": {
+      "type": "object",
+      "required": [
+        "yixiaoerId",
+        "yixiaoerName",
+        "raw"
+      ],
+      "properties": {
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
+      }
+    },
+    "mini_app": {
+      "type": "object",
+      "required": [
+        "yixiaoerId",
+        "yixiaoerName",
+        "raw"
+      ],
+      "properties": {
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
+      }
+    },
+    "nearby_show": {
+      "type": "boolean",
+      "default": true
+    },
+    "allow_same_frame": {
+      "type": "boolean",
+      "default": false
+    },
+    "allow_download": {
+      "type": "boolean",
+      "default": false
     }
   },
   "additionalProperties": false

@@ -3,9 +3,8 @@
   "type": "object",
   "required": [
     "formType",
-    "title",
-    "description",
-    "images"
+    "images",
+    "visibleType"
   ],
   "properties": {
     "formType": {
@@ -107,7 +106,7 @@
         }
       }
     },
-    "challenge": {
+    "music": {
       "type": "object",
       "required": [
         "yixiaoerId",
@@ -126,22 +125,37 @@
         }
       }
     },
-    "pubType": {
-      "type": "number",
-      "enum": [
-        0,
-        1
-      ],
-      "default": 1
-    },
     "visibleType": {
       "type": "number",
       "enum": [
         0,
         1,
-        2
+        3
       ],
       "default": 0
+    },
+    "scheduledTime": {
+      "type": "number",
+      "minimum": 0
+    },
+    "collection": {
+      "type": "object",
+      "required": [
+        "yixiaoerId",
+        "yixiaoerName",
+        "raw"
+      ],
+      "properties": {
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
+      }
     }
   },
   "additionalProperties": false

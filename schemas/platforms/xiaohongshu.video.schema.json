@@ -208,14 +208,6 @@
     "scheduledTime": {
       "type": "number",
       "minimum": 0
-    },
-    "pubType": {
-      "type": "number",
-      "enum": [
-        0,
-        1
-      ],
-      "default": 1
     }
   },
   "additionalProperties": false
