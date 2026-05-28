@@ -39,7 +39,7 @@ yxer upload --url <resource_url> [--bucket cloud-publish|material-library] [--dr
 ```bash
 yxer validate <platform> <type> <payload.json>
 yxer publish <type> <platform> <payload.json> [clientId] [--dry-run]
-yxer publish image-text <platform> --account <账号名或ID> --title <标题> --description <正文> --image <图片路径或URL> [--image ...] [--dry-run]
+yxer publish imageText <platform> --account <账号名或ID> --title <标题> --description <正文> --image <图片路径或URL> [--image ...] [--dry-run]
 yxer publish article <platform> --account <账号名或ID> --title <标题> --content @<html文件> [--cover <封面路径或URL>] [--dry-run]
 yxer publish video <platform> --account <账号名或ID> --title <标题> --description <描述> --video <视频路径或URL> [--cover <封面路径或URL>] [--dry-run]
 ```
@@ -68,7 +68,7 @@ yxer schema get <platform> <type>
 
 ## 基本约束
 
-- 发布类型统一使用：`video`、`image-text`、`article`
+- 发布类型统一使用：`video`、`imageText`、`article`
 - 单次 `yxer publish` 只处理一个平台
 - 推荐优先使用 `publish` 的 flags 模式，让 CLI 自动解析账号、上传资源并组装 payload
 - `payload.json` 模式继续保留，适合高级定制或手工调试
@@ -113,7 +113,7 @@ yxer upload --url https://example.com/demo.jpg
 ### 图文
 
 ```bash
-yxer publish image-text 小红书 \
+yxer publish imageText 小红书 \
   --account "图文账号" \
   --title "图文标题" \
   --description "图文正文" \
@@ -161,7 +161,7 @@ yxer publish video 抖音 \
 ## 常见工作流入口
 
 - 通用规则：`references/workflows/common-rules.md`
-- 图文发布：`references/workflows/publish-image-text.md`
+- 图文发布：`references/workflows/publish-imageText.md`
 - 视频发布：`references/workflows/publish-video.md`
 - 文章发布：`references/workflows/publish-article.md`
 

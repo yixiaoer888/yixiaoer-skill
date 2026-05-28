@@ -115,10 +115,5 @@ func filterOnlineAccounts(accounts []map[string]interface{}) []map[string]interf
 }
 
 func schemaTypeName(publishType string) string {
-	switch publishType {
-	case "image-text":
-		return "imageText"
-	default:
-		return publishType
-	}
+	return publishType
 }

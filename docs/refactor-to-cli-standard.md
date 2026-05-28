@@ -1,4 +1,4 @@
-﻿# 蚁小二技能 CLI 标准化重构执行文档
+# 蚁小二技能 CLI 标准化重构执行文档
 
 本文档用于指导 `yixiaoer-skill` 按照 `cli-main` 的工程结构和 AI Agent 友好标准进行重构。目标不是简单增加文档，而是把当前“Agent 手写大 JSON + 文档约束”的模式，改造成“小白用户可直接使用、Agent 可稳定调用、错误可自动恢复”的 CLI + Skill 体系。
 
@@ -157,7 +157,7 @@ yxer publish video \
 ### 3.5 图文发布
 
 ```bash
-yxer publish image-text \
+yxer publish imageText \
   --platform 小红书 \
   --account "账号昵称或ID" \
   --image ./1.jpg \
@@ -254,7 +254,7 @@ yxer records watch --task-set-id TS123456 --interval 10
 - 仓库内历史脚本入口已移除。
 - 不再维护 TypeScript CLI 兼容层。
 - 文档示例缺少必填字段。
-- `imageText` / `image-text` 冲突。
+- `imageText` / `imageText` 冲突。
 - 平台枚举大小写和中文名冲突。
 - 文章正文位置校验错误。
 - `save-draft` 被错误要求 `contentPublishForm`。
@@ -274,7 +274,7 @@ yxer records watch --task-set-id TS123456 --interval 10
 - `accounts list`
 - `upload`
 - `publish video`
-- `publish image-text`
+- `publish imageText`
 - `publish article`
 - `draft save`
 - `material add`
@@ -354,7 +354,7 @@ src/
     platform.schema.json
   workflows/
     publish-video.ts
-    publish-image-text.ts
+    publish-imageText.ts
     publish-article.ts
     material-add.ts
 tests/
@@ -440,7 +440,7 @@ tests/
 | `YIXIAOER_ENV_NETWORK` | env_error | API 不可达 | 检查网络或 `YIXIAOER_API_URL` |
 | `YIXIAOER_VALIDATION_JSON` | validation_error | JSON 格式错误 | 使用 `--payload @file.json` |
 | `YIXIAOER_INVALID_PLATFORM` | validation_error | 平台名无法识别 | 运行 `yxer platforms list` |
-| `YIXIAOER_INVALID_PUBLISH_TYPE` | validation_error | 发布类型错误 | 使用 `video/image-text/article` |
+| `YIXIAOER_INVALID_PUBLISH_TYPE` | validation_error | 发布类型错误 | 使用 `video/imageText/article` |
 | `YIXIAOER_ACCOUNT_NOT_FOUND` | validation_error | 找不到账号 | 运行 `yxer accounts list` |
 | `YIXIAOER_ACCOUNT_INVALID` | validation_error | 账号登录失效 | 重新登录账号 |
 | `YIXIAOER_MISSING_MEDIA` | validation_error | 缺少视频/图片 | 传入 `--video` 或 `--image` |
@@ -458,7 +458,7 @@ tests/
 
 ```text
 video
-image-text
+imageText
 article
 ```
 
@@ -542,7 +542,7 @@ douyin
 
 ```bash
 yxer publish video --platform 抖音 --account acc --video ./fixtures/a.mp4 --cover ./fixtures/c.jpg --title t --dry-run
-yxer publish image-text --platform 小红书 --account acc --image ./fixtures/1.jpg --title t --content c --dry-run
+yxer publish imageText --platform 小红书 --account acc --image ./fixtures/1.jpg --title t --content c --dry-run
 yxer material add --file ./fixtures/a.mp4 --dry-run
 ```
 
@@ -618,7 +618,7 @@ yxer upload --file ./fixtures/cover.jpg --dry-run
 预计 3-5 天。
 
 - `publish video`
-- `publish image-text`
+- `publish imageText`
 - `publish article`
 - 自动上传资源。
 - 自动查询账号。
@@ -667,7 +667,7 @@ yxer records list --status failed --dry-run
 重构完成后，Agent 必须按以下顺序处理用户发布请求：
 
 1. 如果没有近期诊断结果，运行 `yxer doctor`。
-2. 识别内容类型：`video` / `image-text` / `article`。
+2. 识别内容类型：`video` / `imageText` / `article`。
 3. 查询目标平台账号：`yxer accounts list --platform <平台>`。
 4. 如果账号不唯一，询问用户选择。
 5. 调用对应 `yxer publish ... --dry-run`。

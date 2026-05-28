@@ -1,4 +1,4 @@
-﻿# 蚁小二技能后续开发迭代执行标准
+# 蚁小二技能后续开发迭代执行标准
 
 本文档用于约束 `yixiaoer-skill` 后续新增功能、平台能力扩展、Bug 修复和文档更新，避免功能开发跑偏、文档与代码不一致、Agent 调用不稳定。
 
@@ -193,7 +193,7 @@ buildRequest() -> execute 提交
 
 ## 支持内容类型
 - video
-- image-text
+- imageText
 
 ## 必填字段
 - title
@@ -438,16 +438,16 @@ go build -o bin/yxer.exe .
 ## 2.1.0
 
 ### Added
-- 新增 `yxer publish image-text`
+- 新增 `yxer publish imageText`
 
 ### Fixed
-- 修复 `imageText` 和 `image-text` 命名冲突
+- 修复 `imageText` 和 `imageText` 命名冲突
 
 ### Changed
 - 平台名统一归一为中文名
 
 ### Migration
-- 旧字段 `imageText` 仍兼容，但 CLI 统一使用 `image-text`
+- 旧字段 `imageText` 仍兼容，但 CLI 统一使用 `imageText`
 ```
 
 ## 10. 高风险操作标准
@@ -536,7 +536,7 @@ CI 至少包含：
 
 ```text
 imageText
-image-text
+imageText
 image_text
 ```
 

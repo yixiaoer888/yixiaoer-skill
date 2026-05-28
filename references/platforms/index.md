@@ -4,7 +4,7 @@
 
 ## 通用索引
 
-- 图文：`docs/publish/image-text/index.md`
+- 图文：`docs/publish/imageText/index.md`
 - 视频：`docs/publish/video/index.md`
 - 文章：`docs/publish/article/index.md`
 

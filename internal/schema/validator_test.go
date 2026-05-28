@@ -30,14 +30,14 @@ func TestValidateRejectsAdditionalProperties(t *testing.T) {
 }
 
 func TestTypeKeyMapsImageText(t *testing.T) {
-	if got := TypeKey("image-text"); got != "imageText" {
+	if got := TypeKey("imageText"); got != "imageText" {
 		t.Fatalf("expected imageText, got %s", got)
 	}
 }
 
 func TestDisplayTypeMapsImageText(t *testing.T) {
-	if got := DisplayType("imageText"); got != "image-text" {
-		t.Fatalf("expected image-text, got %s", got)
+	if got := DisplayType("imageText"); got != "imageText" {
+		t.Fatalf("expected imageText, got %s", got)
 	}
 }
 
@@ -68,11 +68,11 @@ func TestListIncludesImageTextAsDisplayType(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, entry := range entries {
-		if entry.Platform == "douyin" && entry.Type == "image-text" {
+		if entry.Platform == "douyin" && entry.Type == "imageText" {
 			return
 		}
 	}
-	t.Fatalf("expected douyin image-text schema in list, got %d entries", len(entries))
+	t.Fatalf("expected douyin imageText schema in list, got %d entries", len(entries))
 }
 
 func TestValidateImageTextUsesMappedSchemaFile(t *testing.T) {
@@ -91,7 +91,7 @@ func TestValidateImageTextUsesMappedSchemaFile(t *testing.T) {
 		},
 		"extraField": true,
 	}
-	result := validator.Validate("抖音", "image-text", payload)
+	result := validator.Validate("抖音", "imageText", payload)
 	if result.Valid {
 		t.Fatal("expected mapped imageText schema to reject extra field")
 	}
@@ -127,7 +127,7 @@ func TestSchemaResolvesVideoAccountAliasesToCanonicalKeys(t *testing.T) {
 
 func TestSchemaResolvesShipinghaoImageTextWithoutLegacyAlias(t *testing.T) {
 	validator := NewValidator(filepath.Join("..", "..", "schemas"))
-	schemaDoc, err := validator.Schema("视频号", "image-text")
+	schemaDoc, err := validator.Schema("视频号", "imageText")
 	if err != nil {
 		t.Fatal(err)
 	}

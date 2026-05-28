@@ -173,26 +173,11 @@ func uniqueStrings(values []string) []string {
 }
 
 func TypeKey(publishType string) string {
-	parts := strings.Split(publishType, "-")
-	for i := 1; i < len(parts); i++ {
-		if parts[i] != "" {
-			parts[i] = strings.ToUpper(parts[i][:1]) + parts[i][1:]
-		}
-	}
-	return strings.Join(parts, "")
+	return publishType
 }
 
 func DisplayType(typeKey string) string {
-	var b strings.Builder
-	for i, r := range typeKey {
-		if i > 0 && r >= 'A' && r <= 'Z' {
-			b.WriteByte('-')
-			b.WriteRune(r + ('a' - 'A'))
-			continue
-		}
-		b.WriteRune(r)
-	}
-	return b.String()
+	return typeKey
 }
 
 func stripBOM(raw []byte) []byte {

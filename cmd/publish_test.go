@@ -639,7 +639,7 @@ func TestPublishCommandPreservesDistinctImageTextDescriptionAndContentFromPayloa
 	separateContent := "<p>独立 content 字段</p>"
 	payloadPath := writePublishPayload(t, map[string]interface{}{
 		"action":         "publish",
-		"publishType":    "image-text",
+		"publishType":    "imageText",
 		"platforms":      []interface{}{"小红书"},
 		"publishChannel": "cloud",
 		"publishArgs": map[string]interface{}{
@@ -691,7 +691,7 @@ func TestPublishCommandPreservesDistinctImageTextDescriptionAndContentFromPayloa
 	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"image-text", "小红书", payloadPath})
+	err := publishCmd.RunE(testCobraCommand(), []string{"imageText", "小红书", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -705,11 +705,11 @@ func TestPublishCommandPreservesDistinctImageTextDescriptionAndContentFromPayloa
 	}
 }
 
-func TestPublishCommandNormalizesHyphenatedImageTextPublishType(t *testing.T) {
+func TestPublishCommandUsesImageTextPublishType(t *testing.T) {
 	withRepoRoot(t)
 	payloadPath := writePublishPayload(t, map[string]interface{}{
 		"action":         "publish",
-		"publishType":    "image-text",
+		"publishType":    "imageText",
 		"platforms":      []interface{}{"小红书"},
 		"publishChannel": "cloud",
 		"publishArgs": map[string]interface{}{
@@ -760,12 +760,12 @@ func TestPublishCommandNormalizesHyphenatedImageTextPublishType(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"image-text", "小红书", payloadPath})
+	err := publishCmd.RunE(testCobraCommand(), []string{"imageText", "小红书", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if publishBody["publishType"] != "imageText" {
-		t.Fatalf("expected normalized publishType imageText, got %+v", publishBody["publishType"])
+		t.Fatalf("expected publishType imageText, got %+v", publishBody["publishType"])
 	}
 }
 

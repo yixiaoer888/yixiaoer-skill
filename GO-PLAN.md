@@ -166,7 +166,7 @@ yixiaoer-skill/
 
 Go CLI 必须保留当前 preflight 逻辑：
 
-1. `publish type` 只能是 `video`、`image-text`、`article`。
+1. `publish type` 只能是 `video`、`imageText`、`article`。
 2. `platforms` 不能为空。
 3. payload 必须包含非空 `accountForms`。
 4. 每个 `accountForms[]` 必须包含 `platformAccountId` 或 `account_id`。
@@ -245,13 +245,13 @@ yxer upload https://example.com/a.jpg
 - `internal/schema/loader.go`
 - `internal/schema/validator.go`
 - `internal/preflight/publish.go`
-- `image-text` 到 `imageText` 的内部 schema 文件名映射
+- `imageText` 到 `imageText` 的内部 schema 文件名映射
 - schema 缺失时 fallback basic validate
 
 验收命令：
 
 ```bash
-yxer validate 抖音 image-text tests/fixtures/payloads/douyin-video-valid.json
+yxer validate 抖音 imageText tests/fixtures/payloads/douyin-video-valid.json
 yxer validate 抖音 video tests/fixtures/payloads/douyin-video-valid.json
 ```
 
@@ -277,7 +277,7 @@ yxer validate 抖音 video tests/fixtures/payloads/douyin-video-valid.json
 验收命令：
 
 ```bash
-yxer publish image-text 抖音 payload.json
+yxer publish imageText 抖音 payload.json
 yxer publish video 抖音,快手 payload.json
 ```
 
@@ -387,14 +387,14 @@ yxer records watch --task-set-id xxx --interval 10
 
 ```text
 video
-image-text
+imageText
 article
 ```
 
 内部需要 schema 文件名时再映射：
 
 ```text
-image-text -> imageText
+imageText -> imageText
 ```
 
 ### 输出格式

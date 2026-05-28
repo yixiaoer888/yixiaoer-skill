@@ -179,21 +179,21 @@ func TestImageTextQueriesNormalizePublishType(t *testing.T) {
 		{
 			name: "categories",
 			call: func(c *Client) (interface{}, error) {
-				return c.Categories("acc_1", "image-text")
+				return c.Categories("acc_1", "imageText")
 			},
 			path: "/platform-accounts/acc_1/categories",
 		},
 		{
 			name: "collections",
 			call: func(c *Client) (interface{}, error) {
-				return c.Collections("acc_1", "image-text")
+				return c.Collections("acc_1", "imageText")
 			},
 			path: "/platform-accounts/acc_1/collections",
 		},
 		{
 			name: "challenges",
 			call: func(c *Client) (interface{}, error) {
-				return c.Challenges("acc_1", "旅行", "image-text")
+				return c.Challenges("acc_1", "旅行", "imageText")
 			},
 			path: "/platform-accounts/acc_1/challenges",
 		},

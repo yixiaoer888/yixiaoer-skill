@@ -198,6 +198,12 @@ func TestPreflightAcceptsImageTextImagesInContentPublishForm(t *testing.T) {
 	if len(result.Errors) > 0 {
 		t.Fatalf("expected imageText preflight to pass, got %v", result.Errors)
 	}
+
+	form := payload["accountForms"].([]interface{})[0].(map[string]interface{})
+	images, _ := form["images"].([]interface{})
+	if len(images) != 1 {
+		t.Fatalf("expected contentPublishForm.images to normalize into account form, got %+v", form)
+	}
 }
 
 func TestPreflightRejectsImageTextMissingImageKey(t *testing.T) {
@@ -216,7 +222,7 @@ func TestPreflightRejectsImageTextMissingImageKey(t *testing.T) {
 	assertHasError(t, result.Errors, `accountForms[0].images[0]: missing uploaded resource field "key"`)
 }
 
-func TestPreflightNormalizesHyphenatedImageTextType(t *testing.T) {
+func TestPreflightAcceptsImageTextType(t *testing.T) {
 	payload := map[string]interface{}{
 		"accountForms": []interface{}{
 			map[string]interface{}{
@@ -233,9 +239,9 @@ func TestPreflightNormalizesHyphenatedImageTextType(t *testing.T) {
 		},
 	}
 
-	result := Preflight("image-text", []string{"douyin"}, payload)
+	result := Preflight("imageText", []string{"douyin"}, payload)
 	if len(result.Errors) > 0 {
-		t.Fatalf("expected hyphenated image-text to normalize, got %v", result.Errors)
+		t.Fatalf("expected imageText to pass, got %v", result.Errors)
 	}
 }
 

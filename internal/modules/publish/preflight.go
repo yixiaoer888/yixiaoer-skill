@@ -196,6 +196,7 @@ func NormalizeStandardPublishArgs(payload map[string]interface{}) {
 		if cpf == nil {
 			continue
 		}
+		copyIfMissing(form, cpf, "images")
 		copyIfMissing(cpf, payload, "content")
 	}
 }
@@ -299,23 +300,12 @@ func samePublishType(left, right string) bool {
 }
 
 func NormalizePublishType(publishType string) string {
-	switch strings.TrimSpace(publishType) {
-	case "image-text":
-		return "imageText"
-	default:
-		return strings.TrimSpace(publishType)
-	}
+	return strings.TrimSpace(publishType)
 }
 
 func TypeKey(publishType string) string {
 	publishType = NormalizePublishType(publishType)
-	parts := strings.Split(publishType, "-")
-	for i := 1; i < len(parts); i++ {
-		if parts[i] != "" {
-			parts[i] = strings.ToUpper(parts[i][:1]) + parts[i][1:]
-		}
-	}
-	return strings.Join(parts, "")
+	return publishType
 }
 
 func empty(value interface{}) bool {

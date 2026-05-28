@@ -66,7 +66,7 @@ yxer skill show
 ## 工作流入口
 
 - 通用发布规则：`../../references/workflows/common-rules.md`
-- 图文发布：`../../references/workflows/publish-image-text.md`
+- 图文发布：`../../references/workflows/publish-imageText.md`
 - 视频发布：`../../references/workflows/publish-video.md`
 - 文章发布：`../../references/workflows/publish-article.md`
 

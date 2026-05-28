@@ -10,7 +10,7 @@
 优先使用 flags 模式：
 
 ```bash
-yxer publish image-text <platform> \
+yxer publish imageText <platform> \
   --account "<账号名或ID>" \
   --title "<标题>" \
   --description "<正文>" \
@@ -25,9 +25,9 @@ yxer publish image-text <platform> \
 1. 查询账号：`yxer accounts [platform]`
 2. 逐张上传图片：`yxer upload <文件路径或URL>`
 3. 按需查询分类、位置、音乐、合集、话题、商品
-4. 查阅对应平台文档：`docs/publish/image-text/`
-5. 执行校验：`yxer validate <platform> image-text <payload.json>`
-6. 正式发布：`yxer publish image-text <platform> <payload.json>`
+4. 查阅对应平台文档：`docs/publish/imageText/`
+5. 执行校验：`yxer validate <platform> imageText <payload.json>`
+6. 正式发布：`yxer publish imageText <platform> <payload.json>`
 
 ## 关键规则
 
@@ -40,7 +40,7 @@ yxer publish image-text <platform> \
 ## 直发示例
 
 ```bash
-yxer publish image-text 小红书 \
+yxer publish imageText 小红书 \
   --account "图文账号" \
   --title "图文标题" \
   --description "图文正文" \
@@ -51,7 +51,7 @@ yxer publish image-text 小红书 \
 ## 本机发布示例
 
 ```bash
-yxer publish image-text 抖音 \
+yxer publish imageText 抖音 \
   --account "图文账号" \
   --title "图文标题" \
   --description "图文正文" \
@@ -62,5 +62,5 @@ yxer publish image-text 抖音 \
 
 ## 平台文档入口
 
-- 索引：`docs/publish/image-text/index.md`
-- 平台细节：`docs/publish/image-text/*.md`
+- 索引：`docs/publish/imageText/index.md`
+- 平台细节：`docs/publish/imageText/*.md`

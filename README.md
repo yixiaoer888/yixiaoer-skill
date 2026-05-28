@@ -134,7 +134,7 @@ yxer skill sync --global
 2. `references/workflows/common-rules.md`
 3. 对应类型的工作流：
    `references/workflows/publish-video.md`、
-   `references/workflows/publish-image-text.md`、
+   `references/workflows/publish-imageText.md`、
    `references/workflows/publish-article.md`
 4. 需要平台差异时，再查 `docs/publish/`
 
@@ -174,7 +174,7 @@ yxer publish <type> <platform> <payload.json> [clientId] [--dry-run]
 推荐的发布类型只有三种：
 
 - `video`
-- `image-text`
+- `imageText`
 - `article`
 
 ### 查询类能力
