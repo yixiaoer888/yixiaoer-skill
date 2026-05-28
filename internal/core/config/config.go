@@ -1,0 +1,15 @@
+package config
+
+import base "github.com/yixiaoer/yixiaoer-skill/internal/config"
+
+const DefaultAPIURL = base.DefaultAPIURL
+
+type Config = base.Config
+
+func Load() (Config, error) {
+	return base.Load()
+}
+
+func SaveLocalClientID(clientID string) (string, error) {
+	return base.SaveLocalClientID(clientID)
+}

@@ -162,4 +162,4 @@
     ```
 
 > [!TIP]
-> 完整列表请参考 [SKILL.md](../../SKILL.md)。
+> 完整工作流请参考 `references/workflows/`，技能入口位于 `skills/yixiaoer/SKILL.md`。

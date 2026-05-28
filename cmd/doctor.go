@@ -1,12 +1,10 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/spf13/cobra"
-	"github.com/yixiaoer/yixiaoer-skill/internal/config"
-	"github.com/yixiaoer/yixiaoer-skill/internal/output"
-	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
+	"github.com/yixiaoer/yixiaoer-skill/internal/core/output"
+	"github.com/yixiaoer/yixiaoer-skill/internal/skillscheck"
+	doctorflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/doctor"
 )
 
 func init() {
@@ -17,28 +15,31 @@ var doctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "检查本地配置和目录",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load()
+		checks, err := doctorflow.NewService().Check()
 		if err != nil {
 			return err
 		}
-		checks := map[string]interface{}{
-			"apiUrl":        cfg.APIURL,
-			"apiKeyPresent": cfg.APIKey != "",
-			"schemaDir":     cfg.SchemaDir,
-			"schemaDirOK":   pathExists(cfg.SchemaDir),
-			"workflowsOK":   pathExists("workflows"),
+		skillDir, err := skillscheck.DetectSkillDir()
+		if err != nil {
+			return output.SuccessWithNotice(cmd.OutOrStdout(), "doctor", checks, map[string]interface{}{
+				"skills": map[string]interface{}{
+					"type":    "skills_path_unresolved",
+					"target":  rootCmd.Version,
+					"state":   "unknown",
+					"message": `未能自动定位 "skills/yixiaoer" 目录；如需检查或同步 skill，请设置 YIXIAOER_SKILL_DIR。`,
+				},
+			})
 		}
-		if cfg.APIKey == "" {
-			return yxerrors.Auth("Missing YIXIAOER_API_KEY environment variable")
+		notice, err := skillscheck.Notice(rootCmd.Version, skillDir)
+		if err != nil {
+			return err
 		}
-		if !pathExists(cfg.SchemaDir) {
-			return yxerrors.Usage("schema directory not found", cfg.SchemaDir)
-		}
-		return output.Success(cmd.OutOrStdout(), "doctor", checks)
+		return output.SuccessWithNotice(cmd.OutOrStdout(), "doctor", checks, map[string]interface{}{
+			"skills": notice,
+		})
 	},
 }
 
 func pathExists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
+	return doctorflow.PathExists(path)
 }

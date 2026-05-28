@@ -19,7 +19,7 @@ yxer locations XXX --query 深圳 --type 1 --json
 
 ## 返回结果 (Response)
 
-返回一个包含地理位置对象的数组。发布时请将整个对象（其基础结构符合 `yixiaoerId`, `yixiaoerName`, `raw`）作为 `location` 参数传递给发布脚本。
+返回一个包含地理位置对象的数组。发布时请将整个对象（其基础结构符合 `yixiaoerId`, `yixiaoerName`, `raw`）作为 `location` 参数传递给发布流程。
 
 ```json
 [
@@ -40,9 +40,9 @@ yxer locations XXX --query 深圳 --type 1 --json
 - `raw`: (必填) 原始平台返回的地理位置对象。如果在获取时该字段存在，发布表单中必须携带并完整透传。
 - `yixiaoerDesc`: (可选) 地理位置详细说明。
 
-## 脚本逻辑 (Backend)
+## CLI / 后端逻辑
 
-- **脚本路径**: `scripts/api.ts`
+- **CLI 命令**: `yxer locations <account_id> [--query 关键词] [--type 0|1|2|3] [--json]`
 - **功能**: 封装蚁小二标准地理位置查询接口 (`GET /platform-accounts/{platformAccountId}/location`)。
 - **参数映射**: 将 `account_id` 映射为路径变量，将 `keyWord`, `locationType`, `nextPage` 映射为查询参数。
 

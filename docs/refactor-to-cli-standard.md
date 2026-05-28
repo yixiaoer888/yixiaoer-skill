@@ -1,4 +1,4 @@
-# 蚁小二技能 CLI 标准化重构执行文档
+﻿# 蚁小二技能 CLI 标准化重构执行文档
 
 本文档用于指导 `yixiaoer-skill` 按照 `cli-main` 的工程结构和 AI Agent 友好标准进行重构。目标不是简单增加文档，而是把当前“Agent 手写大 JSON + 文档约束”的模式，改造成“小白用户可直接使用、Agent 可稳定调用、错误可自动恢复”的 CLI + Skill 体系。
 
@@ -28,7 +28,7 @@ Agent 应能稳定完成：
 当前仓库从：
 
 ```text
-SKILL.md + docs/*.md + scripts/api.ts
+SKILL.md + docs/*.md + 零散脚本式历史实现
 ```
 
 升级为：
@@ -36,22 +36,17 @@ SKILL.md + docs/*.md + scripts/api.ts
 ```text
 README.md
 SKILL.md
-package.json
-src/
-  cli.ts
-  commands/
-  core/
-  schemas/
-  workflows/
+cmd/
+internal/
+schemas/
+workflows/
 docs/
   quickstart.md
   workflows/
   errors.md
   refactor-to-cli-standard.md
 tests/
-  unit/
-  dryrun/
-  e2e/
+  fixtures/
 ```
 
 ### 1.3 稳定性目标
@@ -84,9 +79,9 @@ tests/
 ### 3.1 初始化和诊断
 
 ```bash
-yxe doctor
-yxe config set-api-key
-yxe auth check
+yxer doctor
+yxer config set-api-key
+yxer auth check
 ```
 
 输出示例：
@@ -107,9 +102,9 @@ yxe auth check
 ### 3.2 查询账号
 
 ```bash
-yxe accounts list --platform 抖音
-yxe accounts list --platform 抖音 --status valid
-yxe accounts invalid
+yxer accounts list --platform 抖音
+yxer accounts list --platform 抖音 --status valid
+yxer accounts invalid
 ```
 
 Agent 规则：
@@ -121,9 +116,9 @@ Agent 规则：
 ### 3.3 上传资源
 
 ```bash
-yxe upload --file ./cover.jpg
-yxe upload --file ./video.mp4 --type video
-yxe upload --url https://example.com/a.jpg --type image
+yxer upload --file ./cover.jpg
+yxer upload --file ./video.mp4 --type video
+yxer upload --url https://example.com/a.jpg --type image
 ```
 
 CLI 必须自动完成：
@@ -137,7 +132,7 @@ CLI 必须自动完成：
 ### 3.4 视频发布
 
 ```bash
-yxe publish video \
+yxer publish video \
   --platform 抖音 \
   --account "账号昵称或ID" \
   --video ./video.mp4 \
@@ -150,7 +145,7 @@ yxe publish video \
 dry-run 通过后：
 
 ```bash
-yxe publish video \
+yxer publish video \
   --platform 抖音 \
   --account "账号昵称或ID" \
   --video ./video.mp4 \
@@ -162,7 +157,7 @@ yxe publish video \
 ### 3.5 图文发布
 
 ```bash
-yxe publish image-text \
+yxer publish image-text \
   --platform 小红书 \
   --account "账号昵称或ID" \
   --image ./1.jpg \
@@ -175,7 +170,7 @@ yxe publish image-text \
 ### 3.6 文章发布
 
 ```bash
-yxe publish article \
+yxer publish article \
   --platform 知乎 \
   --account "账号昵称或ID" \
   --title "文章标题" \
@@ -195,7 +190,7 @@ CLI 必须负责：
 蚁小二草稿：
 
 ```bash
-yxe draft save \
+yxer draft save \
   --type video \
   --platform 抖音 \
   --account "账号昵称或ID" \
@@ -207,7 +202,7 @@ yxe draft save \
 平台草稿：
 
 ```bash
-yxe publish video \
+yxer publish video \
   --platform 抖音 \
   --account "账号昵称或ID" \
   --video ./video.mp4 \
@@ -225,7 +220,7 @@ yxe publish video \
 ### 3.8 素材库
 
 ```bash
-yxe material add --file ./video.mp4 --cover ./cover.jpg --name "新品视频"
+yxer material add --file ./video.mp4 --cover ./cover.jpg --name "新品视频"
 ```
 
 CLI 内部必须执行两步：
@@ -238,9 +233,9 @@ CLI 内部必须执行两步：
 ### 3.9 发布记录和详情
 
 ```bash
-yxe records list --status failed
-yxe records detail --task-set-id TS123456
-yxe records watch --task-set-id TS123456 --interval 10
+yxer records list --status failed
+yxer records detail --task-set-id TS123456
+yxer records watch --task-set-id TS123456 --interval 10
 ```
 
 失败任务必须输出：
@@ -256,8 +251,8 @@ yxe records watch --task-set-id TS123456 --interval 10
 
 必须处理：
 
-- 当前 `node scripts/api.ts` 不可运行。
-- `ts-node` 编译失败。
+- 仓库内历史脚本入口已移除。
+- 不再维护 TypeScript CLI 兼容层。
 - 文档示例缺少必填字段。
 - `imageText` / `image-text` 冲突。
 - 平台枚举大小写和中文名冲突。
@@ -267,10 +262,8 @@ yxe records watch --task-set-id TS123456 --interval 10
 
 交付物：
 
-- `package.json`
-- 可执行命令 `yxe`
-- `yxe doctor`
-- `yxe api --action ...`
+- 可执行命令 `yxer`
+- `yxer doctor`
 - 结构化错误输出
 - 基础单元测试
 
@@ -399,7 +392,7 @@ tests/
     "accounts": ["账号昵称"]
   },
   "next": {
-    "check": "yxe records detail --task-set-id TS123456"
+    "check": "yxer records detail --task-set-id TS123456"
   }
 }
 ```
@@ -411,11 +404,11 @@ tests/
   "ok": false,
   "error": {
     "type": "validation_error",
-    "code": "YXE_MISSING_COVER",
+    "code": "YIXIAOER_MISSING_COVER",
     "message": "视频发布缺少封面图",
-    "hint": "请传入 --cover ./cover.jpg，或先运行 yxe upload --file ./cover.jpg",
+    "hint": "请传入 --cover ./cover.jpg，或先运行 yxer upload --file ./cover.jpg",
     "retryable": true,
-    "nextCommand": "yxe publish video --cover ./cover.jpg ..."
+    "nextCommand": "yxer publish video --cover ./cover.jpg ..."
   }
 }
 ```
@@ -433,7 +426,7 @@ tests/
       "current": "1.6.4",
       "target": "2.0.0",
       "message": "当前技能文档和 CLI 版本不一致",
-      "command": "yxe update"
+      "command": "yxer update"
     }
   }
 }
@@ -443,19 +436,19 @@ tests/
 
 | 错误码 | 类型 | 场景 | 修复建议 |
 | --- | --- | --- | --- |
-| `YXE_ENV_NO_API_KEY` | env_error | 未配置 API Key | 运行 `yxe config set-api-key` |
-| `YXE_ENV_NETWORK` | env_error | API 不可达 | 检查网络或 `YIXIAOER_API_URL` |
-| `YXE_VALIDATION_JSON` | validation_error | JSON 格式错误 | 使用 `--payload @file.json` |
-| `YXE_INVALID_PLATFORM` | validation_error | 平台名无法识别 | 运行 `yxe platforms list` |
-| `YXE_INVALID_PUBLISH_TYPE` | validation_error | 发布类型错误 | 使用 `video/image-text/article` |
-| `YXE_ACCOUNT_NOT_FOUND` | validation_error | 找不到账号 | 运行 `yxe accounts list` |
-| `YXE_ACCOUNT_INVALID` | validation_error | 账号登录失效 | 重新登录账号 |
-| `YXE_MISSING_MEDIA` | validation_error | 缺少视频/图片 | 传入 `--video` 或 `--image` |
-| `YXE_MISSING_COVER` | validation_error | 缺少封面 | 传入 `--cover` |
-| `YXE_UPLOAD_SIGNATURE` | upload_error | 上传签名不匹配 | 使用自动 MIME 推断，保证 Content-Type 一致 |
-| `YXE_LOCAL_CLIENT_REQUIRED` | validation_error | 本机发布缺少客户端 | 启动客户端或改用 `--channel cloud` |
-| `YXE_PROXY_REQUIRED` | remote_error | 云发布代理缺失 | 运行 `yxe proxy areas` 后绑定代理 |
-| `YXE_REMOTE_API` | remote_error | 后端返回错误 | 输出后端详情和 log id |
+| `YIXIAOER_ENV_NO_API_KEY` | env_error | 未配置 API Key | 运行 `yxer config set-api-key` |
+| `YIXIAOER_ENV_NETWORK` | env_error | API 不可达 | 检查网络或 `YIXIAOER_API_URL` |
+| `YIXIAOER_VALIDATION_JSON` | validation_error | JSON 格式错误 | 使用 `--payload @file.json` |
+| `YIXIAOER_INVALID_PLATFORM` | validation_error | 平台名无法识别 | 运行 `yxer platforms list` |
+| `YIXIAOER_INVALID_PUBLISH_TYPE` | validation_error | 发布类型错误 | 使用 `video/image-text/article` |
+| `YIXIAOER_ACCOUNT_NOT_FOUND` | validation_error | 找不到账号 | 运行 `yxer accounts list` |
+| `YIXIAOER_ACCOUNT_INVALID` | validation_error | 账号登录失效 | 重新登录账号 |
+| `YIXIAOER_MISSING_MEDIA` | validation_error | 缺少视频/图片 | 传入 `--video` 或 `--image` |
+| `YIXIAOER_MISSING_COVER` | validation_error | 缺少封面 | 传入 `--cover` |
+| `YIXIAOER_UPLOAD_SIGNATURE` | upload_error | 上传签名不匹配 | 使用自动 MIME 推断，保证 Content-Type 一致 |
+| `YIXIAOER_LOCAL_CLIENT_REQUIRED` | validation_error | 本机发布缺少客户端 | 启动客户端或改用 `--channel cloud` |
+| `YIXIAOER_PROXY_REQUIRED` | remote_error | 云发布代理缺失 | 运行 `yxer proxy areas` 后绑定代理 |
+| `YIXIAOER_REMOTE_API` | remote_error | 后端返回错误 | 输出后端详情和 log id |
 
 ## 8. Schema 统一规则
 
@@ -517,8 +510,8 @@ douyin
 `SKILL.md` 只保留 Agent 必须遵守的操作规则：
 
 ```md
-1. 首次使用或失败时先运行 yxe doctor。
-2. 发布不要手写大 JSON，优先使用 yxe publish 子命令。
+1. 首次使用或失败时先运行 yxer doctor。
+2. 发布不要手写大 JSON，优先使用 yxer publish 子命令。
 3. 写操作先 dry-run。
 4. 发布前必须查询账号并确认 status valid。
 5. 本地或 URL 资源必须通过 CLI 自动上传。
@@ -548,9 +541,9 @@ douyin
 每个核心命令至少一个 dry-run golden：
 
 ```bash
-yxe publish video --platform 抖音 --account acc --video ./fixtures/a.mp4 --cover ./fixtures/c.jpg --title t --dry-run
-yxe publish image-text --platform 小红书 --account acc --image ./fixtures/1.jpg --title t --content c --dry-run
-yxe material add --file ./fixtures/a.mp4 --dry-run
+yxer publish video --platform 抖音 --account acc --video ./fixtures/a.mp4 --cover ./fixtures/c.jpg --title t --dry-run
+yxer publish image-text --platform 小红书 --account acc --image ./fixtures/1.jpg --title t --content c --dry-run
+yxer material add --file ./fixtures/a.mp4 --dry-run
 ```
 
 测试断言：
@@ -589,18 +582,17 @@ YIXIAOER_ALLOW_REAL_PUBLISH=true
 
 预计 1-2 天。
 
-- 新增 `package.json`。
-- 新增 `src/cli.ts`。
-- 新增 `yxe doctor`。
-- 新增 `yxe api`。
-- 修复当前 TypeScript 编译问题。
+- 巩固 `cmd/` 与 `internal/` 的 Go CLI 结构。
+- 新增 `yxer doctor`。
+- 补齐统一命令入口与错误输出。
+- 清理历史脚本式入口残留。
 - 文档命令全部替换为可运行命令。
 
 验收：
 
 ```bash
-yxe doctor
-yxe api --action accounts --payload '{"platform":"抖音"}' --dry-run
+yxer doctor
+yxer accounts 抖音 --json
 ```
 
 ### Milestone 2：账号、上传、输出和错误
@@ -617,8 +609,8 @@ yxe api --action accounts --payload '{"platform":"抖音"}' --dry-run
 验收：
 
 ```bash
-yxe accounts list --platform 抖音 --format json
-yxe upload --file ./fixtures/cover.jpg --dry-run
+yxer accounts list --platform 抖音 --format json
+yxer upload --file ./fixtures/cover.jpg --dry-run
 ```
 
 ### Milestone 3：发布工作流
@@ -635,7 +627,7 @@ yxe upload --file ./fixtures/cover.jpg --dry-run
 验收：
 
 ```bash
-yxe publish video --platform 抖音 --account test --video ./fixtures/a.mp4 --cover ./fixtures/c.jpg --title test --dry-run
+yxer publish video --platform 抖音 --account test --video ./fixtures/a.mp4 --cover ./fixtures/c.jpg --title test --dry-run
 ```
 
 ### Milestone 4：草稿、素材库、记录
@@ -650,8 +642,8 @@ yxe publish video --platform 抖音 --account test --video ./fixtures/a.mp4 --co
 验收：
 
 ```bash
-yxe material add --file ./fixtures/a.mp4 --cover ./fixtures/c.jpg --dry-run
-yxe records list --status failed --dry-run
+yxer material add --file ./fixtures/a.mp4 --cover ./fixtures/c.jpg --dry-run
+yxer records list --status failed --dry-run
 ```
 
 ### Milestone 5：平台专项和稳定性
@@ -674,11 +666,11 @@ yxe records list --status failed --dry-run
 
 重构完成后，Agent 必须按以下顺序处理用户发布请求：
 
-1. 如果没有近期诊断结果，运行 `yxe doctor`。
+1. 如果没有近期诊断结果，运行 `yxer doctor`。
 2. 识别内容类型：`video` / `image-text` / `article`。
-3. 查询目标平台账号：`yxe accounts list --platform <平台>`。
+3. 查询目标平台账号：`yxer accounts list --platform <平台>`。
 4. 如果账号不唯一，询问用户选择。
-5. 调用对应 `yxe publish ... --dry-run`。
+5. 调用对应 `yxer publish ... --dry-run`。
 6. 如果 dry-run 失败，按 `error.hint` 修复。
 7. dry-run 成功后执行真实发布。
 8. 返回 `taskSetId` 和查询命令。
@@ -701,26 +693,26 @@ yxe records list --status failed --dry-run
 ## 3 分钟开始
 
 1. 配置 API Key
-   yxe config set-api-key
+   yxer config set-api-key
 
 2. 检查环境
-   yxe doctor
+   yxer doctor
 
 3. 查询账号
-   yxe accounts list --platform 抖音
+   yxer accounts list --platform 抖音
 
 4. 预览发布
-   yxe publish video --platform 抖音 --account 我的账号 --video ./a.mp4 --cover ./c.jpg --title 测试 --dry-run
+   yxer publish video --platform 抖音 --account 我的账号 --video ./a.mp4 --cover ./c.jpg --title 测试 --dry-run
 
 5. 正式发布
-   yxe publish video --platform 抖音 --account 我的账号 --video ./a.mp4 --cover ./c.jpg --title 测试
+   yxer publish video --platform 抖音 --account 我的账号 --video ./a.mp4 --cover ./c.jpg --title 测试
 ```
 
 ## 14. 最终验收清单
 
 重构完成必须全部通过：
 
-- [ ] `yxe doctor` 可运行。
+- [ ] `yxer doctor` 可运行。
 - [ ] 所有 README 示例可运行。
 - [ ] `SKILL.md` 不再要求直接执行 `.ts` 文件。
 - [ ] 所有写命令支持 `--dry-run`。
@@ -750,3 +742,4 @@ yxe records list --status failed --dry-run
 10. 平台增强字段。
 
 只要前 7 项完成，蚁小二技能的基础成功率就会显著高于当前版本。
+

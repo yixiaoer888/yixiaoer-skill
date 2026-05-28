@@ -1,6 +1,6 @@
 # 上传到素材库 (Material Library Save)
 
-将已上传到蚁小二 OSS 的资源登记到素材库，生成可在素材管理中复用的视频或图片记录。
+将资源上传并登记到素材库，生成可在素材管理中复用的视频或图片记录。
 
 ## 触发场景 (Trigger)
 - **意图辨析**：当用户希望将已上传的临时资源“持久化”或“资产化”，以便后续多次复用、团队共享或在网页端素材库中进行统一管理时触发。
@@ -9,12 +9,17 @@
   - “我的宣传片已经传好了，帮我入库”
   - “将这个 Key 对应的图片登记到素材管理中”
 
-> [!CAUTION]
-> **强制两步流程 (Mandatory Two-Step)**: 
-> 当用户意图为“上传到素材库”时，**禁止单元操作**。Agent 必须严格执行：
-> 1. **upload** (上传到 OSS 并获取 Key，建议使用 `bucket: "material-library"`)
-> 2. **material** (将获得的 Key 登记到库，产出素材 ID)
-> **错误演示**: 只执行 `upload` 而不执行 `material` 属于逻辑截断，会导致用户看不见素材。
+> [!TIP]
+> **推荐命令 (Recommended Command)**:
+> 当用户意图是“把文件放进素材库”，优先直接使用：
+>
+> ```bash
+> yxer material add --file ./demo.mp4
+> ```
+>
+> 该命令会自动完成：
+> 1. 上传到 `material-library`
+> 2. 素材登记入库
 
 ## 参数定义 (Parameters)
 
@@ -34,13 +39,20 @@
 1. **链路检查**：确认资源是否已通过 `upload` 动作上传（建议使用 `bucket: "material-library"`）。
 2. **元数据提取**：识别文件的真实名称、宽高及类型。
 3. **参数装配**：构造 `action: "material"` 及完整元数据。
-4. **指令执行**：先调用 `yxer upload --bucket material-library`，再调用 `yxer material create <payload.json>`。
+4. **指令执行**：优先调用 `yxer material add --file ...`；只有高级定制时再拆分成 `upload + material create`。
 5. **入库反馈**：向用户确认素材 ID 及入库成功状态。
 
 ## 推荐链路 (Recommended Flow)
 
-1. 先调用 `action: "upload"` 上传原始文件，获得资源 `key`
-2. 再调用 `action: "material"`，把 `key` 写入素材库
+1. 优先使用：
+
+```bash
+yxer material add --file ./demo.mp4
+```
+
+2. 如需手工控制资源 key 或缩略图，再拆分成：
+- `yxer upload ./demo.mp4 --bucket material-library`
+- `yxer material create material-payload.json`
 
 ## 调用指令 (Command)
 
@@ -48,7 +60,13 @@
 yxer material create material-payload.json
 ```
 
-推荐先执行：
+推荐优先执行：
+
+```bash
+yxer material add --file ./demo.mp4
+```
+
+兼容旧模式时，先执行：
 
 ```bash
 yxer upload ./demo.mp4 --bucket material-library

@@ -4,9 +4,9 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-	"github.com/yixiaoer/yixiaoer-skill/internal/config"
-	"github.com/yixiaoer/yixiaoer-skill/internal/output"
-	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
+	"github.com/yixiaoer/yixiaoer-skill/internal/core/config"
+	"github.com/yixiaoer/yixiaoer-skill/internal/core/output"
+	"github.com/yixiaoer/yixiaoer-skill/internal/core/schema"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
@@ -27,7 +27,9 @@ var schemaCmd = &cobra.Command{
 			return cmd.Help()
 		}
 		if len(args) != 2 {
-			return yxerrors.Usage("schema requires <platform> and <type>", nil)
+			return yxerrors.Usage("schema requires <platform> and <type>", nil).
+				WithHint("请同时提供平台和发布类型，例如：yxer schema get 抖音 video。").
+				WithNextCommand("yxer schema list")
 		}
 		return runSchemaGet(cmd, args[0], args[1])
 	},
@@ -103,7 +105,9 @@ func runSchemaGet(cmd *cobra.Command, platform, publishType string) error {
 		return yxerrors.Usage("schema not found", map[string]interface{}{
 			"platform": platform,
 			"type":     publishType,
-		})
+		}).
+			WithHint("未找到对应平台和发布类型的 schema，请先查看支持的平台和类型列表。").
+			WithNextCommand("yxer schema list")
 	}
 	return output.Success(cmd.OutOrStdout(), "schema.get", map[string]interface{}{
 		"key":        schemaDoc.Key,
@@ -127,14 +131,18 @@ func runSchemaFields(cmd *cobra.Command, platform, publishType string) error {
 		return yxerrors.Usage("schema not found", map[string]interface{}{
 			"platform": platform,
 			"type":     publishType,
-		})
+		}).
+			WithHint("未找到对应平台和发布类型的 schema，请确认平台别名和类型名称是否正确。").
+			WithNextCommand("yxer schema list")
 	}
 	fields, err := validator.Fields(platform, publishType)
 	if err != nil {
 		return yxerrors.Usage("schema not found", map[string]interface{}{
 			"platform": platform,
 			"type":     publishType,
-		})
+		}).
+			WithHint("字段视图生成失败，请先确认 schema 文件存在且格式有效。").
+			WithNextCommand("yxer schema get <platform> <type>")
 	}
 	return output.Success(cmd.OutOrStdout(), "schema.fields", map[string]interface{}{
 		"platform": doc.Platform,

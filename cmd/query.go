@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/yixiaoer/yixiaoer-skill/internal/api"
-	"github.com/yixiaoer/yixiaoer-skill/internal/config"
-	"github.com/yixiaoer/yixiaoer-skill/internal/output"
+	"github.com/yixiaoer/yixiaoer-skill/internal/core/output"
+	queryflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/query"
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
 var (
@@ -37,6 +37,7 @@ func init() {
 	recordsCmd.Flags().StringVar(&recordsPlatform, "platform", "", "filter by platform")
 	recordsCmd.Flags().StringVar(&recordsLimit, "limit", "10", "result limit")
 	recordsCmd.Flags().StringVar(&recordsStatus, "status", "", "filter by status")
+	recordsCmd.AddCommand(recordsListCmd)
 
 	rootCmd.AddCommand(categoriesCmd)
 	rootCmd.AddCommand(locationsCmd)
@@ -54,8 +55,8 @@ var categoriesCmd = &cobra.Command{
 	Long:  "查询分类。\n\n当前支持平台：百家号、爱奇艺、哔哩哔哩、企鹅号、网易号、一点号、知乎、蜂网、AcFun。",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runQuery(cmd, "categories", func(client *api.Client) (interface{}, error) {
-			return client.Categories(args[0], categoriesType)
+		return runQuery(cmd, "categories", func(service queryflow.Service) (interface{}, error) {
+			return service.Categories(args[0], categoriesType)
 		})
 	},
 }
@@ -65,8 +66,8 @@ var locationsCmd = &cobra.Command{
 	Short: "查询位置",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runQuery(cmd, "locations", func(client *api.Client) (interface{}, error) {
-			return client.Locations(args[0], locationsQuery, locationsType)
+		return runQuery(cmd, "locations", func(service queryflow.Service) (interface{}, error) {
+			return service.Locations(args[0], locationsQuery, locationsType)
 		})
 	},
 }
@@ -76,8 +77,8 @@ var musicCmd = &cobra.Command{
 	Short: "查询音乐",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runQuery(cmd, "music", func(client *api.Client) (interface{}, error) {
-			return client.Music(args[0], musicQuery)
+		return runQuery(cmd, "music", func(service queryflow.Service) (interface{}, error) {
+			return service.Music(args[0], musicQuery)
 		})
 	},
 }
@@ -87,8 +88,8 @@ var goodsCmd = &cobra.Command{
 	Short: "查询商品",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runQuery(cmd, "goods", func(client *api.Client) (interface{}, error) {
-			return client.Goods(args[0], goodsQuery)
+		return runQuery(cmd, "goods", func(service queryflow.Service) (interface{}, error) {
+			return service.Goods(args[0], goodsQuery)
 		})
 	},
 }
@@ -98,8 +99,8 @@ var collectionsCmd = &cobra.Command{
 	Short: "查询合集",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runQuery(cmd, "collections", func(client *api.Client) (interface{}, error) {
-			return client.Collections(args[0], collectionsType)
+		return runQuery(cmd, "collections", func(service queryflow.Service) (interface{}, error) {
+			return service.Collections(args[0], collectionsType)
 		})
 	},
 }
@@ -109,8 +110,8 @@ var challengesCmd = &cobra.Command{
 	Short: "查询话题/挑战",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runQuery(cmd, "challenges", func(client *api.Client) (interface{}, error) {
-			return client.Challenges(args[0], challengesQuery, challengesType)
+		return runQuery(cmd, "challenges", func(service queryflow.Service) (interface{}, error) {
+			return service.Challenges(args[0], challengesQuery, challengesType)
 		})
 	},
 }
@@ -120,10 +121,24 @@ var recordsCmd = &cobra.Command{
 	Short: "查询发布记录",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runQuery(cmd, "records", func(client *api.Client) (interface{}, error) {
-			return client.Records(recordsPlatform, recordsLimit, recordsStatus)
-		})
+		return runRecordsList(cmd)
 	},
+}
+
+var recordsListCmd = &cobra.Command{
+	Use:     "list",
+	Short:   "列出发布记录",
+	Aliases: []string{"ls"},
+	Args:    cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runRecordsList(cmd)
+	},
+}
+
+func runRecordsList(cmd *cobra.Command) error {
+	return runQuery(cmd, "records.list", func(service queryflow.Service) (interface{}, error) {
+		return service.Records(recordsPlatform, recordsLimit, recordsStatus)
+	})
 }
 
 var prepareCmd = &cobra.Command{
@@ -135,18 +150,18 @@ var prepareCmd = &cobra.Command{
 		if len(args) > 1 {
 			publishType = args[1]
 		}
-		return runQuery(cmd, "prepare", func(client *api.Client) (interface{}, error) {
-			return client.Prepare(args[0], publishType)
+		return runQuery(cmd, "prepare", func(service queryflow.Service) (interface{}, error) {
+			return service.Prepare(args[0], publishType)
 		})
 	},
 }
 
-func runQuery(cmd *cobra.Command, action string, query func(*api.Client) (interface{}, error)) error {
-	cfg, err := config.Load()
-	if err != nil {
-		return err
+func runQuery(cmd *cobra.Command, action string, query func(queryflow.Service) (interface{}, error)) error {
+	if action == "records" && recordsLimit == "" {
+		return yxerrors.Usage("records limit must not be empty", nil).
+			WithHint("请传入有效的 --limit 值，例如 10。")
 	}
-	result, err := query(api.NewClient(cfg))
+	result, err := query(queryflow.NewService())
 	if err != nil {
 		return err
 	}

@@ -53,7 +53,9 @@ func Load() (Config, error) {
 
 func (c Config) RequireAPIKey() error {
 	if c.APIKey == "" {
-		return yxerrors.Auth("Missing YIXIAOER_API_KEY environment variable")
+		return yxerrors.Auth("Missing YIXIAOER_API_KEY environment variable").
+			WithHint("请先设置环境变量 YIXIAOER_API_KEY，或按文档完成本地配置。").
+			WithNextCommand("yxer doctor")
 	}
 	return nil
 }

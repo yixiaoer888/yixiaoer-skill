@@ -4,8 +4,9 @@
 
 ## 1. 调用指令
 
-```bash
-# 该能力正在迁移到 yxer CLI，当前不要再使用 node scripts/api.ts 作为公开入口
+```text
+当前版本尚未提供独立 `yxer` 子命令。
+本页仅保留字段结构说明，执行时应优先扩展 Go CLI，而不是寻找旧脚本入口。
 ```
 
 ## 2. 请求参数
@@ -28,8 +29,7 @@
 | yixiaoerImageUrl | string | 群聊头像 URL |
 | `raw` | `object` | 平台原始数据。如果在获取时该字段存在，发布表单中必须携带并完整透传 |
 
-## 脚本逻辑 (Backend)
+## 后端逻辑说明
 
-- **脚本路径**: `scripts/api.ts`
 - **功能**: 封装蚁小二标准化群聊查询接口 (`GET /platform-accounts/{platformAccountId}/group-chats`)。
 - **参数映射**: 将 `account_id` 映射为 URL 路径变量。

@@ -14,7 +14,7 @@ yxer collections ACCOUNT_ID --json
 | :--- | :--- | :--- | :--- |
 | `account_id` | `string` | **是** | 蚁小二账号 ID (32位十六进制) |
 
-返回一个 `Category` 数组。可以直接将其中的对象作为 `collection` 参数传递给发布脚本。如果在获取时 `raw` 字段有值，发布表单中必须完整保留并透传。
+返回一个 `Category` 数组。可以直接将其中的对象作为 `collection` 参数传递给发布流程。如果在获取时 `raw` 字段有值，发布表单中必须完整保留并透传。
 
 ```json
 [
@@ -26,9 +26,9 @@ yxer collections ACCOUNT_ID --json
 ]
 ```
 
-## 脚本逻辑 (Backend)
+## CLI / 后端逻辑
 
-- **脚本路径**: `scripts/api.ts`
+- **CLI 命令**: `yxer collections <account_id> [--type video|article] [--json]`
 - **功能**: 封装蚁小二标准化合集查询接口 (`GET /platform-accounts/{platformAccountId}/collections`)。
 - **参数映射**: 将 `account_id` 映射为 URL 路径变量，将 `type` 映射为 `publishType` 查询参数。
 

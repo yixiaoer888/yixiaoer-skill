@@ -2,13 +2,15 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/yixiaoer/yixiaoer-skill/internal/api"
-	"github.com/yixiaoer/yixiaoer-skill/internal/config"
-	"github.com/yixiaoer/yixiaoer-skill/internal/output"
+	"github.com/yixiaoer/yixiaoer-skill/internal/core/output"
+	draftflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/draft"
 )
+
+var draftDryRun bool
 
 func init() {
 	draftCmd.AddCommand(draftSaveCmd)
+	draftSaveCmd.Flags().BoolVar(&draftDryRun, "dry-run", false, "preview the draft payload without performing the write")
 	rootCmd.AddCommand(draftCmd)
 }
 
@@ -25,17 +27,17 @@ var draftSaveCmd = &cobra.Command{
 	Short: "保存为蚁小二草稿",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load()
-		if err != nil {
-			return err
-		}
 		payload, err := readPayload(args[0])
 		if err != nil {
 			return err
 		}
-		delete(payload, "action")
-		payload["isDraft"] = true
-		result, err := api.NewClient(cfg).SaveDraft(payload)
+		if draftDryRun {
+			return output.Success(cmd.OutOrStdout(), "draft.save.dry-run", map[string]interface{}{
+				"dryRun":  true,
+				"request": draftflow.PreviewSave(payload),
+			})
+		}
+		result, err := draftflow.NewService().Save(payload)
 		if err != nil {
 			return err
 		}

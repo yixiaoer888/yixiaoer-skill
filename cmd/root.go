@@ -5,13 +5,14 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/yixiaoer/yixiaoer-skill/internal/domain"
 	"github.com/yixiaoer/yixiaoer-skill/internal/output"
 )
 
 var rootCmd = &cobra.Command{
 	Use:     "yxer",
 	Short:   "蚁小二多平台内容分发 CLI",
-	Version: "3.0.0",
+	Version: domain.SkillVersion,
 }
 
 func Execute() {

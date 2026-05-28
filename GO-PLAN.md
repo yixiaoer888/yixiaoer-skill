@@ -12,24 +12,24 @@
 
 | 模块 | 文件 | 作用 |
 | --- | --- | --- |
-| Skill 规则 | `SKILL.md` | Agent 执行约束、命令说明、发布规则 |
-| CLI 入口 | `scripts/yxer.ts` | 当前 `yxer` 命令实现 |
-| API 封装 | `scripts/api.ts` | 鉴权、HTTP 请求、上传、低级 API action |
-| Schema 校验 | `scripts/validator.ts` | AJV JSON Schema 校验 |
+| Skill 规则 | `skills/yixiaoer/SKILL.md` | Agent 执行约束、命令说明、发布规则 |
+| CLI 入口 | `cmd/` + `main.go` | 当前 `yxer` 命令实现 |
+| API 封装 | `internal/api/*` | 鉴权、HTTP 请求、上传、低级 API action |
+| Schema 校验 | `internal/schema/*` | Schema 校验实现 |
 | Schema 文件 | `schemas/platforms/*.schema.json` | 各平台发布字段校验 |
-| 工作流文档 | `workflows/*.md` | 图文、视频、文章发布流程 |
+| 工作流文档 | `references/workflows/*.md` | 图文、视频、文章发布流程 |
 | 平台文档 | `docs/publish/**` | 各平台字段说明 |
 
-重构时保留 `schemas/`、`workflows/`、`docs/`，先新增 Go CLI，与 TypeScript 版本并行。Go 版本稳定后，再切换 `yxer` 入口。
+重构后保留 `schemas/`、`references/`、`docs/`，统一由 Go CLI 承担执行入口。
 
 ## 2. 重构原则
 
 1. CLI 对外接口尽量兼容当前 `yxer <command>`。
-2. 当前 TypeScript 版本保留，作为迁移期间兜底。
+2. 不再保留 TypeScript 版本作为兜底，统一维护 Go CLI。
 3. Go 版本优先迁移高频和关键链路：`doctor`、`accounts`、`upload`、`validate`、`publish`。
 4. 发布能力不能只做 JSON Schema 校验，必须保留当前硬规则 preflight。
-5. API 路径必须以现有 `scripts/api.ts` 和 `scripts/yxer.ts` 为准，不使用未验证的 `/openApi/...` 路径。
-6. 文档和工作流先不大改，等 Go CLI 稳定后再同步更新 `SKILL.md`。
+5. API 路径必须以当前 `cmd/` 与 `internal/api/` 已验证实现为准，不使用未验证的 `/openApi/...` 路径。
+6. 文档和工作流先不大改，等 Go CLI 稳定后再同步更新 `skills/yixiaoer/SKILL.md`。
 
 ## 3. 当前真实 API 路径
 
@@ -130,7 +130,8 @@ yixiaoer-skill/
 │   └── yxerrors/
 │       └── errors.go
 ├── schemas/
-├── workflows/
+├── references/
+│   └── workflows/
 ├── docs/
 ├── tests/fixtures/payloads/
 ├── main.go
@@ -163,7 +164,7 @@ yixiaoer-skill/
 
 ## 5. 发布前必须保留的硬规则
 
-Go 版本必须迁移当前 `scripts/yxer.ts` 里的 preflight 逻辑：
+Go CLI 必须保留当前 preflight 逻辑：
 
 1. `publish type` 只能是 `video`、`image-text`、`article`。
 2. `platforms` 不能为空。

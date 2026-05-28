@@ -2,8 +2,9 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/yixiaoer/yixiaoer-skill/internal/config"
-	"github.com/yixiaoer/yixiaoer-skill/internal/output"
+	"github.com/yixiaoer/yixiaoer-skill/internal/core/config"
+	"github.com/yixiaoer/yixiaoer-skill/internal/core/output"
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
 func init() {
@@ -43,6 +44,10 @@ var configSetLocalClientIDCmd = &cobra.Command{
 	Short: "设置本机发布默认 clientId",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if args[0] == "" {
+			return yxerrors.Usage("clientId must not be empty", nil).
+				WithHint("请传入有效的本机发布 clientId。")
+		}
 		configPath, err := config.SaveLocalClientID(args[0])
 		if err != nil {
 			return err

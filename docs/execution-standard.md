@@ -5,11 +5,11 @@
 ## 1. 版本控制与一致性 (Versioning & Consistency)
 
 ### 1.1 语义化版本
-- 技能必须在 `SKILL.md` 的 frontmatter 中明确标注 `version`（遵循 SemVer 规范）。
+- 技能必须在 `skills/yixiaoer/SKILL.md` 的 frontmatter 中明确标注 `version`（遵循 SemVer 规范）。
 - **执行要求**：Agent 在启动时**必须**校验环境中的技能版本是否符合预期（如 `>= 1.6.0`）。
 
 ### 1.2 物理一致性 (Integrity)
-- 技能的核心逻辑 (scripts/api.ts) 不得在未修改版本号的情况下随意变动。
+- 技能的核心逻辑（`cmd/`、`internal/`、`main.go`）不得在未修改版本号的情况下随意变动。
 - 自动化流水线应建议生成 Hash 值进行对比。
 
 ## 2. 错误分类与标准码 (Standardized Error Codes)
@@ -21,7 +21,7 @@
 | `YIXIAOER_USAGE_ERR` | Agent 侧错误 | 参数缺失、JSON 格式错误、平台枚举值非法、资源未上传即发布。 |
 | `YIXIAOER_REMOTE_ERR` | 远端 API 错误 | 蚁小二后端返回 4xx/5xx、API Key 失效、配额超限。 |
 | `YIXIAOER_AUTH_ERR` | 鉴权错误 | 缺失 `YIXIAOER_API_KEY` 或 Key 无权访问特定接口。 |
-| `YIXIAOER_ENV_ERR` | 环境错误 | Node 版本不足、关键依赖缺失、网络不通。 |
+| `YIXIAOER_ENV_ERR` | 环境错误 | CLI 二进制缺失、关键环境变量缺失、网络不通。 |
 | `YIXIAOER_INTEGRITY_ERR` | 完整性错误 | 运行的代码与文档版本不一致。 |
 
 ## 3. 资源预处理标准 (Pre-processing Standard)
@@ -54,7 +54,7 @@
 
 Agent 在执行任务时必须遵循以下“分级检索”逻辑：
 
-1. **L1 根检索**：读取 `SKILL.md` 确定 `action` 类型。
+1. **L1 技能入口检索**：读取 `skills/yixiaoer/SKILL.md` 确定 `action` 类型。
 2. **L2 索引检索**：在执行 `publish` 前，必须先读取对应内容类型的 `index.md`（如 `docs/publish/article/index.md`）确定 DTO 架构。
 3. **L3 平台细化**：根据目标平台（如“抖音”），读取 `docs/publish/video/douyin.md` 对 `platformSettings` 进行深度补全。
 4. **禁止跳级**：严禁在未读取 `index.md` 的情况下直接拼装平台参数。
@@ -86,7 +86,7 @@ Agent 在执行任务时必须遵循以下“分级检索”逻辑：
 
 
 ### 第一步：检查版本一致性 (Check Version)
-- 检查当前运行环境中的 `SKILL.md` 版本号。
+- 检查当前运行环境中的 `skills/yixiaoer/SKILL.md` 版本号。
 - 确认 Agent 使用的 API 调用逻辑是否与该版本匹配。
 - **排查项**：是否因版本过低导致某些新增字段（如 `publishChannel`）未生效。
 
@@ -131,7 +131,7 @@ Agent 在执行任务时必须遵循以下“分级检索”逻辑：
 
 | 场景 | 原因分析 | 改进建议 |
 | :--- | :--- | :--- |
-| **版本不支持该功能** | 技能版本号过低，未包含新增动作或字段。 | 检查 `SKILL.md` 版本，提示用户升级或回退逻辑。 |
+| **版本不支持该功能** | 技能版本号过低，未包含新增动作或字段。 | 检查 `skills/yixiaoer/SKILL.md` 版本，提示用户升级或回退逻辑。 |
 | **获取在线设备失败** | 选用了“本机发布”但客户端未开启或未登录。 | 提示用户：**“蚁小二客户端需要保持在线”**，或者建议改为 **“云发布”** (publishChannel: 'cloud')。 |
 | **发布失败：表单错误** | Agent 生成的 JSON 结构与 `docs/` 下 aDTO 架构不匹配。 | **强制核对**：Agent 必须校验传入表单是否符合对应平台的文档要求。 |
 | **任务卡在发布中/待发布** | 虽然 API 接收了请求，但表单内容不合规导致引擎挂起。 | **规则校验**：检查表单是否严格按照文档规则填入，特别是 `raw` 数据透传。 |
