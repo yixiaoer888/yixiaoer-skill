@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"strings"
+
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/output"
 	queryflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/query"
@@ -8,34 +10,37 @@ import (
 )
 
 var (
-	categoriesType  string
-	locationsQuery  string
-	locationsType   string
-	musicQuery      string
-	goodsQuery      string
-	collectionsType string
-	challengesQuery string
-	challengesType  string
-	recordsPlatform string
-	recordsLimit    string
-	recordsStatus   string
+	categoriesType    string
+	locationsQuery    string
+	locationsKeyword  string
+	locationsType     string
+	musicQuery        string
+	musicKeyword      string
+	goodsQuery        string
+	collectionsType   string
+	challengesQuery   string
+	challengesKeyword string
+	challengesType    string
+	recordsPlatform   string
+	recordsLimit      string
+	recordsStatus     string
 )
 
 func init() {
 	categoriesCmd.Flags().StringVar(&categoriesType, "type", "video", "publish type")
 	locationsCmd.Flags().StringVar(&locationsQuery, "query", "", "search keyword")
-	locationsCmd.Flags().StringVar(&locationsQuery, "keyword", "", "search keyword")
+	locationsCmd.Flags().StringVar(&locationsKeyword, "keyword", "", "search keyword (alias for --query)")
 	locationsCmd.Flags().StringVar(&locationsType, "type", "1", "location type")
 	musicCmd.Flags().StringVar(&musicQuery, "query", "", "search keyword")
-	musicCmd.Flags().StringVar(&musicQuery, "keyword", "", "search keyword")
+	musicCmd.Flags().StringVar(&musicKeyword, "keyword", "", "search keyword (alias for --query)")
 	goodsCmd.Flags().StringVar(&goodsQuery, "query", "", "search keyword")
 	goodsCmd.Flags().StringVar(&goodsQuery, "keyword", "", "search keyword")
 	collectionsCmd.Flags().StringVar(&collectionsType, "type", "video", "publish type")
 	challengesCmd.Flags().StringVar(&challengesQuery, "query", "", "search keyword")
-	challengesCmd.Flags().StringVar(&challengesQuery, "keyword", "", "search keyword")
+	challengesCmd.Flags().StringVar(&challengesKeyword, "keyword", "", "search keyword (alias for --query)")
 	challengesCmd.Flags().StringVar(&challengesType, "type", "video", "publish type")
 	recordsCmd.Flags().StringVar(&recordsPlatform, "platform", "", "filter by platform")
-	recordsCmd.Flags().StringVar(&recordsLimit, "limit", "10", "result limit")
+	recordsCmd.Flags().StringVar(&recordsLimit, "limit", "", "result limit (required)")
 	recordsCmd.Flags().StringVar(&recordsStatus, "status", "", "filter by status")
 	recordsCmd.AddCommand(recordsListCmd)
 
@@ -67,7 +72,7 @@ var locationsCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runQuery(cmd, "locations", func(service queryflow.Service) (interface{}, error) {
-			return service.Locations(args[0], locationsQuery, locationsType)
+			return service.Locations(args[0], resolveQueryAlias(locationsQuery, locationsKeyword), locationsType)
 		})
 	},
 }
@@ -78,7 +83,7 @@ var musicCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runQuery(cmd, "music", func(service queryflow.Service) (interface{}, error) {
-			return service.Music(args[0], musicQuery)
+			return service.Music(args[0], resolveQueryAlias(musicQuery, musicKeyword))
 		})
 	},
 }
@@ -111,7 +116,7 @@ var challengesCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runQuery(cmd, "challenges", func(service queryflow.Service) (interface{}, error) {
-			return service.Challenges(args[0], challengesQuery, challengesType)
+			return service.Challenges(args[0], resolveQueryAlias(challengesQuery, challengesKeyword), challengesType)
 		})
 	},
 }
@@ -136,6 +141,10 @@ var recordsListCmd = &cobra.Command{
 }
 
 func runRecordsList(cmd *cobra.Command) error {
+	if strings.TrimSpace(recordsLimit) == "" {
+		return yxerrors.Usage("records limit must not be empty", nil).
+			WithHint("请传入有效的 --limit 值，例如 10。")
+	}
 	return runQuery(cmd, "records.list", func(service queryflow.Service) (interface{}, error) {
 		return service.Records(recordsPlatform, recordsLimit, recordsStatus)
 	})
@@ -157,13 +166,16 @@ var prepareCmd = &cobra.Command{
 }
 
 func runQuery(cmd *cobra.Command, action string, query func(queryflow.Service) (interface{}, error)) error {
-	if action == "records" && recordsLimit == "" {
-		return yxerrors.Usage("records limit must not be empty", nil).
-			WithHint("请传入有效的 --limit 值，例如 10。")
-	}
 	result, err := query(queryflow.NewService())
 	if err != nil {
 		return err
 	}
 	return output.Success(cmd.OutOrStdout(), action, result)
+}
+
+func resolveQueryAlias(primary, alias string) string {
+	if strings.TrimSpace(primary) != "" {
+		return primary
+	}
+	return alias
 }

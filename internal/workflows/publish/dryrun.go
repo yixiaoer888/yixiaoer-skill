@@ -23,7 +23,6 @@ func (Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 		return DryRunResult{}, err
 	}
 	platforms := []string{platform}
-	publishArgs := ExtractPublishArgs(input.Payload)
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -41,6 +40,7 @@ func (Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 		delete(resolvedPayload, "clientId")
 	}
 	NormalizeStandardPublishArgs(ExtractPublishArgs(resolvedPayload))
+	publishArgs := ExtractPublishArgs(resolvedPayload)
 
 	validator := schema.NewValidator(cfg.SchemaDir)
 	for _, platform := range platforms {

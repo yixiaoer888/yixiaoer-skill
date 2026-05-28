@@ -2,6 +2,7 @@ package doctor
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/config"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
@@ -19,20 +20,22 @@ func (Service) Check() (map[string]interface{}, error) {
 		return nil, err
 	}
 	checks := map[string]interface{}{
+		"projectDir":    cfg.ProjectDir,
+		"workDir":       cfg.WorkDir,
 		"apiUrl":        cfg.APIURL,
 		"apiKeyPresent": cfg.APIKey != "",
 		"schemaDir":     cfg.SchemaDir,
 		"schemaDirOK":   PathExists(cfg.SchemaDir),
-		"workflowsOK":   PathExists("workflows"),
+		"workflowsOK":   PathExists(filepath.Join(cfg.ProjectDir, "workflows")),
 	}
 	if cfg.APIKey == "" {
-		return nil, yxerrors.Auth("Missing YIXIAOER_API_KEY environment variable").
-			WithHint("请先设置环境变量 YIXIAOER_API_KEY。").
-			WithNextCommand("yxer doctor")
+		return nil, yxerrors.Auth("Missing apiKey configuration").
+			WithHint("请先执行 yxer config set-api-key <apiKey> 完成 CLI 初始化。").
+			WithNextCommand("yxer config set-api-key <apiKey>")
 	}
 	if !PathExists(cfg.SchemaDir) {
 		return nil, yxerrors.Usage("schema directory not found", cfg.SchemaDir).
-			WithHint("请确认当前目录是项目根目录，且 schemas 目录存在。").
+			WithHint("请确认当前目录位于项目内，或 yxer 可执行文件位于项目目录中；也可显式设置 YIXIAOER_PROJECT_DIR。").
 			WithNextCommand("yxer schema list")
 	}
 	return checks, nil

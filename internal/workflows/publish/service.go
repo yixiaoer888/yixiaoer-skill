@@ -49,8 +49,6 @@ func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 		return nil, err
 	}
 	platforms := []string{platform}
-
-	publishArgs := ExtractPublishArgs(input.Payload)
 	cfg, err := config.Load()
 	if err != nil {
 		return nil, err
@@ -67,6 +65,7 @@ func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 		delete(resolvedPayload, "clientId")
 	}
 	NormalizeStandardPublishArgs(ExtractPublishArgs(resolvedPayload))
+	publishArgs := ExtractPublishArgs(resolvedPayload)
 
 	validator := schema.NewValidator(cfg.SchemaDir)
 	for _, platform := range platforms {
@@ -117,7 +116,7 @@ func (Service) BuildPayload(input BuildInput) (map[string]interface{}, error) {
 		"formType": "task",
 	}
 	accountForm := map[string]interface{}{
-		"platformAccountId": accountID,
+		"platformAccountId":  accountID,
 		"contentPublishForm": form,
 	}
 
@@ -151,22 +150,36 @@ func (Service) BuildPayload(input BuildInput) (map[string]interface{}, error) {
 			return nil, yxerrors.Usage("article publish requires title and content", nil).
 				WithHint("请同时传入 --title 和 --content，文章正文支持 @文件路径。")
 		}
-		form["title"] = input.Title
-		form["content"] = resolveContent(input.Content)
-		form["pubType"] = float64(1)
-		if strings.TrimSpace(input.CoverPath) != "" {
-			cover, err := uploadImage(apiClient, input.CoverPath)
-			if err != nil {
-				return nil, err
-			}
-			form["covers"] = []interface{}{cover}
-			accountForm["cover"] = cover
-			accountForm["coverKey"] = fmt.Sprint(cover["key"])
+		if strings.TrimSpace(input.CoverPath) == "" {
+			return nil, yxerrors.Usage("article publish requires cover", nil).
+				WithHint("请传入 --cover，当前 article flags 模式要求明确提供封面。")
 		}
+		content, err := resolveContent(input.Content)
+		if err != nil {
+			return nil, err
+		}
+		form["title"] = input.Title
+		form["content"] = content
+		if usesVisibleType(platform) {
+			form["visibleType"] = float64(defaultVisibleType(input.VisibleType))
+		} else {
+			form["pubType"] = float64(1)
+		}
+		cover, err := uploadImage(apiClient, input.CoverPath)
+		if err != nil {
+			return nil, err
+		}
+		form["covers"] = []interface{}{cover}
+		accountForm["cover"] = cover
+		accountForm["coverKey"] = fmt.Sprint(cover["key"])
 	case "video":
 		if strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Description) == "" {
 			return nil, yxerrors.Usage("video publish requires title and description", nil).
 				WithHint("请传入 --title 和 --description。")
+		}
+		if strings.TrimSpace(input.CoverPath) == "" {
+			return nil, yxerrors.Usage("video publish requires cover", nil).
+				WithHint("请传入 --cover，当前 video flags 模式要求明确提供封面。")
 		}
 		var video map[string]interface{}
 		if strings.TrimSpace(input.VideoPath) != "" {
@@ -182,15 +195,16 @@ func (Service) BuildPayload(input BuildInput) (map[string]interface{}, error) {
 		}
 		form["title"] = input.Title
 		form["description"] = input.Description
-		accountForm["video"] = video
-		if strings.TrimSpace(input.CoverPath) != "" {
-			cover, err := uploadImage(apiClient, input.CoverPath)
-			if err != nil {
-				return nil, err
-			}
-			accountForm["cover"] = cover
-			accountForm["coverKey"] = fmt.Sprint(cover["key"])
+		if usesVisibleType(platform) {
+			form["visibleType"] = float64(defaultVisibleType(input.VisibleType))
 		}
+		accountForm["video"] = video
+		cover, err := uploadImage(apiClient, input.CoverPath)
+		if err != nil {
+			return nil, err
+		}
+		accountForm["cover"] = cover
+		accountForm["coverKey"] = fmt.Sprint(cover["key"])
 	default:
 		return nil, yxerrors.Usage("flags mode does not support publish type", input.PublishType).
 			WithHint("目前仅支持 video、image-text、article 三种发布类型。")
@@ -200,6 +214,22 @@ func (Service) BuildPayload(input BuildInput) (map[string]interface{}, error) {
 		"accountForms":   []interface{}{accountForm},
 		"publishChannel": "cloud",
 	}, nil
+}
+
+func usesVisibleType(platform string) bool {
+	switch platform {
+	case "抖音":
+		return true
+	default:
+		return false
+	}
+}
+
+func defaultVisibleType(value int) int {
+	if value >= 0 {
+		return value
+	}
+	return 0
 }
 
 func cloneMap(src map[string]interface{}) map[string]interface{} {
@@ -482,14 +512,16 @@ func imageCover(image interface{}) map[string]interface{} {
 	}
 }
 
-func resolveContent(content string) string {
+func resolveContent(content string) (string, error) {
 	content = strings.TrimSpace(content)
 	if !strings.HasPrefix(content, "@") {
-		return content
+		return content, nil
 	}
 	raw, err := os.ReadFile(strings.TrimPrefix(content, "@"))
 	if err != nil {
-		return content
+		return "", yxerrors.Usage("article content file could not be read", []string{
+			err.Error(),
+		}).WithHint("请检查 --content @文件路径 是否存在且可读。")
 	}
-	return string(raw)
+	return string(raw), nil
 }

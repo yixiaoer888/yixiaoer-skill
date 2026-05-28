@@ -9,6 +9,7 @@ import (
 
 func init() {
 	configCmd.AddCommand(configGetCmd)
+	configCmd.AddCommand(configSetAPIKeyCmd)
 	configCmd.AddCommand(configSetLocalClientIDCmd)
 	rootCmd.AddCommand(configCmd)
 }
@@ -55,6 +56,26 @@ var configSetLocalClientIDCmd = &cobra.Command{
 		return output.Success(cmd.OutOrStdout(), "config.set-local-client-id", map[string]interface{}{
 			"configPath":           configPath,
 			"localPublishClientId": args[0],
+		})
+	},
+}
+
+var configSetAPIKeyCmd = &cobra.Command{
+	Use:   "set-api-key <apiKey>",
+	Short: "设置 CLI 默认 apiKey",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if args[0] == "" {
+			return yxerrors.Usage("apiKey must not be empty", nil).
+				WithHint("请传入有效的 apiKey。")
+		}
+		configPath, err := config.SaveAPIKey(args[0])
+		if err != nil {
+			return err
+		}
+		return output.Success(cmd.OutOrStdout(), "config.set-api-key", map[string]interface{}{
+			"configPath":    configPath,
+			"apiKeyPresent": true,
 		})
 	},
 }

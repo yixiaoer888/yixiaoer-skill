@@ -21,6 +21,32 @@
       "minLength": 1,
       "maxLength": 500
     },
+    "horizontalCover": {
+      "type": "object",
+      "required": [
+        "key",
+        "size",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
     "tags": {
       "type": "array",
       "items": {
@@ -51,17 +77,13 @@
       "enum": [
         0,
         1,
-        2
+        3
       ],
       "default": 0
     },
-    "pubType": {
+    "scheduledTime": {
       "type": "number",
-      "enum": [
-        0,
-        1
-      ],
-      "default": 1
+      "minimum": 0
     },
     "location": {
       "type": "object",
@@ -120,7 +142,7 @@
         }
       }
     },
-    "statement": {
+    "declaration": {
       "type": "number",
       "enum": [
         3,
@@ -128,6 +150,170 @@
         5,
         6
       ]
+    },
+    "allow_save": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "shoppingCart": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "sale_title",
+          "raw"
+        ],
+        "properties": {
+          "sale_title": {
+            "type": "string",
+            "maxLength": 10
+          },
+          "raw": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "groupShopping": {
+      "type": "object",
+      "required": [
+        "sale_title",
+        "raw"
+      ],
+      "properties": {
+        "sale_title": {
+          "type": "string",
+          "maxLength": 10
+        },
+        "raw": {
+          "type": "object"
+        }
+      }
+    },
+    "collection": {
+      "type": "object",
+      "required": [
+        "yixiaoerId",
+        "yixiaoerName",
+        "raw"
+      ],
+      "properties": {
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
+      }
+    },
+    "sub_collection": {
+      "type": "object",
+      "required": [
+        "yixiaoerId",
+        "yixiaoerName",
+        "raw"
+      ],
+      "properties": {
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
+      }
+    },
+    "sync_apps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "yixiaoerId",
+          "yixiaoerName",
+          "raw"
+        ],
+        "properties": {
+          "yixiaoerId": {
+            "type": "string"
+          },
+          "yixiaoerName": {
+            "type": "string"
+          },
+          "raw": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "hot_event": {
+      "type": "object",
+      "required": [
+        "yixiaoerId",
+        "yixiaoerName",
+        "raw"
+      ],
+      "properties": {
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
+      }
+    },
+    "mini_app": {
+      "type": "object",
+      "required": [
+        "yixiaoerId",
+        "yixiaoerName",
+        "raw"
+      ],
+      "properties": {
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
+      }
+    },
+    "cooperation_info": {
+      "type": "object"
+    },
+    "game": {
+      "type": "object",
+      "required": [
+        "yixiaoerId",
+        "yixiaoerName",
+        "raw"
+      ],
+      "properties": {
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
+      }
     },
     "accountForms": {
       "type": "array",
@@ -165,6 +351,32 @@
                 "minLength": 1,
                 "maxLength": 500
               },
+              "horizontalCover": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "size",
+                  "width",
+                  "height"
+                ],
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "size": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "width": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              },
               "tags": {
                 "type": "array",
                 "items": {
@@ -178,17 +390,13 @@
                 "enum": [
                   0,
                   1,
-                  2
+                  3
                 ],
                 "default": 0
               },
-              "pubType": {
+              "scheduledTime": {
                 "type": "number",
-                "enum": [
-                  0,
-                  1
-                ],
-                "default": 1
+                "minimum": 0
               },
               "location": {
                 "type": "object",
@@ -247,7 +455,7 @@
                   }
                 }
               },
-              "statement": {
+              "declaration": {
                 "type": "number",
                 "enum": [
                   3,
@@ -255,6 +463,170 @@
                   5,
                   6
                 ]
+              },
+              "allow_save": {
+                "type": "number",
+                "enum": [
+                  0,
+                  1
+                ],
+                "default": 0
+              },
+              "shoppingCart": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "sale_title",
+                    "raw"
+                  ],
+                  "properties": {
+                    "sale_title": {
+                      "type": "string",
+                      "maxLength": 10
+                    },
+                    "raw": {
+                      "type": "object"
+                    }
+                  }
+                }
+              },
+              "groupShopping": {
+                "type": "object",
+                "required": [
+                  "sale_title",
+                  "raw"
+                ],
+                "properties": {
+                  "sale_title": {
+                    "type": "string",
+                    "maxLength": 10
+                  },
+                  "raw": {
+                    "type": "object"
+                  }
+                }
+              },
+              "collection": {
+                "type": "object",
+                "required": [
+                  "yixiaoerId",
+                  "yixiaoerName",
+                  "raw"
+                ],
+                "properties": {
+                  "yixiaoerId": {
+                    "type": "string"
+                  },
+                  "yixiaoerName": {
+                    "type": "string"
+                  },
+                  "raw": {
+                    "type": "object"
+                  }
+                }
+              },
+              "sub_collection": {
+                "type": "object",
+                "required": [
+                  "yixiaoerId",
+                  "yixiaoerName",
+                  "raw"
+                ],
+                "properties": {
+                  "yixiaoerId": {
+                    "type": "string"
+                  },
+                  "yixiaoerName": {
+                    "type": "string"
+                  },
+                  "raw": {
+                    "type": "object"
+                  }
+                }
+              },
+              "sync_apps": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "yixiaoerId",
+                    "yixiaoerName",
+                    "raw"
+                  ],
+                  "properties": {
+                    "yixiaoerId": {
+                      "type": "string"
+                    },
+                    "yixiaoerName": {
+                      "type": "string"
+                    },
+                    "raw": {
+                      "type": "object"
+                    }
+                  }
+                }
+              },
+              "hot_event": {
+                "type": "object",
+                "required": [
+                  "yixiaoerId",
+                  "yixiaoerName",
+                  "raw"
+                ],
+                "properties": {
+                  "yixiaoerId": {
+                    "type": "string"
+                  },
+                  "yixiaoerName": {
+                    "type": "string"
+                  },
+                  "raw": {
+                    "type": "object"
+                  }
+                }
+              },
+              "mini_app": {
+                "type": "object",
+                "required": [
+                  "yixiaoerId",
+                  "yixiaoerName",
+                  "raw"
+                ],
+                "properties": {
+                  "yixiaoerId": {
+                    "type": "string"
+                  },
+                  "yixiaoerName": {
+                    "type": "string"
+                  },
+                  "raw": {
+                    "type": "object"
+                  }
+                }
+              },
+              "cooperation_info": {
+                "type": "object"
+              },
+              "game": {
+                "type": "object",
+                "required": [
+                  "yixiaoerId",
+                  "yixiaoerName",
+                  "raw"
+                ],
+                "properties": {
+                  "yixiaoerId": {
+                    "type": "string"
+                  },
+                  "yixiaoerName": {
+                    "type": "string"
+                  },
+                  "raw": {
+                    "type": "object"
+                  }
+                }
               }
             },
             "additionalProperties": false

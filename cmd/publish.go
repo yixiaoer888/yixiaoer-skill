@@ -4,8 +4,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/client"
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/config"
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/output"
 	publishflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/publish"
 )
@@ -57,7 +55,7 @@ var publishCmd = &cobra.Command{
 
 flags 模式目前最完整支持 image-text 和 article；video 已支持本地视频探测与上传。
 `),
-	Args:  cobra.RangeArgs(2, 4),
+	Args: cobra.RangeArgs(2, 4),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var (
 			payload            map[string]interface{}
@@ -122,46 +120,6 @@ flags 模式目前最完整支持 image-text 和 article；video 已支持本地
 		}
 		return output.Success(cmd.OutOrStdout(), "publish", result)
 	},
-}
-
-func cloneMap(src map[string]interface{}) map[string]interface{} {
-	if src == nil {
-		return map[string]interface{}{}
-	}
-	dst := make(map[string]interface{}, len(src))
-	for key, value := range src {
-		dst[key] = value
-	}
-	return dst
-}
-
-func buildPublishBody(payload, publishArgs map[string]interface{}, publishType string, platforms []string) map[string]interface{} {
-	return publishflow.BuildPublishBody(payload, publishArgs, publishType, platforms)
-}
-
-func resolvePublishMode(cfg config.Config, payload map[string]interface{}, args []string) (string, string, error) {
-	positionalClientID := ""
-	if len(args) == 4 {
-		positionalClientID = args[3]
-	}
-	return publishflow.ResolvePublishMode(cfg, payload, positionalClientID, publishChannelFlag, publishClientID)
-}
-
-func copyOptionalPublishFields(dst, src map[string]interface{}) {
-	_ = dst
-	_ = src
-}
-
-func splitPlatforms(value string) []string {
-	return publishflow.SplitPlatforms(value)
-}
-
-func singlePlatform(value string) (string, error) {
-	return publishflow.SinglePlatform(value)
-}
-
-func assertAccountsOnline(apiClient *client.Client, platforms []string, accountIDs []string) error {
-	return publishflow.AssertAccountsOnline(apiClient, platforms, accountIDs)
 }
 
 func looksLikePayloadArg(value string) bool {

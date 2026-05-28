@@ -7,14 +7,20 @@ import (
 )
 
 var (
-	materialFilePath  string
-	materialThumbPath string
-	materialType      string
-	materialDryRun    bool
+	materialFilePath     string
+	materialThumbPath    string
+	materialType         string
+	materialDryRun       bool
 	materialCreateDryRun bool
 )
 
 func init() {
+	materialCreateCmd.Flags().BoolVar(&materialCreateDryRun, "dry-run", false, "preview material create request without performing the write")
+	materialAddCmd.Flags().StringVar(&materialFilePath, "file", "", "local file path or URL to upload and register")
+	materialAddCmd.Flags().StringVar(&materialThumbPath, "thumb", "", "optional thumbnail path or URL")
+	materialAddCmd.Flags().StringVar(&materialType, "type", "", "optional material type override: image, video, file")
+	materialAddCmd.Flags().BoolVar(&materialDryRun, "dry-run", false, "preview upload and material request without performing the write")
+
 	materialCmd.AddCommand(materialCreateCmd)
 	materialCmd.AddCommand(materialAddCmd)
 	rootCmd.AddCommand(materialCmd)
@@ -23,7 +29,7 @@ func init() {
 var materialCmd = &cobra.Command{
 	Use:   "material",
 	Short: "管理素材库",
-	Long: "支持两种模式：\n1. create <payload.json>：兼容旧模式，直接提交素材登记 payload\n2. add --file ...：推荐模式，自动完成上传并登记到素材库",
+	Long:  "支持两种模式：\n1. create <payload.json>：兼容旧模式，直接提交素材登记 payload\n2. add --file ...：推荐模式，自动完成上传并登记到素材库",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
 	},
@@ -79,12 +85,4 @@ var materialAddCmd = &cobra.Command{
 		}
 		return output.Success(cmd.OutOrStdout(), "material.add", result)
 	},
-}
-
-func init() {
-	materialCreateCmd.Flags().BoolVar(&materialCreateDryRun, "dry-run", false, "preview material create request without performing the write")
-	materialAddCmd.Flags().StringVar(&materialFilePath, "file", "", "local file path or URL to upload and register")
-	materialAddCmd.Flags().StringVar(&materialThumbPath, "thumb", "", "optional thumbnail path or URL")
-	materialAddCmd.Flags().StringVar(&materialType, "type", "", "optional material type override: image, video, file")
-	materialAddCmd.Flags().BoolVar(&materialDryRun, "dry-run", false, "preview upload and material request without performing the write")
 }

@@ -10,6 +10,10 @@ func Load() (Config, error) {
 	return base.Load()
 }
 
+func SaveAPIKey(apiKey string) (string, error) {
+	return base.SaveAPIKey(apiKey)
+}
+
 func SaveLocalClientID(clientID string) (string, error) {
 	return base.SaveLocalClientID(clientID)
 }

@@ -14,13 +14,11 @@
     },
     "title": {
       "type": "string",
-      "minLength": 1,
       "maxLength": 50
     },
     "description": {
       "type": "string",
-      "minLength": 1,
-      "maxLength": 500
+      "maxLength": 1000
     },
     "images": {
       "type": "array",
@@ -174,7 +172,30 @@
         }
       }
     },
-    "statement": {
+    "sub_collection": {
+      "type": "object",
+      "required": [
+        "yixiaoerId",
+        "yixiaoerName",
+        "raw"
+      ],
+      "properties": {
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
+      }
+    },
+    "scheduledTime": {
+      "type": "number",
+      "minimum": 0
+    },
+    "declaration": {
       "type": "number",
       "enum": [
         3,

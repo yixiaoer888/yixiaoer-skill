@@ -41,6 +41,7 @@ bin/yxer.exe
 
 ```bash
 bin/yxer.exe --version
+bin/yxer.exe config set-api-key <apiKey>
 bin/yxer.exe doctor
 ```
 
@@ -56,6 +57,7 @@ yxer doctor
 ### 1. 检查本地环境
 
 ```bash
+yxer config set-api-key <apiKey>
 yxer doctor
 ```
 
@@ -150,6 +152,7 @@ yxer skill sync --global
 ```bash
 yxer doctor
 yxer config get
+yxer config set-api-key <apiKey>
 yxer config set-local-client-id <clientId>
 ```
 

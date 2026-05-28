@@ -23,7 +23,7 @@ func TestPublishCommandSuccessCallsTaskSetAPI(t *testing.T) {
 	var publishBody map[string]interface{}
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
-	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
@@ -61,7 +61,7 @@ func TestPublishCommandWithClientIDUsesLocalChannel(t *testing.T) {
 	var publishBody map[string]interface{}
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
-	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath, "client_1"})
@@ -84,7 +84,7 @@ func TestPublishCommandMapsPlatformKeyToChineseForAPIRequests(t *testing.T) {
 	var publishBody map[string]interface{}
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
-	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "douyin", payloadPath})
@@ -107,7 +107,7 @@ func TestPublishCommandConvertsScheduledTimeMillisecondsToSeconds(t *testing.T) 
 	var publishBody map[string]interface{}
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
-	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
@@ -138,7 +138,7 @@ func TestPublishCommandRejectsMultiPlatformArgument(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音,知乎", payloadPath})
@@ -154,9 +154,9 @@ func TestPublishCommandAcceptsFullPublishRequestPayload(t *testing.T) {
 	withRepoRoot(t)
 	inner := validPublishPayload()
 	payloadPath := writePublishPayload(t, map[string]interface{}{
-		"action":         "publish",
-		"publishType":    "video",
-		"platforms":      []interface{}{"抖音"},
+		"action":      "publish",
+		"publishType": "video",
+		"platforms":   []interface{}{"抖音"},
 		"cover": map[string]interface{}{
 			"key":    "cover-key",
 			"size":   float64(512),
@@ -172,7 +172,7 @@ func TestPublishCommandAcceptsFullPublishRequestPayload(t *testing.T) {
 	var publishBody map[string]interface{}
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
-	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
@@ -233,11 +233,11 @@ func TestPublishCommandAcceptsStandardRequestPayloadShape(t *testing.T) {
 			"coverKey": "shared-cover-key",
 			"accountForms": []interface{}{
 				map[string]interface{}{
-					"mediaId":          "media_1",
-					"platformName":     "抖音",
+					"mediaId":           "media_1",
+					"platformName":      "抖音",
 					"platformAccountId": "acc_001",
-					"publishContentId": "pub_1",
-					"fps":              float64(0),
+					"publishContentId":  "pub_1",
+					"fps":               float64(0),
 					"contentPublishForm": map[string]interface{}{
 						"formType":    "task",
 						"title":       "标题",
@@ -254,7 +254,7 @@ func TestPublishCommandAcceptsStandardRequestPayloadShape(t *testing.T) {
 	var publishBody map[string]interface{}
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
-	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
@@ -331,7 +331,7 @@ func TestPublishCommandAcceptsNodeStyleLocalStandardPayloadWithoutDuplicatedAcco
 	var publishBody map[string]interface{}
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
-	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
@@ -366,7 +366,7 @@ func TestPublishCommandUsesLocalFlagsLikeNodeExample(t *testing.T) {
 	var publishBody map[string]interface{}
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
-	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
@@ -414,7 +414,7 @@ func TestPublishCommandRejectsLocalWithoutClientID(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
@@ -448,7 +448,7 @@ func TestPublishCommandUsesConfiguredLocalClientID(t *testing.T) {
 	var publishBody map[string]interface{}
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
-	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
@@ -480,7 +480,7 @@ func TestPublishCommandSchemaFailureDoesNotCallAPIs(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
@@ -512,7 +512,7 @@ func TestPublishCommandPreflightFailureDoesNotCallAPIs(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
@@ -551,7 +551,7 @@ func TestPublishCommandRejectsInvalidTopLevelCoverInFullPublishRequest(t *testin
 		}
 	}))
 	defer server.Close()
-	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
@@ -571,7 +571,7 @@ func TestPublishCommandOfflineAccountDoesNotPublish(t *testing.T) {
 	var publishBody map[string]interface{}
 	server := publishTestServer(t, 0, &publishCalls, &publishBody)
 	defer server.Close()
-	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
@@ -603,7 +603,7 @@ func TestPublishCommandBuildsImageTextPayloadFromFlags(t *testing.T) {
 	var publishBody map[string]interface{}
 	server := imageTextPublishTestServer(t, &publishCalls, &publishBody)
 	defer server.Close()
-	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"image-text", "小红书"})
@@ -649,7 +649,7 @@ func TestPublishCommandBuildsArticlePayloadFromFlags(t *testing.T) {
 	var publishBody map[string]interface{}
 	server := articlePublishTestServer(t, &publishCalls, &publishBody)
 	defer server.Close()
-	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"article", "知乎"})
@@ -673,6 +673,98 @@ func TestPublishCommandBuildsArticlePayloadFromFlags(t *testing.T) {
 	}
 	if !strings.Contains(cpf["content"].(string), "测试的文章正文内容") {
 		t.Fatalf("expected content read from file, got %+v", cpf["content"])
+	}
+}
+
+func TestPublishCommandBuildsDouyinArticlePayloadFromFlagsWithVisibleType(t *testing.T) {
+	withRepoRoot(t)
+	coverPath := filepath.Join(t.TempDir(), "cover.png")
+	if err := os.WriteFile(coverPath, testPNGBytes(t), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	contentPath := filepath.Join(t.TempDir(), "article.html")
+	if err := os.WriteFile(contentPath, []byte("<p>抖音文章正文</p>"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	publishAccount = "抖音账号"
+	publishTitle = "抖音文章标题"
+	publishContent = "@" + contentPath
+	publishCoverPath = coverPath
+	publishVisibleType = -1
+	t.Cleanup(resetPublishFlagsForTest)
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := douyinArticlePublishTestServer(t, &publishCalls, &publishBody)
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"article", "抖音"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cpf := publishBody["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	if cpf["visibleType"] != float64(0) {
+		t.Fatalf("expected visibleType=0, got %+v", cpf)
+	}
+	if _, ok := cpf["pubType"]; ok {
+		t.Fatalf("did not expect pubType for douyin article, got %+v", cpf)
+	}
+}
+
+func TestPublishCommandRejectsArticleFlagsWithoutCover(t *testing.T) {
+	withRepoRoot(t)
+	contentPath := filepath.Join(t.TempDir(), "article.html")
+	if err := os.WriteFile(contentPath, []byte("<p>文章正文</p>"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	publishAccount = "知乎账号"
+	publishTitle = "这是一个足够长的知乎文章标题"
+	publishContent = "@" + contentPath
+	publishCoverPath = ""
+	t.Cleanup(resetPublishFlagsForTest)
+
+	server := articlePublishTestServer(t, new(int), new(map[string]interface{}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"article", "知乎"})
+	if err == nil {
+		t.Fatal("expected article flags mode to require cover")
+	}
+	if !strings.Contains(err.Error(), "article publish requires cover") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestPublishCommandRejectsArticleFlagsMissingContentFile(t *testing.T) {
+	withRepoRoot(t)
+	coverPath := filepath.Join(t.TempDir(), "cover.png")
+	if err := os.WriteFile(coverPath, testPNGBytes(t), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	publishAccount = "知乎账号"
+	publishTitle = "这是一个足够长的知乎文章标题"
+	publishContent = "@./does-not-exist.html"
+	publishCoverPath = coverPath
+	t.Cleanup(resetPublishFlagsForTest)
+
+	server := articlePublishTestServer(t, new(int), new(map[string]interface{}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"article", "知乎"})
+	if err == nil {
+		t.Fatal("expected article flags mode to fail when content file is missing")
+	}
+	if !strings.Contains(err.Error(), "article content file could not be read") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
@@ -700,7 +792,7 @@ func TestPublishCommandBuildsVideoPayloadFromFlags(t *testing.T) {
 	var publishBody map[string]interface{}
 	server := videoPublishTestServer(t, &publishCalls, &publishBody)
 	defer server.Close()
-	t.Setenv("YIXIAOER_API_KEY", "test-key")
+	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音"})
@@ -718,6 +810,109 @@ func TestPublishCommandBuildsVideoPayloadFromFlags(t *testing.T) {
 	}
 	if video["width"] == nil || video["height"] == nil || video["duration"] == nil {
 		t.Fatalf("expected probed video metadata, got %+v", video)
+	}
+}
+
+func TestPublishCommandBuildsDouyinVideoPayloadFromFlagsWithVisibleType(t *testing.T) {
+	withRepoRoot(t)
+	videoPath := filepath.Join(t.TempDir(), "clip.mp4")
+	createTestVideo(t, videoPath)
+	coverPath := filepath.Join(t.TempDir(), "cover.png")
+	if err := os.WriteFile(coverPath, testPNGBytes(t), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	publishAccount = "视频账号"
+	publishTitle = "视频标题"
+	publishDescription = "视频描述"
+	publishVideoPath = videoPath
+	publishCoverPath = coverPath
+	publishVisibleType = -1
+	t.Cleanup(resetPublishFlagsForTest)
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := videoPublishTestServer(t, &publishCalls, &publishBody)
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cpf := publishBody["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	if cpf["visibleType"] != float64(0) {
+		t.Fatalf("expected visibleType=0, got %+v", cpf)
+	}
+	if _, ok := cpf["pubType"]; ok {
+		t.Fatalf("did not expect pubType for douyin video, got %+v", cpf)
+	}
+}
+
+func TestPublishCommandRejectsVideoFlagsWithoutCover(t *testing.T) {
+	withRepoRoot(t)
+	videoPath := filepath.Join(t.TempDir(), "clip.mp4")
+	createTestVideo(t, videoPath)
+
+	publishAccount = "视频账号"
+	publishTitle = "视频标题"
+	publishDescription = "视频描述"
+	publishVideoPath = videoPath
+	publishCoverPath = ""
+	t.Cleanup(resetPublishFlagsForTest)
+
+	server := videoPublishTestServer(t, new(int), new(map[string]interface{}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音"})
+	if err == nil {
+		t.Fatal("expected video flags mode to require cover")
+	}
+	if !strings.Contains(err.Error(), "video publish requires cover") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestPublishCommandFlagsLocalModeKeepsRequestPublishChannelConsistent(t *testing.T) {
+	withRepoRoot(t)
+	videoPath := filepath.Join(t.TempDir(), "clip.mp4")
+	createTestVideo(t, videoPath)
+	coverPath := filepath.Join(t.TempDir(), "cover.png")
+	if err := os.WriteFile(coverPath, testPNGBytes(t), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	publishAccount = "视频账号"
+	publishTitle = "视频标题"
+	publishDescription = "视频描述"
+	publishVideoPath = videoPath
+	publishCoverPath = coverPath
+	publishChannelFlag = "local"
+	publishClientID = "flag_client_1"
+	t.Cleanup(resetPublishFlagsForTest)
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := videoPublishTestServer(t, &publishCalls, &publishBody)
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if publishCalls != 1 {
+		t.Fatalf("expected one publish call, got %d", publishCalls)
+	}
+	if publishBody["publishChannel"] != "local" || publishBody["clientId"] != "flag_client_1" {
+		t.Fatalf("expected local publish body, got %+v", publishBody)
+	}
+	if publishBody["publishArgs"].(map[string]interface{})["publishChannel"] != "local" {
+		t.Fatalf("expected nested publishArgs.publishChannel to match local mode, got %+v", publishBody["publishArgs"])
 	}
 }
 
@@ -786,6 +981,47 @@ func articlePublishTestServer(t *testing.T, publishCalls *int, publishBody *map[
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"data": []map[string]interface{}{
 					{"platformAccountId": "acc_zhihu_1", "name": "知乎账号", "status": 1},
+				},
+			})
+		case "/storages/cloud-publish/upload-url":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"serviceUrl": server.URL + "/oss/cover.png",
+					"key":        "uploaded/cover.png",
+				},
+			})
+		case "/oss/cover.png":
+			w.WriteHeader(http.StatusOK)
+		case "/taskSets/v2":
+			*publishCalls++
+			if err := json.NewDecoder(r.Body).Decode(publishBody); err != nil {
+				t.Fatal(err)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{"taskSetId": "task_set_article"},
+			})
+		default:
+			if strings.HasSuffix(r.URL.Path, ".png") {
+				w.Header().Set("Content-Type", "image/png")
+				_, _ = w.Write(imageBytes)
+				return
+			}
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	return server
+}
+
+func douyinArticlePublishTestServer(t *testing.T, publishCalls *int, publishBody *map[string]interface{}) *httptest.Server {
+	t.Helper()
+	imageBytes := testPNGBytes(t)
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{
+					{"platformAccountId": "acc_douyin_1", "name": "抖音账号", "status": 1},
 				},
 			})
 		case "/storages/cloud-publish/upload-url":
@@ -959,6 +1195,18 @@ func writePublishPayload(t *testing.T, payload map[string]interface{}) string {
 		t.Fatal(err)
 	}
 	return path
+}
+
+func configureAPIKey(t *testing.T, apiKey string) {
+	t.Helper()
+	configPath := os.Getenv("YIXIAOER_CONFIG")
+	if configPath == "" {
+		configPath = filepath.Join(t.TempDir(), "yxer-config.json")
+		t.Setenv("YIXIAOER_CONFIG", configPath)
+	}
+	if _, err := config.SaveAPIKey(apiKey); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func testCobraCommand() *cobra.Command {

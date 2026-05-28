@@ -14,6 +14,7 @@ const DefaultAPIURL = "https://www.yixiaoer.cn/api"
 type Config struct {
 	APIKey        string
 	APIURL        string
+	ProjectDir    string
 	SchemaDir     string
 	WorkDir       string
 	ConfigPath    string
@@ -21,11 +22,20 @@ type Config struct {
 }
 
 type fileConfig struct {
+	APIKey        string `json:"apiKey"`
 	LocalClientID string `json:"localPublishClientId"`
 }
 
 func Load() (Config, error) {
-	wd, err := os.Getwd()
+	cwd, err := os.Getwd()
+	if err != nil {
+		return Config{}, err
+	}
+	exeDir := ""
+	if exePath, err := os.Executable(); err == nil {
+		exeDir = filepath.Dir(exePath)
+	}
+	projectDir, err := resolveProjectDir(cwd, exeDir)
 	if err != nil {
 		return Config{}, err
 	}
@@ -42,10 +52,11 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	return Config{
-		APIKey:        os.Getenv("YIXIAOER_API_KEY"),
+		APIKey:        strings.TrimSpace(fileCfg.APIKey),
 		APIURL:        apiURL,
-		SchemaDir:     filepath.Join(wd, "schemas"),
-		WorkDir:       wd,
+		ProjectDir:    projectDir,
+		SchemaDir:     filepath.Join(projectDir, "schemas"),
+		WorkDir:       cwd,
 		ConfigPath:    configPath,
 		LocalClientID: strings.TrimSpace(fileCfg.LocalClientID),
 	}, nil
@@ -53,11 +64,27 @@ func Load() (Config, error) {
 
 func (c Config) RequireAPIKey() error {
 	if c.APIKey == "" {
-		return yxerrors.Auth("Missing YIXIAOER_API_KEY environment variable").
-			WithHint("请先设置环境变量 YIXIAOER_API_KEY，或按文档完成本地配置。").
-			WithNextCommand("yxer doctor")
+		return yxerrors.Auth("Missing apiKey configuration").
+			WithHint("请先执行 yxer config set-api-key <apiKey> 完成 CLI 初始化。").
+			WithNextCommand("yxer config set-api-key <apiKey>")
 	}
 	return nil
+}
+
+func SaveAPIKey(apiKey string) (string, error) {
+	configPath, err := resolveConfigPath()
+	if err != nil {
+		return "", err
+	}
+	cfg, err := loadFileConfig(configPath)
+	if err != nil {
+		return "", err
+	}
+	cfg.APIKey = strings.TrimSpace(apiKey)
+	if err := writeFileConfig(configPath, cfg); err != nil {
+		return "", err
+	}
+	return configPath, nil
 }
 
 func SaveLocalClientID(clientID string) (string, error) {
@@ -70,18 +97,25 @@ func SaveLocalClientID(clientID string) (string, error) {
 		return "", err
 	}
 	cfg.LocalClientID = strings.TrimSpace(clientID)
-	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
-		return "", err
-	}
-	raw, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		return "", err
-	}
-	raw = append(raw, '\n')
-	if err := os.WriteFile(configPath, raw, 0o644); err != nil {
+	if err := writeFileConfig(configPath, cfg); err != nil {
 		return "", err
 	}
 	return configPath, nil
+}
+
+func writeFileConfig(configPath string, cfg fileConfig) error {
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
+		return err
+	}
+	raw, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return err
+	}
+	raw = append(raw, '\n')
+	if err := os.WriteFile(configPath, raw, 0o644); err != nil {
+		return err
+	}
+	return nil
 }
 
 func resolveConfigPath() (string, error) {
@@ -108,4 +142,57 @@ func loadFileConfig(path string) (fileConfig, error) {
 		return cfg, err
 	}
 	return cfg, nil
+}
+
+func resolveProjectDir(cwd, exeDir string) (string, error) {
+	if value := strings.TrimSpace(os.Getenv("YIXIAOER_PROJECT_DIR")); value != "" {
+		abs, err := filepath.Abs(value)
+		if err != nil {
+			return "", err
+		}
+		if !isProjectDir(abs) {
+			return "", yxerrors.Usage("project directory not found", abs).
+				WithHint("请确认 YIXIAOER_PROJECT_DIR 指向项目根目录，且 schemas 和 workflows 目录存在。")
+		}
+		return abs, nil
+	}
+	if dir, ok := findProjectDirFrom(cwd); ok {
+		return dir, nil
+	}
+	if exeDir != "" {
+		if dir, ok := findProjectDirFrom(exeDir); ok {
+			return dir, nil
+		}
+	}
+	abs, err := filepath.Abs(cwd)
+	if err != nil {
+		return "", err
+	}
+	return abs, nil
+}
+
+func findProjectDirFrom(start string) (string, bool) {
+	current, err := filepath.Abs(start)
+	if err != nil {
+		return "", false
+	}
+	for {
+		if isProjectDir(current) {
+			return current, true
+		}
+		parent := filepath.Dir(current)
+		if parent == current {
+			return "", false
+		}
+		current = parent
+	}
+}
+
+func isProjectDir(path string) bool {
+	return isDir(filepath.Join(path, "schemas")) && isDir(filepath.Join(path, "workflows"))
+}
+
+func isDir(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.IsDir()
 }
