@@ -43,7 +43,49 @@ func NewService() Service {
 	return Service{}
 }
 
+func formatImageTextDescription(description string, tags []string) string {
+	description = strings.TrimSpace(description)
+	if len(tags) == 0 {
+		return description
+	}
+	if strings.Contains(description, "<topic") {
+		return description
+	}
+	topicParts := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		tag = strings.TrimSpace(tag)
+		if tag == "" {
+			continue
+		}
+		text := strings.TrimPrefix(tag, "#")
+		if text == "" {
+			continue
+		}
+		topicParts = append(topicParts, fmt.Sprintf(`<topic text="%s">#%s</topic>`, text, text))
+	}
+	if len(topicParts) == 0 {
+		return description
+	}
+	return fmt.Sprintf("<p>%s</p><p>%s</p>", description, strings.Join(topicParts, ""))
+}
+
+func stringSlice(values []interface{}) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		text := strings.TrimSpace(fmt.Sprint(value))
+		if text == "" || text == "<nil>" {
+			continue
+		}
+		result = append(result, text)
+	}
+	return result
+}
+
 func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
+	input.PublishType = NormalizePublishType(input.PublishType)
 	platform, err := SinglePlatform(input.PlatformInput)
 	if err != nil {
 		return nil, err
@@ -98,6 +140,7 @@ func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 }
 
 func (Service) BuildPayload(input BuildInput) (map[string]interface{}, error) {
+	input.PublishType = NormalizePublishType(input.PublishType)
 	cfg, err := config.Load()
 	if err != nil {
 		return nil, err
@@ -119,14 +162,19 @@ func (Service) BuildPayload(input BuildInput) (map[string]interface{}, error) {
 		"platformAccountId":  accountID,
 		"contentPublishForm": form,
 	}
+	payload := map[string]interface{}{
+		"publishChannel": "cloud",
+	}
 
 	switch input.PublishType {
-	case "image-text":
+	case "imageText":
 		if strings.TrimSpace(input.Description) == "" {
-			return nil, yxerrors.Usage("image-text publish requires description", nil).
+			return nil, yxerrors.Usage("imageText publish requires description", nil).
 				WithHint("请传入 --description，图文发布正文不能为空。")
 		}
-		form["description"] = input.Description
+		tagValues, _ := form["tags"].([]interface{})
+		finalDescription := formatImageTextDescription(input.Description, stringSlice(tagValues))
+		form["description"] = finalDescription
 		if strings.TrimSpace(input.Title) != "" {
 			form["title"] = input.Title
 		}
@@ -138,13 +186,15 @@ func (Service) BuildPayload(input BuildInput) (map[string]interface{}, error) {
 			return nil, err
 		}
 		if len(images) == 0 {
-			return nil, yxerrors.Usage("image-text publish requires at least one image", nil).
+			return nil, yxerrors.Usage("imageText publish requires at least one image", nil).
 				WithHint("请至少传入一个 --image 本地文件路径或 URL。")
 		}
 		form["images"] = images
 		firstImage, _ := images[0].(map[string]interface{})
 		accountForm["cover"] = imageCover(firstImage)
 		accountForm["coverKey"] = fmt.Sprint(firstImage["key"])
+		payload["coverKey"] = accountForm["coverKey"]
+		payload["desc"] = input.Description
 	case "article":
 		if strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Content) == "" {
 			return nil, yxerrors.Usage("article publish requires title and content", nil).
@@ -172,6 +222,8 @@ func (Service) BuildPayload(input BuildInput) (map[string]interface{}, error) {
 		form["covers"] = []interface{}{cover}
 		accountForm["cover"] = cover
 		accountForm["coverKey"] = fmt.Sprint(cover["key"])
+		payload["coverKey"] = accountForm["coverKey"]
+		payload["desc"] = input.Title
 	case "video":
 		if strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Description) == "" {
 			return nil, yxerrors.Usage("video publish requires title and description", nil).
@@ -205,15 +257,15 @@ func (Service) BuildPayload(input BuildInput) (map[string]interface{}, error) {
 		}
 		accountForm["cover"] = cover
 		accountForm["coverKey"] = fmt.Sprint(cover["key"])
+		payload["coverKey"] = accountForm["coverKey"]
+		payload["desc"] = input.Description
 	default:
 		return nil, yxerrors.Usage("flags mode does not support publish type", input.PublishType).
-			WithHint("目前仅支持 video、image-text、article 三种发布类型。")
+			WithHint("目前仅支持 video、imageText、article 三种发布类型。")
 	}
 
-	return map[string]interface{}{
-		"accountForms":   []interface{}{accountForm},
-		"publishChannel": "cloud",
-	}, nil
+	payload["accountForms"] = []interface{}{accountForm}
+	return payload, nil
 }
 
 func usesVisibleType(platform string) bool {

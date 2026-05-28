@@ -1,5 +1,5 @@
 {
-  "title": "微信视频号图文发布表单 (Weixin Shipinhao Image-Text)",
+  "title": "微信视频号图文发布表单 (Shipinghao Image-Text)",
   "type": "object",
   "required": [
     "formType",

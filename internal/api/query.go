@@ -21,7 +21,7 @@ type PrepareData struct {
 
 func (c *Client) Categories(accountID, publishType string) (interface{}, error) {
 	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/categories", accountID), map[string]string{
-		"publishType": publishType,
+		"publishType": schemaTypeName(publishType),
 	}))
 }
 
@@ -46,13 +46,13 @@ func (c *Client) Goods(accountID, keyword string) (interface{}, error) {
 
 func (c *Client) Collections(accountID, publishType string) (interface{}, error) {
 	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/collections", accountID), map[string]string{
-		"publishType": publishType,
+		"publishType": schemaTypeName(publishType),
 	}))
 }
 
 func (c *Client) Challenges(accountID, keyword, publishType string) (interface{}, error) {
 	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/challenges", accountID), map[string]string{
-		"publishType": publishType,
+		"publishType": schemaTypeName(publishType),
 		"keyWord":     keyword,
 	}))
 }

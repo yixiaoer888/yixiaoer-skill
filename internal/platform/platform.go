@@ -5,11 +5,9 @@ import "strings"
 var chineseNames = map[string]string{
 	"douyin":           "抖音",
 	"kuaishou":         "快手",
-	"kuaishou-open":    "快手",
 	"xhs":              "小红书",
 	"xiaohongshu":      "小红书",
 	"xiaohongshushop":  "小红书商家号",
-	"weixin.shipinhao": "视频号",
 	"shipinghao":       "视频号",
 	"weixin.account":   "微信公众号",
 	"bilibili":         "哔哩哔哩",

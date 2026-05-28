@@ -122,11 +122,11 @@ func schemaPlatformKeys(platform, publishType string) []string {
 	keys := []string{normalized}
 	aliases := map[string][]string{
 		"抖音":     {"douyin"},
-		"快手":     {"kuaishou", "kuaishou-open"},
+		"快手":     {"kuaishou"},
 		"小红书":    {"xhs", "xiaohongshu"},
 		"小红书商家号": {"xiaohongshushop"},
-		"视频号":    {"weixin.shipinhao", "shipinghao"},
-		"微信视频号":  {"weixin.shipinhao", "shipinghao"},
+		"视频号":    {"shipinghao"},
+		"微信视频号":  {"shipinghao"},
 		"微信公众号":  {"weixin.account"},
 		"哔哩哔哩":   {"bilibili"},
 		"百家号":    {"baijiahao"},

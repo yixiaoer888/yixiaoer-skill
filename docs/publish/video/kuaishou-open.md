@@ -6,13 +6,13 @@
 
 
 ## 触发场景 (Trigger)
-- **意图辨析**：用户指定在“Kuaishou-open”平台分发视频内容时触发。
+- **意图辨析**：用户指定在“快手”平台分发视频内容，且账号为开放平台账号时触发。
 - **典型提示词**：
-  - “把这个视频发布到Kuaishou-open”
-  - “同步视频到Kuaishou-open”
+  - “把这个视频发布到快手”
+  - “同步视频到快手开放平台账号”
 
 ## 执行逻辑 (Logic Flow)
-1. **意图确认**：确认目标平台为Kuaishou-open。
+1. **意图确认**：确认目标平台为快手，并使用对应开放平台账号。
 2. **参数装配**：识别并填充标题、描述等平台特定字段至 `contentPublishForm`。
 3. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
 
@@ -32,7 +32,7 @@
 ```json
 {
   "publishType": "video",
-  "platforms": ["KuaishouOpen"],
+  "platforms": ["快手"],
   "publishArgs": {
     "accountForms": [
       {

@@ -169,3 +169,57 @@ func TestQueryDataAcceptsTopLevelArrayResponse(t *testing.T) {
 		t.Fatalf("unexpected data: %#v", data)
 	}
 }
+
+func TestImageTextQueriesNormalizePublishType(t *testing.T) {
+	tests := []struct {
+		name string
+		call func(*Client) (interface{}, error)
+		path string
+	}{
+		{
+			name: "categories",
+			call: func(c *Client) (interface{}, error) {
+				return c.Categories("acc_1", "image-text")
+			},
+			path: "/platform-accounts/acc_1/categories",
+		},
+		{
+			name: "collections",
+			call: func(c *Client) (interface{}, error) {
+				return c.Collections("acc_1", "image-text")
+			},
+			path: "/platform-accounts/acc_1/collections",
+		},
+		{
+			name: "challenges",
+			call: func(c *Client) (interface{}, error) {
+				return c.Challenges("acc_1", "旅行", "image-text")
+			},
+			path: "/platform-accounts/acc_1/challenges",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != tt.path {
+					t.Fatalf("unexpected path: %s", r.URL.Path)
+				}
+				if got := r.URL.Query().Get("publishType"); got != "imageText" {
+					t.Fatalf("expected normalized publishType imageText, got %s", got)
+				}
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"data": []map[string]interface{}{
+						{"id": "item_1"},
+					},
+				})
+			}))
+			defer server.Close()
+
+			client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+			if _, err := tt.call(client); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}

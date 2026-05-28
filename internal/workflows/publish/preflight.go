@@ -23,3 +23,7 @@ func NormalizeStandardPublishArgs(payload map[string]interface{}) {
 func NormalizeScheduledTimes(value interface{}, errors *[]string) {
 	base.NormalizeScheduledTimes(value, errors)
 }
+
+func NormalizePublishType(publishType string) string {
+	return base.NormalizePublishType(publishType)
+}

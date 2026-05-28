@@ -16,11 +16,12 @@ var externalURLPattern = regexp.MustCompile(`(?i)^https?://`)
 
 func Preflight(publishType string, platforms []string, payload map[string]interface{}) PreflightResult {
 	var result PreflightResult
+	publishType = NormalizePublishType(publishType)
 	payload = ValidateAndExtractPublishArgs(publishType, platforms, payload, &result.Errors)
 	NormalizeStandardPublishArgs(payload)
 	NormalizeScheduledTimes(payload, &result.Errors)
-	if publishType != "video" && publishType != "image-text" && publishType != "article" {
-		result.Errors = append(result.Errors, fmt.Sprintf("publish type %q is not supported; expected video, image-text, or article", publishType))
+	if publishType != "video" && publishType != "imageText" && publishType != "article" {
+		result.Errors = append(result.Errors, fmt.Sprintf("publish type %q is not supported; expected video, imageText, or article", publishType))
 	}
 	if len(platforms) == 0 {
 		result.Errors = append(result.Errors, "at least one target platform is required")
@@ -65,13 +66,13 @@ func Preflight(publishType string, platforms []string, payload map[string]interf
 			}
 			requireUploadedResource(cover, formPath+".cover", &result.Errors)
 			requireCoverKey(form, cpf, cover, formPath, &result.Errors)
-		case "image-text":
+		case "imageText":
 			images, _ := form["images"].([]interface{})
 			if len(images) == 0 && cpf != nil {
 				images, _ = cpf["images"].([]interface{})
 			}
 			if len(images) == 0 {
-				result.Errors = append(result.Errors, formPath+".images: image-text publish requires at least one uploaded image")
+				result.Errors = append(result.Errors, formPath+".images: imageText publish requires at least one uploaded image")
 			}
 			for imageIndex, image := range images {
 				imageObj, _ := image.(map[string]interface{})
@@ -297,7 +298,17 @@ func samePublishType(left, right string) bool {
 	return TypeKey(left) == TypeKey(right)
 }
 
+func NormalizePublishType(publishType string) string {
+	switch strings.TrimSpace(publishType) {
+	case "image-text":
+		return "imageText"
+	default:
+		return strings.TrimSpace(publishType)
+	}
+}
+
 func TypeKey(publishType string) string {
+	publishType = NormalizePublishType(publishType)
 	parts := strings.Split(publishType, "-")
 	for i := 1; i < len(parts); i++ {
 		if parts[i] != "" {

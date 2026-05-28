@@ -100,6 +100,42 @@ func TestValidateImageTextUsesMappedSchemaFile(t *testing.T) {
 	}
 }
 
+func TestSchemaResolvesVideoAccountAliasesToCanonicalKeys(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+
+	tests := []struct {
+		platform string
+		path     string
+	}{
+		{platform: "快手", path: "schemas/platforms/kuaishou.video.schema.json"},
+		{platform: "视频号", path: "schemas/platforms/shipinghao.video.schema.json"},
+		{platform: "微信视频号", path: "schemas/platforms/shipinghao.video.schema.json"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.platform, func(t *testing.T) {
+			schemaDoc, err := validator.Schema(tt.platform, "video")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.HasSuffix(filepath.ToSlash(schemaDoc.File), tt.path) {
+				t.Fatalf("expected schema path %s, got %s", tt.path, schemaDoc.File)
+			}
+		})
+	}
+}
+
+func TestSchemaResolvesShipinghaoImageTextWithoutLegacyAlias(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	schemaDoc, err := validator.Schema("视频号", "image-text")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasSuffix(filepath.ToSlash(schemaDoc.File), "schemas/platforms/shipinghao.imageText.schema.json") {
+		t.Fatalf("expected shipinghao imageText schema path, got %s", schemaDoc.File)
+	}
+}
+
 func TestValidateFullPayloadPrefixesAccountFormErrors(t *testing.T) {
 	validator := NewValidator(filepath.Join("..", "..", "schemas"))
 	payload := map[string]interface{}{

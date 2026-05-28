@@ -606,12 +606,21 @@ func TestPublishCommandBuildsImageTextPayloadFromFlags(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	t.Setenv("YIXIAOER_API_URL", server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"image-text", "小红书"})
+	err := publishCmd.RunE(testCobraCommand(), []string{"imageText", "小红书"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if publishCalls != 1 {
 		t.Fatalf("expected one publish call, got %d", publishCalls)
+	}
+	if publishBody["publishType"] != "imageText" {
+		t.Fatalf("expected publishType imageText, got %+v", publishBody["publishType"])
+	}
+	if publishBody["coverKey"] != "uploaded/cover.png" {
+		t.Fatalf("expected top-level coverKey in flags payload, got %+v", publishBody)
+	}
+	if publishBody["desc"] != "图文描述" {
+		t.Fatalf("expected top-level desc in flags payload, got %+v", publishBody)
 	}
 	args := publishBody["publishArgs"].(map[string]interface{})
 	form := args["accountForms"].([]interface{})[0].(map[string]interface{})
@@ -621,6 +630,142 @@ func TestPublishCommandBuildsImageTextPayloadFromFlags(t *testing.T) {
 	cpf := form["contentPublishForm"].(map[string]interface{})
 	if cpf["description"] != "图文描述" || cpf["title"] != "图文标题" {
 		t.Fatalf("unexpected contentPublishForm: %+v", cpf)
+	}
+}
+
+func TestPublishCommandPreservesDistinctImageTextDescriptionAndContentFromPayload(t *testing.T) {
+	withRepoRoot(t)
+	topicHTML := `<p>今日穿搭分享</p><p><topic text="穿搭">#穿搭</topic><topic text="夏日">#夏日</topic></p>`
+	separateContent := "<p>独立 content 字段</p>"
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "image-text",
+		"platforms":      []interface{}{"小红书"},
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"content": separateContent,
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_xhs_1",
+					"images": []interface{}{
+						map[string]interface{}{
+							"key":    "uploaded/cover.png",
+							"size":   float64(512),
+							"width":  float64(1080),
+							"height": float64(1080),
+							"format": "png",
+						},
+					},
+					"cover": map[string]interface{}{
+						"key":    "uploaded/cover.png",
+						"size":   float64(512),
+						"width":  float64(1080),
+						"height": float64(1080),
+						"format": "png",
+					},
+					"coverKey": "uploaded/cover.png",
+					"contentPublishForm": map[string]interface{}{
+						"formType":    "task",
+						"title":       "夏日穿搭",
+						"description": topicHTML,
+						"visibleType": float64(0),
+						"images": []interface{}{
+							map[string]interface{}{
+								"key":    "uploaded/cover.png",
+								"size":   float64(512),
+								"width":  float64(1080),
+								"height": float64(1080),
+								"format": "png",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := imageTextPublishTestServer(t, &publishCalls, &publishBody)
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"image-text", "小红书", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	args := publishBody["publishArgs"].(map[string]interface{})
+	if args["content"] != separateContent {
+		t.Fatalf("expected publishArgs.content to stay independent, got %+v", args["content"])
+	}
+	cpf := args["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	if cpf["description"] != topicHTML {
+		t.Fatalf("expected contentPublishForm.description to keep topic HTML, got %+v", cpf)
+	}
+}
+
+func TestPublishCommandNormalizesHyphenatedImageTextPublishType(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "image-text",
+		"platforms":      []interface{}{"小红书"},
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_xhs_1",
+					"images": []interface{}{
+						map[string]interface{}{
+							"key":    "uploaded/cover.png",
+							"size":   float64(512),
+							"width":  float64(1080),
+							"height": float64(1080),
+							"format": "png",
+						},
+					},
+					"cover": map[string]interface{}{
+						"key":    "uploaded/cover.png",
+						"size":   float64(512),
+						"width":  float64(1080),
+						"height": float64(1080),
+						"format": "png",
+					},
+					"coverKey": "uploaded/cover.png",
+					"contentPublishForm": map[string]interface{}{
+						"formType":    "task",
+						"title":       "夏日穿搭",
+						"description": "<p>今日穿搭分享</p>",
+						"visibleType": float64(0),
+						"images": []interface{}{
+							map[string]interface{}{
+								"key":    "uploaded/cover.png",
+								"size":   float64(512),
+								"width":  float64(1080),
+								"height": float64(1080),
+								"format": "png",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := imageTextPublishTestServer(t, &publishCalls, &publishBody)
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"image-text", "小红书", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if publishBody["publishType"] != "imageText" {
+		t.Fatalf("expected normalized publishType imageText, got %+v", publishBody["publishType"])
 	}
 }
 
@@ -658,6 +803,12 @@ func TestPublishCommandBuildsArticlePayloadFromFlags(t *testing.T) {
 	}
 	if publishCalls != 1 {
 		t.Fatalf("expected one publish call, got %d", publishCalls)
+	}
+	if publishBody["coverKey"] != "uploaded/cover.png" {
+		t.Fatalf("expected top-level coverKey in article flags payload, got %+v", publishBody)
+	}
+	if publishBody["desc"] != "这是一个足够长的知乎文章标题" {
+		t.Fatalf("expected top-level desc in article flags payload, got %+v", publishBody)
 	}
 	args := publishBody["publishArgs"].(map[string]interface{})
 	form := args["accountForms"].([]interface{})[0].(map[string]interface{})
@@ -801,6 +952,12 @@ func TestPublishCommandBuildsVideoPayloadFromFlags(t *testing.T) {
 	}
 	if publishCalls != 1 {
 		t.Fatalf("expected one publish call, got %d", publishCalls)
+	}
+	if publishBody["coverKey"] != "uploaded/cover.png" {
+		t.Fatalf("expected top-level coverKey in video flags payload, got %+v", publishBody)
+	}
+	if publishBody["desc"] != "视频描述" {
+		t.Fatalf("expected top-level desc in video flags payload, got %+v", publishBody)
 	}
 	args := publishBody["publishArgs"].(map[string]interface{})
 	form := args["accountForms"].([]interface{})[0].(map[string]interface{})

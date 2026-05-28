@@ -194,9 +194,9 @@ func TestPreflightAcceptsImageTextImagesInContentPublishForm(t *testing.T) {
 			},
 		},
 	}
-	result := Preflight("image-text", []string{"douyin"}, payload)
+	result := Preflight("imageText", []string{"douyin"}, payload)
 	if len(result.Errors) > 0 {
-		t.Fatalf("expected image-text preflight to pass, got %v", result.Errors)
+		t.Fatalf("expected imageText preflight to pass, got %v", result.Errors)
 	}
 }
 
@@ -212,8 +212,31 @@ func TestPreflightRejectsImageTextMissingImageKey(t *testing.T) {
 			},
 		},
 	}
-	result := Preflight("image-text", []string{"douyin"}, payload)
+	result := Preflight("imageText", []string{"douyin"}, payload)
 	assertHasError(t, result.Errors, `accountForms[0].images[0]: missing uploaded resource field "key"`)
+}
+
+func TestPreflightNormalizesHyphenatedImageTextType(t *testing.T) {
+	payload := map[string]interface{}{
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_001",
+				"cover":             uploadedResourceWithKey("cover-key"),
+				"coverKey":          "cover-key",
+				"contentPublishForm": map[string]interface{}{
+					"formType":    "task",
+					"title":       "图文",
+					"description": "正文",
+					"images":      []interface{}{uploadedResource()},
+				},
+			},
+		},
+	}
+
+	result := Preflight("image-text", []string{"douyin"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected hyphenated image-text to normalize, got %v", result.Errors)
+	}
 }
 
 func TestPreflightRejectsArticleMissingContent(t *testing.T) {
