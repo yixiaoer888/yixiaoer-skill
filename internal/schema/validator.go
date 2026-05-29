@@ -315,7 +315,9 @@ func isCLICommonOptionalField(key string) bool {
 		"platformName",
 		"publishContentId",
 		"fps",
-		"isAppContent":
+		"isAppContent",
+		"publishChannel",
+		"clientId":
 		return true
 	default:
 		return false

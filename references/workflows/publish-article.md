@@ -34,6 +34,7 @@ yxer schema get <platform> article
 - 文章正文中的图片不能直接引用外部 URL，必须先上传
 - 文章分类通常必须选到叶子节点
 - 发布前先看 `prepare` 和 `schema get` 返回的表单字段，再填写 payload
+- `payload.json` 必须使用统一标准结构：顶层 `publishArgs`，业务字段放在 `publishArgs.accountForms[].contentPublishForm`
 - 用户明确要求本机发布时，必须显式传本机发布参数
 
 ## 发布示例

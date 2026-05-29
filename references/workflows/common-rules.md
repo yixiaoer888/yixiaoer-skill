@@ -30,11 +30,22 @@ Agent 在任何 `publish` 之前，都要先判断这次任务是云发布还是
 
 - 必须显式使用 `publishChannel=local`
 - 必须提供 `clientId`
+- `validate`、`publish --dry-run`、正式 `publish` 必须使用同一套发布通道参数，避免“校验通过但执行模式不一致”
 - `clientId` 获取优先级：
   1. payload 中已有 `clientId`
   2. 命令 flags：`--client-id <clientId>`
   3. 第四个位置参数：`yxer publish <type> <platform> <payload.json> <clientId>`
   4. 本地配置：`yxer config set-local-client-id <clientId>` 后由 CLI 自动读取
+
+推荐命令形态：
+
+```bash
+yxer validate <platform> <type> .\payload.json --publish-channel local --client-id <clientId>
+yxer publish <type> <platform> .\payload.json --publish-channel local --client-id <clientId> --dry-run
+yxer publish <type> <platform> .\payload.json --publish-channel local --client-id <clientId>
+```
+
+如果已经通过 `yxer config set-local-client-id <clientId>` 预设默认值，则可省略 `--client-id`，但仍建议显式保留 `--publish-channel local`。
 
 ### 发布通道失败后的回退
 
@@ -48,6 +59,37 @@ Agent 在任何 `publish` 之前，都要先判断这次任务是云发布还是
 ---
 
 ## 默认值自动补全规则
+
+### 标准 payload 结构
+
+所有平台都必须使用同一套标准发布结构：
+
+```json
+{
+  "action": "publish",
+  "publishType": "<video|imageText|article>",
+  "platforms": ["<平台中文名>"],
+  "publishChannel": "cloud",
+  "publishArgs": {
+    "accountForms": [
+      {
+        "platformAccountId": "<platformAccountId>",
+        "contentPublishForm": {
+          "formType": "task"
+        }
+      }
+    ]
+  }
+}
+```
+
+强约束：
+
+- 顶层必须包含 `publishArgs`
+- `accountForms` 只能出现在 `publishArgs.accountForms`
+- 平台字段只能填写在 `publishArgs.accountForms[].contentPublishForm`
+- 不再兼容顶层 `accountForms`
+- 不再兼容直接把平台表单字段放在 payload 顶层
 
 以下字段 Agent 应自动填入，无需询问用户：
 

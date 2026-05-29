@@ -32,6 +32,7 @@ yxer schema get <platform> imageText
 - 每张图片都要单独上传，封面默认取第一张图
 - 复杂对象必须通过查询命令获取完整对象，不要手写 `raw`
 - 发布前先看 `prepare` 和 `schema get` 返回的表单字段，再填写 payload
+- `payload.json` 必须使用统一标准结构：顶层 `publishArgs`，业务字段放在 `publishArgs.accountForms[].contentPublishForm`
 - 多平台发布时，必须逐个平台分别执行完整流程
 - 用户明确要求本机发布时，必须显式切换到 `local`
 

@@ -34,6 +34,7 @@ yxer schema get <platform> video
 - 用户未提供封面时，必须补问，不要自动截帧
 - 可选复杂对象必须通过查询命令取得完整对象后再填入
 - 发布前先看 `prepare` 和 `schema get` 返回的表单字段，再填写 payload
+- `payload.json` 必须使用统一标准结构：顶层 `publishArgs`，业务字段放在 `publishArgs.accountForms[].contentPublishForm`
 - 用户明确要求本机发布时，必须显式传 `--publish-channel local` 和 `--client-id`
 
 ## 发布示例

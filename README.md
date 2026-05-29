@@ -94,6 +94,42 @@ yxer validate 抖音 video .\payload.json
 yxer publish video 抖音 .\payload.json --dry-run
 ```
 
+`payload.json` 必须使用统一标准结构，所有平台都一样：
+
+```json
+{
+  "action": "publish",
+  "publishType": "video",
+  "platforms": ["抖音"],
+  "publishChannel": "cloud",
+  "publishArgs": {
+    "accountForms": [
+      {
+        "platformAccountId": "<platformAccountId>",
+        "contentPublishForm": {
+          "formType": "task"
+        }
+      }
+    ]
+  }
+}
+```
+
+说明：
+
+- 顶层必须包含 `publishArgs`
+- 业务字段必须放在 `publishArgs.accountForms[].contentPublishForm`
+- 不再支持顶层直接放 `accountForms`
+- 不再支持把 `title`、`description`、`visibleType` 等内层字段直接写在 payload 顶层
+
+如需本机发布，校验阶段也建议显式带上发布通道，保证 `validate`、`--dry-run` 和正式发布使用同一套模式解析：
+
+```bash
+yxer validate 抖音 video .\payload.json --publish-channel local --client-id <clientId>
+yxer publish video 抖音 .\payload.json --publish-channel local --client-id <clientId> --dry-run
+yxer publish video 抖音 .\payload.json --publish-channel local --client-id <clientId>
+```
+
 ## AI Skill 安装
 
 本项目采用“CLI 先安装，Skill 再安装”的方式，和飞书 CLI 的 skill 使用习惯保持一致。
@@ -161,6 +197,7 @@ yxer linked-app toggle
 推荐约束：
 
 - 优先调用 `yxer` CLI，通过 `prepare` / `schema get` 了解字段后再填写 `payload.json`
+- `payload.json` 必须使用标准 envelope：`action/publishType/platforms/publishArgs`
 - 发布前先查账号，再上传资源
 - 复杂对象通过查询命令获取，不手写 `raw`
 - 本机发布显式传 `--publish-channel local` 和 `--client-id`
@@ -189,7 +226,7 @@ yxer upload --url <resource_url> [--bucket cloud-publish|material-library] [--dr
 ```bash
 yxer prepare <platform> <type>
 yxer schema get <platform> <type>
-yxer validate <platform> <type> <payload.json>
+yxer validate <platform> <type> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>]
 yxer publish <type> <platform> <payload.json> [clientId] [--dry-run]
 ```
 
@@ -218,6 +255,7 @@ yxer records list [--platform P] [--limit N] [--status S] [--json]
 - 用户未明确指定时，默认走云发布。
 - 用户明确要求“本机发布 / 本地发布 / 客户端发布”时，必须走本机发布。
 - 本机发布必须提供 `clientId`，可通过 `yxer config set-local-client-id <clientId>` 预设。
+- `validate`、`publish --dry-run`、`publish` 会共用同一套发布通道解析规则；若已预设默认 `clientId`，可在本机发布时只传 `--publish-channel local`。
 
 ### 推荐执行顺序
 

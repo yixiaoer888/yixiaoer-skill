@@ -73,12 +73,24 @@ func TestSchemaGetCommandOutputsSchemaForChinesePlatformAlias(t *testing.T) {
 		t.Fatal("expected required fields in schema")
 	}
 	properties := schemaDoc["properties"].(map[string]interface{})
-	title := properties["title"].(map[string]interface{})
-	if title["type"] != "string" {
-		t.Fatalf("expected title field view, got %#v", title)
+	publishArgs := properties["publishArgs"].(map[string]interface{})
+	accountForms := publishArgs["properties"].(map[string]interface{})["accountForms"].(map[string]interface{})
+	contentPublishForm := accountForms["items"].(map[string]interface{})["properties"].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	title := contentPublishForm["properties"].(map[string]interface{})["title"].(map[string]interface{})
+	if title["type"] != "string" || title["required"] != true {
+		t.Fatalf("expected nested title field view, got %#v", title)
 	}
 	if _, ok := schemaDoc["$schema"]; ok {
 		t.Fatal("expected document output to omit raw $schema metadata")
+	}
+	template := data["payloadTemplate"].(map[string]interface{})
+	if template["action"] != "publish" {
+		t.Fatalf("expected payload template action=publish, got %#v", template)
+	}
+	templateArgs := template["publishArgs"].(map[string]interface{})
+	templateForms := templateArgs["accountForms"].([]interface{})
+	if len(templateForms) != 1 {
+		t.Fatalf("expected single template account form, got %#v", templateForms)
 	}
 }
 
@@ -128,7 +140,9 @@ func TestSchemaFieldsCommandOutputsFieldView(t *testing.T) {
 		t.Fatalf("unexpected schema key: %#v", data["key"])
 	}
 	fields := data["fields"].(map[string]interface{})
-	title := fields["title"].(map[string]interface{})
+	publishArgs := fields["publishArgs"].(map[string]interface{})
+	accountForms := publishArgs["properties"].(map[string]interface{})["accountForms"].(map[string]interface{})
+	title := accountForms["items"].(map[string]interface{})["properties"].(map[string]interface{})["contentPublishForm"].(map[string]interface{})["properties"].(map[string]interface{})["title"].(map[string]interface{})
 	if title["required"] != true {
 		t.Fatalf("expected title to be required, got %#v", title)
 	}

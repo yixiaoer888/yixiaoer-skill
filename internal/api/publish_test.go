@@ -24,8 +24,11 @@ func TestPublishPostsTaskSetBody(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			t.Fatal(err)
 		}
-		if body["publishType"] != "video" || body["publishChannel"] != "cloud" {
+		if body["publishType"] != "video" {
 			t.Fatalf("unexpected publish body: %+v", body)
+		}
+		if body["publishChannel"] != "cloud" {
+			t.Fatalf("expected publishChannel in API body: %+v", body)
 		}
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"data": map[string]interface{}{"taskSetId": "task_set_1"},

@@ -5,6 +5,8 @@ import (
 	"math"
 	"regexp"
 	"strings"
+
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
 type PreflightResult struct {
@@ -16,9 +18,33 @@ var externalURLPattern = regexp.MustCompile(`(?i)^https?://`)
 
 const shipinghaoCoverMaxBytes = 512 * 1024
 
+func RequireStandardPayload(payload map[string]interface{}) error {
+	if payload == nil {
+		return yxerrors.Usage("Standard publish payload is required", []string{
+			"missing payload body",
+		}).WithHint("请使用标准请求体：顶层包含 action、publishType、platforms、publishArgs。")
+	}
+	publishArgs, ok := payload["publishArgs"].(map[string]interface{})
+	if !ok || publishArgs == nil {
+		return yxerrors.Usage("Standard publish payload is required", []string{
+			"missing publishArgs object",
+		}).WithHint("请使用标准请求体：顶层包含 action、publishType、platforms、publishArgs，业务字段放在 publishArgs.accountForms[].contentPublishForm。")
+	}
+	if _, ok := publishArgs["accountForms"].([]interface{}); !ok {
+		return yxerrors.Usage("Standard publish payload is required", []string{
+			"publishArgs.accountForms must be a non-empty array",
+		}).WithHint("请将账号发布数据放到 publishArgs.accountForms[] 下，不再支持顶层 accountForms 或直接内层表单结构。")
+	}
+	return nil
+}
+
 func Preflight(publishType string, platforms []string, payload map[string]interface{}) PreflightResult {
 	var result PreflightResult
 	publishType = NormalizePublishType(publishType)
+	if err := RequireStandardPayload(payload); err != nil {
+		result.Errors = append(result.Errors, err.Error())
+		return result
+	}
 	payload = ValidateAndExtractPublishArgs(publishType, platforms, payload, &result.Errors)
 	NormalizeStandardPublishArgs(payload)
 	NormalizeScheduledTimes(payload, &result.Errors)
@@ -123,13 +149,14 @@ func ExtractPublishArgs(payload map[string]interface{}) map[string]interface{} {
 	if publishArgs, ok := payload["publishArgs"].(map[string]interface{}); ok {
 		return publishArgs
 	}
-	return payload
+	return nil
 }
 
 func ValidateAndExtractPublishArgs(publishType string, platforms []string, payload map[string]interface{}, errors *[]string) map[string]interface{} {
 	publishArgs, ok := payload["publishArgs"].(map[string]interface{})
 	if !ok {
-		return payload
+		*errors = append(*errors, "publishArgs: missing required object")
+		return nil
 	}
 	if action := stringField(payload, "action"); action != "publish" {
 		*errors = append(*errors, `action: must equal "publish"`)

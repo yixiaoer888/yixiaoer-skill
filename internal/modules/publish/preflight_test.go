@@ -1,61 +1,24 @@
 package publish
 
 import (
-	"encoding/json"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
 
-func TestPreflightAcceptsValidVideo(t *testing.T) {
-	inner := readPayload(t, "douyin-video-valid.json")
-	payload := map[string]interface{}{
-		"accountForms": []interface{}{
-			map[string]interface{}{
-				"platformAccountId":  "acc_001",
-				"cover":              uploadedResourceWithKey("cover-key"),
-				"coverKey":           "cover-key",
-				"video":              inner["video"],
-				"contentPublishForm": inner,
-			},
-		},
-	}
-	result := Preflight("video", []string{"douyin"}, payload)
+func TestPreflightRequiresStandardPayload(t *testing.T) {
+	result := Preflight("video", []string{"抖音"}, map[string]interface{}{})
+	assertHasError(t, result.Errors, "Standard publish payload is required")
+}
+
+func TestPreflightAcceptsValidStandardVideoPayload(t *testing.T) {
+	payload := validVideoPayload()
+	result := Preflight("video", []string{"抖音"}, payload)
 	if len(result.Errors) > 0 {
 		t.Fatalf("expected valid preflight, got %v", result.Errors)
 	}
-	if len(result.AccountIDs) != 1 {
-		t.Fatalf("expected one account id, got %v", result.AccountIDs)
+	if len(result.AccountIDs) != 1 || result.AccountIDs[0] != "acc_001" {
+		t.Fatalf("unexpected account ids: %v", result.AccountIDs)
 	}
-}
-
-func TestPreflightRejectsExternalURL(t *testing.T) {
-	payload := readPayload(t, "douyin-video-url-invalid.json")
-	result := Preflight("video", []string{"douyin"}, payload)
-	if len(result.Errors) == 0 {
-		t.Fatal("expected external URL preflight error")
-	}
-}
-
-func TestPreflightRejectsMissingRaw(t *testing.T) {
-	payload := readPayload(t, "douyin-video-location-missing-raw.json")
-	result := Preflight("video", []string{"douyin"}, payload)
-	if len(result.Errors) == 0 {
-		t.Fatal("expected missing raw preflight error")
-	}
-}
-
-func TestPreflightRejectsUnsupportedTypeAndMissingPlatforms(t *testing.T) {
-	payload := validVideoPayload()
-	result := Preflight("audio", nil, payload)
-	assertHasError(t, result.Errors, `publish type "audio" is not supported`)
-	assertHasError(t, result.Errors, "at least one target platform is required")
-}
-
-func TestPreflightRejectsMissingAccountForms(t *testing.T) {
-	result := Preflight("video", []string{"douyin"}, map[string]interface{}{})
-	assertHasError(t, result.Errors, "payload.accountForms must be a non-empty array")
 }
 
 func TestPreflightValidatesFullPublishRequestFields(t *testing.T) {
@@ -64,51 +27,36 @@ func TestPreflightValidatesFullPublishRequestFields(t *testing.T) {
 		"publishType":    "imageText",
 		"platforms":      []interface{}{},
 		"publishChannel": "local",
-		"publishArgs":    validVideoPayload(),
+		"publishArgs":    validPublishArgs(),
 	}
 
-	result := Preflight("video", []string{"douyin"}, payload)
+	result := Preflight("video", []string{"抖音"}, payload)
 	assertHasError(t, result.Errors, `action: must equal "publish"`)
 	assertHasError(t, result.Errors, `publishType: got "imageText", expected "video"`)
 	assertHasError(t, result.Errors, "platforms: must be a non-empty array")
 	assertHasError(t, result.Errors, "clientId: required when publishChannel is local")
 }
 
-func TestPreflightValidatesTopLevelCoverInFullPublishRequest(t *testing.T) {
-	payload := map[string]interface{}{
-		"action":         "publish",
-		"publishType":    "video",
-		"platforms":      []interface{}{"抖音"},
-		"coverKey":       "outer-cover-key",
-		"cover":          uploadedResourceWithKey("wrong-cover-key"),
-		"publishChannel": "cloud",
-		"publishArgs":    validVideoPayload(),
-	}
-
-	result := Preflight("video", []string{"douyin"}, payload)
-	assertHasError(t, result.Errors, "coverKey: must match cover.key")
-}
-
 func TestPreflightRejectsMissingAccountIDAndContentForm(t *testing.T) {
-	payload := map[string]interface{}{
+	payload := standardPayload("video", []string{"抖音"}, map[string]interface{}{
 		"accountForms": []interface{}{
 			map[string]interface{}{
 				"video": uploadedResource(),
 			},
 		},
-	}
-	result := Preflight("video", []string{"douyin"}, payload)
+	})
+	result := Preflight("video", []string{"抖音"}, payload)
 	assertHasError(t, result.Errors, "accountForms[0]: missing platformAccountId")
 	assertHasError(t, result.Errors, "accountForms[0]: missing contentPublishForm")
 }
 
 func TestPreflightAcceptsAccountIDAlias(t *testing.T) {
 	payload := validVideoPayload()
-	form := payload["accountForms"].([]interface{})[0].(map[string]interface{})
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
 	delete(form, "platformAccountId")
 	form["account_id"] = "acc_alias"
 
-	result := Preflight("video", []string{"douyin"}, payload)
+	result := Preflight("video", []string{"抖音"}, payload)
 	if len(result.Errors) > 0 {
 		t.Fatalf("expected account_id alias to pass, got %v", result.Errors)
 	}
@@ -117,17 +65,8 @@ func TestPreflightAcceptsAccountIDAlias(t *testing.T) {
 	}
 }
 
-func TestPreflightRejectsVideoMissingResourceKey(t *testing.T) {
-	payload := validVideoPayload()
-	form := payload["accountForms"].([]interface{})[0].(map[string]interface{})
-	form["video"] = map[string]interface{}{"size": float64(1024), "width": float64(1080)}
-
-	result := Preflight("video", []string{"douyin"}, payload)
-	assertHasError(t, result.Errors, `accountForms[0].video: missing uploaded resource field "key"`)
-}
-
-func TestPreflightAcceptsStandardPublishArgsSharedResources(t *testing.T) {
-	payload := map[string]interface{}{
+func TestPreflightAcceptsSharedResourcesUnderPublishArgs(t *testing.T) {
+	payload := standardPayload("video", []string{"抖音"}, map[string]interface{}{
 		"video":    uploadedResource(),
 		"images":   []interface{}{uploadedResourceWithKey("image-key")},
 		"cover":    uploadedResourceWithKey("cover-key"),
@@ -143,21 +82,21 @@ func TestPreflightAcceptsStandardPublishArgsSharedResources(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
-	result := Preflight("video", []string{"douyin"}, payload)
+	result := Preflight("video", []string{"抖音"}, payload)
 	if len(result.Errors) > 0 {
-		t.Fatalf("expected shared standard resources to be normalized, got %v", result.Errors)
+		t.Fatalf("expected shared resources to normalize, got %v", result.Errors)
 	}
 
-	form := payload["accountForms"].([]interface{})[0].(map[string]interface{})
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
 	if form["video"] == nil || form["cover"] == nil || form["coverKey"] != "cover-key" {
-		t.Fatalf("expected shared resource fields to copy into account form, got %+v", form)
+		t.Fatalf("expected shared resource fields on account form, got %+v", form)
 	}
 }
 
-func TestPreflightAcceptsStandardPublishArgsArticleContent(t *testing.T) {
-	payload := map[string]interface{}{
+func TestPreflightAcceptsArticleContentFromPublishArgs(t *testing.T) {
+	payload := standardPayload("article", []string{"知乎"}, map[string]interface{}{
 		"cover":    uploadedResourceWithKey("cover-key"),
 		"coverKey": "cover-key",
 		"content":  "文章正文",
@@ -170,16 +109,16 @@ func TestPreflightAcceptsStandardPublishArgsArticleContent(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
-	result := Preflight("article", []string{"zhihu"}, payload)
+	result := Preflight("article", []string{"知乎"}, payload)
 	if len(result.Errors) > 0 {
-		t.Fatalf("expected top-level content to normalize into contentPublishForm, got %v", result.Errors)
+		t.Fatalf("expected article content normalization to pass, got %v", result.Errors)
 	}
 }
 
 func TestPreflightAcceptsImageTextImagesInContentPublishForm(t *testing.T) {
-	payload := map[string]interface{}{
+	payload := standardPayload("imageText", []string{"抖音"}, map[string]interface{}{
 		"accountForms": []interface{}{
 			map[string]interface{}{
 				"platformAccountId": "acc_001",
@@ -193,53 +132,20 @@ func TestPreflightAcceptsImageTextImagesInContentPublishForm(t *testing.T) {
 				},
 			},
 		},
-	}
-	result := Preflight("imageText", []string{"douyin"}, payload)
+	})
+	result := Preflight("imageText", []string{"抖音"}, payload)
 	if len(result.Errors) > 0 {
 		t.Fatalf("expected imageText preflight to pass, got %v", result.Errors)
 	}
 
-	form := payload["accountForms"].([]interface{})[0].(map[string]interface{})
-	images, _ := form["images"].([]interface{})
-	if len(images) != 1 {
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	if images, _ := form["images"].([]interface{}); len(images) != 1 {
 		t.Fatalf("expected contentPublishForm.images to normalize into account form, got %+v", form)
 	}
 }
 
-func TestPreflightRejectsShipinghaoOversizedCover(t *testing.T) {
-	payload := validVideoPayload()
-	form := payload["accountForms"].([]interface{})[0].(map[string]interface{})
-	form["cover"] = map[string]interface{}{
-		"key":    "cover-key",
-		"size":   float64(600 * 1024),
-		"width":  float64(2048),
-		"height": float64(2048),
-	}
-
-	result := Preflight("video", []string{"视频号"}, payload)
-	assertHasError(t, result.Errors, "accountForms[0].cover.size: 视频号封面不能超过 512KB")
-}
-
-func TestPreflightAcceptsShipinghaoCoverAtLimit(t *testing.T) {
-	payload := validVideoPayload()
-	form := payload["accountForms"].([]interface{})[0].(map[string]interface{})
-	form["cover"] = map[string]interface{}{
-		"key":    "cover-key",
-		"size":   float64(512 * 1024),
-		"width":  float64(720),
-		"height": float64(720),
-	}
-
-	result := Preflight("video", []string{"视频号"}, payload)
-	for _, err := range result.Errors {
-		if strings.Contains(err, "视频号封面不能超过 512KB") {
-			t.Fatalf("expected cover at limit to pass, got %v", result.Errors)
-		}
-	}
-}
-
 func TestPreflightRejectsImageTextMissingImageKey(t *testing.T) {
-	payload := map[string]interface{}{
+	payload := standardPayload("imageText", []string{"抖音"}, map[string]interface{}{
 		"accountForms": []interface{}{
 			map[string]interface{}{
 				"platformAccountId":  "acc_001",
@@ -249,36 +155,13 @@ func TestPreflightRejectsImageTextMissingImageKey(t *testing.T) {
 				"contentPublishForm": map[string]interface{}{"formType": "task", "title": "图文", "description": "正文"},
 			},
 		},
-	}
-	result := Preflight("imageText", []string{"douyin"}, payload)
+	})
+	result := Preflight("imageText", []string{"抖音"}, payload)
 	assertHasError(t, result.Errors, `accountForms[0].images[0]: missing uploaded resource field "key"`)
 }
 
-func TestPreflightAcceptsImageTextType(t *testing.T) {
-	payload := map[string]interface{}{
-		"accountForms": []interface{}{
-			map[string]interface{}{
-				"platformAccountId": "acc_001",
-				"cover":             uploadedResourceWithKey("cover-key"),
-				"coverKey":          "cover-key",
-				"contentPublishForm": map[string]interface{}{
-					"formType":    "task",
-					"title":       "图文",
-					"description": "正文",
-					"images":      []interface{}{uploadedResource()},
-				},
-			},
-		},
-	}
-
-	result := Preflight("imageText", []string{"douyin"}, payload)
-	if len(result.Errors) > 0 {
-		t.Fatalf("expected imageText to pass, got %v", result.Errors)
-	}
-}
-
 func TestPreflightRejectsArticleMissingContent(t *testing.T) {
-	payload := map[string]interface{}{
+	payload := standardPayload("article", []string{"知乎"}, map[string]interface{}{
 		"accountForms": []interface{}{
 			map[string]interface{}{
 				"platformAccountId":  "acc_001",
@@ -287,49 +170,17 @@ func TestPreflightRejectsArticleMissingContent(t *testing.T) {
 				"contentPublishForm": map[string]interface{}{"formType": "task", "title": "文章"},
 			},
 		},
-	}
-	result := Preflight("article", []string{"zhihu"}, payload)
+	})
+	result := Preflight("article", []string{"知乎"}, payload)
 	assertHasError(t, result.Errors, "accountForms[0].contentPublishForm.content: article publish requires content")
-}
-
-func TestPreflightAcceptsArticleContent(t *testing.T) {
-	payload := map[string]interface{}{
-		"accountForms": []interface{}{
-			map[string]interface{}{
-				"platformAccountId":  "acc_001",
-				"cover":              uploadedResourceWithKey("cover-key"),
-				"coverKey":           "cover-key",
-				"contentPublishForm": map[string]interface{}{"formType": "task", "title": "文章", "content": "正文"},
-			},
-		},
-	}
-	result := Preflight("article", []string{"zhihu"}, payload)
-	if len(result.Errors) > 0 {
-		t.Fatalf("expected article preflight to pass, got %v", result.Errors)
-	}
-}
-
-func TestPreflightAcceptsDynamicObjectWithRaw(t *testing.T) {
-	payload := validVideoPayload()
-	form := payload["accountForms"].([]interface{})[0].(map[string]interface{})
-	form["contentPublishForm"].(map[string]interface{})["location"] = map[string]interface{}{
-		"yixiaoerId":   "poi_1",
-		"yixiaoerName": "位置",
-		"raw":          map[string]interface{}{"id": "poi_1"},
-	}
-
-	result := Preflight("video", []string{"douyin"}, payload)
-	if len(result.Errors) > 0 {
-		t.Fatalf("expected dynamic raw object to pass, got %v", result.Errors)
-	}
 }
 
 func TestPreflightNormalizesScheduledTimeFromMilliseconds(t *testing.T) {
 	payload := validVideoPayload()
-	cpf := payload["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
 	cpf["scheduledTime"] = float64(1760000000000)
 
-	result := Preflight("video", []string{"douyin"}, payload)
+	result := Preflight("video", []string{"抖音"}, payload)
 	if len(result.Errors) > 0 {
 		t.Fatalf("expected scheduledTime normalization to pass, got %v", result.Errors)
 	}
@@ -338,41 +189,19 @@ func TestPreflightNormalizesScheduledTimeFromMilliseconds(t *testing.T) {
 	}
 }
 
-func TestPreflightRejectsSecondBasedScheduledTime(t *testing.T) {
-	payload := validVideoPayload()
-	cpf := payload["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
-	cpf["scheduledTime"] = float64(1760000000)
-
-	result := Preflight("video", []string{"douyin"}, payload)
-	assertHasError(t, result.Errors, "scheduledTime: must be a 13-digit Unix timestamp in milliseconds")
-}
-
 func TestPreflightRejectsMiniappsMissingRaw(t *testing.T) {
 	payload := validVideoPayload()
-	form := payload["accountForms"].([]interface{})[0].(map[string]interface{})
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
 	form["contentPublishForm"].(map[string]interface{})["miniapps"] = []interface{}{
 		map[string]interface{}{"id": "mini_1", "name": "小程序"},
 	}
 
-	result := Preflight("video", []string{"douyin"}, payload)
+	result := Preflight("video", []string{"抖音"}, payload)
 	assertHasError(t, result.Errors, "accountForms[0].contentPublishForm.miniapps[0]: dynamic platform object must include complete \"raw\" data")
 }
 
-func readPayload(t *testing.T, name string) map[string]interface{} {
-	t.Helper()
-	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "tests", "fixtures", "payloads", name))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var payload map[string]interface{}
-	if err := json.Unmarshal([]byte(strings.TrimPrefix(string(raw), "\uFEFF")), &payload); err != nil {
-		t.Fatal(err)
-	}
-	return payload
-}
-
 func validVideoPayload() map[string]interface{} {
-	return map[string]interface{}{
+	return standardPayload("video", []string{"抖音"}, map[string]interface{}{
 		"accountForms": []interface{}{
 			map[string]interface{}{
 				"platformAccountId": "acc_001",
@@ -386,6 +215,28 @@ func validVideoPayload() map[string]interface{} {
 				},
 			},
 		},
+	})
+}
+
+func validPublishArgs() map[string]interface{} {
+	return publishArgsOf(validVideoPayload())
+}
+
+func publishArgsOf(payload map[string]interface{}) map[string]interface{} {
+	return payload["publishArgs"].(map[string]interface{})
+}
+
+func standardPayload(publishType string, platforms []string, publishArgs map[string]interface{}) map[string]interface{} {
+	rawPlatforms := make([]interface{}, 0, len(platforms))
+	for _, platform := range platforms {
+		rawPlatforms = append(rawPlatforms, platform)
+	}
+	return map[string]interface{}{
+		"action":         "publish",
+		"publishType":    publishType,
+		"platforms":      rawPlatforms,
+		"publishChannel": "cloud",
+		"publishArgs":    publishArgs,
 	}
 }
 

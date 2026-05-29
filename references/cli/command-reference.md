@@ -37,7 +37,7 @@ yxer upload --url <resource_url> [--bucket cloud-publish|material-library] [--dr
 ### 发布与校验
 
 ```bash
-yxer validate <platform> <type> <payload.json>
+yxer validate <platform> <type> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>]
 yxer publish <type> <platform> <payload.json> [clientId] [--dry-run]
 ```
 
@@ -69,13 +69,16 @@ yxer schema get <platform> <type>
 - 单次 `yxer publish` 只处理一个平台
 - `publish` 仅支持 `payload.json` 模式
 - 发布前建议先执行 `yxer prepare <platform> <type>` 和 `yxer schema get <platform> <type>`，确认表单字段和 schema 后再填写 payload
-- 若 `payload.json` 采用标准 `publishArgs` 结构，CLI 会在最终请求中自动补齐最外层 `cover`、`coverKey`、`desc`、`isDraft`、`isAppContent`
+- `payload.json` 只支持标准 `publishArgs` 结构，所有平台统一
+- CLI 会根据 `publishArgs` 自动补齐最外层 `cover`、`coverKey`、`desc`、`isDraft`、`isAppContent`
 - 云发布是默认模式
 - 本机发布时必须提供 `clientId`
+- `yxer validate`、`yxer publish --dry-run`、`yxer publish` 使用同一套发布通道解析逻辑
 - 本机发布可通过三种方式提供 `clientId`：
   - 第四个位置参数：`yxer publish <type> <platform> <payload.json> <clientId>`
   - flags：`yxer publish <type> <platform> <payload.json> --publish-channel local --client-id <clientId>`
   - 预设默认值：`yxer config set-local-client-id <clientId>` 后，再执行 `--publish-channel local`
+- 本机发布校验时，推荐在 `validate` 阶段就显式传入 `--publish-channel local`；若未显式传入但 payload 中已写 `publishChannel=local`，CLI 也会尝试从默认配置读取 `clientId`
 - `yxer draft save` 只处理蚁小二内部草稿，不等同于平台草稿箱
 - `yxer material create` 只做素材登记，前提是资源已经通过 `yxer upload --bucket material-library` 上传
 - 推荐优先使用 `yxer material add --file ...`，由 CLI 自动完成上传和素材登记
@@ -108,6 +111,35 @@ yxer upload --url https://example.com/demo.jpg
 
 ## 推荐发布流程
 
+### 标准 payload 结构
+
+```json
+{
+  "action": "publish",
+  "publishType": "imageText",
+  "platforms": ["小红书"],
+  "publishChannel": "cloud",
+  "publishArgs": {
+    "accountForms": [
+      {
+        "platformAccountId": "<platformAccountId>",
+        "contentPublishForm": {
+          "formType": "task"
+        }
+      }
+    ]
+  }
+}
+```
+
+约束：
+
+- 顶层必须有 `publishArgs`
+- 账号列表必须放在 `publishArgs.accountForms[]`
+- 平台业务字段必须放在 `publishArgs.accountForms[].contentPublishForm`
+- 不再支持顶层 `accountForms`
+- 不再支持直接提交内层业务表单 JSON
+
 ### 获取表单字段与 schema
 
 ```bash
@@ -120,6 +152,13 @@ yxer schema get 小红书 imageText
 ```bash
 yxer validate 小红书 imageText .\payload.json
 yxer publish imageText 小红书 .\payload.json --dry-run
+```
+
+### 本机发布校验
+
+```bash
+yxer validate 抖音 video .\payload.json --publish-channel local --client-id <clientId>
+yxer publish video 抖音 .\payload.json --publish-channel local --client-id <clientId> --dry-run
 ```
 
 ### 正式发布

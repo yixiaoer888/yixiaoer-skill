@@ -10,6 +10,7 @@ import (
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/client"
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/config"
 	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/core/platform"
+	publishmod "github.com/yixiaoer/yixiaoer-skill/internal/modules/publish"
 	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
@@ -56,8 +57,11 @@ func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	} else {
 		delete(resolvedPayload, "clientId")
 	}
-	NormalizeStandardPublishArgs(ExtractPublishArgs(resolvedPayload))
-	publishArgs := ExtractPublishArgs(resolvedPayload)
+	if err := publishmod.RequireStandardPayload(resolvedPayload); err != nil {
+		return nil, err
+	}
+	publishmod.NormalizeStandardPublishArgs(publishmod.ExtractPublishArgs(resolvedPayload))
+	publishArgs := publishmod.ExtractPublishArgs(resolvedPayload)
 
 	validator := schema.NewValidator(cfg.SchemaDir)
 	for _, platform := range platforms {
@@ -68,7 +72,7 @@ func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 				WithNextCommand(fmt.Sprintf("yxer validate %s %s <payload.json>", platform, input.PublishType))
 		}
 	}
-	preflight := Preflight(input.PublishType, platforms, resolvedPayload)
+	preflight := publishmod.Preflight(input.PublishType, platforms, resolvedPayload)
 	if len(preflight.Errors) > 0 {
 		return nil, yxerrors.Usage("Publish preflight failed", preflight.Errors).
 			WithHint("请先完成资源上传、账号校验，并确保发布参数中不包含外部 URL。")
@@ -79,13 +83,7 @@ func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	body := BuildPublishBody(resolvedPayload, publishArgs, input.PublishType, platforms)
-	body["publishChannel"] = channel
-	if clientID != "" {
-		body["clientId"] = clientID
-	} else {
-		delete(body, "clientId")
-	}
+	body := BuildPublishBody(resolvedPayload, publishArgs, input.PublishType, platforms, channel, clientID)
 	result, err := apiClient.Publish(body)
 	if err == nil {
 		return result, nil
@@ -106,9 +104,7 @@ func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	}
 	resolvedPayload["publishChannel"] = localChannel
 	resolvedPayload["clientId"] = localClientID
-	body = BuildPublishBody(resolvedPayload, publishArgs, input.PublishType, platforms)
-	body["publishChannel"] = localChannel
-	body["clientId"] = localClientID
+	body = BuildPublishBody(resolvedPayload, publishArgs, input.PublishType, platforms, localChannel, localClientID)
 	return apiClient.Publish(body)
 }
 
@@ -123,35 +119,40 @@ func cloneMap(src map[string]interface{}) map[string]interface{} {
 	return dst
 }
 
-func BuildPublishBody(payload, publishArgs map[string]interface{}, publishType string, platforms []string) map[string]interface{} {
+func BuildPublishBody(payload, publishArgs map[string]interface{}, publishType string, platforms []string, channel, clientID string) map[string]interface{} {
 	body := map[string]interface{}{
 		"publishType":    publishType,
 		"platforms":      platforms,
 		"publishArgs":    publishArgs,
-		"publishChannel": "cloud",
+		"publishChannel": channel,
 	}
-	if _, ok := payload["publishArgs"].(map[string]interface{}); ok {
-		for key, value := range payload {
-			if key == "action" {
-				continue
-			}
-			if key == "publishArgs" {
-				body[key] = publishArgs
-				continue
-			}
-			body[key] = value
+	for key, value := range payload {
+		if key == "action" {
+			continue
 		}
-		body["publishType"] = publishType
-		body["platforms"] = platforms
-		if _, ok := body["publishChannel"]; !ok {
-			body["publishChannel"] = "cloud"
+		if key == "publishArgs" {
+			body[key] = publishArgs
+			continue
 		}
-		normalizePublishEnvelope(body, publishArgs, publishType)
-		return body
+		body[key] = value
 	}
-	copyOptionalPublishFields(body, payload)
+	body["publishType"] = publishType
+	body["platforms"] = platforms
+	applyPublishMode(body, channel, clientID)
 	normalizePublishEnvelope(body, publishArgs, publishType)
 	return body
+}
+
+func applyPublishMode(body map[string]interface{}, channel, clientID string) {
+	if channel == "" {
+		channel = "cloud"
+	}
+	body["publishChannel"] = channel
+	if channel == "local" && clientID != "" {
+		body["clientId"] = clientID
+		return
+	}
+	delete(body, "clientId")
 }
 
 func normalizePublishEnvelope(body, publishArgs map[string]interface{}, publishType string) {
@@ -232,6 +233,29 @@ func firstObject(items []interface{}) map[string]interface{} {
 	return nil
 }
 
+func objectField(obj map[string]interface{}, key string) map[string]interface{} {
+	if obj == nil {
+		return nil
+	}
+	value, _ := obj[key].(map[string]interface{})
+	return value
+}
+
+func stringField(obj map[string]interface{}, key string) string {
+	if obj == nil {
+		return ""
+	}
+	value := obj[key]
+	if value == nil {
+		return ""
+	}
+	text := strings.TrimSpace(fmt.Sprint(value))
+	if text == "<nil>" {
+		return ""
+	}
+	return text
+}
+
 func firstNonNil(values ...interface{}) interface{} {
 	for _, value := range values {
 		if value != nil {
@@ -249,6 +273,20 @@ func firstNonEmptyString(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func payloadWithPublishMode(payload map[string]interface{}, channel, clientID string) map[string]interface{} {
+	withMode := cloneMap(payload)
+	if channel == "" {
+		channel = "cloud"
+	}
+	withMode["publishChannel"] = channel
+	if clientID != "" {
+		withMode["clientId"] = clientID
+	} else {
+		delete(withMode, "clientId")
+	}
+	return withMode
 }
 
 func ResolvePublishMode(cfg config.Config, payload map[string]interface{}, positionalClientID, flagChannel, flagClientID string) (string, string, error) {
@@ -320,20 +358,6 @@ func confirmLocalPublishRetry(platform string) (bool, error) {
 	}
 	answer = strings.ToLower(strings.TrimSpace(answer))
 	return answer == "y" || answer == "yes", nil
-}
-
-func copyOptionalPublishFields(dst, src map[string]interface{}) {
-	for _, field := range []string{"cover", "coverKey", "taskSetId", "desc", "isDraft", "isAppContent"} {
-		if value, ok := src[field]; ok {
-			dst[field] = value
-		}
-	}
-	if channel, ok := src["publishChannel"]; ok {
-		dst["publishChannel"] = channel
-	}
-	if clientID, ok := src["clientId"]; ok {
-		dst["clientId"] = clientID
-	}
 }
 
 func SplitPlatforms(value string) []string {

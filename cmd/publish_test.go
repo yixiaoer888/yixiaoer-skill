@@ -34,14 +34,17 @@ func TestPublishCommandSuccessCallsTaskSetAPI(t *testing.T) {
 	if publishCalls != 1 {
 		t.Fatalf("expected one publish call, got %d", publishCalls)
 	}
-	if publishBody["publishType"] != "video" || publishBody["publishChannel"] != "cloud" {
+	if publishBody["publishType"] != "video" {
 		t.Fatalf("unexpected publish body: %+v", publishBody)
+	}
+	if publishBody["publishChannel"] != "cloud" {
+		t.Fatalf("expected cloud publishChannel in publish body, got %+v", publishBody)
 	}
 	if _, ok := publishBody["action"]; ok {
 		t.Fatalf("did not expect action in publish body: %+v", publishBody)
 	}
 	if _, ok := publishBody["clientId"]; ok {
-		t.Fatalf("did not expect clientId in cloud publish body: %+v", publishBody)
+		t.Fatalf("did not expect clientId for cloud publish body: %+v", publishBody)
 	}
 	if platforms := publishBody["platforms"].([]interface{}); platforms[0] != "抖音" {
 		t.Fatalf("expected Chinese platform name in publish body, got %+v", platforms)
@@ -73,7 +76,7 @@ func TestPublishCommandWithClientIDUsesLocalChannel(t *testing.T) {
 		t.Fatalf("expected one publish call, got %d", publishCalls)
 	}
 	if publishBody["publishChannel"] != "local" || publishBody["clientId"] != "client_1" {
-		t.Fatalf("unexpected local publish body: %+v", publishBody)
+		t.Fatalf("expected local publish metadata in publish body, got %+v", publishBody)
 	}
 }
 
@@ -100,7 +103,7 @@ func TestPublishCommandMapsPlatformKeyToChineseForAPIRequests(t *testing.T) {
 func TestPublishCommandConvertsScheduledTimeMillisecondsToSeconds(t *testing.T) {
 	withRepoRoot(t)
 	payload := validPublishPayload()
-	cpf := payload["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	cpf := payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
 	cpf["scheduledTime"] = float64(1760000000000)
 	payloadPath := writePublishPayload(t, payload)
 
@@ -153,7 +156,7 @@ func TestPublishCommandRejectsMultiPlatformArgument(t *testing.T) {
 
 func TestPublishCommandAcceptsFullPublishRequestPayload(t *testing.T) {
 	withRepoRoot(t)
-	inner := validPublishPayload()
+	inner := validPublishArgs()
 	payloadPath := writePublishPayload(t, map[string]interface{}{
 		"action":      "publish",
 		"publishType": "video",
@@ -275,7 +278,7 @@ func TestPublishCommandAcceptsStandardRequestPayloadShape(t *testing.T) {
 		t.Fatalf("expected business fields to be preserved, got %+v", form)
 	}
 	if publishBody["publishChannel"] != "local" || publishBody["clientId"] != "local-client" {
-		t.Fatalf("expected local publish config to be preserved, got %+v", publishBody)
+		t.Fatalf("expected local publish metadata in API body, got %+v", publishBody)
 	}
 	if publishBody["desc"] != "任务描述" || publishBody["coverKey"] != "top-cover-key" {
 		t.Fatalf("expected top-level standard fields to be preserved, got %+v", publishBody)
@@ -346,7 +349,7 @@ func TestPublishCommandAcceptsNodeStyleLocalStandardPayloadWithoutDuplicatedAcco
 		t.Fatalf("expected shared node-style local resources to be copied into account form, got %+v", form)
 	}
 	if publishBody["publishChannel"] != "local" || publishBody["clientId"] != "local-client" {
-		t.Fatalf("expected local publish config to be preserved, got %+v", publishBody)
+		t.Fatalf("expected local publish metadata in node-style API body, got %+v", publishBody)
 	}
 	if _, ok := publishBody["action"]; ok {
 		t.Fatalf("did not expect action to be forwarded to publish API: %+v", publishBody)
@@ -380,7 +383,7 @@ func TestPublishCommandAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
 					"contentPublishForm": map[string]interface{}{
 						"formType":    "task",
 						"title":       "视频标题",
-						"description": "<p> 这是一个精彩的视频内容 </p><p>欢迎观看和分享</p>",
+						"description": "<p>精彩视频</p>",
 					},
 				},
 			},
@@ -402,7 +405,7 @@ func TestPublishCommandAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
 	if publishBody["coverKey"] != "shared-cover-key" {
 		t.Fatalf("expected top-level coverKey to be synthesized, got %+v", publishBody)
 	}
-	if publishBody["desc"] != "<p> 这是一个精彩的视频内容 </p><p>欢迎观看和分享</p>" {
+	if publishBody["desc"] != "<p>精彩视频</p>" {
 		t.Fatalf("expected top-level desc to be synthesized from contentPublishForm.description, got %+v", publishBody)
 	}
 	if publishBody["isDraft"] != false {
@@ -448,7 +451,7 @@ func TestPublishDryRunAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
 						"contentPublishForm": map[string]interface{}{
 							"formType":    "task",
 							"title":       "视频标题",
-							"description": "<p> 这是一个精彩的视频内容 </p><p>欢迎观看和分享</p>",
+							"description": "<p>精彩视频</p>",
 						},
 					},
 				},
@@ -461,11 +464,20 @@ func TestPublishDryRunAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
 	if result.PublishBody["coverKey"] != "shared-cover-key" {
 		t.Fatalf("expected dry-run body coverKey to be synthesized, got %+v", result.PublishBody)
 	}
-	if result.PublishBody["desc"] != "<p> 这是一个精彩的视频内容 </p><p>欢迎观看和分享</p>" {
+	if result.PublishBody["desc"] != "<p>精彩视频</p>" {
 		t.Fatalf("expected dry-run body desc to be synthesized, got %+v", result.PublishBody)
 	}
 	if result.PublishBody["isDraft"] != false || result.PublishBody["isAppContent"] != false {
 		t.Fatalf("expected dry-run defaults for outer envelope, got %+v", result.PublishBody)
+	}
+	if result.PublishBody["publishChannel"] != "cloud" {
+		t.Fatalf("expected publishChannel in dry-run request body, got %+v", result.PublishBody)
+	}
+	if _, ok := result.PublishBody["clientId"]; ok {
+		t.Fatalf("did not expect clientId for cloud dry-run request body: %+v", result.PublishBody)
+	}
+	if result.PublishMode != "cloud" {
+		t.Fatalf("expected dry-run publish mode metadata to stay cloud, got %q", result.PublishMode)
 	}
 }
 
@@ -491,7 +503,7 @@ func TestPublishCommandUsesLocalFlagsLikeNodeExample(t *testing.T) {
 		t.Fatal(err)
 	}
 	if publishBody["publishChannel"] != "local" || publishBody["clientId"] != "flag_client_1" {
-		t.Fatalf("expected local publish config from flags, got %+v", publishBody)
+		t.Fatalf("expected flagged local publish metadata in API body, got %+v", publishBody)
 	}
 }
 
@@ -504,7 +516,7 @@ func TestPublishCommandRejectsLocalWithoutClientID(t *testing.T) {
 		"publishType":    "video",
 		"platforms":      []interface{}{"抖音"},
 		"publishChannel": "local",
-		"publishArgs":    validPublishPayload(),
+		"publishArgs":    validPublishArgs(),
 	})
 	publishChannelFlag = ""
 	publishClientID = ""
@@ -558,7 +570,7 @@ func TestPublishCommandUsesConfiguredLocalClientID(t *testing.T) {
 		"publishType":    "video",
 		"platforms":      []interface{}{"抖音"},
 		"publishChannel": "local",
-		"publishArgs":    validPublishPayload(),
+		"publishArgs":    validPublishArgs(),
 	})
 
 	var publishCalls int
@@ -573,7 +585,7 @@ func TestPublishCommandUsesConfiguredLocalClientID(t *testing.T) {
 		t.Fatal(err)
 	}
 	if publishBody["publishChannel"] != "local" || publishBody["clientId"] != "configured_client_1" {
-		t.Fatalf("expected local publish config from saved config, got %+v", publishBody)
+		t.Fatalf("expected configured local publish metadata in API body, got %+v", publishBody)
 	}
 }
 
@@ -631,10 +643,10 @@ func TestPublishCommandPromptsAndRetriesLocalWhenCloudProxyMissing(t *testing.T)
 		t.Fatalf("expected two publish calls, got %d", publishCalls)
 	}
 	if publishBodies[0]["publishChannel"] != "cloud" {
-		t.Fatalf("expected first publish attempt to use cloud, got %+v", publishBodies[0])
+		t.Fatalf("expected first publish attempt to stay cloud, got %+v", publishBodies[0])
 	}
 	if publishBodies[1]["publishChannel"] != "local" || publishBodies[1]["clientId"] != "configured_client_1" {
-		t.Fatalf("expected second publish attempt to use local mode, got %+v", publishBodies[1])
+		t.Fatalf("expected second publish attempt to switch to local, got %+v", publishBodies[1])
 	}
 	if !strings.Contains(promptOut.String(), "是否改为走本机发布") {
 		t.Fatalf("expected local publish prompt, got %q", promptOut.String())
@@ -688,7 +700,7 @@ func TestPublishCommandKeepsOriginalErrorWhenLocalRetryDeclined(t *testing.T) {
 func TestPublishCommandSchemaFailureDoesNotCallAPIs(t *testing.T) {
 	withRepoRoot(t)
 	payload := validPublishPayload()
-	cpf := payload["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	cpf := payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
 	delete(cpf, "title")
 	payloadPath := writePublishPayload(t, payload)
 
@@ -720,30 +732,36 @@ func TestPublishCommandSchemaFailureDoesNotCallAPIs(t *testing.T) {
 func TestPublishCommandRejectsKuaishouImageTextWithMoreThanFourTags(t *testing.T) {
 	withRepoRoot(t)
 	payloadPath := writePublishPayload(t, map[string]interface{}{
-		"accountForms": []interface{}{
-			map[string]interface{}{
-				"platformAccountId": "acc_kuaishou_1",
-				"contentPublishForm": map[string]interface{}{
-					"formType":    "task",
-					"description": "<p>快手图文内容</p>",
-					"visibleType": float64(0),
-					"tags":        []interface{}{"话题1", "话题2", "话题3", "话题4", "话题5"},
-					"images": []interface{}{
-						map[string]interface{}{
-							"key":    "image-key",
-							"size":   float64(1024),
-							"width":  float64(1080),
-							"height": float64(1920),
+		"action":         "publish",
+		"publishType":    "imageText",
+		"platforms":      []interface{}{"快手"},
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_kuaishou_1",
+					"contentPublishForm": map[string]interface{}{
+						"formType":    "task",
+						"description": "<p>快手图文内容</p>",
+						"visibleType": float64(0),
+						"tags":        []interface{}{"话题1", "话题2", "话题3", "话题4", "话题5"},
+						"images": []interface{}{
+							map[string]interface{}{
+								"key":    "image-key",
+								"size":   float64(1024),
+								"width":  float64(1080),
+								"height": float64(1920),
+							},
 						},
 					},
+					"cover": map[string]interface{}{
+						"key":    "image-key",
+						"size":   float64(1024),
+						"width":  float64(1080),
+						"height": float64(1920),
+					},
+					"coverKey": "image-key",
 				},
-				"cover": map[string]interface{}{
-					"key":    "image-key",
-					"size":   float64(1024),
-					"width":  float64(1080),
-					"height": float64(1920),
-				},
-				"coverKey": "image-key",
 			},
 		},
 	})
@@ -779,7 +797,7 @@ func TestPublishCommandRejectsKuaishouImageTextWithMoreThanFourTags(t *testing.T
 func TestPublishCommandPreflightFailureDoesNotCallAPIs(t *testing.T) {
 	withRepoRoot(t)
 	payload := validPublishPayload()
-	form := payload["accountForms"].([]interface{})[0].(map[string]interface{})
+	form := payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
 	form["video"].(map[string]interface{})["key"] = "https://example.com/video.mp4"
 	payloadPath := writePublishPayload(t, payload)
 
@@ -810,7 +828,7 @@ func TestPublishCommandPreflightFailureDoesNotCallAPIs(t *testing.T) {
 
 func TestPublishCommandRejectsInvalidTopLevelCoverInFullPublishRequest(t *testing.T) {
 	withRepoRoot(t)
-	inner := validPublishPayload()
+	inner := validPublishArgs()
 	payloadPath := writePublishPayload(t, map[string]interface{}{
 		"action":      "publish",
 		"publishType": "video",
@@ -1075,6 +1093,16 @@ func publishTestServer(t *testing.T, accountStatus int, publishCalls *int, publi
 }
 
 func validPublishPayload() map[string]interface{} {
+	return map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "video",
+		"platforms":      []interface{}{"抖音"},
+		"publishChannel": "cloud",
+		"publishArgs":    validPublishArgs(),
+	}
+}
+
+func validPublishArgs() map[string]interface{} {
 	return map[string]interface{}{
 		"accountForms": []interface{}{
 			map[string]interface{}{

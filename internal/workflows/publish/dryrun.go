@@ -2,6 +2,7 @@ package publish
 
 import (
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/config"
+	publishmod "github.com/yixiaoer/yixiaoer-skill/internal/modules/publish"
 	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
@@ -18,6 +19,7 @@ type DryRunResult struct {
 }
 
 func (Service) DryRun(input ExecuteInput) (DryRunResult, error) {
+	input.PublishType = NormalizePublishType(input.PublishType)
 	platform, err := SinglePlatform(input.PlatformInput)
 	if err != nil {
 		return DryRunResult{}, err
@@ -39,8 +41,11 @@ func (Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 	} else {
 		delete(resolvedPayload, "clientId")
 	}
-	NormalizeStandardPublishArgs(ExtractPublishArgs(resolvedPayload))
-	publishArgs := ExtractPublishArgs(resolvedPayload)
+	if err := publishmod.RequireStandardPayload(resolvedPayload); err != nil {
+		return DryRunResult{}, err
+	}
+	publishmod.NormalizeStandardPublishArgs(publishmod.ExtractPublishArgs(resolvedPayload))
+	publishArgs := publishmod.ExtractPublishArgs(resolvedPayload)
 
 	validator := schema.NewValidator(cfg.SchemaDir)
 	for _, platform := range platforms {
@@ -51,19 +56,13 @@ func (Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 				WithNextCommand("yxer schema get <platform> <type>")
 		}
 	}
-	preflight := Preflight(input.PublishType, platforms, resolvedPayload)
+	preflight := publishmod.Preflight(input.PublishType, platforms, payloadWithPublishMode(resolvedPayload, channel, clientID))
 	if len(preflight.Errors) > 0 {
 		return DryRunResult{}, yxerrors.Usage("Publish preflight failed", preflight.Errors).
 			WithHint("请先完成资源上传、账号校验，并确保发布参数中不包含外部 URL。")
 	}
 
-	body := BuildPublishBody(resolvedPayload, publishArgs, input.PublishType, platforms)
-	body["publishChannel"] = channel
-	if clientID != "" {
-		body["clientId"] = clientID
-	} else {
-		delete(body, "clientId")
-	}
+	body := BuildPublishBody(resolvedPayload, publishArgs, input.PublishType, platforms, channel, clientID)
 
 	return DryRunResult{
 		Platform:      platform,
