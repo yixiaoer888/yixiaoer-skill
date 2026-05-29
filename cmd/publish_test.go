@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -354,6 +353,122 @@ func TestPublishCommandAcceptsNodeStyleLocalStandardPayloadWithoutDuplicatedAcco
 	}
 }
 
+func TestPublishCommandAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":      "publish",
+		"publishType": "video",
+		"platforms":   []interface{}{"抖音"},
+		"publishArgs": map[string]interface{}{
+			"video": map[string]interface{}{
+				"duration": float64(10),
+				"width":    float64(1000),
+				"height":   float64(1000),
+				"size":     float64(10000000),
+				"key":      "video-key",
+			},
+			"cover": map[string]interface{}{
+				"width":  float64(1000),
+				"height": float64(1000),
+				"size":   float64(1000000),
+				"key":    "shared-cover-key",
+			},
+			"coverKey": "shared-cover-key",
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_001",
+					"contentPublishForm": map[string]interface{}{
+						"formType":    "task",
+						"title":       "视频标题",
+						"description": "<p> 这是一个精彩的视频内容 </p><p>欢迎观看和分享</p>",
+					},
+				},
+			},
+		},
+	})
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := publishTestServer(t, 1, &publishCalls, &publishBody)
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if publishBody["coverKey"] != "shared-cover-key" {
+		t.Fatalf("expected top-level coverKey to be synthesized, got %+v", publishBody)
+	}
+	if publishBody["desc"] != "<p> 这是一个精彩的视频内容 </p><p>欢迎观看和分享</p>" {
+		t.Fatalf("expected top-level desc to be synthesized from contentPublishForm.description, got %+v", publishBody)
+	}
+	if publishBody["isDraft"] != false {
+		t.Fatalf("expected top-level isDraft default false, got %+v", publishBody["isDraft"])
+	}
+	if publishBody["isAppContent"] != false {
+		t.Fatalf("expected top-level isAppContent default false, got %+v", publishBody["isAppContent"])
+	}
+	cover, _ := publishBody["cover"].(map[string]interface{})
+	if cover["key"] != "shared-cover-key" {
+		t.Fatalf("expected top-level cover to be synthesized, got %+v", publishBody["cover"])
+	}
+}
+
+func TestPublishDryRunAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
+	withRepoRoot(t)
+	service := publishflow.NewService()
+	result, err := service.DryRun(publishflow.ExecuteInput{
+		PublishType:   "video",
+		PlatformInput: "抖音",
+		Payload: map[string]interface{}{
+			"action":      "publish",
+			"publishType": "video",
+			"platforms":   []interface{}{"抖音"},
+			"publishArgs": map[string]interface{}{
+				"video": map[string]interface{}{
+					"duration": float64(10),
+					"width":    float64(1000),
+					"height":   float64(1000),
+					"size":     float64(10000000),
+					"key":      "video-key",
+				},
+				"cover": map[string]interface{}{
+					"width":  float64(1000),
+					"height": float64(1000),
+					"size":   float64(1000000),
+					"key":    "shared-cover-key",
+				},
+				"coverKey": "shared-cover-key",
+				"accountForms": []interface{}{
+					map[string]interface{}{
+						"platformAccountId": "acc_001",
+						"contentPublishForm": map[string]interface{}{
+							"formType":    "task",
+							"title":       "视频标题",
+							"description": "<p> 这是一个精彩的视频内容 </p><p>欢迎观看和分享</p>",
+						},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.PublishBody["coverKey"] != "shared-cover-key" {
+		t.Fatalf("expected dry-run body coverKey to be synthesized, got %+v", result.PublishBody)
+	}
+	if result.PublishBody["desc"] != "<p> 这是一个精彩的视频内容 </p><p>欢迎观看和分享</p>" {
+		t.Fatalf("expected dry-run body desc to be synthesized, got %+v", result.PublishBody)
+	}
+	if result.PublishBody["isDraft"] != false || result.PublishBody["isAppContent"] != false {
+		t.Fatalf("expected dry-run defaults for outer envelope, got %+v", result.PublishBody)
+	}
+}
+
 func TestPublishCommandUsesLocalFlagsLikeNodeExample(t *testing.T) {
 	withRepoRoot(t)
 	payloadPath := writePublishPayload(t, validPublishPayload())
@@ -602,6 +717,65 @@ func TestPublishCommandSchemaFailureDoesNotCallAPIs(t *testing.T) {
 	}
 }
 
+func TestPublishCommandRejectsKuaishouImageTextWithMoreThanFourTags(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_kuaishou_1",
+				"contentPublishForm": map[string]interface{}{
+					"formType":    "task",
+					"description": "<p>快手图文内容</p>",
+					"visibleType": float64(0),
+					"tags":        []interface{}{"话题1", "话题2", "话题3", "话题4", "话题5"},
+					"images": []interface{}{
+						map[string]interface{}{
+							"key":    "image-key",
+							"size":   float64(1024),
+							"width":  float64(1080),
+							"height": float64(1920),
+						},
+					},
+				},
+				"cover": map[string]interface{}{
+					"key":    "image-key",
+					"size":   float64(1024),
+					"width":  float64(1080),
+					"height": float64(1920),
+				},
+				"coverKey": "image-key",
+			},
+		},
+	})
+
+	var accountCalls int
+	var publishCalls int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			accountCalls++
+		case "/taskSets/v2":
+			publishCalls++
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"imageText", "快手", payloadPath})
+	if err == nil {
+		t.Fatal("expected kuaishou imageText schema validation error")
+	}
+	if !strings.Contains(err.Error(), "Schema validation failed") {
+		t.Fatalf("expected schema validation error, got %v", err)
+	}
+	if accountCalls != 0 || publishCalls != 0 {
+		t.Fatalf("expected no API calls, got accounts=%d publish=%d", accountCalls, publishCalls)
+	}
+}
+
 func TestPublishCommandPreflightFailureDoesNotCallAPIs(t *testing.T) {
 	withRepoRoot(t)
 	payload := validPublishPayload()
@@ -690,56 +864,6 @@ func TestPublishCommandOfflineAccountDoesNotPublish(t *testing.T) {
 	}
 	if publishCalls != 0 {
 		t.Fatalf("expected no publish call, got %d", publishCalls)
-	}
-}
-
-func TestPublishCommandBuildsImageTextPayloadFromFlags(t *testing.T) {
-	withRepoRoot(t)
-	imagePath := filepath.Join(t.TempDir(), "cover.png")
-	if err := os.WriteFile(imagePath, testPNGBytes(t), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	publishAccount = "图文账号"
-	publishTitle = "图文标题"
-	publishDescription = "图文描述"
-	publishImages = []string{imagePath}
-	publishCoverPath = ""
-	publishContent = ""
-	publishVideoKey = ""
-	publishVisibleType = 0
-	t.Cleanup(resetPublishFlagsForTest)
-
-	var publishCalls int
-	var publishBody map[string]interface{}
-	server := imageTextPublishTestServer(t, &publishCalls, &publishBody)
-	defer server.Close()
-	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
-
-	err := publishCmd.RunE(testCobraCommand(), []string{"imageText", "小红书"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if publishCalls != 1 {
-		t.Fatalf("expected one publish call, got %d", publishCalls)
-	}
-	if publishBody["publishType"] != "imageText" {
-		t.Fatalf("expected publishType imageText, got %+v", publishBody["publishType"])
-	}
-	if publishBody["coverKey"] != "uploaded/cover.png" {
-		t.Fatalf("expected top-level coverKey in flags payload, got %+v", publishBody)
-	}
-	if publishBody["desc"] != "图文描述" {
-		t.Fatalf("expected top-level desc in flags payload, got %+v", publishBody)
-	}
-	args := publishBody["publishArgs"].(map[string]interface{})
-	form := args["accountForms"].([]interface{})[0].(map[string]interface{})
-	if form["platformAccountId"] != "acc_xhs_1" {
-		t.Fatalf("unexpected account form: %+v", form)
-	}
-	cpf := form["contentPublishForm"].(map[string]interface{})
-	if cpf["description"] != "图文描述" || cpf["title"] != "图文标题" {
-		t.Fatalf("unexpected contentPublishForm: %+v", cpf)
 	}
 }
 
@@ -879,324 +1003,6 @@ func TestPublishCommandUsesImageTextPublishType(t *testing.T) {
 	}
 }
 
-func TestPublishCommandBuildsArticlePayloadFromFlags(t *testing.T) {
-	withRepoRoot(t)
-	coverPath := filepath.Join(t.TempDir(), "cover.png")
-	if err := os.WriteFile(coverPath, testPNGBytes(t), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	contentPath := filepath.Join(t.TempDir(), "article.html")
-	if err := os.WriteFile(contentPath, []byte("<p>这是一篇用于测试的文章正文内容</p>"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	publishAccount = "知乎账号"
-	publishTitle = "这是一个足够长的知乎文章标题"
-	publishContent = "@" + contentPath
-	publishCoverPath = coverPath
-	publishDescription = ""
-	publishImages = nil
-	publishVideoKey = ""
-	publishVisibleType = -1
-	t.Cleanup(resetPublishFlagsForTest)
-
-	var publishCalls int
-	var publishBody map[string]interface{}
-	server := articlePublishTestServer(t, &publishCalls, &publishBody)
-	defer server.Close()
-	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
-
-	err := publishCmd.RunE(testCobraCommand(), []string{"article", "知乎"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if publishCalls != 1 {
-		t.Fatalf("expected one publish call, got %d", publishCalls)
-	}
-	if publishBody["coverKey"] != "uploaded/cover.png" {
-		t.Fatalf("expected top-level coverKey in article flags payload, got %+v", publishBody)
-	}
-	if publishBody["desc"] != "这是一个足够长的知乎文章标题" {
-		t.Fatalf("expected top-level desc in article flags payload, got %+v", publishBody)
-	}
-	args := publishBody["publishArgs"].(map[string]interface{})
-	form := args["accountForms"].([]interface{})[0].(map[string]interface{})
-	if form["platformAccountId"] != "acc_zhihu_1" {
-		t.Fatalf("unexpected account form: %+v", form)
-	}
-	cpf := form["contentPublishForm"].(map[string]interface{})
-	if cpf["title"] != "这是一个足够长的知乎文章标题" {
-		t.Fatalf("unexpected contentPublishForm title: %+v", cpf)
-	}
-	if cpf["pubType"] != float64(1) {
-		t.Fatalf("expected pubType=1, got %+v", cpf)
-	}
-	if !strings.Contains(cpf["content"].(string), "测试的文章正文内容") {
-		t.Fatalf("expected content read from file, got %+v", cpf["content"])
-	}
-}
-
-func TestPublishCommandBuildsDouyinArticlePayloadFromFlagsWithVisibleType(t *testing.T) {
-	withRepoRoot(t)
-	coverPath := filepath.Join(t.TempDir(), "cover.png")
-	if err := os.WriteFile(coverPath, testPNGBytes(t), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	contentPath := filepath.Join(t.TempDir(), "article.html")
-	if err := os.WriteFile(contentPath, []byte("<p>抖音文章正文</p>"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	publishAccount = "抖音账号"
-	publishTitle = "抖音文章标题"
-	publishContent = "@" + contentPath
-	publishCoverPath = coverPath
-	publishVisibleType = -1
-	t.Cleanup(resetPublishFlagsForTest)
-
-	var publishCalls int
-	var publishBody map[string]interface{}
-	server := douyinArticlePublishTestServer(t, &publishCalls, &publishBody)
-	defer server.Close()
-	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
-
-	err := publishCmd.RunE(testCobraCommand(), []string{"article", "抖音"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	cpf := publishBody["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
-	if cpf["visibleType"] != float64(0) {
-		t.Fatalf("expected visibleType=0, got %+v", cpf)
-	}
-	if _, ok := cpf["pubType"]; ok {
-		t.Fatalf("did not expect pubType for douyin article, got %+v", cpf)
-	}
-}
-
-func TestPublishCommandRejectsArticleFlagsWithoutCover(t *testing.T) {
-	withRepoRoot(t)
-	contentPath := filepath.Join(t.TempDir(), "article.html")
-	if err := os.WriteFile(contentPath, []byte("<p>文章正文</p>"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	publishAccount = "知乎账号"
-	publishTitle = "这是一个足够长的知乎文章标题"
-	publishContent = "@" + contentPath
-	publishCoverPath = ""
-	t.Cleanup(resetPublishFlagsForTest)
-
-	server := articlePublishTestServer(t, new(int), new(map[string]interface{}))
-	defer server.Close()
-	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
-
-	err := publishCmd.RunE(testCobraCommand(), []string{"article", "知乎"})
-	if err == nil {
-		t.Fatal("expected article flags mode to require cover")
-	}
-	if !strings.Contains(err.Error(), "article publish requires cover") {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestPublishCommandRejectsArticleFlagsMissingContentFile(t *testing.T) {
-	withRepoRoot(t)
-	coverPath := filepath.Join(t.TempDir(), "cover.png")
-	if err := os.WriteFile(coverPath, testPNGBytes(t), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	publishAccount = "知乎账号"
-	publishTitle = "这是一个足够长的知乎文章标题"
-	publishContent = "@./does-not-exist.html"
-	publishCoverPath = coverPath
-	t.Cleanup(resetPublishFlagsForTest)
-
-	server := articlePublishTestServer(t, new(int), new(map[string]interface{}))
-	defer server.Close()
-	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
-
-	err := publishCmd.RunE(testCobraCommand(), []string{"article", "知乎"})
-	if err == nil {
-		t.Fatal("expected article flags mode to fail when content file is missing")
-	}
-	if !strings.Contains(err.Error(), "article content file could not be read") {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestPublishCommandBuildsVideoPayloadFromFlags(t *testing.T) {
-	withRepoRoot(t)
-	videoPath := filepath.Join(t.TempDir(), "clip.mp4")
-	createTestVideo(t, videoPath)
-	coverPath := filepath.Join(t.TempDir(), "cover.png")
-	if err := os.WriteFile(coverPath, testPNGBytes(t), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	publishAccount = "视频账号"
-	publishTitle = "视频标题"
-	publishDescription = "视频描述"
-	publishVideoPath = videoPath
-	publishCoverPath = coverPath
-	publishContent = ""
-	publishImages = nil
-	publishVideoKey = ""
-	publishVisibleType = -1
-	t.Cleanup(resetPublishFlagsForTest)
-
-	var publishCalls int
-	var publishBody map[string]interface{}
-	server := videoPublishTestServer(t, &publishCalls, &publishBody)
-	defer server.Close()
-	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
-
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if publishCalls != 1 {
-		t.Fatalf("expected one publish call, got %d", publishCalls)
-	}
-	if publishBody["coverKey"] != "uploaded/cover.png" {
-		t.Fatalf("expected top-level coverKey in video flags payload, got %+v", publishBody)
-	}
-	if publishBody["desc"] != "视频描述" {
-		t.Fatalf("expected top-level desc in video flags payload, got %+v", publishBody)
-	}
-	args := publishBody["publishArgs"].(map[string]interface{})
-	form := args["accountForms"].([]interface{})[0].(map[string]interface{})
-	video := form["video"].(map[string]interface{})
-	if video["key"] != "uploaded/clip.mp4" {
-		t.Fatalf("unexpected video payload: %+v", video)
-	}
-	if video["width"] == nil || video["height"] == nil || video["duration"] == nil {
-		t.Fatalf("expected probed video metadata, got %+v", video)
-	}
-}
-
-func TestPublishCommandBuildsDouyinVideoPayloadFromFlagsWithVisibleType(t *testing.T) {
-	withRepoRoot(t)
-	videoPath := filepath.Join(t.TempDir(), "clip.mp4")
-	createTestVideo(t, videoPath)
-	coverPath := filepath.Join(t.TempDir(), "cover.png")
-	if err := os.WriteFile(coverPath, testPNGBytes(t), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	publishAccount = "视频账号"
-	publishTitle = "视频标题"
-	publishDescription = "视频描述"
-	publishVideoPath = videoPath
-	publishCoverPath = coverPath
-	publishVisibleType = -1
-	t.Cleanup(resetPublishFlagsForTest)
-
-	var publishCalls int
-	var publishBody map[string]interface{}
-	server := videoPublishTestServer(t, &publishCalls, &publishBody)
-	defer server.Close()
-	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
-
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	cpf := publishBody["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
-	if cpf["visibleType"] != float64(0) {
-		t.Fatalf("expected visibleType=0, got %+v", cpf)
-	}
-	if _, ok := cpf["pubType"]; ok {
-		t.Fatalf("did not expect pubType for douyin video, got %+v", cpf)
-	}
-}
-
-func TestPublishCommandRejectsVideoFlagsWithoutCover(t *testing.T) {
-	withRepoRoot(t)
-	videoPath := filepath.Join(t.TempDir(), "clip.mp4")
-	createTestVideo(t, videoPath)
-
-	publishAccount = "视频账号"
-	publishTitle = "视频标题"
-	publishDescription = "视频描述"
-	publishVideoPath = videoPath
-	publishCoverPath = ""
-	t.Cleanup(resetPublishFlagsForTest)
-
-	server := videoPublishTestServer(t, new(int), new(map[string]interface{}))
-	defer server.Close()
-	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
-
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音"})
-	if err == nil {
-		t.Fatal("expected video flags mode to require cover")
-	}
-	if !strings.Contains(err.Error(), "video publish requires cover") {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestPublishCommandFlagsLocalModeKeepsRequestPublishChannelConsistent(t *testing.T) {
-	withRepoRoot(t)
-	videoPath := filepath.Join(t.TempDir(), "clip.mp4")
-	createTestVideo(t, videoPath)
-	coverPath := filepath.Join(t.TempDir(), "cover.png")
-	if err := os.WriteFile(coverPath, testPNGBytes(t), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	publishAccount = "视频账号"
-	publishTitle = "视频标题"
-	publishDescription = "视频描述"
-	publishVideoPath = videoPath
-	publishCoverPath = coverPath
-	publishChannelFlag = "local"
-	publishClientID = "flag_client_1"
-	t.Cleanup(resetPublishFlagsForTest)
-
-	var publishCalls int
-	var publishBody map[string]interface{}
-	server := videoPublishTestServer(t, &publishCalls, &publishBody)
-	defer server.Close()
-	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
-
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if publishCalls != 1 {
-		t.Fatalf("expected one publish call, got %d", publishCalls)
-	}
-	if publishBody["publishChannel"] != "local" || publishBody["clientId"] != "flag_client_1" {
-		t.Fatalf("expected local publish body, got %+v", publishBody)
-	}
-	if publishBody["publishArgs"].(map[string]interface{})["publishChannel"] != "local" {
-		t.Fatalf("expected nested publishArgs.publishChannel to match local mode, got %+v", publishBody["publishArgs"])
-	}
-}
-
-func resetPublishFlagsForTest() {
-	publishChannelFlag = ""
-	publishClientID = ""
-	publishAccount = ""
-	publishTitle = ""
-	publishDescription = ""
-	publishContent = ""
-	publishImages = nil
-	publishVideoPath = ""
-	publishVideoKey = ""
-	publishCoverPath = ""
-	publishVisibleType = -1
-}
-
 func resetPublishPromptForTest() {
 	publishflow.PromptInput = strings.NewReader("")
 	publishflow.PromptOutput = io.Discard
@@ -1204,9 +1010,7 @@ func resetPublishPromptForTest() {
 
 func imageTextPublishTestServer(t *testing.T, publishCalls *int, publishBody *map[string]interface{}) *httptest.Server {
 	t.Helper()
-	imageBytes := testPNGBytes(t)
-	var server *httptest.Server
-	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/v2/platform/accounts":
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -1214,15 +1018,6 @@ func imageTextPublishTestServer(t *testing.T, publishCalls *int, publishBody *ma
 					{"platformAccountId": "acc_xhs_1", "name": "图文账号", "status": 1},
 				},
 			})
-		case "/storages/cloud-publish/upload-url":
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{
-				"data": map[string]interface{}{
-					"serviceUrl": server.URL + "/oss/cover.png",
-					"key":        "uploaded/cover.png",
-				},
-			})
-		case "/oss/cover.png":
-			w.WriteHeader(http.StatusOK)
 		case "/taskSets/v2":
 			*publishCalls++
 			if err := json.NewDecoder(r.Body).Decode(publishBody); err != nil {
@@ -1232,133 +1027,9 @@ func imageTextPublishTestServer(t *testing.T, publishCalls *int, publishBody *ma
 				"data": map[string]interface{}{"taskSetId": "task_set_1"},
 			})
 		default:
-			if strings.HasSuffix(r.URL.Path, ".png") {
-				w.Header().Set("Content-Type", "image/png")
-				_, _ = w.Write(imageBytes)
-				return
-			}
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
 	}))
-	return server
-}
-
-func articlePublishTestServer(t *testing.T, publishCalls *int, publishBody *map[string]interface{}) *httptest.Server {
-	t.Helper()
-	imageBytes := testPNGBytes(t)
-	var server *httptest.Server
-	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/v2/platform/accounts":
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{
-				"data": []map[string]interface{}{
-					{"platformAccountId": "acc_zhihu_1", "name": "知乎账号", "status": 1},
-				},
-			})
-		case "/storages/cloud-publish/upload-url":
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{
-				"data": map[string]interface{}{
-					"serviceUrl": server.URL + "/oss/cover.png",
-					"key":        "uploaded/cover.png",
-				},
-			})
-		case "/oss/cover.png":
-			w.WriteHeader(http.StatusOK)
-		case "/taskSets/v2":
-			*publishCalls++
-			if err := json.NewDecoder(r.Body).Decode(publishBody); err != nil {
-				t.Fatal(err)
-			}
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{
-				"data": map[string]interface{}{"taskSetId": "task_set_article"},
-			})
-		default:
-			if strings.HasSuffix(r.URL.Path, ".png") {
-				w.Header().Set("Content-Type", "image/png")
-				_, _ = w.Write(imageBytes)
-				return
-			}
-			t.Fatalf("unexpected path: %s", r.URL.Path)
-		}
-	}))
-	return server
-}
-
-func douyinArticlePublishTestServer(t *testing.T, publishCalls *int, publishBody *map[string]interface{}) *httptest.Server {
-	t.Helper()
-	imageBytes := testPNGBytes(t)
-	var server *httptest.Server
-	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/v2/platform/accounts":
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{
-				"data": []map[string]interface{}{
-					{"platformAccountId": "acc_douyin_1", "name": "抖音账号", "status": 1},
-				},
-			})
-		case "/storages/cloud-publish/upload-url":
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{
-				"data": map[string]interface{}{
-					"serviceUrl": server.URL + "/oss/cover.png",
-					"key":        "uploaded/cover.png",
-				},
-			})
-		case "/oss/cover.png":
-			w.WriteHeader(http.StatusOK)
-		case "/taskSets/v2":
-			*publishCalls++
-			if err := json.NewDecoder(r.Body).Decode(publishBody); err != nil {
-				t.Fatal(err)
-			}
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{
-				"data": map[string]interface{}{"taskSetId": "task_set_article"},
-			})
-		default:
-			if strings.HasSuffix(r.URL.Path, ".png") {
-				w.Header().Set("Content-Type", "image/png")
-				_, _ = w.Write(imageBytes)
-				return
-			}
-			t.Fatalf("unexpected path: %s", r.URL.Path)
-		}
-	}))
-	return server
-}
-
-func videoPublishTestServer(t *testing.T, publishCalls *int, publishBody *map[string]interface{}) *httptest.Server {
-	t.Helper()
-	var server *httptest.Server
-	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/v2/platform/accounts":
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{
-				"data": []map[string]interface{}{
-					{"platformAccountId": "acc_video_1", "name": "视频账号", "status": 1},
-				},
-			})
-		case "/storages/cloud-publish/upload-url":
-			fileKey := r.URL.Query().Get("fileKey")
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{
-				"data": map[string]interface{}{
-					"serviceUrl": server.URL + "/oss/" + fileKey,
-					"key":        "uploaded/" + fileKey,
-				},
-			})
-		case "/oss/clip.mp4", "/oss/cover.png":
-			w.WriteHeader(http.StatusOK)
-		case "/taskSets/v2":
-			*publishCalls++
-			if err := json.NewDecoder(r.Body).Decode(publishBody); err != nil {
-				t.Fatal(err)
-			}
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{
-				"data": map[string]interface{}{"taskSetId": "task_set_video"},
-			})
-		default:
-			t.Fatalf("unexpected path: %s", r.URL.Path)
-		}
-	}))
-	return server
 }
 
 func testPNGBytes(t *testing.T) []byte {
@@ -1374,31 +1045,6 @@ func testPNGBytes(t *testing.T) []byte {
 		0, 0, 0, 0, 73, 69, 78, 68,
 		174, 66, 96, 130,
 	}
-}
-
-func createTestVideo(t *testing.T, outputPath string) {
-	t.Helper()
-	ffmpegPath := resolveCommandPath(t, "ffmpeg")
-	if ffmpegPath == "" {
-		t.Skip("ffmpeg not available for video flags test")
-	}
-	cmd := exec.Command(ffmpegPath, "-y", "-f", "lavfi", "-i", "color=c=black:s=16x16:d=1", "-pix_fmt", "yuv420p", outputPath)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Skipf("skipping video flags test because ffmpeg could not run: %v, output=%s", err, string(out))
-	}
-}
-
-func resolveCommandPath(t *testing.T, name string) string {
-	t.Helper()
-	if path, err := exec.LookPath(name); err == nil {
-		return path
-	}
-	cmd := exec.Command("powershell", "-NoProfile", "-Command", "(Get-Command "+name+" | Select-Object -ExpandProperty Source)")
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(out))
 }
 
 func publishTestServer(t *testing.T, accountStatus int, publishCalls *int, publishBody *map[string]interface{}) *httptest.Server {

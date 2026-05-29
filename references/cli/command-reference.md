@@ -39,9 +39,6 @@ yxer upload --url <resource_url> [--bucket cloud-publish|material-library] [--dr
 ```bash
 yxer validate <platform> <type> <payload.json>
 yxer publish <type> <platform> <payload.json> [clientId] [--dry-run]
-yxer publish imageText <platform> --account <账号名或ID> --title <标题> --description <正文> --image <图片路径或URL> [--image ...] [--dry-run]
-yxer publish article <platform> --account <账号名或ID> --title <标题> --content @<html文件> [--cover <封面路径或URL>] [--dry-run]
-yxer publish video <platform> --account <账号名或ID> --title <标题> --description <描述> --video <视频路径或URL> [--cover <封面路径或URL>] [--dry-run]
 ```
 
 ### 草稿与素材库
@@ -70,8 +67,9 @@ yxer schema get <platform> <type>
 
 - 发布类型统一使用：`video`、`imageText`、`article`
 - 单次 `yxer publish` 只处理一个平台
-- 推荐优先使用 `publish` 的 flags 模式，让 CLI 自动解析账号、上传资源并组装 payload
-- `payload.json` 模式继续保留，适合高级定制或手工调试
+- `publish` 仅支持 `payload.json` 模式
+- 发布前建议先执行 `yxer prepare <platform> <type>` 和 `yxer schema get <platform> <type>`，确认表单字段和 schema 后再填写 payload
+- 若 `payload.json` 采用标准 `publishArgs` 结构，CLI 会在最终请求中自动补齐最外层 `cover`、`coverKey`、`desc`、`isDraft`、`isAppContent`
 - 云发布是默认模式
 - 本机发布时必须提供 `clientId`
 - 本机发布可通过三种方式提供 `clientId`：
@@ -82,7 +80,7 @@ yxer schema get <platform> <type>
 - `yxer material create` 只做素材登记，前提是资源已经通过 `yxer upload --bucket material-library` 上传
 - 推荐优先使用 `yxer material add --file ...`，由 CLI 自动完成上传和素材登记
 - 查询类操作可以直接执行
-- 发布类操作必须遵守“查账号 -> 上传资源 -> 查询复杂对象 -> validate -> publish”顺序
+- 发布类操作必须遵守“查账号 -> prepare/schema -> 上传资源 -> 查询复杂对象 -> 填 payload -> validate -> publish”顺序
 
 ## 快速示例
 
@@ -108,54 +106,32 @@ yxer upload --file .\video.mp4
 yxer upload --url https://example.com/demo.jpg
 ```
 
-## 推荐发布方式
+## 推荐发布流程
 
-### 图文
+### 获取表单字段与 schema
 
 ```bash
-yxer publish imageText 小红书 \
-  --account "图文账号" \
-  --title "图文标题" \
-  --description "图文正文" \
-  --image ./1.jpg \
-  --image ./2.jpg \
-  --dry-run
+yxer prepare 小红书 imageText
+yxer schema get 小红书 imageText
 ```
 
-### 文章
+### 校验与预览发布
 
 ```bash
-yxer publish article 知乎 \
-  --account "知乎账号" \
-  --title "文章标题" \
-  --content @./article.html \
-  --cover ./cover.png \
-  --dry-run
+yxer validate 小红书 imageText .\payload.json
+yxer publish imageText 小红书 .\payload.json --dry-run
 ```
 
-### 视频
+### 正式发布
 
 ```bash
-yxer publish video 抖音 \
-  --account "视频账号" \
-  --title "视频标题" \
-  --description "视频描述" \
-  --video ./clip.mp4 \
-  --cover ./cover.png \
-  --dry-run
+yxer publish imageText 小红书 .\payload.json
 ```
 
 ### 本机发布
 
 ```bash
-yxer publish video 抖音 \
-  --account "视频账号" \
-  --title "视频标题" \
-  --description "视频描述" \
-  --video ./clip.mp4 \
-  --cover ./cover.png \
-  --publish-channel local \
-  --client-id <clientId>
+yxer publish video 抖音 .\payload.json --publish-channel local --client-id <clientId>
 ```
 
 ## 常见工作流入口

@@ -206,6 +206,38 @@ func TestPreflightAcceptsImageTextImagesInContentPublishForm(t *testing.T) {
 	}
 }
 
+func TestPreflightRejectsShipinghaoOversizedCover(t *testing.T) {
+	payload := validVideoPayload()
+	form := payload["accountForms"].([]interface{})[0].(map[string]interface{})
+	form["cover"] = map[string]interface{}{
+		"key":    "cover-key",
+		"size":   float64(600 * 1024),
+		"width":  float64(2048),
+		"height": float64(2048),
+	}
+
+	result := Preflight("video", []string{"视频号"}, payload)
+	assertHasError(t, result.Errors, "accountForms[0].cover.size: 视频号封面不能超过 512KB")
+}
+
+func TestPreflightAcceptsShipinghaoCoverAtLimit(t *testing.T) {
+	payload := validVideoPayload()
+	form := payload["accountForms"].([]interface{})[0].(map[string]interface{})
+	form["cover"] = map[string]interface{}{
+		"key":    "cover-key",
+		"size":   float64(512 * 1024),
+		"width":  float64(720),
+		"height": float64(720),
+	}
+
+	result := Preflight("video", []string{"视频号"}, payload)
+	for _, err := range result.Errors {
+		if strings.Contains(err, "视频号封面不能超过 512KB") {
+			t.Fatalf("expected cover at limit to pass, got %v", result.Errors)
+		}
+	}
+}
+
 func TestPreflightRejectsImageTextMissingImageKey(t *testing.T) {
 	payload := map[string]interface{}{
 		"accountForms": []interface{}{

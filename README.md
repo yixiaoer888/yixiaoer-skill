@@ -85,16 +85,13 @@ yxer accounts list 抖音 --json
 yxer publish video 抖音 .\payload.json --dry-run
 ```
 
-如果你走 flags 模式，也可以直接：
+发布前建议先获取表单字段和前置数据，再填写 `payload.json`：
 
 ```bash
-yxer publish video 抖音 \
-  --account "视频账号" \
-  --title "视频标题" \
-  --description "视频描述" \
-  --video .\clip.mp4 \
-  --cover .\cover.png \
-  --dry-run
+yxer prepare 抖音 video
+yxer schema get 抖音 video
+yxer validate 抖音 video .\payload.json
+yxer publish video 抖音 .\payload.json --dry-run
 ```
 
 ## AI Skill 安装
@@ -163,7 +160,7 @@ yxer linked-app toggle
 
 推荐约束：
 
-- 优先调用 `yxer` CLI，不手写大 JSON
+- 优先调用 `yxer` CLI，通过 `prepare` / `schema get` 了解字段后再填写 `payload.json`
 - 发布前先查账号，再上传资源
 - 复杂对象通过查询命令获取，不手写 `raw`
 - 本机发布显式传 `--publish-channel local` 和 `--client-id`
@@ -190,6 +187,8 @@ yxer upload --url <resource_url> [--bucket cloud-publish|material-library] [--dr
 ### 发布和校验
 
 ```bash
+yxer prepare <platform> <type>
+yxer schema get <platform> <type>
 yxer validate <platform> <type> <payload.json>
 yxer publish <type> <platform> <payload.json> [clientId] [--dry-run]
 ```
@@ -226,11 +225,14 @@ yxer records list [--platform P] [--limit N] [--status S] [--json]
 
 1. `yxer doctor`
 2. `yxer accounts list`
-3. `yxer upload`
-4. 查询分类、位置、音乐等复杂对象
-5. `yxer validate`
-6. `yxer publish --dry-run`
-7. `yxer publish`
+3. `yxer prepare`
+4. `yxer schema get`
+5. `yxer upload`
+6. 查询分类、位置、音乐等复杂对象
+7. 填写 `payload.json`
+8. `yxer validate`
+9. `yxer publish --dry-run`
+10. `yxer publish`
 
 ### Skill 与 CLI 的分工
 

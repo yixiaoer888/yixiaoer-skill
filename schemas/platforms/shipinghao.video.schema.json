@@ -16,10 +16,124 @@
       "maxLength": 80
     },
     "short_title": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 80
     },
     "description": {
+      "type": "string",
+      "maxLength": 1000
+    },
+    "video": {
+      "type": "object",
+      "required": [
+        "key",
+        "size",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "duration": {
+          "type": "number",
+          "minimum": 1
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "mp4",
+            "mov",
+            "flv",
+            "avi"
+          ]
+        }
+      }
+    },
+    "cover": {
+      "type": "object",
+      "required": [
+        "key",
+        "size",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "jpg",
+            "jpeg",
+            "png",
+            "webp"
+          ]
+        }
+      }
+    },
+    "coverKey": {
       "type": "string"
+    },
+    "horizontalCover": {
+      "type": "object",
+      "required": [
+        "key",
+        "size",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "jpg",
+            "jpeg",
+            "png",
+            "webp"
+          ]
+        }
+      }
     },
     "createType": {
       "type": "number",
@@ -36,29 +150,6 @@
         1
       ],
       "default": 1
-    },
-    "horizontalCover": {
-      "type": "object",
-      "required": [
-        "key",
-        "size",
-        "width",
-        "height"
-      ],
-      "properties": {
-        "key": {
-          "type": "string"
-        },
-        "size": {
-          "type": "integer"
-        },
-        "width": {
-          "type": "integer"
-        },
-        "height": {
-          "type": "integer"
-        }
-      }
     },
     "location": {
       "type": "object",
@@ -135,71 +226,6 @@
           "type": "object"
         }
       }
-    },
-    "video": {
-      "type": "object",
-      "required": [
-        "key",
-        "size",
-        "width",
-        "height"
-      ],
-      "properties": {
-        "key": {
-          "type": "string"
-        },
-        "size": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "width": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "height": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "duration": {
-          "type": "number",
-          "minimum": 1
-        },
-        "format": {
-          "type": "string",
-          "enum": [
-            "mp4",
-            "mov",
-            "flv",
-            "avi"
-          ]
-        }
-      }
-    },
-    "cover": {
-      "type": "object",
-      "required": [
-        "key",
-        "size",
-        "width",
-        "height"
-      ],
-      "properties": {
-        "key": {
-          "type": "string"
-        },
-        "size": {
-          "type": "integer"
-        },
-        "width": {
-          "type": "integer"
-        },
-        "height": {
-          "type": "integer"
-        }
-      }
-    },
-    "coverKey": {
-      "type": "string"
     },
     "scheduledTime": {
       "type": "number",

@@ -125,6 +125,23 @@ func TestSchemaResolvesVideoAccountAliasesToCanonicalKeys(t *testing.T) {
 	}
 }
 
+func TestSchemaReturnsValidShipinghaoVideoSchema(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	schemaDoc, err := validator.Schema("视频号", "video")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if schemaDoc.Title == "" {
+		t.Fatal("expected schema title for shipinghao video")
+	}
+	if _, ok := schemaDoc.Properties["createType"]; !ok {
+		t.Fatalf("expected shipinghao video schema to expose createType, got %+v", schemaDoc.Properties)
+	}
+	if _, ok := schemaDoc.Properties["pubType"]; !ok {
+		t.Fatalf("expected shipinghao video schema to expose pubType, got %+v", schemaDoc.Properties)
+	}
+}
+
 func TestSchemaResolvesShipinghaoImageTextWithoutLegacyAlias(t *testing.T) {
 	validator := NewValidator(filepath.Join("..", "..", "schemas"))
 	schemaDoc, err := validator.Schema("视频号", "imageText")

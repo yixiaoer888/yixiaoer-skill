@@ -7,28 +7,25 @@
 
 ## 推荐入口
 
-优先使用 flags 模式：
+仅支持 `payload.json` 模式。发布前先获取表单字段和 schema：
 
 ```bash
-yxer publish video <platform> \
-  --account "<账号名或ID>" \
-  --title "<标题>" \
-  --description "<描述>" \
-  --video ./clip.mp4 \
-  --cover ./cover.png
+yxer prepare <platform> video
+yxer schema get <platform> video
 ```
-
-只有在需要高级平台字段时，才回退到 `payload.json` 模式。
 
 ## 执行顺序
 
 1. 查询账号：`yxer accounts [platform]`
-2. 上传视频：`yxer upload <视频路径或URL>`
-3. 上传封面：`yxer upload <封面路径或URL>`
-4. 按需查询分类、位置、音乐、合集、话题、商品
-5. 查阅对应平台文档：`docs/publish/video/`
-6. 执行校验：`yxer validate <platform> video <payload.json>`
-7. 正式发布：`yxer publish video <platform> <payload.json>`
+2. 获取前置数据：`yxer prepare <platform> video`
+3. 获取 schema：`yxer schema get <platform> video`
+4. 上传视频：`yxer upload <视频路径或URL>`
+5. 上传封面：`yxer upload <封面路径或URL>`
+6. 按需查询分类、位置、音乐、合集、话题、商品
+7. 根据前置数据与 schema 填写 `payload.json`
+8. 查阅对应平台文档：`docs/publish/video/`
+9. 执行校验：`yxer validate <platform> video <payload.json>`
+10. 正式发布：`yxer publish video <platform> <payload.json>`
 
 ## 关键规则
 
@@ -36,30 +33,20 @@ yxer publish video <platform> \
 - 视频只能有一个，封面必须单独上传
 - 用户未提供封面时，必须补问，不要自动截帧
 - 可选复杂对象必须通过查询命令取得完整对象后再填入
+- 发布前先看 `prepare` 和 `schema get` 返回的表单字段，再填写 payload
 - 用户明确要求本机发布时，必须显式传 `--publish-channel local` 和 `--client-id`
 
-## 直发示例
+## 发布示例
 
 ```bash
-yxer publish video 抖音 \
-  --account "视频账号" \
-  --title "视频标题" \
-  --description "视频描述" \
-  --video ./clip.mp4 \
-  --cover ./cover.png
+yxer validate 抖音 video .\payload.json
+yxer publish video 抖音 .\payload.json
 ```
 
 ## 本机发布示例
 
 ```bash
-yxer publish video 抖音 \
-  --account "视频账号" \
-  --title "视频标题" \
-  --description "视频描述" \
-  --video ./clip.mp4 \
-  --cover ./cover.png \
-  --publish-channel local \
-  --client-id <clientId>
+yxer publish video 抖音 .\payload.json --publish-channel local --client-id <clientId>
 ```
 
 ## 平台文档入口

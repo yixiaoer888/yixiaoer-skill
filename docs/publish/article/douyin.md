@@ -26,9 +26,9 @@
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
 | `formType` | `string` | **是** | 固定值: `task` | `task` |
-| `title` | `string` | **是** | 文章标题 (最多 50 字) | - |
+| `title` | `string` | **是** | 文章标题 (最多 30 字) | - |
 | `content` | `string` | **是** | 文章正文 (HTML 格式，最多 50000 字符) | - |
-| `description` | `string` | 否 | 文章描述或摘要 (最多 200 字) | - |
+| `description` | `string` | 否 | 文章描述或摘要 (最多 30 字) | - |
 | `covers` | `Array` | **是** | 封面图 OSS 列表 (`OldCover[]`, 1-9 张) | - |
 | `headImage` | `Object` | 否 | 文章头图 (`OldCover`) | - |
 | `music` | `Object` | 否 | 平台音乐背景 (`MusicItem`) | - |

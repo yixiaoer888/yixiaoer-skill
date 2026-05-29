@@ -14,11 +14,11 @@
     },
     "title": {
       "type": "string",
-      "maxLength": 50
+      "maxLength": 20
     },
     "description": {
       "type": "string",
-      "maxLength": 1000
+      "maxLength": 30
     },
     "images": {
       "type": "array",

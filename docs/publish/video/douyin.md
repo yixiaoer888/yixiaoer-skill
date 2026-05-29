@@ -28,8 +28,8 @@
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
 | `formType` | `string` | **是** | 固定为 `task` | `task` |
-| `title` | `string` | **是** | 抖音视频标题 (1-50 字) | - |
-| `description` | `string` | **是** | 抖音视频描述 (1-500 字) | - |
+| `title` | `string` | **是** | 抖音视频标题 (1-30 字) | - |
+| `description` | `string` | **是** | 抖音视频描述 (1-30 字) | - |
 | `horizontalCover` | `object` | 否 | 抖音视频横板封面，使用 `OldCover` 结构 | - |
 | `declaration` | `number` | 否 | 声明: 3-内容从 AI 生成, 4-可能引人不适, 5-虚构演绎, 6-危险行为 | - |
 | `location` | `object` | 否 | 抖音视频位置，使用 `PlatformDataItem` 结构 | - |

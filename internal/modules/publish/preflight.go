@@ -14,6 +14,8 @@ type PreflightResult struct {
 
 var externalURLPattern = regexp.MustCompile(`(?i)^https?://`)
 
+const shipinghaoCoverMaxBytes = 512 * 1024
+
 func Preflight(publishType string, platforms []string, payload map[string]interface{}) PreflightResult {
 	var result PreflightResult
 	publishType = NormalizePublishType(publishType)
@@ -66,6 +68,7 @@ func Preflight(publishType string, platforms []string, payload map[string]interf
 			}
 			requireUploadedResource(cover, formPath+".cover", &result.Errors)
 			requireCoverKey(form, cpf, cover, formPath, &result.Errors)
+			requirePlatformConstraints(platforms, cover, formPath, &result.Errors)
 		case "imageText":
 			images, _ := form["images"].([]interface{})
 			if len(images) == 0 && cpf != nil {
@@ -198,6 +201,28 @@ func NormalizeStandardPublishArgs(payload map[string]interface{}) {
 		}
 		copyIfMissing(form, cpf, "images")
 		copyIfMissing(cpf, payload, "content")
+	}
+}
+
+func requirePlatformConstraints(platforms []string, cover map[string]interface{}, formPath string, errors *[]string) {
+	for _, platform := range platforms {
+		switch strings.TrimSpace(platform) {
+		case "视频号", "微信视频号", "shipinghao":
+			requireShipinghaoCoverSize(cover, formPath, errors)
+		}
+	}
+}
+
+func requireShipinghaoCoverSize(cover map[string]interface{}, formPath string, errors *[]string) {
+	if cover == nil {
+		return
+	}
+	size, ok := integerField(cover, "size")
+	if !ok {
+		return
+	}
+	if size > shipinghaoCoverMaxBytes {
+		*errors = append(*errors, fmt.Sprintf("%s.cover.size: 视频号封面不能超过 512KB，当前为 %d bytes", formPath, size))
 	}
 }
 
@@ -374,4 +399,24 @@ func normalizeScheduledTimeInt64(value int64) (float64, string) {
 		return 0, "must be a 13-digit Unix timestamp in milliseconds"
 	}
 	return float64(value / 1000), ""
+}
+
+func integerField(obj map[string]interface{}, key string) (int64, bool) {
+	value, ok := obj[key]
+	if !ok || value == nil {
+		return 0, false
+	}
+	switch typed := value.(type) {
+	case float64:
+		if typed != math.Trunc(typed) {
+			return 0, false
+		}
+		return int64(typed), true
+	case int:
+		return int64(typed), true
+	case int64:
+		return typed, true
+	default:
+		return 0, false
+	}
 }

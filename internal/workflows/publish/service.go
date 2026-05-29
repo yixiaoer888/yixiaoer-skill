@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/client"
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/config"
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/media"
 	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/core/platform"
 	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
@@ -25,20 +23,6 @@ type ExecuteInput struct {
 	FlagClientID       string
 }
 
-type BuildInput struct {
-	PublishType   string
-	PlatformInput string
-	Account       string
-	Title         string
-	Description   string
-	Content       string
-	Images        []string
-	VideoPath     string
-	VideoKey      string
-	CoverPath     string
-	VisibleType   int
-}
-
 type Service struct{}
 
 var (
@@ -48,47 +32,6 @@ var (
 
 func NewService() Service {
 	return Service{}
-}
-
-func formatImageTextDescription(description string, tags []string) string {
-	description = strings.TrimSpace(description)
-	if len(tags) == 0 {
-		return description
-	}
-	if strings.Contains(description, "<topic") {
-		return description
-	}
-	topicParts := make([]string, 0, len(tags))
-	for _, tag := range tags {
-		tag = strings.TrimSpace(tag)
-		if tag == "" {
-			continue
-		}
-		text := strings.TrimPrefix(tag, "#")
-		if text == "" {
-			continue
-		}
-		topicParts = append(topicParts, fmt.Sprintf(`<topic text="%s">#%s</topic>`, text, text))
-	}
-	if len(topicParts) == 0 {
-		return description
-	}
-	return fmt.Sprintf("<p>%s</p><p>%s</p>", description, strings.Join(topicParts, ""))
-}
-
-func stringSlice(values []interface{}) []string {
-	if len(values) == 0 {
-		return nil
-	}
-	result := make([]string, 0, len(values))
-	for _, value := range values {
-		text := strings.TrimSpace(fmt.Sprint(value))
-		if text == "" || text == "<nil>" {
-			continue
-		}
-		result = append(result, text)
-	}
-	return result
 }
 
 func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
@@ -169,151 +112,6 @@ func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	return apiClient.Publish(body)
 }
 
-func (Service) BuildPayload(input BuildInput) (map[string]interface{}, error) {
-	input.PublishType = NormalizePublishType(input.PublishType)
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, err
-	}
-	apiClient := client.New(cfg)
-	platform, err := SinglePlatform(input.PlatformInput)
-	if err != nil {
-		return nil, err
-	}
-	accountID, err := resolveAccountID(apiClient, platform, input.Account)
-	if err != nil {
-		return nil, err
-	}
-
-	form := map[string]interface{}{
-		"formType": "task",
-	}
-	accountForm := map[string]interface{}{
-		"platformAccountId":  accountID,
-		"contentPublishForm": form,
-	}
-	payload := map[string]interface{}{
-		"publishChannel": "cloud",
-	}
-
-	switch input.PublishType {
-	case "imageText":
-		if strings.TrimSpace(input.Description) == "" {
-			return nil, yxerrors.Usage("imageText publish requires description", nil).
-				WithHint("请传入 --description，图文发布正文不能为空。")
-		}
-		tagValues, _ := form["tags"].([]interface{})
-		finalDescription := formatImageTextDescription(input.Description, stringSlice(tagValues))
-		form["description"] = finalDescription
-		if strings.TrimSpace(input.Title) != "" {
-			form["title"] = input.Title
-		}
-		if input.VisibleType >= 0 {
-			form["visibleType"] = float64(input.VisibleType)
-		}
-		images, err := uploadImages(apiClient, input.Images)
-		if err != nil {
-			return nil, err
-		}
-		if len(images) == 0 {
-			return nil, yxerrors.Usage("imageText publish requires at least one image", nil).
-				WithHint("请至少传入一个 --image 本地文件路径或 URL。")
-		}
-		form["images"] = images
-		firstImage, _ := images[0].(map[string]interface{})
-		accountForm["cover"] = imageCover(firstImage)
-		accountForm["coverKey"] = fmt.Sprint(firstImage["key"])
-		payload["coverKey"] = accountForm["coverKey"]
-		payload["desc"] = input.Description
-	case "article":
-		if strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Content) == "" {
-			return nil, yxerrors.Usage("article publish requires title and content", nil).
-				WithHint("请同时传入 --title 和 --content，文章正文支持 @文件路径。")
-		}
-		if strings.TrimSpace(input.CoverPath) == "" {
-			return nil, yxerrors.Usage("article publish requires cover", nil).
-				WithHint("请传入 --cover，当前 article flags 模式要求明确提供封面。")
-		}
-		content, err := resolveContent(input.Content)
-		if err != nil {
-			return nil, err
-		}
-		form["title"] = input.Title
-		form["content"] = content
-		if usesVisibleType(platform) {
-			form["visibleType"] = float64(defaultVisibleType(input.VisibleType))
-		} else {
-			form["pubType"] = float64(1)
-		}
-		cover, err := uploadImage(apiClient, input.CoverPath)
-		if err != nil {
-			return nil, err
-		}
-		form["covers"] = []interface{}{cover}
-		accountForm["cover"] = cover
-		accountForm["coverKey"] = fmt.Sprint(cover["key"])
-		payload["coverKey"] = accountForm["coverKey"]
-		payload["desc"] = input.Title
-	case "video":
-		if strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Description) == "" {
-			return nil, yxerrors.Usage("video publish requires title and description", nil).
-				WithHint("请传入 --title 和 --description。")
-		}
-		if strings.TrimSpace(input.CoverPath) == "" {
-			return nil, yxerrors.Usage("video publish requires cover", nil).
-				WithHint("请传入 --cover，当前 video flags 模式要求明确提供封面。")
-		}
-		var video map[string]interface{}
-		if strings.TrimSpace(input.VideoPath) != "" {
-			video, err = uploadVideo(apiClient, input.VideoPath)
-			if err != nil {
-				return nil, err
-			}
-		} else if strings.TrimSpace(input.VideoKey) != "" {
-			video = map[string]interface{}{"key": input.VideoKey}
-		} else {
-			return nil, yxerrors.Usage("video publish requires --video or --video-key", nil).
-				WithHint("请传入本地视频文件路径，或先上传视频后提供 --video-key。")
-		}
-		form["title"] = input.Title
-		form["description"] = input.Description
-		if usesVisibleType(platform) {
-			form["visibleType"] = float64(defaultVisibleType(input.VisibleType))
-		}
-		accountForm["video"] = video
-		cover, err := uploadImage(apiClient, input.CoverPath)
-		if err != nil {
-			return nil, err
-		}
-		accountForm["cover"] = cover
-		accountForm["coverKey"] = fmt.Sprint(cover["key"])
-		payload["coverKey"] = accountForm["coverKey"]
-		payload["desc"] = input.Description
-	default:
-		return nil, yxerrors.Usage("flags mode does not support publish type", input.PublishType).
-			WithHint("目前仅支持 video、imageText、article 三种发布类型。")
-	}
-
-	payload["accountForms"] = []interface{}{accountForm}
-	return payload, nil
-}
-
-func usesVisibleType(platform string) bool {
-	switch platform {
-	case "抖音":
-		return true
-	default:
-		return false
-	}
-}
-
-func defaultVisibleType(value int) int {
-	if value >= 0 {
-		return value
-	}
-	return 0
-}
-
 func cloneMap(src map[string]interface{}) map[string]interface{} {
 	if src == nil {
 		return map[string]interface{}{}
@@ -348,10 +146,109 @@ func BuildPublishBody(payload, publishArgs map[string]interface{}, publishType s
 		if _, ok := body["publishChannel"]; !ok {
 			body["publishChannel"] = "cloud"
 		}
+		normalizePublishEnvelope(body, publishArgs, publishType)
 		return body
 	}
 	copyOptionalPublishFields(body, payload)
+	normalizePublishEnvelope(body, publishArgs, publishType)
 	return body
+}
+
+func normalizePublishEnvelope(body, publishArgs map[string]interface{}, publishType string) {
+	if body == nil {
+		return
+	}
+	if publishArgs == nil {
+		publishArgs = map[string]interface{}{}
+	}
+	accountForms, _ := publishArgs["accountForms"].([]interface{})
+	firstForm := firstObject(accountForms)
+	firstCPF := objectField(firstForm, "contentPublishForm")
+
+	if _, ok := body["cover"]; !ok {
+		if cover := firstNonNil(
+			publishArgs["cover"],
+			firstForm["cover"],
+			firstCPF["cover"],
+		); cover != nil {
+			body["cover"] = cover
+		}
+	}
+	if stringField(body, "coverKey") == "" {
+		if coverKey := firstNonEmptyString(
+			stringField(publishArgs, "coverKey"),
+			stringField(firstForm, "coverKey"),
+			stringField(firstCPF, "coverKey"),
+			stringField(objectField(body, "cover"), "key"),
+		); coverKey != "" {
+			body["coverKey"] = coverKey
+		}
+	}
+	if stringField(body, "desc") == "" {
+		if desc := inferOuterDesc(publishType, publishArgs, firstCPF); desc != "" {
+			body["desc"] = desc
+		}
+	}
+	if _, ok := body["isDraft"]; !ok {
+		body["isDraft"] = false
+	}
+	if _, ok := body["isAppContent"]; !ok {
+		body["isAppContent"] = false
+	}
+}
+
+func inferOuterDesc(publishType string, publishArgs, contentPublishForm map[string]interface{}) string {
+	switch NormalizePublishType(publishType) {
+	case "article":
+		return firstNonEmptyString(
+			stringField(contentPublishForm, "title"),
+			stringField(contentPublishForm, "description"),
+			stringField(publishArgs, "content"),
+			stringField(contentPublishForm, "content"),
+		)
+	case "video", "imageText":
+		return firstNonEmptyString(
+			stringField(contentPublishForm, "description"),
+			stringField(contentPublishForm, "title"),
+			stringField(publishArgs, "content"),
+			stringField(contentPublishForm, "content"),
+		)
+	default:
+		return firstNonEmptyString(
+			stringField(contentPublishForm, "description"),
+			stringField(contentPublishForm, "title"),
+			stringField(publishArgs, "content"),
+			stringField(contentPublishForm, "content"),
+		)
+	}
+}
+
+func firstObject(items []interface{}) map[string]interface{} {
+	for _, item := range items {
+		if obj, ok := item.(map[string]interface{}); ok {
+			return obj
+		}
+	}
+	return nil
+}
+
+func firstNonNil(values ...interface{}) interface{} {
+	for _, value := range values {
+		if value != nil {
+			return value
+		}
+	}
+	return nil
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value != "" && value != "<nil>" {
+			return value
+		}
+	}
+	return ""
 }
 
 func ResolvePublishMode(cfg config.Config, payload map[string]interface{}, positionalClientID, flagChannel, flagClientID string) (string, string, error) {
@@ -552,84 +449,4 @@ func accountDisplayName(account map[string]interface{}) string {
 		}
 	}
 	return ""
-}
-
-func uploadImages(apiClient *client.Client, paths []string) ([]interface{}, error) {
-	images := make([]interface{}, 0, len(paths))
-	for _, path := range paths {
-		if strings.TrimSpace(path) == "" {
-			continue
-		}
-		image, err := uploadImage(apiClient, path)
-		if err != nil {
-			return nil, err
-		}
-		images = append(images, image)
-	}
-	return images, nil
-}
-
-func uploadImage(apiClient *client.Client, path string) (map[string]interface{}, error) {
-	result, err := apiClient.Upload(path, "cloud-publish")
-	if err != nil {
-		return nil, err
-	}
-	format := strings.TrimPrefix(strings.ToLower(filepath.Ext(path)), ".")
-	if format == "" {
-		format = result.Format
-	}
-	return map[string]interface{}{
-		"key":    result.Key,
-		"size":   float64(result.Size),
-		"width":  float64(result.Width),
-		"height": float64(result.Height),
-		"format": format,
-	}, nil
-}
-
-func uploadVideo(apiClient *client.Client, path string) (map[string]interface{}, error) {
-	result, err := apiClient.Upload(path, "cloud-publish")
-	if err != nil {
-		return nil, err
-	}
-	meta, err := media.ProbeVideo(path)
-	if err != nil {
-		return nil, err
-	}
-	return map[string]interface{}{
-		"key":      result.Key,
-		"size":     float64(result.Size),
-		"width":    float64(meta.Width),
-		"height":   float64(meta.Height),
-		"duration": meta.Duration,
-		"format":   meta.Format,
-	}, nil
-}
-
-func imageCover(image interface{}) map[string]interface{} {
-	typed, _ := image.(map[string]interface{})
-	if typed == nil {
-		return nil
-	}
-	return map[string]interface{}{
-		"key":    typed["key"],
-		"size":   typed["size"],
-		"width":  typed["width"],
-		"height": typed["height"],
-		"format": typed["format"],
-	}
-}
-
-func resolveContent(content string) (string, error) {
-	content = strings.TrimSpace(content)
-	if !strings.HasPrefix(content, "@") {
-		return content, nil
-	}
-	raw, err := os.ReadFile(strings.TrimPrefix(content, "@"))
-	if err != nil {
-		return "", yxerrors.Usage("article content file could not be read", []string{
-			err.Error(),
-		}).WithHint("请检查 --content @文件路径 是否存在且可读。")
-	}
-	return string(raw), nil
 }

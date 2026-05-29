@@ -59,6 +59,12 @@ Agent 在任何 `publish` 之前，都要先判断这次任务是云发布还是
 | `video.key/size/width/height/duration/format` | 从 `yxer upload` 结果自动获取 | 严禁手动编造 |
 | `cover` / `coverKey` | 默认使用 `images[0]` 或视频封面 | 用户未单独指定封面时自动使用 |
 
+在自动填值之前，Agent 必须先读取平台前置数据和 schema：
+
+- 先执行 `yxer prepare <platform> <type>`，确认该平台该类型需要哪些表单字段、账号能力和前置数据
+- 再执行 `yxer schema get <platform> <type>`，确认 payload 字段名、层级、类型和必填项
+- 只有在 `prepare` / `schema get` 已确认后，才开始填写或补齐 `payload.json`
+
 以下字段应先向用户确认，再填入：
 
 | 字段 | 确认方式 |

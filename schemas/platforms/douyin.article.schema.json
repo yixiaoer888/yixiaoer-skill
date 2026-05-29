@@ -16,7 +16,7 @@
     "title": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 50
+      "maxLength": 30
     },
     "content": {
       "type": "string",
@@ -56,7 +56,7 @@
     },
     "description": {
       "type": "string",
-      "maxLength": 200
+      "maxLength": 30
     },
     "headImage": {
       "type": "object",
@@ -176,7 +176,7 @@
               "title": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 50
+                "maxLength": 30
               },
               "content": {
                 "type": "string",
@@ -216,7 +216,7 @@
               },
               "description": {
                 "type": "string",
-                "maxLength": 200
+                "maxLength": 30
               },
               "headImage": {
                 "type": "object",
