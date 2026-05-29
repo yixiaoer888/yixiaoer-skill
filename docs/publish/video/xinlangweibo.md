@@ -26,7 +26,7 @@
 | description | string | 是 | 视频描述 | - |
 | type | number | 否 | 内容类型：1-原创, 2-转载内容, 3-二次创作内容 | 1 |
 | location | object | 否 | 视频位置，使用 `PlatformDataItem` 结构 | - |
-| scheduledTime | number | 否 | 定时发布时间戳（单位：秒） | - |
+| scheduledTime | number | 否 | 定时发布时间戳（13 位 Unix 时间戳，单位：毫秒） | - |
 | collection | object | 否 | 合集信息 | - |
 
 ## 2. 复杂对象结构

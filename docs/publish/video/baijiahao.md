@@ -30,7 +30,7 @@
 | `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
 | `declaration` | `number` | 否 | 声明: 0-不声明, 1-内容由 AI 生成 | 0 |
 | `location` | `Object` | 否 | 位置信息，使用 `PlatformDataItem` 结构 | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间戳 (单位: 秒) | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间戳 (13 位 Unix 时间戳，单位: 毫秒) | - |
 | `collection` | `Object` | 否 | 合集信息 (`yixiaoerId`, `yixiaoerName`, `raw`) | - |
 | `activity` | `Object` | 否 | 征文活动信息 (`yixiaoerId`, `yixiaoerName`, `raw`) | - |
 

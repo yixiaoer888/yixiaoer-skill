@@ -32,7 +32,7 @@
 | `contentSourceUrl` | `string` | 否 | 原文链接 (当 `createType` 为 2 时必填) | - |
 | `declaration` | `number` | **否** | 声明: 0-无, 1-AI 辅助生成, 2-内容来源网络, 3-个人观点仅供参考 | 0 |
 | `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
-| `scheduledTime` | `number` | **否** | 定时发布时间 (Unix 时间戳，单位: 秒) | - |
+| `scheduledTime` | `number` | **否** | 定时发布时间 (13 位 Unix 时间戳，单位: 毫秒) | - |
 
 ## 2. Payload 完整示例
 

@@ -28,7 +28,7 @@
 | category | object[] | 是 | 视频分类，使用 `CascadingPlatformDataItem[]` 结构 | - |
 | declaration | number | 否 | 声明：3-内容取材网络, 4-内容由AI生成, 5-虚构情节内容 | - |
 | type | number | 是 | 视频原创类型：0-非原创, 1-原创 | 0 |
-| scheduledTime | number | 否 | 定时发布时间戳（单位：秒） | - |
+| scheduledTime | number | 否 | 定时发布时间戳（13 位 Unix 时间戳，单位：毫秒） | - |
 
 ## 2. 复杂对象结构
 

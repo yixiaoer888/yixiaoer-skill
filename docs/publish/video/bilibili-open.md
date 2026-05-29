@@ -28,7 +28,7 @@
 | category | object[] | 是 | 视频分类，使用 `CascadingPlatformDataItem[]` 结构 | - |
 | declaration | number | 是 | 创作者申明：0-不申明, 1-AI合成, 2-危险行为, 3-仅供娱乐, 4-引人不适, 5-理性适度消费, 6-个人观点 | 0 |
 | type | number | 是 | 类型：1-自制, 2-转载 | 1 |
-| scheduledTime | number | 否 | 定时发布时间戳（单位：秒） | - |
+| scheduledTime | number | 否 | 定时发布时间戳（13 位 Unix 时间戳，单位：毫秒） | - |
 | contentSourceUrl | string | 否 | 原文url链接，当 `type` 为 2 (转载) 时必填 | - |
 | collection | object | 否 | 合集信息 | - |
 

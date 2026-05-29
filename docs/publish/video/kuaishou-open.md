@@ -25,7 +25,7 @@
 | title | string | 否 | 快手标题 | - |
 | description | string | 否 | 快手描述 | - |
 | visibleType | number | 是 | 可见类型：0-公开, 1-私密, 3-好友可见 | 0 |
-| scheduledTime | number | 否 | 定时发布时间戳（单位：秒） | - |
+| scheduledTime | number | 否 | 定时发布时间戳（13 位 Unix 时间戳，单位：毫秒） | - |
 
 ## 2. JSON 示例
 

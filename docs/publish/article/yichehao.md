@@ -30,7 +30,7 @@
 | `verticalCovers` | `Array` | **是** | 文章竖版封面列表 (`OldCover[]`) | - |
 | `declaration` | `number` | 否 | 创作申明: 0-不申明, 1-个人观点, 2-内容来源网络, 3-AI生成, 4-引用站内 | - |
 | `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
-| `scheduledTime` | `number` | 否 | 定时发布时间 (Unix 时间戳，秒) | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间 (13 位 Unix 时间戳，单位: 毫秒) | - |
 | `allowForward` | `boolean` | 否 | 允许转发 | `false` |
 | `allowAbstract` | `boolean` | 否 | 允许生成摘要 | `false` |
 | `topics` | `Array` | 否 | 话题列表 (`Category[]`) | - |

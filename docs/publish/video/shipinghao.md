@@ -36,7 +36,7 @@
 | `createType` | `number` | **是** | 创建类型：1-草稿，2-直接发布 | 2 |
 | `pubType` | `number` | **是** | 发布类型：0-草稿，1-直接发布 | 1 |
 | `location` | `object` | 否 | 视频位置，使用 `PlatformDataItem` 结构 | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间戳 (单位: 秒) | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间戳 (13 位 Unix 时间戳，单位: 毫秒) | - |
 | `shoppingCart` | `object` | 否 | 关联商品信息 (`yixiaoerId`, `yixiaoerName`, `raw`) | - |
 | `collection` | `object` | 否 | 合集信息 (`yixiaoerId`, `yixiaoerName`, `raw`) | - |
 | `activity` | `object` | 否 | 活动信息 (`yixiaoerId`, `yixiaoerName`, `raw`) | - |

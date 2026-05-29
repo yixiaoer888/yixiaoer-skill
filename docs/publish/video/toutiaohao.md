@@ -28,7 +28,7 @@
 | `description` | `string` | **是** | 视频描述 (1-400 字符) | - |
 | `tags` | `string[]` | **是** | 视频标签 (1-5 个，字符串数组) | - |
 | `declaration` | `number` | 否 | 创作者申明：1-自行拍摄, 2-取自站外, 3-AI生成, 6-虚构演绎故事经历, 7-投资观点仅供参考, 8-健康医疗分享仅供参考 | - |
-| `scheduledTime` | `number` | 否 | 定时发布时间戳（单位：秒） | - |
+| `scheduledTime` | `number` | 否 | 定时发布时间戳（13 位 Unix 时间戳，单位：毫秒） | - |
 | `visibleType` | `number` | **是** | 可见性: 0-公开, 1-私密 | 0 |
 | `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
 
