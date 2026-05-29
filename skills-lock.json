@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "yixiaoer": {
+      "source": "C:\\work\\yixiaoer\\yixiaoer-universal\\yixiaoer-skill\\skills\\yixiaoer",
+      "sourceType": "local",
+      "computedHash": "3cc854d82248122151950706ef62f4ffb3cf387403ebb808779c33415255d6e4"
+    }
+  }
+}

@@ -41,7 +41,7 @@ bin/yxer.exe
 
 ```bash
 bin/yxer.exe --version
-bin/yxer.exe config set-api-key <apiKey>
+bin/yxer.exe config init --api-key <apiKey> --bind-app --account-name <账号名>
 bin/yxer.exe doctor
 ```
 
@@ -57,7 +57,7 @@ yxer doctor
 ### 1. 检查本地环境
 
 ```bash
-yxer config set-api-key <apiKey>
+yxer config init --api-key <apiKey> --bind-app --account-name <账号名>
 yxer doctor
 ```
 
@@ -65,6 +65,12 @@ yxer doctor
 
 ```bash
 yxer config get
+```
+
+如只想初始化基础配置，不立即绑定应用，也可以：
+
+```bash
+yxer config init --api-key <apiKey>
 ```
 
 ### 3. 查询可用账号
@@ -120,6 +126,23 @@ yxer skill sync
 yxer skill sync --global
 ```
 
+### 链接应用状态
+
+`yixiaoer-skill` 现在会声明为一个可链接应用，并暴露连接状态命令，供 QClaw 或其他宿主读取：
+
+```bash
+yxer linked-app status
+yxer linked-app connect --account-id <id> --account-name <name>
+yxer linked-app disconnect
+yxer linked-app toggle
+```
+
+链接状态会写入当前 CLI 配置文件，默认位于：
+
+```text
+%USERPROFILE%\\.yxer\\config.json
+```
+
 建议在以下场景重新同步：
 
 - `yxer --version` 升级后
@@ -152,7 +175,7 @@ yxer skill sync --global
 ```bash
 yxer doctor
 yxer config get
-yxer config set-api-key <apiKey>
+yxer config init --api-key <apiKey> [--bind-app --account-id <id> | --account-name <name>]
 yxer config set-local-client-id <clientId>
 ```
 

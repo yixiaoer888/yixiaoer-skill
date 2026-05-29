@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/config"
+	publishflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/publish"
 )
 
 func TestPublishCommandSuccessCallsTaskSetAPI(t *testing.T) {
@@ -457,6 +459,114 @@ func TestPublishCommandUsesConfiguredLocalClientID(t *testing.T) {
 	}
 	if publishBody["publishChannel"] != "local" || publishBody["clientId"] != "configured_client_1" {
 		t.Fatalf("expected local publish config from saved config, got %+v", publishBody)
+	}
+}
+
+func TestPublishCommandPromptsAndRetriesLocalWhenCloudProxyMissing(t *testing.T) {
+	withRepoRoot(t)
+	configPath := filepath.Join(t.TempDir(), "yxer-config.json")
+	t.Setenv("YIXIAOER_CONFIG", configPath)
+	if _, err := config.SaveLocalClientID("configured_client_1"); err != nil {
+		t.Fatal(err)
+	}
+	payloadPath := writePublishPayload(t, validPublishPayload())
+
+	var publishCalls int
+	var publishBodies []map[string]interface{}
+	var promptOut bytes.Buffer
+	publishflow.PromptInput = strings.NewReader("y\n")
+	publishflow.PromptOutput = &promptOut
+	t.Cleanup(resetPublishPromptForTest)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{
+					{"platformAccountId": "acc_001", "name": "账号", "status": 1},
+				},
+			})
+		case "/taskSets/v2":
+			publishCalls++
+			var body map[string]interface{}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatal(err)
+			}
+			publishBodies = append(publishBodies, body)
+			if publishCalls == 1 {
+				http.Error(w, `{"message":"账号代理不存在"}`, http.StatusBadRequest)
+				return
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{"taskSetId": "task_set_local_retry"},
+			})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if publishCalls != 2 {
+		t.Fatalf("expected two publish calls, got %d", publishCalls)
+	}
+	if publishBodies[0]["publishChannel"] != "cloud" {
+		t.Fatalf("expected first publish attempt to use cloud, got %+v", publishBodies[0])
+	}
+	if publishBodies[1]["publishChannel"] != "local" || publishBodies[1]["clientId"] != "configured_client_1" {
+		t.Fatalf("expected second publish attempt to use local mode, got %+v", publishBodies[1])
+	}
+	if !strings.Contains(promptOut.String(), "是否改为走本机发布") {
+		t.Fatalf("expected local publish prompt, got %q", promptOut.String())
+	}
+}
+
+func TestPublishCommandKeepsOriginalErrorWhenLocalRetryDeclined(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, validPublishPayload())
+
+	var publishCalls int
+	var promptOut bytes.Buffer
+	publishflow.PromptInput = strings.NewReader("n\n")
+	publishflow.PromptOutput = &promptOut
+	t.Cleanup(resetPublishPromptForTest)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{
+					{"platformAccountId": "acc_001", "name": "账号", "status": 1},
+				},
+			})
+		case "/taskSets/v2":
+			publishCalls++
+			http.Error(w, `{"message":"账号代理不存在"}`, http.StatusBadRequest)
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	if err == nil {
+		t.Fatal("expected original cloud publish error")
+	}
+	if publishCalls != 1 {
+		t.Fatalf("expected no retry after declining local publish, got %d calls", publishCalls)
+	}
+	if !strings.Contains(err.Error(), "账号代理不存在") {
+		t.Fatalf("expected original proxy error, got %v", err)
+	}
+	if !strings.Contains(promptOut.String(), "是否改为走本机发布") {
+		t.Fatalf("expected local publish prompt, got %q", promptOut.String())
 	}
 }
 
@@ -1085,6 +1195,11 @@ func resetPublishFlagsForTest() {
 	publishVideoKey = ""
 	publishCoverPath = ""
 	publishVisibleType = -1
+}
+
+func resetPublishPromptForTest() {
+	publishflow.PromptInput = strings.NewReader("")
+	publishflow.PromptOutput = io.Discard
 }
 
 func imageTextPublishTestServer(t *testing.T, publishCalls *int, publishBody *map[string]interface{}) *httptest.Server {

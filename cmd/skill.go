@@ -8,7 +8,9 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/yixiaoer/yixiaoer-skill/internal/core/config"
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/output"
+	"github.com/yixiaoer/yixiaoer-skill/internal/linkedapp"
 	"github.com/yixiaoer/yixiaoer-skill/internal/skillscheck"
 )
 
@@ -55,12 +57,12 @@ func runSkillShow(cmd *cobra.Command) error {
 	}
 
 	data := map[string]interface{}{
-		"name":        "yixiaoer",
-		"version":     rootCmd.Version,
-		"skillDir":    skillDir,
-		"skillFile":   skillFile,
+		"name":         "yixiaoer",
+		"version":      rootCmd.Version,
+		"skillDir":     skillDir,
+		"skillFile":    skillFile,
 		"skillsStatus": status,
-		"installMode": "cli-first-skill-second",
+		"installMode":  "cli-first-skill-second",
 		"summary": []string{
 			"先安装 yxer CLI，再安装 yixiaoer skill，供 AI agent 读取技能后调用 yxer。",
 			"技能文件负责约束工作流与命令选择，真正执行统一走 yxer CLI。",
@@ -91,6 +93,13 @@ func runSkillShow(cmd *cobra.Command) error {
 			"yxer validate",
 			"yxer publish",
 		},
+	}
+
+	if cfg, err := config.Load(); err == nil {
+		data["linkedApp"] = map[string]interface{}{
+			"metadata": linkedapp.DefaultMetadata(),
+			"state":    cfg.LinkedApp,
+		}
 	}
 
 	return output.Success(cmd.OutOrStdout(), "skill.show", data)

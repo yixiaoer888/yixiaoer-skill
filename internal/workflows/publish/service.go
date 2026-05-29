@@ -1,7 +1,9 @@
 package publish
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -38,6 +40,11 @@ type BuildInput struct {
 }
 
 type Service struct{}
+
+var (
+	PromptInput  io.Reader = os.Stdin
+	PromptOutput io.Writer = os.Stdout
+)
 
 func NewService() Service {
 	return Service{}
@@ -136,6 +143,29 @@ func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	} else {
 		delete(body, "clientId")
 	}
+	result, err := apiClient.Publish(body)
+	if err == nil {
+		return result, nil
+	}
+	if !shouldOfferLocalPublishRetry(err, channel) {
+		return nil, err
+	}
+	confirmed, confirmErr := confirmLocalPublishRetry(platform)
+	if confirmErr != nil {
+		return nil, confirmErr
+	}
+	if !confirmed {
+		return nil, err
+	}
+	localChannel, localClientID, resolveErr := ResolvePublishMode(cfg, resolvedPayload, "", "local", "")
+	if resolveErr != nil {
+		return nil, resolveErr
+	}
+	resolvedPayload["publishChannel"] = localChannel
+	resolvedPayload["clientId"] = localClientID
+	body = BuildPublishBody(resolvedPayload, publishArgs, input.PublishType, platforms)
+	body["publishChannel"] = localChannel
+	body["clientId"] = localClientID
 	return apiClient.Publish(body)
 }
 
@@ -367,6 +397,32 @@ func ResolvePublishMode(cfg config.Config, payload map[string]interface{}, posit
 			WithHint(`publishChannel 仅支持 "cloud" 或 "local"。`)
 	}
 	return channel, clientID, nil
+}
+
+func shouldOfferLocalPublishRetry(err error, channel string) bool {
+	if strings.TrimSpace(channel) != "cloud" {
+		return false
+	}
+	if err == nil {
+		return false
+	}
+	message := err.Error()
+	return strings.Contains(message, "账号代理不存在") || strings.Contains(strings.ToLower(message), "proxy")
+}
+
+func confirmLocalPublishRetry(platform string) (bool, error) {
+	if PromptOutput != nil {
+		if _, err := fmt.Fprintf(PromptOutput, "%s 账号未设置代理，是否改为走本机发布？[y/N]: ", platform); err != nil {
+			return false, err
+		}
+	}
+	reader := bufio.NewReader(PromptInput)
+	answer, err := reader.ReadString('\n')
+	if err != nil && err != io.EOF {
+		return false, err
+	}
+	answer = strings.ToLower(strings.TrimSpace(answer))
+	return answer == "y" || answer == "yes", nil
 }
 
 func copyOptionalPublishFields(dst, src map[string]interface{}) {

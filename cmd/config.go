@@ -9,8 +9,14 @@ import (
 
 func init() {
 	configCmd.AddCommand(configGetCmd)
+	configCmd.AddCommand(configInitCmd)
 	configCmd.AddCommand(configSetAPIKeyCmd)
 	configCmd.AddCommand(configSetLocalClientIDCmd)
+	configInitCmd.Flags().StringVar(&configInitAPIKey, "api-key", "", "api key for yxer cli init")
+	configInitCmd.Flags().StringVar(&configInitLocalClientID, "local-client-id", "", "default local publish client id")
+	configInitCmd.Flags().BoolVar(&configInitBindApp, "bind-app", false, "bind yixiaoer linked app during init")
+	configInitCmd.Flags().StringVar(&configInitAccountID, "account-id", "", "linked app account id for init binding")
+	configInitCmd.Flags().StringVar(&configInitAccountName, "account-name", "", "linked app account name for init binding")
 	rootCmd.AddCommand(configCmd)
 }
 
@@ -36,6 +42,62 @@ var configGetCmd = &cobra.Command{
 			"localPublishClientId": cfg.LocalClientID,
 			"apiUrl":               cfg.APIURL,
 			"apiKeyPresent":        cfg.APIKey != "",
+			"linkedApp":            cfg.LinkedApp,
+		})
+	},
+}
+
+var configInitAPIKey string
+var configInitLocalClientID string
+var configInitBindApp bool
+var configInitAccountID string
+var configInitAccountName string
+
+var configInitCmd = &cobra.Command{
+	Use:   "init",
+	Short: "初始化 CLI 配置，并可同时绑定 yixiaoer 应用",
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if configInitAPIKey == "" {
+			return yxerrors.Usage("apiKey must not be empty", nil).
+				WithHint("请传入 --api-key 完成 yxer CLI 初始化。")
+		}
+		configPath, err := config.SaveAPIKey(configInitAPIKey)
+		if err != nil {
+			return err
+		}
+
+		if configInitLocalClientID != "" {
+			configPath, err = config.SaveLocalClientID(configInitLocalClientID)
+			if err != nil {
+				return err
+			}
+		}
+
+		boundApp := false
+		if configInitBindApp {
+			if configInitAccountID == "" && configInitAccountName == "" {
+				return yxerrors.Usage("bind-app requires account-id or account-name", nil).
+					WithHint("启用 --bind-app 时，请至少传入 --account-id 或 --account-name，用于绑定当前蚁小二应用。")
+			}
+			configPath, err = config.SaveLinkedAppState("yixiaoer", configInitAccountID, configInitAccountName, true)
+			if err != nil {
+				return err
+			}
+			boundApp = true
+		}
+
+		cfg, err := config.Load()
+		if err != nil {
+			return err
+		}
+
+		return output.Success(cmd.OutOrStdout(), "config.init", map[string]interface{}{
+			"configPath":           configPath,
+			"apiKeyPresent":        true,
+			"localPublishClientId": cfg.LocalClientID,
+			"linkedApp":            cfg.LinkedApp,
+			"boundApp":             boundApp,
 		})
 	},
 }
