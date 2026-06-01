@@ -23,6 +23,14 @@ yxer goods YOUR_ACCOUNT_ID --query 可选搜索词 --json
 ### ShoppingCartItem 结构说明
 | 字段名 | 类型 | 说明 |
 | :--- | :--- | :--- |
+| `sale_title` | `string` | 挂车推广标题 |
+| `images` | `string[]` | 顶层商品图片数组 |
+| `data` | `object` | 核心商品数据对象 |
+
+`data` 对象中的核心字段如下：
+
+| 字段名 | 类型 | 说明 |
+| :--- | :--- | :--- |
 | `yixiaoerId` | `string` | (必填) 商品 ID |
 | `yixiaoerName` | `string` | (必填) 商品名称 |
 | `raw` | `object` | (必填) 平台原始商品对象。如果在获取时该字段存在，发布表单中必须携带并完整透传 |

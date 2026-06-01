@@ -200,6 +200,44 @@ func TestPreflightRejectsMiniappsMissingRaw(t *testing.T) {
 	assertHasError(t, result.Errors, "accountForms[0].contentPublishForm.miniapps[0]: dynamic platform object must include complete \"raw\" data")
 }
 
+func TestPreflightAcceptsNestedShoppingCartDataRaw(t *testing.T) {
+	payload := validVideoPayload()
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	form["contentPublishForm"].(map[string]interface{})["shopping_cart"] = []interface{}{
+		map[string]interface{}{
+			"sale_title": "同款商品",
+			"images":     []interface{}{"goods-cover-key"},
+			"data": map[string]interface{}{
+				"yixiaoerId":   "goods_001",
+				"yixiaoerName": "测试商品",
+				"raw":          map[string]interface{}{"id": "goods_001"},
+			},
+		},
+	}
+
+	result := Preflight("video", []string{"小红书"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected nested shopping_cart.data.raw to pass, got %v", result.Errors)
+	}
+}
+
+func TestPreflightRejectsNestedShoppingCartDataMissingRaw(t *testing.T) {
+	payload := validVideoPayload()
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	form["contentPublishForm"].(map[string]interface{})["shopping_cart"] = []interface{}{
+		map[string]interface{}{
+			"sale_title": "同款商品",
+			"data": map[string]interface{}{
+				"yixiaoerId":   "goods_001",
+				"yixiaoerName": "测试商品",
+			},
+		},
+	}
+
+	result := Preflight("video", []string{"小红书"}, payload)
+	assertHasError(t, result.Errors, "accountForms[0].contentPublishForm.shopping_cart[0].data: dynamic platform object must include complete \"raw\" data")
+}
+
 func validVideoPayload() map[string]interface{} {
 	return standardPayload("video", []string{"抖音"}, map[string]interface{}{
 		"accountForms": []interface{}{

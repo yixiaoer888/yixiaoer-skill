@@ -123,21 +123,42 @@
       "items": {
         "type": "object",
         "required": [
-          "yixiaoerId",
-          "yixiaoerName",
-          "raw"
+          "sale_title",
+          "images",
+          "data"
         ],
         "properties": {
-          "yixiaoerId": {
+          "sale_title": {
             "type": "string"
           },
-          "yixiaoerName": {
-            "type": "string"
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
-          "raw": {
-            "type": "object"
+          "data": {
+            "type": "object",
+            "required": [
+              "yixiaoerId",
+              "yixiaoerName",
+              "raw"
+            ],
+            "properties": {
+              "yixiaoerId": {
+                "type": "string"
+              },
+              "yixiaoerName": {
+                "type": "string"
+              },
+              "raw": {
+                "type": "object"
+              }
+            },
+            "additionalProperties": true
           }
-        }
+        },
+        "additionalProperties": true
       }
     },
     "video": {

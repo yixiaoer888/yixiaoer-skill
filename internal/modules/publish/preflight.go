@@ -131,7 +131,7 @@ func Preflight(publishType string, platforms []string, payload map[string]interf
 			}
 		}, "$")
 
-		for _, field := range []string{"location", "music", "collection", "collections", "challenge", "challenges", "goods", "group", "groups", "miniapp", "miniapps"} {
+		for _, field := range []string{"location", "music", "collection", "collections", "challenge", "challenges", "goods", "group", "groups", "miniapp", "miniapps", "shopping_cart", "shoppingCart"} {
 			if value, ok := form[field]; ok {
 				assertRawObject(value, formPath+"."+field, &result.Errors)
 			}
@@ -306,6 +306,10 @@ func assertRawObject(value interface{}, pathLabel string, errors *[]string) {
 	}
 	obj, ok := value.(map[string]interface{})
 	if !ok {
+		return
+	}
+	if nested, ok := obj["data"].(map[string]interface{}); ok && nested != nil {
+		assertRawObject(nested, pathLabel+".data", errors)
 		return
 	}
 	hasIdentity := obj["yixiaoerId"] != nil || obj["yixiaoerName"] != nil || obj["id"] != nil || obj["name"] != nil
