@@ -111,16 +111,26 @@ func runSchemaGet(cmd *cobra.Command, platform, publishType string) error {
 			WithNextCommand("yxer schema list")
 	}
 	envelopeSchema := buildStandardPublishSchema(schemaDoc)
+	accountFormSchema := buildAccountFormSchema(schemaDoc)
+	contentPublishFormSchema := buildContentPublishFormSchema(schemaDoc)
 	return output.Success(cmd.OutOrStdout(), "schema.get", map[string]interface{}{
-		"key":             schemaDoc.Key,
-		"platform":        schemaDoc.Platform,
-		"type":            schemaDoc.Type,
-		"file":            filepath.ToSlash(schemaDoc.File),
-		"rootSchema":      schemaDoc.RootSchema,
-		"document":        envelopeSchema,
-		"schema":          envelopeSchema,
-		"businessSchema":  schemaDoc,
-		"payloadTemplate": buildPayloadTemplate(schemaDoc),
+		"key":                      schemaDoc.Key,
+		"platform":                 schemaDoc.Platform,
+		"type":                     schemaDoc.Type,
+		"file":                     filepath.ToSlash(schemaDoc.File),
+		"rootSchema":               schemaDoc.RootSchema,
+		"document":                 envelopeSchema,
+		"schema":                   envelopeSchema,
+		"businessSchema":           schemaDoc,
+		"accountFormSchema":        accountFormSchema,
+		"contentPublishFormSchema": contentPublishFormSchema,
+		"payloadTemplate":          buildPayloadTemplate(schemaDoc),
+		"agentGuidance": []string{
+			"`document` / `schema` 是标准 publish payload 的权威结构，优先据此构造请求体。",
+			"`accountFormSchema` 展示 publishArgs.accountForms[] 每个账号项必须具备的外层字段。",
+			"`contentPublishFormSchema` 只描述平台业务表单字段，对应 publishArgs.accountForms[].contentPublishForm。",
+			"`businessSchema` 保留原始平台 schema 供调试和比对，不建议直接拿它当最终 payload 根结构。",
+		},
 	})
 }
 
@@ -287,6 +297,53 @@ func buildPayloadTemplate(doc schema.Document) map[string]interface{} {
 				},
 			},
 		},
+	}
+}
+
+func buildAccountFormSchema(doc schema.Document) schema.PropertyView {
+	return schema.PropertyView{
+		Type:     "object",
+		Required: true,
+		Properties: map[string]schema.PropertyView{
+			"platformAccountId": {
+				Type:     "string",
+				Required: true,
+			},
+			"account_id": {
+				Type: "string",
+			},
+			"video": {
+				Type: "object",
+			},
+			"images": {
+				Type: "array",
+			},
+			"cover": {
+				Type: "object",
+			},
+			"coverKey": {
+				Type: "string",
+			},
+			"contentPublishForm": {
+				Type:       "object",
+				Required:   true,
+				Properties: doc.Properties,
+			},
+		},
+	}
+}
+
+func buildContentPublishFormSchema(doc schema.Document) schema.Document {
+	return schema.Document{
+		Key:                  doc.Key + "#/publishArgs/accountForms/contentPublishForm",
+		Platform:             doc.Platform,
+		Type:                 doc.Type,
+		File:                 doc.File,
+		RootSchema:           doc.RootSchema,
+		Title:                doc.Title,
+		Required:             doc.Required,
+		AdditionalProperties: doc.AdditionalProperties,
+		Properties:           doc.Properties,
 	}
 }
 

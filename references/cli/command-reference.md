@@ -68,7 +68,7 @@ yxer schema get <platform> <type>
 - 发布类型统一使用：`video`、`imageText`、`article`
 - 单次 `yxer publish` 只处理一个平台
 - `publish` 仅支持 `payload.json` 模式
-- 发布前建议先执行 `yxer prepare <platform> <type>` 和 `yxer schema get <platform> <type>`，确认表单字段和 schema 后再填写 payload
+- 发布前必须先执行 `yxer prepare <platform> <type>` 和 `yxer schema get <platform> <type>`，确认表单字段和 schema 后再填写 payload
 - `payload.json` 只支持标准 `publishArgs` 结构，所有平台统一
 - CLI 会根据 `publishArgs` 自动补齐最外层 `cover`、`coverKey`、`desc`、`isDraft`、`isAppContent`
 - 云发布是默认模式
@@ -84,6 +84,7 @@ yxer schema get <platform> <type>
 - 推荐优先使用 `yxer material add --file ...`，由 CLI 自动完成上传和素材登记
 - 查询类操作可以直接执行
 - 发布类操作必须遵守“查账号 -> prepare/schema -> 上传资源 -> 查询复杂对象 -> 填 payload -> validate -> publish”顺序
+- 所有请求字段都必须来自 schema、平台文档或 CLI 返回结果；严禁虚构字段、乱猜枚举、手写 `raw` 对象或编造资源元数据
 
 ## 快速示例
 

@@ -8,6 +8,13 @@
 
 做智能助理，不做表单填写机。能自动补全的默认值先补全，只在必须决策时才追问用户。
 
+## 数据真实性原则
+
+- Agent 组装请求数据时，必须以 `yxer prepare`、`yxer schema get`、平台文档和 CLI 返回结果为唯一依据。
+- 严禁自行猜测字段名、层级、枚举、默认值、示例值、`raw` 对象内容或资源元数据。
+- 文档未定义、schema 未声明、CLI 未返回的字段，不得写入 payload。
+- 动态字段和复杂对象必须先查询后填写；查不到时继续查询或向用户确认，不能凭经验编造。
+
 ---
 
 ## 发布通道判断规则
@@ -87,7 +94,9 @@ yxer publish <type> <platform> .\payload.json --publish-channel local --client-i
 
 - 顶层必须包含 `publishArgs`
 - `accountForms` 只能出现在 `publishArgs.accountForms`
-- 平台字段只能填写在 `publishArgs.accountForms[].contentPublishForm`
+- 平台差异字段默认填写在 `publishArgs.accountForms[].contentPublishForm`
+- 共享资源字段可放在 `publishArgs` 根级，与 `accountForms` 同级，例如 `video`、`images`、`cover`、`coverKey`、`content`
+- 文章正文推荐放在 `publishArgs.content`，再由 CLI 自动补齐到 `accountForms[].contentPublishForm.content`
 - 不再兼容顶层 `accountForms`
 - 不再兼容直接把平台表单字段放在 payload 顶层
 

@@ -68,7 +68,7 @@
 | `platformForms` | `Object` | 否 | **平台级表单**: 仅限 `微信公众号` 使用。按平台名称组织的共享配置字典 | - |
 | `cover` | `Object` | 否 | **标准请求体共享封面资源**。CLI 校验时会在缺失时复制到各 `accountForms[i].cover` | - |
 | `coverKey` | `string` | 否 | **标准请求体共享封面 Key**。CLI 校验时会在缺失时复制到各 `accountForms[i].coverKey` | - |
-| `content` | `string` | 否 | **标准请求体共享正文**。CLI 校验时会在缺失时复制到各 `accountForms[i].contentPublishForm.content` | - |
+| `content` | `string` | 否 | **标准请求体共享正文**。位置在 `publishArgs.content`，与 `accountForms` 同级；CLI 校验时会在缺失时复制到各 `accountForms[i].contentPublishForm.content` | - |
 
 > [!IMPORTANT]
 > **配置架构约束**:
@@ -78,7 +78,8 @@
 
 > [!TIP]
 > **CLI 输入兼容规则**:
-> - 推荐优先使用“标准请求体”形态，在 `publishArgs` 中声明共享的 `cover`、`coverKey`、`content`，再在 `accountForms[]` 中补账号和平台差异字段。
+> - 推荐优先使用“标准请求体”形态，在 `publishArgs` 中声明共享的 `cover`、`coverKey`、`content`，这些字段都与 `accountForms` 同级。
+> - 文章正文推荐直接填写 `publishArgs.content`，不要只在 `contentPublishForm.content` 中单独填写。
 > - CLI 当前仍按**单平台命令**执行：`yxer publish article <platform> <payload.json> [clientId]`。
 > - `yxer validate` 与 `yxer publish` 都接受完整标准请求体；在共享字段存在而账号项缺失时，CLI 会在校验阶段自动补齐到对应 `accountForms[]`。
 
@@ -88,7 +89,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `platformAccountId` | `string` | **是** | 蚁小二平台账号唯一 ID | - |
 | `cover` | `Object` | **是** | **ImageFormItem**: 主封面对象 (`key`, `width`, `height`, `size`) | - |
-| `contentPublishForm`| `Object` | 否 | **账号级透传配置**: 若未配置 `platformForms` 则从此读取；正文 `content` 也放在这里 | `{}` |
+| `contentPublishForm`| `Object` | 否 | **账号级透传配置**: 若未配置 `platformForms` 则从此读取；当 `publishArgs.content` 已提供时，CLI 会同步补齐到这里的 `content` | `{}` |
 | `coverKey` | `string` | 否 | 账号级封面 Key (通常与 `cover.key` 一致) | - |
 | `mediaId` | `string` | 否 | 业务扩展字段，CLI 原样透传 | - |
 | `platformName` | `string` | 否 | 业务扩展字段，CLI 原样透传 | - |

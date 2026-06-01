@@ -118,7 +118,10 @@ yxer publish video 抖音 .\payload.json --dry-run
 说明：
 
 - 顶层必须包含 `publishArgs`
-- 业务字段必须放在 `publishArgs.accountForms[].contentPublishForm`
+- `accountForms` 必须放在 `publishArgs.accountForms`
+- 平台差异字段默认放在 `publishArgs.accountForms[].contentPublishForm`
+- 共享资源字段可直接放在 `publishArgs` 下，与 `accountForms` 同级，例如 `video`、`images`、`cover`、`coverKey`、`content`
+- 文章正文推荐写在 `publishArgs.content`；CLI 会在缺失时自动补齐到 `publishArgs.accountForms[].contentPublishForm.content`
 - 不再支持顶层直接放 `accountForms`
 - 不再支持把 `title`、`description`、`visibleType` 等内层字段直接写在 payload 顶层
 

@@ -92,6 +92,20 @@ func TestSchemaGetCommandOutputsSchemaForChinesePlatformAlias(t *testing.T) {
 	if len(templateForms) != 1 {
 		t.Fatalf("expected single template account form, got %#v", templateForms)
 	}
+	accountFormSchema := data["accountFormSchema"].(map[string]interface{})
+	accountFormProps := accountFormSchema["properties"].(map[string]interface{})
+	if accountFormProps["platformAccountId"].(map[string]interface{})["required"] != true {
+		t.Fatalf("expected accountFormSchema to require platformAccountId, got %#v", accountFormProps["platformAccountId"])
+	}
+	contentSchema := data["contentPublishFormSchema"].(map[string]interface{})
+	contentProps := contentSchema["properties"].(map[string]interface{})
+	if contentProps["title"].(map[string]interface{})["required"] != true {
+		t.Fatalf("expected contentPublishFormSchema title to be required, got %#v", contentProps["title"])
+	}
+	guidance := data["agentGuidance"].([]interface{})
+	if len(guidance) < 4 {
+		t.Fatalf("expected schema.get guidance for agents, got %#v", guidance)
+	}
 }
 
 func TestSchemaCatalogCommandOutputsRootSchemasAndPlatforms(t *testing.T) {
