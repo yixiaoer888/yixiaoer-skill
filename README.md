@@ -393,5 +393,9 @@ scripts/
 - 技能入口：`skills/yixiaoer/SKILL.md`
 - 命令参考：`references/cli/command-reference.md`
 - 技能安装与同步：`references/cli/skill-install.md`
+- 上线流程：`docs/go-live-process.md`
+- CLI/Skill 安装卸载：`docs/cli-install-uninstall.md`
+- 关键词文档：`docs/keyword-reference.md`
+- 使用流程文档：`docs/usage-workflow.md`
 - 工作流正文：`references/workflows/`
 - 平台文档：`docs/publish/`
