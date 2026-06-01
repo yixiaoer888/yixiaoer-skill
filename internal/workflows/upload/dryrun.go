@@ -15,9 +15,10 @@ type DryRunResult struct {
 	FileName    string `json:"fileName"`
 	ContentType string `json:"contentType"`
 	Format      string `json:"format,omitempty"`
+	AutoMeta    bool   `json:"autoMeta,omitempty"`
 }
 
-func Preview(pathOrURL, bucket string) (DryRunResult, error) {
+func Preview(pathOrURL, bucket string, autoMeta bool) (DryRunResult, error) {
 	source := strings.TrimSpace(pathOrURL)
 	if source == "" {
 		return DryRunResult{}, yxerrors.Usage("upload requires a file path or URL", nil).
@@ -34,6 +35,7 @@ func Preview(pathOrURL, bucket string) (DryRunResult, error) {
 		FileName:    fileName,
 		ContentType: api.DetectContentType(source),
 		Format:      strings.TrimPrefix(strings.ToLower(filepath.Ext(fileName)), "."),
+		AutoMeta:    autoMeta,
 	}, nil
 }
 

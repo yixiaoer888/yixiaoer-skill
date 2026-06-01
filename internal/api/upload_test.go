@@ -62,7 +62,7 @@ func TestUploadLocalImage(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
-	result, err := client.Upload(imagePath, "")
+	result, err := client.Upload(imagePath, "", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +113,7 @@ func TestUploadURLImage(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
-	result, err := client.Upload(server.URL+"/source/photo.png", "material-library")
+	result, err := client.Upload(server.URL+"/source/photo.png", "material-library", false)
 	if err != nil {
 		t.Fatal(err)
 	}

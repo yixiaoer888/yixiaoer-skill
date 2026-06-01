@@ -13,11 +13,13 @@ func TestUploadDryRunPreviewUsesExplicitFileFlag(t *testing.T) {
 	uploadURL = ""
 	uploadBucket = "cloud-publish"
 	uploadDryRun = true
+	uploadAutoMeta = true
 	t.Cleanup(func() {
 		uploadFile = ""
 		uploadURL = ""
 		uploadBucket = ""
 		uploadDryRun = false
+		uploadAutoMeta = false
 	})
 
 	var out bytes.Buffer
@@ -36,6 +38,9 @@ func TestUploadDryRunPreviewUsesExplicitFileFlag(t *testing.T) {
 	request := data["request"].(map[string]interface{})
 	if request["source"] != "C:\\tmp\\cover.png" || request["sourceType"] != "file" {
 		t.Fatalf("unexpected dry-run upload preview: %#v", request)
+	}
+	if request["autoMeta"] != true {
+		t.Fatalf("expected autoMeta flag in dry-run upload preview, got %#v", request)
 	}
 }
 

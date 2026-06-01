@@ -281,25 +281,6 @@ func buildStandardPublishFieldView(doc schema.Document, businessFields map[strin
 	}
 }
 
-func buildPayloadTemplate(doc schema.Document) map[string]interface{} {
-	return map[string]interface{}{
-		"action":         "publish",
-		"publishType":    doc.Type,
-		"platforms":      []interface{}{platformutil.ChineseName(doc.Platform)},
-		"publishChannel": "cloud",
-		"publishArgs": map[string]interface{}{
-			"accountForms": []interface{}{
-				map[string]interface{}{
-					"platformAccountId": "<platformAccountId>",
-					"contentPublishForm": map[string]interface{}{
-						"formType": "<see schema required fields>",
-					},
-				},
-			},
-		},
-	}
-}
-
 func buildAccountFormSchema(doc schema.Document) schema.PropertyView {
 	return schema.PropertyView{
 		Type:     "object",

@@ -52,7 +52,7 @@ func (Service) Add(input AddInput) (map[string]interface{}, error) {
 		return nil, yxerrors.Usage("material add requires file", nil).
 			WithHint("请传入 --file，本地路径或 URL 均可。")
 	}
-	uploadResult, err := apiClient.Upload(input.FilePath, "material-library")
+	uploadResult, err := apiClient.Upload(input.FilePath, "material-library", false)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (Service) Add(input AddInput) (map[string]interface{}, error) {
 		"type":     fileType,
 	}
 	if strings.TrimSpace(input.ThumbPath) != "" {
-		thumbResult, err := apiClient.Upload(input.ThumbPath, "material-library")
+		thumbResult, err := apiClient.Upload(input.ThumbPath, "material-library", false)
 		if err != nil {
 			return nil, err
 		}

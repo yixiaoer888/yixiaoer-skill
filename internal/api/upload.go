@@ -10,19 +10,22 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/yixiaoer/yixiaoer-skill/internal/core/media"
 )
 
 type UploadResult struct {
-	Key         string `json:"key"`
-	ContentType string `json:"contentType"`
-	Bucket      string `json:"bucket"`
-	Size        int64  `json:"size,omitempty"`
-	Width       int    `json:"width,omitempty"`
-	Height      int    `json:"height,omitempty"`
-	Format      string `json:"format,omitempty"`
+	Key         string  `json:"key"`
+	ContentType string  `json:"contentType"`
+	Bucket      string  `json:"bucket"`
+	Size        int64   `json:"size,omitempty"`
+	Width       int     `json:"width,omitempty"`
+	Height      int     `json:"height,omitempty"`
+	Duration    float64 `json:"duration,omitempty"`
+	Format      string  `json:"format,omitempty"`
 }
 
-func (c *Client) Upload(pathOrURL, bucket string) (UploadResult, error) {
+func (c *Client) Upload(pathOrURL, bucket string, autoMeta bool) (UploadResult, error) {
 	if bucket == "" {
 		bucket = "cloud-publish"
 	}
@@ -67,6 +70,16 @@ func (c *Client) Upload(pathOrURL, bucket string) (UploadResult, error) {
 	}
 
 	width, height := imageDimensions(pathOrURL, buffer, contentType)
+	duration := float64(0)
+	if autoMeta && strings.HasPrefix(contentType, "video/") {
+		videoMeta, err := probeVideoMetadata(pathOrURL, buffer, fileName)
+		if err != nil {
+			return UploadResult{}, err
+		}
+		width = videoMeta.Width
+		height = videoMeta.Height
+		duration = videoMeta.Duration
+	}
 	return UploadResult{
 		Key:         key,
 		ContentType: contentType,
@@ -74,8 +87,31 @@ func (c *Client) Upload(pathOrURL, bucket string) (UploadResult, error) {
 		Size:        size,
 		Width:       width,
 		Height:      height,
+		Duration:    duration,
 		Format:      strings.TrimPrefix(strings.ToLower(filepath.Ext(fileName)), "."),
 	}, nil
+}
+
+func probeVideoMetadata(pathOrURL string, raw []byte, fileName string) (media.VideoMetadata, error) {
+	lower := strings.ToLower(pathOrURL)
+	if !strings.HasPrefix(lower, "http://") && !strings.HasPrefix(lower, "https://") {
+		return media.ProbeVideo(pathOrURL)
+	}
+
+	tmpFile, err := os.CreateTemp("", "yxer-upload-*"+filepath.Ext(fileName))
+	if err != nil {
+		return media.VideoMetadata{}, err
+	}
+	tmpPath := tmpFile.Name()
+	defer os.Remove(tmpPath)
+	if _, err := tmpFile.Write(raw); err != nil {
+		_ = tmpFile.Close()
+		return media.VideoMetadata{}, err
+	}
+	if err := tmpFile.Close(); err != nil {
+		return media.VideoMetadata{}, err
+	}
+	return media.ProbeVideo(tmpPath)
 }
 
 func DetectContentType(pathOrURL string) string {

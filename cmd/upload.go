@@ -13,19 +13,21 @@ var uploadBucket string
 var uploadFile string
 var uploadURL string
 var uploadDryRun bool
+var uploadAutoMeta bool
 
 func init() {
 	uploadCmd.Flags().StringVar(&uploadBucket, "bucket", "cloud-publish", "upload bucket")
 	uploadCmd.Flags().StringVar(&uploadFile, "file", "", "local file path to upload")
 	uploadCmd.Flags().StringVar(&uploadURL, "url", "", "remote URL to upload")
 	uploadCmd.Flags().BoolVar(&uploadDryRun, "dry-run", false, "preview upload request without performing the write")
+	uploadCmd.Flags().BoolVar(&uploadAutoMeta, "auto-meta", false, "extract media metadata automatically for uploaded assets")
 	rootCmd.AddCommand(uploadCmd)
 }
 
 var uploadCmd = &cobra.Command{
 	Use:   "upload [file_path_or_url]",
 	Short: "上传资源",
-	Long: "上传本地文件或 URL 资源。\n默认上传到 cloud-publish；素材库资源建议使用 --bucket material-library。\n推荐使用 --file 或 --url，兼容旧的位置参数模式。",
+	Long:  "上传本地文件或 URL 资源。\n默认上传到 cloud-publish；素材库资源建议使用 --bucket material-library。\n推荐使用 --file 或 --url，兼容旧的位置参数模式。",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		source, err := resolveUploadSource(args)
@@ -33,7 +35,7 @@ var uploadCmd = &cobra.Command{
 			return err
 		}
 		if uploadDryRun {
-			result, err := uploadflow.Preview(source, uploadBucket)
+			result, err := uploadflow.Preview(source, uploadBucket, uploadAutoMeta)
 			if err != nil {
 				return err
 			}
@@ -42,7 +44,7 @@ var uploadCmd = &cobra.Command{
 				"request": result,
 			})
 		}
-		result, err := uploadflow.NewService().Upload(source, uploadBucket)
+		result, err := uploadflow.NewService().Upload(source, uploadBucket, uploadAutoMeta)
 		if err != nil {
 			return err
 		}
