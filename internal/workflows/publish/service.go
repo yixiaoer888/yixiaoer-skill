@@ -62,6 +62,7 @@ func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	}
 	publishmod.NormalizeStandardPublishArgs(publishmod.ExtractPublishArgs(resolvedPayload))
 	publishArgs := publishmod.ExtractPublishArgs(resolvedPayload)
+	publishmod.NormalizePlatformSpecificFields(input.PublishType, platforms, publishArgs)
 
 	validator := schema.NewValidator(cfg.SchemaDir)
 	for _, platform := range platforms {

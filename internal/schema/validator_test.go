@@ -249,6 +249,63 @@ func TestValidateAcceptsXiaohongshuNestedShoppingCartStructure(t *testing.T) {
 	}
 }
 
+func TestValidateAcceptsDouyinNestedShoppingCartStructure(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	payload := map[string]interface{}{
+		"formType":    "task",
+		"title":       "带货视频",
+		"description": "视频描述",
+		"shopping_cart": []interface{}{
+			map[string]interface{}{
+				"sale_title": "点击购买",
+				"images":     []interface{}{"https://example.invalid/goods.png"},
+				"data": map[string]interface{}{
+					"yixiaoerId":   "goods_001",
+					"yixiaoerName": "测试商品",
+					"raw": map[string]interface{}{
+						"gid": "goods_001",
+					},
+				},
+			},
+		},
+	}
+
+	result := validator.Validate("抖音", "video", payload)
+	if !result.Valid {
+		t.Fatalf("expected douyin nested shopping_cart structure to pass, got %v", result.Errors)
+	}
+}
+
+func TestValidateAcceptsBaijiahaoCategoryPathArray(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	payload := map[string]interface{}{
+		"formType": "task",
+		"title":    "百家号文章",
+		"content":  "<p>正文</p>",
+		"cover": map[string]interface{}{
+			"key":    "cover-key",
+			"size":   float64(100),
+			"width":  float64(10),
+			"height": float64(10),
+		},
+		"category": []interface{}{
+			map[string]interface{}{
+				"yixiaoerId":   "32",
+				"yixiaoerName": "财经",
+			},
+			map[string]interface{}{
+				"yixiaoerId":   "9",
+				"yixiaoerName": "财经综合",
+			},
+		},
+	}
+
+	result := validator.Validate("百家号", "article", payload)
+	if !result.Valid {
+		t.Fatalf("expected baijiahao category path array to pass, got %v", result.Errors)
+	}
+}
+
 func TestValidateMissingSchemaFallsBackToBasicValidation(t *testing.T) {
 	validator := NewValidator(t.TempDir())
 	payload := map[string]interface{}{

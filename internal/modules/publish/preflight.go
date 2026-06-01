@@ -47,6 +47,7 @@ func Preflight(publishType string, platforms []string, payload map[string]interf
 	}
 	payload = ValidateAndExtractPublishArgs(publishType, platforms, payload, &result.Errors)
 	NormalizeStandardPublishArgs(payload)
+	NormalizePlatformSpecificFields(publishType, platforms, payload)
 	NormalizeScheduledTimes(payload, &result.Errors)
 	if publishType != "video" && publishType != "imageText" && publishType != "article" {
 		result.Errors = append(result.Errors, fmt.Sprintf("publish type %q is not supported; expected video, imageText, or article", publishType))
@@ -126,6 +127,9 @@ func Preflight(publishType string, platforms []string, payload map[string]interf
 		}
 
 		walk(form, func(value interface{}, path string) {
+			if shouldIgnoreExternalURLPath(path) {
+				return
+			}
 			if text, ok := value.(string); ok && externalURLPattern.MatchString(text) {
 				result.Errors = append(result.Errors, formPath+path[1:]+": external URL is not allowed in publish payload; upload resources first")
 			}
@@ -143,6 +147,19 @@ func Preflight(publishType string, platforms []string, payload map[string]interf
 		}
 	}
 	return result
+}
+
+func shouldIgnoreExternalURLPath(path string) bool {
+	if strings.Contains(path, ".raw.") || strings.HasSuffix(path, ".raw") {
+		return true
+	}
+	if strings.Contains(path, ".shopping_cart[") && strings.Contains(path, ".images[") {
+		return true
+	}
+	if strings.Contains(path, ".shoppingCart[") && strings.Contains(path, ".images[") {
+		return true
+	}
+	return false
 }
 
 func ExtractPublishArgs(payload map[string]interface{}) map[string]interface{} {
@@ -229,6 +246,184 @@ func NormalizeStandardPublishArgs(payload map[string]interface{}) {
 		copyIfMissing(form, cpf, "images")
 		copyIfMissing(cpf, payload, "content")
 	}
+}
+
+func NormalizePlatformSpecificFields(publishType string, platforms []string, payload map[string]interface{}) {
+	accountForms, ok := payload["accountForms"].([]interface{})
+	if !ok || len(accountForms) == 0 {
+		return
+	}
+
+	publishType = NormalizePublishType(publishType)
+	platformSet := map[string]bool{}
+	for _, platform := range platforms {
+		platformSet[strings.TrimSpace(platform)] = true
+	}
+
+	content, _ := payload["content"].(string)
+	for _, item := range accountForms {
+		form, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		cpf, _ := form["contentPublishForm"].(map[string]interface{})
+		if cpf == nil {
+			continue
+		}
+
+		if publishType == "imageText" && (platformSet["抖音"] || platformSet["小红书"]) {
+			normalizeTopicHTML(payload, cpf, content)
+		}
+		if publishType == "video" && platformSet["抖音"] {
+			normalizeDouyinShoppingCart(cpf)
+		}
+	}
+}
+
+func normalizeTopicHTML(publishArgs, cpf map[string]interface{}, publishArgsContent string) {
+	tags, ok := cpf["tags"].([]interface{})
+	if !ok || len(tags) == 0 {
+		return
+	}
+	description := strings.TrimSpace(stringField(cpf, "description"))
+	content := strings.TrimSpace(publishArgsContent)
+	if content == "" {
+		content = description
+	}
+	if description == "" && content == "" {
+		return
+	}
+
+	finalHTML := firstNonEmptyTopicHTML(description, content)
+	if finalHTML == "" {
+		baseText := firstNonEmptyString(content, description)
+		finalHTML = buildTopicHTML(baseText, tags)
+	}
+	if finalHTML == "" {
+		return
+	}
+	cpf["description"] = finalHTML
+	publishArgs["content"] = finalHTML
+}
+
+func firstNonEmptyTopicHTML(values ...string) string {
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value != "" && strings.Contains(strings.ToLower(value), "<topic") {
+			return value
+		}
+	}
+	return ""
+}
+
+func buildTopicHTML(description string, tags []interface{}) string {
+	var topicParts []string
+	for _, item := range tags {
+		tag := strings.TrimSpace(fmt.Sprint(item))
+		if tag == "" {
+			continue
+		}
+		if !strings.HasPrefix(tag, "#") {
+			tag = "#" + tag
+		}
+		text := strings.TrimPrefix(tag, "#")
+		if text == "" {
+			continue
+		}
+		topicParts = append(topicParts, fmt.Sprintf(`<topic text="%s">%s</topic>`, text, tag))
+	}
+	if len(topicParts) == 0 {
+		return strings.TrimSpace(description)
+	}
+	descHTML := strings.TrimSpace(description)
+	if descHTML == "" {
+		return "<p>" + strings.Join(topicParts, "") + "</p>"
+	}
+	return "<p>" + descHTML + "</p><p>" + strings.Join(topicParts, "") + "</p>"
+}
+
+func normalizeDouyinShoppingCart(cpf map[string]interface{}) {
+	if cpf == nil {
+		return
+	}
+	if value, ok := cpf["shoppingCart"]; ok {
+		if _, exists := cpf["shopping_cart"]; !exists {
+			cpf["shopping_cart"] = value
+		}
+		delete(cpf, "shoppingCart")
+	}
+	items, ok := cpf["shopping_cart"].([]interface{})
+	if !ok {
+		return
+	}
+	for _, item := range items {
+		cart, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if cart["data"] == nil {
+			data := map[string]interface{}{}
+			for _, key := range []string{"yixiaoerId", "yixiaoerName", "raw"} {
+				if value, exists := cart[key]; exists {
+					data[key] = value
+					delete(cart, key)
+				}
+			}
+			if len(data) > 0 {
+				cart["data"] = data
+			}
+		}
+		if cart["images"] == nil {
+			if data, _ := cart["data"].(map[string]interface{}); data != nil {
+				if raw, _ := data["raw"].(map[string]interface{}); raw != nil {
+					if images := extractShoppingCartImages(raw); len(images) > 0 {
+						cart["images"] = images
+					}
+				}
+			}
+		}
+	}
+}
+
+func extractShoppingCartImages(raw map[string]interface{}) []interface{} {
+	candidates := [][]interface{}{}
+	for _, key := range []string{"images", "imgs", "goods_imgs"} {
+		if items, ok := raw[key].([]interface{}); ok && len(items) > 0 {
+			candidates = append(candidates, items)
+		}
+	}
+	for _, items := range candidates {
+		var urls []interface{}
+		for _, item := range items {
+			switch typed := item.(type) {
+			case string:
+				if strings.TrimSpace(typed) != "" {
+					urls = append(urls, typed)
+				}
+			case map[string]interface{}:
+				for _, key := range []string{"url", "src"} {
+					if value := strings.TrimSpace(fmt.Sprint(typed[key])); value != "" && value != "<nil>" {
+						urls = append(urls, value)
+						break
+					}
+				}
+			}
+		}
+		if len(urls) > 0 {
+			return urls
+		}
+	}
+	return nil
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func requirePlatformConstraints(platforms []string, cover map[string]interface{}, formPath string, errors *[]string) {

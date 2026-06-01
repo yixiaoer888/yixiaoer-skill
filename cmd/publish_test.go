@@ -957,6 +957,125 @@ func TestPublishCommandPreservesDistinctImageTextDescriptionAndContentFromPayloa
 	}
 }
 
+func TestPublishCommandNormalizesTopicHTMLIntoDescriptionAndContent(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "imageText",
+		"platforms":      []interface{}{"抖音"},
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_001",
+					"images": []interface{}{
+						map[string]interface{}{
+							"key":    "uploaded/cover.png",
+							"size":   float64(512),
+							"width":  float64(1080),
+							"height": float64(1080),
+							"format": "png",
+						},
+					},
+					"cover": map[string]interface{}{
+						"key":    "uploaded/cover.png",
+						"size":   float64(512),
+						"width":  float64(1080),
+						"height": float64(1080),
+						"format": "png",
+					},
+					"coverKey": "uploaded/cover.png",
+					"contentPublishForm": map[string]interface{}{
+						"formType":    "task",
+						"title":       "夏日穿搭",
+						"description": "今日穿搭分享",
+						"tags":        []interface{}{"穿搭", "#夏日"},
+						"images": []interface{}{
+							map[string]interface{}{
+								"key":    "uploaded/cover.png",
+								"size":   float64(512),
+								"width":  float64(1080),
+								"height": float64(1080),
+								"format": "png",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := publishTestServer(t, 1, &publishCalls, &publishBody)
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"imageText", "抖音", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := `<p>今日穿搭分享</p><p><topic text="穿搭">#穿搭</topic><topic text="夏日">#夏日</topic></p>`
+	args := publishBody["publishArgs"].(map[string]interface{})
+	if args["content"] != expected {
+		t.Fatalf("expected publishArgs.content topic HTML, got %+v", args["content"])
+	}
+	cpf := args["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	if cpf["description"] != expected {
+		t.Fatalf("expected contentPublishForm.description topic HTML, got %+v", cpf["description"])
+	}
+}
+
+func TestPublishCommandNormalizesDouyinShoppingCartStructure(t *testing.T) {
+	withRepoRoot(t)
+	payload := validPublishPayload()
+	cpf := payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	cpf["shoppingCart"] = []interface{}{
+		map[string]interface{}{
+			"sale_title":   "点击购买",
+			"yixiaoerId":   "goods_001",
+			"yixiaoerName": "测试商品",
+			"raw": map[string]interface{}{
+				"gid":        "goods_001",
+				"goods_imgs": []interface{}{"https://example.invalid/goods.png"},
+			},
+		},
+	}
+	payloadPath := writePublishPayload(t, payload)
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := publishTestServer(t, 1, &publishCalls, &publishBody)
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	t.Setenv("YIXIAOER_API_URL", server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	form := publishBody["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	got := form["contentPublishForm"].(map[string]interface{})
+	if _, exists := got["shoppingCart"]; exists {
+		t.Fatalf("expected shoppingCart to normalize to shopping_cart, got %+v", got)
+	}
+	items := got["shopping_cart"].([]interface{})
+	item := items[0].(map[string]interface{})
+	if item["sale_title"] != "点击购买" {
+		t.Fatalf("expected sale_title to stay unchanged, got %+v", item)
+	}
+	if len(item["images"].([]interface{})) != 1 {
+		t.Fatalf("expected images derived from raw, got %+v", item)
+	}
+	data := item["data"].(map[string]interface{})
+	if data["yixiaoerId"] != "goods_001" || data["yixiaoerName"] != "测试商品" {
+		t.Fatalf("expected nested data object, got %+v", item)
+	}
+}
+
 func TestPublishCommandUsesImageTextPublishType(t *testing.T) {
 	withRepoRoot(t)
 	payloadPath := writePublishPayload(t, map[string]interface{}{

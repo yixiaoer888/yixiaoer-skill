@@ -55,22 +55,24 @@
       "type": "string"
     },
     "category": {
-      "type": "object",
-      "required": [
-        "yixiaoerId",
-        "yixiaoerName",
-        "raw"
-      ],
-      "properties": {
-        "yixiaoerId": {
-          "type": "string"
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "required": [
+          "yixiaoerId",
+          "yixiaoerName"
+        ],
+        "properties": {
+          "yixiaoerId": {
+            "type": "string"
+          },
+          "yixiaoerName": {
+            "type": "string"
+          }
         },
-        "yixiaoerName": {
-          "type": "string"
-        },
-        "raw": {
-          "type": "object"
-        }
+        "additionalProperties": false
       }
     },
     "original": {

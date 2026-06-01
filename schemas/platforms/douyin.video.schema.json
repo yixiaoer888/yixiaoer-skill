@@ -159,24 +159,50 @@
       ],
       "default": 0
     },
-    "shoppingCart": {
+    "shopping_cart": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "object",
         "required": [
           "sale_title",
-          "raw"
+          "images",
+          "data"
         ],
         "properties": {
           "sale_title": {
             "type": "string",
             "maxLength": 10
           },
-          "raw": {
-            "type": "object"
+          "images": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "yixiaoerId",
+              "yixiaoerName",
+              "raw"
+            ],
+            "properties": {
+              "yixiaoerId": {
+                "type": "string"
+              },
+              "yixiaoerName": {
+                "type": "string"
+              },
+              "raw": {
+                "type": "object"
+              }
+            },
+            "additionalProperties": true
           }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "groupShopping": {
@@ -472,24 +498,50 @@
                 ],
                 "default": 0
               },
-              "shoppingCart": {
+              "shopping_cart": {
                 "type": "array",
                 "minItems": 1,
                 "items": {
                   "type": "object",
                   "required": [
                     "sale_title",
-                    "raw"
+                    "images",
+                    "data"
                   ],
                   "properties": {
                     "sale_title": {
                       "type": "string",
                       "maxLength": 10
                     },
-                    "raw": {
-                      "type": "object"
+                    "images": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "yixiaoerId",
+                        "yixiaoerName",
+                        "raw"
+                      ],
+                      "properties": {
+                        "yixiaoerId": {
+                          "type": "string"
+                        },
+                        "yixiaoerName": {
+                          "type": "string"
+                        },
+                        "raw": {
+                          "type": "object"
+                        }
+                      },
+                      "additionalProperties": true
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               },
               "groupShopping": {

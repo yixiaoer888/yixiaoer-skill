@@ -221,6 +221,41 @@ func TestPreflightAcceptsNestedShoppingCartDataRaw(t *testing.T) {
 	}
 }
 
+func TestPreflightNormalizesLegacyDouyinShoppingCartShape(t *testing.T) {
+	payload := validVideoPayload()
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	form["contentPublishForm"].(map[string]interface{})["shoppingCart"] = []interface{}{
+		map[string]interface{}{
+			"sale_title":   "点击购买",
+			"yixiaoerId":   "goods_001",
+			"yixiaoerName": "测试商品",
+			"raw": map[string]interface{}{
+				"gid":        "goods_001",
+				"goods_imgs": []interface{}{"https://example.invalid/goods.png"},
+			},
+		},
+	}
+
+	result := Preflight("video", []string{"抖音"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected legacy douyin shoppingCart to normalize, got %v", result.Errors)
+	}
+
+	cpf := form["contentPublishForm"].(map[string]interface{})
+	if _, exists := cpf["shoppingCart"]; exists {
+		t.Fatalf("expected legacy shoppingCart key to be removed, got %+v", cpf)
+	}
+	items := cpf["shopping_cart"].([]interface{})
+	item := items[0].(map[string]interface{})
+	if len(item["images"].([]interface{})) != 1 {
+		t.Fatalf("expected images to be derived from raw, got %+v", item)
+	}
+	data := item["data"].(map[string]interface{})
+	if data["yixiaoerId"] != "goods_001" || data["yixiaoerName"] != "测试商品" {
+		t.Fatalf("expected nested shopping cart data, got %+v", item)
+	}
+}
+
 func TestPreflightRejectsNestedShoppingCartDataMissingRaw(t *testing.T) {
 	payload := validVideoPayload()
 	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})

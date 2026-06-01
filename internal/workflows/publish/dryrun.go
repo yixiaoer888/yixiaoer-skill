@@ -46,6 +46,7 @@ func (Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 	}
 	publishmod.NormalizeStandardPublishArgs(publishmod.ExtractPublishArgs(resolvedPayload))
 	publishArgs := publishmod.ExtractPublishArgs(resolvedPayload)
+	publishmod.NormalizePlatformSpecificFields(input.PublishType, platforms, publishArgs)
 
 	validator := schema.NewValidator(cfg.SchemaDir)
 	for _, platform := range platforms {
