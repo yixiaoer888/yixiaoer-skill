@@ -5,7 +5,8 @@
 ## 目标
 
 - `yxer` CLI：唯一执行入口，负责真正调用蚁小二 API
-- `skills/yixiaoer/SKILL.md`：给 AI agent 的规则、工作流、命令选择说明
+- `skills/yixiaoer/SKILL.md`：给 AI agent 的共享规则、能力索引和命令探索说明
+- `skills/yixiaoer/references/domains/`：给 AI agent 的任务分域入口
 - `README.md`：给仓库维护者的入口说明
 
 也就是说，Skill 不负责执行，它只负责告诉 Agent 何时调用什么 `yxer` 命令。
@@ -44,6 +45,7 @@ yxer update --check
 
 - `yxer --version` 升级后
 - `skills/yixiaoer/SKILL.md` 更新后
+- `skills/yixiaoer/references/domains/` 更新后
 - `references/workflows/` 或 `references/cli/` 中影响 Agent 行为的文档更新后
 
 ## 漂移检查
@@ -53,6 +55,6 @@ yxer update --check
 
 ## 设计原则
 
-- 技能负责“让 Agent 会用 CLI”
+- 技能负责“让 Agent 先路由到正确 domain，再正确使用 CLI”
 - CLI 负责“把事情真正做完”
 - 不再保留默认 Node 脚本执行入口

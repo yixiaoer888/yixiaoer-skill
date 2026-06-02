@@ -54,7 +54,7 @@
 若字段值需通过查询获得，需注明：
 - **话题 (topic)**: 需通过 `[获取话题](../../get-topics.md)` 获得。
 - **好友 (friend)**: 需通过 `[获取好友/关注](../../get-friends.md)` 获得。
-- **活动 (activity)**: 需通过 `[获取活动](../../get-activities.md)` 获得。
+- **活动 (activity)**: 需通过 `[获取征文活动列表](../../get-publish-activities.md)` 获得。
 
 ## 4. Payload 完整示例
 

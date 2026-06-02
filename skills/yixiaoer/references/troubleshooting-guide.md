@@ -38,7 +38,7 @@
 
 > [!WARNING]
 > **核心规范：**
-> *   **严格核对 DTO：** Agent 在拼装 `publish` 的 Payload 时，必须**强制核对** `docs/publish/` 目录下对应的平台文档（如 `douyin.md`, `wechat.md`）。
+> *   **严格核对 DTO：** Agent 在拼装 `publish` 的 Payload 时，必须**强制核对** `skills/yixiaoer/references/platforms/` 目录下对应的平台文档（如 `douyin.md`, `wechat.md`）。
 > *   **必填项校验：** 重点检查标题 (title)、分类 (categories)、标签 (tags)、封面 (cover) 是否按照平台要求完整传入。
 > *   **格式合规：** 确保类型正确，例如 `categories` 必须是数组 or 特定 ID 字符串，严禁随意填写。
 
@@ -73,7 +73,7 @@
 > [!CAUTION]
 > **深层原因与自检：**
 > *   **卡在“发布中 / 待发布”**：这通常意味着 Payload 虽然通过了初步的 API 校验，但其中的**业务逻辑或表单结构**不符合平台的底层规则。例如：标题含有非法字符、话题格式不严谨、或者动态字段（位置、音乐）透传的 `raw` 数据已过期。
->     *   **自检建议：** 请严格对比该平台的专属文档（如 `docs/publish/video/douyin.md`），检查表单是否按照文档规则填入。
+>     *   **自检建议：** 请严格对比该平台的专属文档（如 `skills/yixiaoer/references/platforms/video/douyin.md`），检查表单是否按照文档规则填入。
 > *   **显示“发布失败”**：这绝大多数情况下是因为 **“必填字段缺失”**。
 >     *   **自检建议：** 重点排查 `title` (标题)、`description` (描述)、`categories` (平台分类)、`cover` (封面) 等在文档中标记为“是”的核心字段是否填入。
 
@@ -97,7 +97,7 @@
 1.  **版本审计**：当前 Skill 逻辑是否为最新？(`skills/yixiaoer/SKILL.md`)
 2.  **物理上传校验**：资源是否已经成功通过 `upload-resource` 获取 key？（禁止在发布接口直接传入外部 https:// 链接）
 3.  **模式匹配**：账号状态是否为 1 (有效)？发布通道是否与客户端状态匹配？
-4.  **架构对标**：你的 JSON 结构是否与 `docs/execution-standard.md` 中定义的“分级检索逻辑”一致？
+4.  **架构对标**：你的 JSON 结构是否与 `skills/yixiaoer/references/execution-standard.md` 中定义的“分级检索逻辑”一致？
 
 ---
 

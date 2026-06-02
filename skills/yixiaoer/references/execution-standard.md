@@ -55,9 +55,9 @@
 Agent 在执行任务时必须遵循以下“分级检索”逻辑：
 
 1. **L1 技能入口检索**：读取 `skills/yixiaoer/SKILL.md` 确定 `action` 类型。
-2. **L2 索引检索**：在执行 `publish` 前，必须先读取对应内容类型的 `index.md`（如 `docs/publish/article/index.md`）确定 DTO 架构。
-3. **L3 平台细化**：根据目标平台（如“抖音”），读取 `docs/publish/video/douyin.md` 对 `platformSettings` 进行深度补全。
-4. **禁止跳级**：严禁在未读取 `index.md` 的情况下直接拼装平台参数。
+2. **L2 Domain / 索引检索**：在执行 `publish` 前，必须先读取对应 domain 与内容类型 `index.md`（如 `skills/yixiaoer/references/platforms/article/index.md`）确定 DTO 架构。
+3. **L3 平台细化**：根据目标平台（如“抖音”），读取 `skills/yixiaoer/references/platforms/video/douyin.md` 对 `platformSettings` 进行深度补全。
+4. **禁止跳级**：严禁在未读取 domain 与类型索引的情况下直接拼装平台参数。
 5. **动态数据预查**：对于 `categories` (分类)、`tags` (标签)、`locations` (位置) 等动态字段，Agent **必须**先通过对应的查询 action 获取当前平台的合法值，严禁基于常识或过时缓存进行猜测。
 
 ## 5. 输出格式规范 (Output Schema)
@@ -91,7 +91,7 @@ Agent 在执行任务时必须遵循以下“分级检索”逻辑：
 - **排查项**：是否因版本过低导致某些新增字段（如 `publishChannel`）未生效。
 
 ### 第二步：检查请求参数规范 (Check Parameters)
-- 对比输出的 `details` 信息与 `docs/` 下的 DTO 定义。
+- 对比输出的 `details` 信息与 `skills/yixiaoer/references/` 下的 DTO 与平台定义。
 - **重点排查项 (必填项校验)**：
     - **封面图 (cover/covers)**：是否提供了有效的资源 key？
     - **视频资源 (video)**：视频发布是否包含必填的视频 key、标题或分类？
@@ -133,7 +133,7 @@ Agent 在执行任务时必须遵循以下“分级检索”逻辑：
 | :--- | :--- | :--- |
 | **版本不支持该功能** | 技能版本号过低，未包含新增动作或字段。 | 检查 `skills/yixiaoer/SKILL.md` 版本，提示用户升级或回退逻辑。 |
 | **获取在线设备失败** | 选用了“本机发布”但客户端未开启或未登录。 | 提示用户：**“蚁小二客户端需要保持在线”**，或者建议改为 **“云发布”** (publishChannel: 'cloud')。 |
-| **发布失败：表单错误** | Agent 生成的 JSON 结构与 `docs/` 下 aDTO 架构不匹配。 | **强制核对**：Agent 必须校验传入表单是否符合对应平台的文档要求。 |
+| **发布失败：表单错误** | Agent 生成的 JSON 结构与 `skills/yixiaoer/references/` 下的 DTO 架构不匹配。 | **强制核对**：Agent 必须校验传入表单是否符合对应平台的文档要求。 |
 | **任务卡在发布中/待发布** | 虽然 API 接收了请求，但表单内容不合规导致引擎挂起。 | **规则校验**：检查表单是否严格按照文档规则填入，特别是 `raw` 数据透传。 |
 | **发布失败：必填项缺失** | 忽略了平台要求的必填核心字段（如标题、分类）。 | **必填项自检**：检查文档中标记为“必填”的字段是否已全部填入。 |
 | **上传失败/签名不匹配** | `contentType` 在获取上传地址与执行 PUT 时不一致。 | **一致性校验**：必须确保 `action: "upload-resource"` 时传入的 `contentType` 与实际上传一致。 |

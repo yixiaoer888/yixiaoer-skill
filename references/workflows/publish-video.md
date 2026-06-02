@@ -29,7 +29,7 @@ yxer schema get <platform> video
 5. 上传封面：`yxer upload <封面路径或URL>`
 6. 按需查询分类、位置、音乐、合集、话题、商品
 7. 根据前置数据、schema 和字段来源纪律填写 `payload.json`
-8. 查阅对应平台文档：`docs/publish/video/`
+8. 查阅对应平台文档：`skills/yixiaoer/references/platforms/video/`
 9. 执行校验：`yxer validate <platform> video <payload.json>`
 10. 正式发布：`yxer publish video <platform> <payload.json>`
 
@@ -58,5 +58,5 @@ yxer publish video 抖音 .\payload.json --publish-channel local --client-id <cl
 
 ## 平台文档入口
 
-- 索引：`docs/publish/video/index.md`
-- 平台细节：`docs/publish/video/*.md`
+- 索引：`skills/yixiaoer/references/platforms/video/index.md`
+- 平台细节：`skills/yixiaoer/references/platforms/video/*.md`

@@ -59,7 +59,7 @@ release/
   yxer-windows-amd64/
     yxer.exe
     README.md
-    docs/
+    skills/yixiaoer/references/
 ```
 
 ### 步骤 4：冒烟验证
@@ -109,10 +109,10 @@ bin\yxer.exe skill sync --global
 
 - `yxer.exe`
 - `README.md`
-- `docs/go-live-process.md`
-- `docs/cli-install-uninstall.md`
-- `docs/usage-workflow.md`
-- `docs/keyword-reference.md`
+- `skills/yixiaoer/references/go-live-process.md`
+- `skills/yixiaoer/references/cli-install-uninstall.md`
+- `skills/yixiaoer/references/usage-workflow.md`
+- `skills/yixiaoer/references/keyword-reference.md`
 - `skills/yixiaoer/SKILL.md`
 - `references/cli/`
 - `references/workflows/`

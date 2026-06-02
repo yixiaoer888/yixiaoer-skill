@@ -294,7 +294,7 @@ buildRequest() -> execute 提交
 
 ## 5. 错误码新增标准
 
-新增错误码必须写入 `docs/errors.md`。
+新增错误码必须写入 skill 内统一错误规范文档。
 
 错误码命名：
 

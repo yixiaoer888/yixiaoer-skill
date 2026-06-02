@@ -28,7 +28,7 @@ func Error(w io.Writer, err error, context string) {
 	code := yxerrors.RemoteErr
 	message := fmt.Sprintf("Failed to %s", context)
 	var details interface{} = err.Error()
-	hint := "请依次检查: 1. 技能版本号是否一致; 2. 请求参数是否符合 DTO 规范; 3. 查阅 docs/troubleshooting-guide.md。"
+	hint := "请依次检查: 1. 技能版本号是否一致; 2. 请求参数是否符合 DTO 规范; 3. 查阅 skills/yixiaoer/references/troubleshooting-guide.md。"
 	retryable := false
 	nextCommand := ""
 

@@ -90,4 +90,4 @@
 | 目标数据 | 对应 Action | 相关文档 |
 | :--- | :--- | :--- |
 | `video.key` | `upload` | [资源上传](../../upload-resource.md) |
-| `category` | `category` | [获取分类](../../platform-category.md) |
+| `category` | `category` | [获取发布分类](../../get-publish-categories.md) |

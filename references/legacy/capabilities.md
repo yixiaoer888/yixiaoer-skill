@@ -12,20 +12,20 @@
 
 | 能力 | 当前状态 | 推荐/现有命令 | 参考文档 |
 | --- | --- | --- | --- |
-| 蚁小二内部草稿保存 | 已覆盖 | `yxer draft save <payload.json>` | `docs/save-draft.md` |
-| 平台草稿发布 | 部分覆盖 | `yxer publish <type> <platform> <payload.json>` | `docs/save-draft.md` |
-| 素材库登记 | 已覆盖 | `yxer material create <payload.json>` | `docs/material-resource.md` |
-| 素材上传并登记一体化 | 已覆盖 | `yxer material add --file <文件路径或URL>` | `docs/material-resource.md` |
-| 账号数据概览 | 未覆盖 | 建议新增：`yxer account-overviews ...` | `docs/get-account-overviews.md` |
-| 作品数据概览 | 未覆盖 | 建议新增：`yxer content-overviews ...` | `docs/get-content-overviews.md` |
-| 征文活动 | 未覆盖 | 建议新增：`yxer activities <account_id> ...` | `docs/get-publish-activities.md` |
-| 小程序列表 | 未覆盖 | 建议新增：`yxer miniapps <account_id> ...` | `docs/get-miniapps.md` |
-| 同步发布应用 | 未覆盖 | 建议新增：`yxer syncapps <account_id>` | `docs/get-sync-apps.md` |
-| 热点列表 | 未覆盖 | 建议新增：`yxer hot-events <account_id> ...` | `docs/get-hot-events.md` |
-| 群聊列表 | 未覆盖 | 建议新增：`yxer groups <account_id>` | `docs/get-groups.md` |
-| 音乐分类 | 未覆盖 | 建议新增：`yxer music-categories <account_id>` | `docs/get-music-categories.md` |
-| 游戏挂载 | 未覆盖 | 建议新增：`yxer games <account_id> ...` | `docs/get-games.md` |
-| 代理管理 | 未覆盖 | 建议新增：`yxer proxies ...` / `yxer proxy-areas` / `yxer update-account ...` | `docs/proxy-management.md` |
+| 蚁小二内部草稿保存 | 已覆盖 | `yxer draft save <payload.json>` | `skills/yixiaoer/references/save-draft.md` |
+| 平台草稿发布 | 部分覆盖 | `yxer publish <type> <platform> <payload.json>` | `skills/yixiaoer/references/save-draft.md` |
+| 素材库登记 | 已覆盖 | `yxer material create <payload.json>` | `skills/yixiaoer/references/material-resource.md` |
+| 素材上传并登记一体化 | 已覆盖 | `yxer material add --file <文件路径或URL>` | `skills/yixiaoer/references/material-resource.md` |
+| 账号数据概览 | 未覆盖 | 建议新增：`yxer account-overviews ...` | `skills/yixiaoer/references/get-account-overviews.md` |
+| 作品数据概览 | 未覆盖 | 建议新增：`yxer content-overviews ...` | `skills/yixiaoer/references/get-content-overviews.md` |
+| 征文活动 | 未覆盖 | 建议新增：`yxer activities <account_id> ...` | `skills/yixiaoer/references/get-publish-activities.md` |
+| 小程序列表 | 未覆盖 | 建议新增：`yxer miniapps <account_id>` | `skills/yixiaoer/references/get-miniapps.md` |
+| 同步发布应用 | 未覆盖 | 建议新增：`yxer syncapps <account_id>` | `skills/yixiaoer/references/get-sync-apps.md` |
+| 热点列表 | 未覆盖 | 建议新增：`yxer hot-events <account_id> ...` | `skills/yixiaoer/references/get-hot-events.md` |
+| 群聊列表 | 未覆盖 | 建议新增：`yxer groups <account_id>` | `skills/yixiaoer/references/get-groups.md` |
+| 音乐分类 | 未覆盖 | 建议新增：`yxer music-categories <account_id>` | `skills/yixiaoer/references/get-music-categories.md` |
+| 游戏挂载 | 未覆盖 | 建议新增：`yxer games <account_id> ...` | `skills/yixiaoer/references/get-games.md` |
+| 代理管理 | 未覆盖 | 建议新增：`yxer proxies ...` / `yxer proxy-areas` / `yxer update-account ...` | `skills/yixiaoer/references/proxy-management.md` |
 
 ## 推荐迁移顺序
 

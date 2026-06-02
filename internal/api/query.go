@@ -86,8 +86,8 @@ func (c *Client) Prepare(platform, publishType string) (PrepareData, error) {
 		Categories:      categories,
 		DefaultFormType: "task",
 		Workflow:        fmt.Sprintf("workflows/publish-%s.md", publishType),
-		DocsIndex:       fmt.Sprintf("docs/publish/%s/index.md", publishType),
-		PlatformDoc:     fmt.Sprintf("docs/publish/%s/%s.md", publishType, platform),
+		DocsIndex:       fmt.Sprintf("skills/yixiaoer/references/platforms/%s/index.md", publishType),
+		PlatformDoc:     fmt.Sprintf("skills/yixiaoer/references/platforms/%s/%s.md", publishType, platform),
 		Schema:          fmt.Sprintf("schemas/platforms/%s.%s.schema.json", platform, schemaTypeName(publishType)),
 		RootSchema:      "schemas/publish.schema.json",
 	}, nil

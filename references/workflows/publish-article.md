@@ -29,7 +29,7 @@ yxer schema get <platform> article
 5. 如正文含图片，先逐张上传并替换引用
 6. 按需查询分类、位置、话题
 7. 根据前置数据、schema 和字段来源纪律填写 `payload.json`
-8. 查阅对应平台文档：`docs/publish/article/`
+8. 查阅对应平台文档：`skills/yixiaoer/references/platforms/article/`
 9. 执行校验：`yxer validate <platform> article <payload.json>`
 10. 正式发布：`yxer publish article <platform> <payload.json>`
 
@@ -61,5 +61,5 @@ yxer publish article 百家号 .\payload.json --publish-channel local --client-i
 
 ## 平台文档入口
 
-- 索引：`docs/publish/article/index.md`
-- 平台细节：`docs/publish/article/*.md`
+- 索引：`skills/yixiaoer/references/platforms/article/index.md`
+- 平台细节：`skills/yixiaoer/references/platforms/article/*.md`

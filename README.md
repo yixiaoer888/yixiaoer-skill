@@ -5,7 +5,8 @@
 仓库入口参考飞书 CLI 的组织方式来写：
 
 - `README.md` 面向人类用户和维护者，负责安装、快速开始和常用命令。
-- `skills/yixiaoer/SKILL.md` 面向 AI agent，负责技能触发规则、工作流和命令选择。
+- `skills/yixiaoer/SKILL.md` 面向 AI agent，负责共享规则、能力索引和命令探索。
+- `skills/yixiaoer/references/domains/` 放任务分域入口。
 - `references/` 放命令参考、工作流和平台差异说明。
 
 运行时统一通过 `yxer` 执行，不再假设存在旧 Node 脚本入口。
@@ -183,42 +184,34 @@ yxer linked-app toggle
 
 - `yxer --version` 升级后
 - `skills/yixiaoer/SKILL.md` 更新后
+- `skills/yixiaoer/references/domains/` 更新后
 - `references/workflows/` 或 `references/cli/` 更新后
 
 ## 面向 AI Agent
 
-如果你是把本仓库接给 AI agent、Codex 或其他命令式助手使用，不要只按一个线性发布流程读取；应先读技能入口，再按任务类型进入对应 workflow 节点。
+如果你是把本仓库接给 AI agent、Codex 或其他命令式助手使用，不要只按一个线性发布流程读取；应先读技能入口，再进入对应 domain 文档，再下钻到 workflow 或平台文档。
 
 ### 统一入口
 
 1. `skills/yixiaoer/SKILL.md`
-2. 再按任务类型继续读取下列节点
+2. 再按任务类型继续读取下列 domain 节点
 
 ### 任务路由
 
 - 发布任务：
-  - `references/workflows/common-rules.md`
-  - `references/workflows/account-selection.md`
-  - `references/workflows/local-vs-cloud.md`
-  - `references/workflows/payload-sourcing.md`
-  - 再按类型进入：
-    - `references/workflows/publish-video.md`
-    - `references/workflows/publish-imageText.md`
-    - `references/workflows/publish-article.md`
-- 草稿任务：
-  - `references/workflows/draft-workflow.md`
-- 素材库任务：
-  - `references/workflows/material-workflow.md`
+  - `skills/yixiaoer/references/domains/publish.md`
+  - 继续进入 `references/workflows/common-rules.md`、`account-selection.md`、`local-vs-cloud.md`、`payload-sourcing.md`
+  - 再按类型进入 `publish-video.md`、`publish-imageText.md`、`publish-article.md`
+- 草稿或素材任务：
+  - `skills/yixiaoer/references/domains/draft-and-material.md`
 - 发布失败排查 / 历史记录：
-  - `references/workflows/publish-troubleshooting.md`
-- 只生成或修 payload：
-  - `references/workflows/payload-sourcing.md`
-- 只查账号：
-  - `references/workflows/account-selection.md`
-- 只判断云发布 / 本机发布：
-  - `references/workflows/local-vs-cloud.md`
+  - `skills/yixiaoer/references/domains/troubleshooting.md`
+- 只查账号、环境、linked-app、skill 同步：
+  - `skills/yixiaoer/references/domains/accounts-and-env.md`
+- 安装、升级、分发：
+  - `skills/yixiaoer/references/domains/install-and-sync.md`
 - 需要平台差异时，再查：
-  - `docs/publish/`
+  - `skills/yixiaoer/references/platforms/`
 
 推荐约束：
 
@@ -285,12 +278,11 @@ yxer records list [--platform P] [--limit N] [--status S] [--json]
 
 ### 推荐任务分流
 
-- 用户要“发布”：先走 `common-rules` + `account-selection` + `local-vs-cloud` + `payload-sourcing`，再进具体类型 workflow
-- 用户要“保存草稿”：先走 `draft-workflow`，先区分蚁小二草稿和平台草稿箱
-- 用户要“素材库”：先走 `material-workflow`，优先判断是 `material add` 还是 `material create`
-- 用户要“查账号”：先走 `account-selection`
-- 用户要“修 payload”：先走 `payload-sourcing`
-- 用户要“排查发布失败”或“看历史记录”：先走 `publish-troubleshooting`
+- 用户要“发布”：先走 `skills/yixiaoer/references/domains/publish.md`，再进具体 workflow
+- 用户要“保存草稿”或“素材库”：先走 `skills/yixiaoer/references/domains/draft-and-material.md`
+- 用户要“查账号”或“看环境”：先走 `skills/yixiaoer/references/domains/accounts-and-env.md`
+- 用户要“修 payload”：先走 `skills/yixiaoer/references/domains/publish.md`，再下钻 `payload-sourcing`
+- 用户要“排查发布失败”或“看历史记录”：先走 `skills/yixiaoer/references/domains/troubleshooting.md`
 
 ### 推荐发布顺序
 
@@ -312,7 +304,8 @@ yxer records list [--platform P] [--limit N] [--status S] [--json]
 ### Skill 与 CLI 的分工
 
 - `README.md`：给人看，负责安装和上手。
-- `skills/yixiaoer/SKILL.md`：给 agent 看，负责规则和工作流。
+- `skills/yixiaoer/SKILL.md`：给 agent 看，负责共享规则和能力索引。
+- `skills/yixiaoer/references/domains/`：给 agent 做任务分流。
 - `yxer` CLI：真正执行账号查询、资源上传、校验和发布。
 
 ## 输出示例
@@ -413,12 +406,14 @@ schemas/
 skills/
   yixiaoer/
     SKILL.md
+    references/
+      domains/
+      platforms/
 references/
   cli/
   legacy/
   platforms/
   workflows/
-docs/
 tests/
 scripts/
 ```
@@ -426,11 +421,13 @@ scripts/
 ## 文档索引
 
 - 技能入口：`skills/yixiaoer/SKILL.md`
+- 任务分域：`skills/yixiaoer/references/domains/`
 - 命令参考：`references/cli/command-reference.md`
 - 技能安装与同步：`references/cli/skill-install.md`
-- 上线流程：`docs/go-live-process.md`
-- CLI/Skill 安装卸载：`docs/cli-install-uninstall.md`
-- 关键词文档：`docs/keyword-reference.md`
-- 使用流程文档：`docs/usage-workflow.md`
+- 上线流程：`skills/yixiaoer/references/go-live-process.md`
+- CLI/Skill 安装卸载：`skills/yixiaoer/references/cli-install-uninstall.md`
+- 关键词文档：`skills/yixiaoer/references/keyword-reference.md`
+- 使用流程文档：`skills/yixiaoer/references/usage-workflow.md`
 - 工作流正文：`references/workflows/`
-- 平台文档：`docs/publish/`
+- 平台文档：`skills/yixiaoer/references/platforms/`
+- 平台文档维护规范：`skills/yixiaoer/references/platform-doc-maintenance.md`

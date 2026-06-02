@@ -43,7 +43,7 @@
 ## 3. 依赖接口说明
 
 若字段值需通过查询获得，需注明：
-- **位置 (location)**: 需通过 `[获取位置](../../get-location.md)` 获得对应的 `PlatformDataItem`。
+- **位置 (location)**: 需通过 `[获取地理位置](../../get-locations.md)` 获得对应的 `PlatformDataItem`。
 - **话题 (topic)**: 在 `description` 中使用 `<topic>` 标签时，话题数据需通过 `[获取话题](../../get-topics.md)` 获得。
 
 ## 4. Payload 完整示例

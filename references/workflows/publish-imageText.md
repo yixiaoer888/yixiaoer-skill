@@ -28,7 +28,7 @@ yxer schema get <platform> imageText
 4. 逐张上传图片：`yxer upload <文件路径或URL>`
 5. 按需查询分类、位置、音乐、合集、话题、商品
 6. 根据前置数据、schema 和字段来源纪律填写 `payload.json`
-7. 查阅对应平台文档：`docs/publish/imageText/`
+7. 查阅对应平台文档：`skills/yixiaoer/references/platforms/imageText/`
 8. 执行校验：`yxer validate <platform> imageText <payload.json>`
 9. 正式发布：`yxer publish imageText <platform> <payload.json>`
 
@@ -57,5 +57,5 @@ yxer publish imageText 抖音 .\payload.json --publish-channel local --client-id
 
 ## 平台文档入口
 
-- 索引：`docs/publish/imageText/index.md`
-- 平台细节：`docs/publish/imageText/*.md`
+- 索引：`skills/yixiaoer/references/platforms/imageText/index.md`
+- 平台细节：`skills/yixiaoer/references/platforms/imageText/*.md`
