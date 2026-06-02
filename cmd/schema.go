@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"path/filepath"
+	"sort"
 
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/config"
@@ -11,7 +12,10 @@ import (
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
+var schemaGetVerbose bool
+
 func init() {
+	schemaGetCmd.Flags().BoolVar(&schemaGetVerbose, "verbose", false, "include duplicated debug schema views")
 	schemaCmd.AddCommand(schemaCatalogCmd)
 	schemaCmd.AddCommand(schemaListCmd)
 	schemaCmd.AddCommand(schemaGetCmd)
@@ -73,11 +77,20 @@ var schemaGetCmd = &cobra.Command{
 
 var schemaFieldsCmd = &cobra.Command{
 	Use:   "fields <中文平台名|platform-key> <type>",
-	Short: "只返回指定平台和发布类型的字段视图",
+	Short: "返回指定平台和发布类型的紧凑字段视图",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runSchemaFields(cmd, args[0], args[1])
 	},
+}
+
+type flatFieldView struct {
+	Path     string        `json:"path"`
+	Type     string        `json:"type,omitempty"`
+	Required bool          `json:"required,omitempty"`
+	Enum     []interface{} `json:"enum,omitempty"`
+	Const    interface{}   `json:"const,omitempty"`
+	Default  interface{}   `json:"default,omitempty"`
 }
 
 func runSchemaList(cmd *cobra.Command) error {
@@ -111,27 +124,28 @@ func runSchemaGet(cmd *cobra.Command, platform, publishType string) error {
 			WithNextCommand("yxer schema list")
 	}
 	envelopeSchema := buildStandardPublishSchema(schemaDoc)
-	accountFormSchema := buildAccountFormSchema(schemaDoc)
-	contentPublishFormSchema := buildContentPublishFormSchema(schemaDoc)
-	return output.Success(cmd.OutOrStdout(), "schema.get", map[string]interface{}{
+	result := map[string]interface{}{
 		"key":                      schemaDoc.Key,
 		"platform":                 schemaDoc.Platform,
 		"type":                     schemaDoc.Type,
 		"file":                     filepath.ToSlash(schemaDoc.File),
 		"rootSchema":               schemaDoc.RootSchema,
 		"document":                 envelopeSchema,
-		"schema":                   envelopeSchema,
-		"businessSchema":           schemaDoc,
-		"accountFormSchema":        accountFormSchema,
-		"contentPublishFormSchema": contentPublishFormSchema,
 		"payloadTemplate":          buildPayloadTemplate(schemaDoc),
+		"recommendedCommand":       "yxer schema fields <platform> <type>",
 		"agentGuidance": []string{
-			"`document` / `schema` 是标准 publish payload 的权威结构，优先据此构造请求体。",
-			"`accountFormSchema` 展示 publishArgs.accountForms[] 每个账号项必须具备的外层字段。",
-			"`contentPublishFormSchema` 只描述平台业务表单字段，对应 publishArgs.accountForms[].contentPublishForm。",
-			"`businessSchema` 保留原始平台 schema 供调试和比对，不建议直接拿它当最终 payload 根结构。",
+			"`document` 是标准 publish payload 的权威结构，用它确认最外层字段和层级。",
+			"`payloadTemplate` 提供最小可填骨架；按需补真实值，不要照抄占位内容。",
+			"只想看字段名、类型、必填项时，优先改用 `yxer schema fields <platform> <type>`，输出更短。",
 		},
-	})
+	}
+	if schemaGetVerbose {
+		result["schema"] = envelopeSchema
+		result["businessSchema"] = schemaDoc
+		result["accountFormSchema"] = buildAccountFormSchema(schemaDoc)
+		result["contentPublishFormSchema"] = buildContentPublishFormSchema(schemaDoc)
+	}
+	return output.Success(cmd.OutOrStdout(), "schema.get", result)
 }
 
 func runSchemaFields(cmd *cobra.Command, platform, publishType string) error {
@@ -160,10 +174,12 @@ func runSchemaFields(cmd *cobra.Command, platform, publishType string) error {
 	}
 	envelopeFields := buildStandardPublishFieldView(doc, fields)
 	return output.Success(cmd.OutOrStdout(), "schema.fields", map[string]interface{}{
-		"platform": doc.Platform,
-		"type":     doc.Type,
-		"key":      doc.Key,
-		"fields":   envelopeFields,
+		"platform":            doc.Platform,
+		"type":                doc.Type,
+		"key":                 doc.Key,
+		"recommendedResponse": "flatFields",
+		"flatFields":          flattenFieldViews(envelopeFields),
+		"fields":              envelopeFields,
 	})
 }
 
@@ -330,4 +346,61 @@ func buildContentPublishFormSchema(doc schema.Document) schema.Document {
 
 func intPtr(value int) *int {
 	return &value
+}
+
+func flattenFieldViews(fields map[string]schema.PropertyView) []flatFieldView {
+	var items []flatFieldView
+	appendFlatFieldViews(&items, fields, "")
+	return items
+}
+
+func appendFlatFieldViews(items *[]flatFieldView, fields map[string]schema.PropertyView, prefix string) {
+	for _, key := range sortedPropertyKeys(fields) {
+		view := fields[key]
+		path := key
+		if prefix != "" {
+			path = prefix + "." + key
+		}
+		*items = append(*items, flatFieldView{
+			Path:     path,
+			Type:     view.Type,
+			Required: view.Required,
+			Enum:     view.Enum,
+			Const:    view.Const,
+			Default:  view.Default,
+		})
+		if len(view.Properties) > 0 {
+			appendFlatFieldViews(items, view.Properties, path)
+		}
+		if view.Items != nil {
+			itemPath := path + "[]"
+			*items = append(*items, flatFieldView{
+				Path:     itemPath,
+				Type:     view.Items.Type,
+				Required: view.Required,
+				Enum:     view.Items.Enum,
+				Const:    view.Items.Const,
+				Default:  view.Items.Default,
+			})
+			if len(view.Items.Properties) > 0 {
+				appendFlatFieldViews(items, view.Items.Properties, itemPath)
+			}
+		}
+	}
+}
+
+func sortedPropertyKeys(fields map[string]schema.PropertyView) []string {
+	keys := make([]string, 0, len(fields))
+	for key := range fields {
+		keys = append(keys, key)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		left := fields[keys[i]]
+		right := fields[keys[j]]
+		if left.Required != right.Required {
+			return left.Required
+		}
+		return keys[i] < keys[j]
+	})
+	return keys
 }

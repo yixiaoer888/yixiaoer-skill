@@ -12,7 +12,7 @@
 ## 字段来源优先级
 
 1. `yxer prepare <platform> <type>`：确认表单项、前置数据、账号能力
-2. `yxer schema get <platform> <type>`：确认字段名、层级、类型、必填项
+2. 优先执行 `yxer schema fields <platform> <type>`：确认字段名、类型、必填项；需要完整层级骨架时再执行 `yxer schema get <platform> <type>`
 3. 查询命令：补充动态对象，如 `category`、`location`、`music`、`collection`、`challenge`、`goods`
 4. `yxer upload`：补充资源 `key`、尺寸、时长、格式等元数据
 5. 用户明确提供的业务内容：标题、正文、描述、发布时间等
@@ -57,7 +57,7 @@
 ## 修 payload 的顺序
 
 1. 先看 `validate` 错误
-2. 回到 `prepare` / `schema get` 定位字段层级
+2. 先回到 `prepare` / `schema fields` 核对字段；需要完整层级骨架时再用 `schema get`
 3. 回到查询命令或 upload 结果核对字段值
 4. 只修对应字段，不要重写整份 payload
 5. 重新执行 `yxer validate`

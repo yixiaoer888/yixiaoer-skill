@@ -376,7 +376,7 @@ func SinglePlatform(value string) (string, error) {
 	platforms := SplitPlatforms(value)
 	if len(platforms) != 1 {
 		return "", yxerrors.Usage("publish supports exactly one platform per command", []string{
-			`Use Agent orchestration for multi-platform publishing: run "yxer accounts", "yxer schema get", "yxer validate", and "yxer publish" once per platform.`,
+			`Use Agent orchestration for multi-platform publishing: run "yxer accounts", "yxer schema fields", "yxer validate", and "yxer publish" once per platform; add "yxer schema get" only when you need the full skeleton.`,
 			`Example: yxer publish imageText xhs xhs-payload.json; then yxer publish imageText zhihu zhihu-payload.json`,
 		}).
 			WithHint("单次 publish 命令只支持一个平台，请拆分成多次调用。")

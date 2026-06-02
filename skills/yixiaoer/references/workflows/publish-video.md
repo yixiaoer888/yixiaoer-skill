@@ -11,6 +11,7 @@
 
 ```bash
 yxer prepare <platform> video
+yxer schema fields <platform> video
 yxer schema get <platform> video
 ```
 
@@ -24,7 +25,7 @@ yxer schema get <platform> video
 
 1. 查询账号：`yxer accounts list [platform] [--status 1] [--json]`
 2. 获取前置数据：`yxer prepare <platform> video`
-3. 获取 schema：`yxer schema get <platform> video`
+3. 先获取字段视图：`yxer schema fields <platform> video`；需要 payload 骨架时再执行 `yxer schema get <platform> video`
 4. 上传视频：`yxer upload <视频路径或URL>`
 5. 上传封面：`yxer upload <封面路径或URL>`
 6. 按需查询分类、位置、音乐、合集、话题、商品
@@ -39,7 +40,7 @@ yxer schema get <platform> video
 - 视频只能有一个，封面必须单独上传
 - 用户未提供封面时，必须补问，不要自动截帧
 - 可选复杂对象必须通过查询命令取得完整对象后再填入
-- 发布前先看 `prepare` 和 `schema get` 返回的表单字段，再填写 payload
+- 发布前先看 `prepare` 和 `schema fields` 返回的字段；只有要确认完整骨架时再看 `schema get`
 - `payload.json` 必须使用统一标准结构：顶层 `publishArgs`，业务字段放在 `publishArgs.accountForms[].contentPublishForm`
 - 用户明确要求本机发布时，必须显式传 `--publish-channel local` 和 `--client-id`
 

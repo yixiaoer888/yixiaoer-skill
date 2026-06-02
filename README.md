@@ -90,6 +90,7 @@ yxer publish video 抖音 .\payload.json --dry-run
 
 ```bash
 yxer prepare 抖音 video
+yxer schema fields 抖音 video
 yxer schema get 抖音 video
 yxer validate 抖音 video .\payload.json
 yxer publish video 抖音 .\payload.json --dry-run
@@ -215,7 +216,7 @@ yxer linked-app toggle
 
 推荐约束：
 
-- 优先调用 `yxer` CLI，通过 `prepare` / `schema get` 了解字段后再填写 `payload.json`
+- 优先调用 `yxer` CLI，通过 `prepare` / `schema fields` 了解字段；`schema fields` 默认返回更紧凑的扁平路径视图，只有需要完整 payload 骨架时再看 `schema get`
 - `payload.json` 必须使用标准 envelope：`action/publishType/platforms/publishArgs`
 - 账号选择、通道判断、payload 来源、失败排查都应走对应 workflow，不要混写在一个大 prompt 里
 - 复杂对象通过查询命令获取，不手写 `raw`
@@ -244,6 +245,7 @@ yxer upload --url <resource_url> [--bucket cloud-publish|material-library] [--dr
 
 ```bash
 yxer prepare <platform> <type>
+yxer schema fields <platform> <type>
 yxer schema get <platform> <type>
 yxer validate <platform> <type> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>]
 yxer publish <type> <platform> <payload.json> [clientId] [--dry-run]
@@ -291,7 +293,7 @@ yxer records list [--platform P] [--limit N] [--status S] [--json]
 1. `yxer doctor`
 2. `yxer accounts list`
 3. `yxer prepare`
-4. `yxer schema get`
+4. `yxer schema fields`（必要时再补 `yxer schema get`）
 5. `yxer upload`
 6. 查询分类、位置、音乐等复杂对象
 7. 填写 `payload.json`

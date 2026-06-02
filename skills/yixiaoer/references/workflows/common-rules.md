@@ -19,7 +19,7 @@
 5. 执行 `yxer doctor`
 6. 执行 `yxer accounts list`
 7. 执行 `yxer prepare <platform> <type>`
-8. 执行 `yxer schema get <platform> <type>`
+8. 优先执行 `yxer schema fields <platform> <type>`；需要 payload 骨架时再执行 `yxer schema get <platform> <type>`
 9. 执行 `yxer upload`
 10. 执行动态字段查询命令
 11. 组装 payload
@@ -28,7 +28,7 @@
 
 禁止行为：
 
-- 跳过 `prepare` / `schema get` 直接手写 payload
+- 跳过 `prepare` / `schema fields` / `schema get` 直接手写 payload
 - 先执行 `publish`，失败后再补 `validate`
 - 从空白 JSON 文件开始猜字段、猜层级、猜顺序
 - 未读取 workflow 就按历史记忆填平台字段
@@ -43,7 +43,7 @@
 - `[ ]` 已完成环境检查
 - `[ ]` 已确认账号有效
 - `[ ]` 已拿到最新 `prepare` 结果
-- `[ ]` 已拿到最新 `schema get` 结果
+- `[ ]` 已拿到最新 `schema fields` 结果；如需骨架再补 `schema get`
 - `[ ]` 已完成上传，不存在外部 URL 直填
 - `[ ]` 已查询动态字段，不存在手写 `raw`
 - `[ ]` 当前 payload 不含模板占位符
@@ -51,7 +51,7 @@
 
 ## 数据真实性原则
 
-- Agent 组装请求数据时，必须以 `yxer prepare`、`yxer schema get`、平台文档和 CLI 返回结果为唯一依据。
+- Agent 组装请求数据时，必须以 `yxer prepare`、`yxer schema fields` / `schema get`、平台文档和 CLI 返回结果为唯一依据。
 - 严禁自行猜测字段名、层级、枚举、默认值、示例值、`raw` 对象内容或资源元数据。
 - 文档未定义、schema 未声明、CLI 未返回的字段，不得写入 payload。
 - 动态字段和复杂对象必须先查询后填写；查不到时继续查询或向用户确认，不能凭经验编造。
@@ -156,8 +156,8 @@ yxer publish <type> <platform> .\payload.json --publish-channel local --client-i
 在自动填值之前，Agent 必须先读取平台前置数据和 schema：
 
 - 先执行 `yxer prepare <platform> <type>`，确认该平台该类型需要哪些表单字段、账号能力和前置数据
-- 再执行 `yxer schema get <platform> <type>`，确认 payload 字段名、层级、类型和必填项
-- 只有在 `prepare` / `schema get` 已确认后，才开始填写或补齐 `payload.json`
+- 先执行 `yxer schema fields <platform> <type>`，确认字段名、类型和必填项；需要根层级骨架时再执行 `yxer schema get <platform> <type>`
+- 只有在 `prepare` / `schema fields` / `schema get` 已确认后，才开始填写或补齐 `payload.json`
 - Agent 不允许从空白 JSON 手工拼接 payload；必须先基于标准结构或 CLI 模板生成骨架，再按返回结果填值
 
 以下字段应先向用户确认，再填入：

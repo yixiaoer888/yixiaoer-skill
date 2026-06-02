@@ -23,13 +23,14 @@ func init() {
 var publishCmd = &cobra.Command{
 	Use:   "publish <type> <中文平台名|platform-key> <payload.json> [clientId]",
 	Short: "发布内容（单平台原子发布）",
-	Long: "仅支持 payload.json 模式。发布前请先通过 prepare / schema get 获取表单字段和前置数据，再补齐 payload，执行 validate 后再 publish。",
+	Long: "仅支持 payload.json 模式。发布前请先通过 prepare / schema fields 获取表单字段和前置数据；需要完整骨架时再补 schema get，随后执行 validate 和 publish。",
 	Args: cobra.RangeArgs(3, 4),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if !looksLikePayloadArg(args[2]) {
 			return yxerrors.Usage("publish requires a payload.json file", []string{
 				`Run "yxer prepare <platform> <type>" to inspect platform-specific form fields and preflight data.`,
-				`Run "yxer schema get <platform> <type>" to inspect the payload schema before filling the JSON file.`,
+				`Run "yxer schema fields <platform> <type>" to inspect the compact field list before filling the JSON file.`,
+				`Run "yxer schema get <platform> <type>" only when you need the full payload skeleton.`,
 			}).WithHint("发布命令已移除内容 flags 模式，请先准备 payload.json，再执行 validate / publish。")
 		}
 		payload, err := readPayload(args[2])

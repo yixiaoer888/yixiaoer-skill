@@ -92,6 +92,45 @@ func TestSchemaGetCommandOutputsSchemaForChinesePlatformAlias(t *testing.T) {
 	if len(templateForms) != 1 {
 		t.Fatalf("expected single template account form, got %#v", templateForms)
 	}
+	if _, ok := data["schema"]; ok {
+		t.Fatalf("expected default schema.get output to omit duplicated schema alias, got %#v", data["schema"])
+	}
+	if _, ok := data["businessSchema"]; ok {
+		t.Fatalf("expected default schema.get output to omit verbose businessSchema, got %#v", data["businessSchema"])
+	}
+	if data["recommendedCommand"] != "yxer schema fields <platform> <type>" {
+		t.Fatalf("expected recommended schema.fields command, got %#v", data["recommendedCommand"])
+	}
+	guidance := data["agentGuidance"].([]interface{})
+	if len(guidance) < 3 {
+		t.Fatalf("expected schema.get guidance for agents, got %#v", guidance)
+	}
+}
+
+func TestSchemaGetCommandVerboseOutputsDebugViews(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	var out bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.SetOut(&out)
+	cmd.Flags().Bool("verbose", false, "")
+	if err := cmd.Flags().Set("verbose", "true"); err != nil {
+		t.Fatal(err)
+	}
+	schemaGetVerbose = true
+	t.Cleanup(func() {
+		schemaGetVerbose = false
+	})
+
+	if err := schemaGetCmd.RunE(cmd, []string{"抖音", "video"}); err != nil {
+		t.Fatal(err)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
 	accountFormSchema := data["accountFormSchema"].(map[string]interface{})
 	accountFormProps := accountFormSchema["properties"].(map[string]interface{})
 	if accountFormProps["platformAccountId"].(map[string]interface{})["required"] != true {
@@ -101,10 +140,6 @@ func TestSchemaGetCommandOutputsSchemaForChinesePlatformAlias(t *testing.T) {
 	contentProps := contentSchema["properties"].(map[string]interface{})
 	if contentProps["title"].(map[string]interface{})["required"] != true {
 		t.Fatalf("expected contentPublishFormSchema title to be required, got %#v", contentProps["title"])
-	}
-	guidance := data["agentGuidance"].([]interface{})
-	if len(guidance) < 4 {
-		t.Fatalf("expected schema.get guidance for agents, got %#v", guidance)
 	}
 }
 
@@ -152,6 +187,31 @@ func TestSchemaFieldsCommandOutputsFieldView(t *testing.T) {
 	data := response["data"].(map[string]interface{})
 	if data["key"] != "douyin/video" {
 		t.Fatalf("unexpected schema key: %#v", data["key"])
+	}
+	if data["recommendedResponse"] != "flatFields" {
+		t.Fatalf("expected flatFields to be recommended response, got %#v", data["recommendedResponse"])
+	}
+	flatFields := data["flatFields"].([]interface{})
+	if len(flatFields) == 0 {
+		t.Fatal("expected compact flatFields view")
+	}
+	first := flatFields[0].(map[string]interface{})
+	if first["path"] != "action" || first["required"] != true {
+		t.Fatalf("expected required root field first in flatFields, got %#v", first)
+	}
+	foundTitle := false
+	for _, entry := range flatFields {
+		item := entry.(map[string]interface{})
+		if item["path"] == "publishArgs.accountForms[].contentPublishForm.title" {
+			foundTitle = true
+			if item["type"] != "string" || item["required"] != true {
+				t.Fatalf("expected title in flatFields to be required string, got %#v", item)
+			}
+			break
+		}
+	}
+	if !foundTitle {
+		t.Fatal("expected contentPublishForm.title in flatFields")
 	}
 	fields := data["fields"].(map[string]interface{})
 	publishArgs := fields["publishArgs"].(map[string]interface{})

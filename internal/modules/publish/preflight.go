@@ -563,7 +563,7 @@ func rejectTemplatePlaceholders(value interface{}, errors *[]string) {
 		if !placeholderPattern.MatchString(text) {
 			return
 		}
-		*errors = append(*errors, fmt.Sprintf("%s: unresolved template placeholder %q; run prepare/schema get and replace template values before validate/publish", strings.TrimPrefix(path, "$."), text))
+		*errors = append(*errors, fmt.Sprintf("%s: unresolved template placeholder %q; run prepare/schema fields (and schema get if needed) and replace template values before validate/publish", strings.TrimPrefix(path, "$."), text))
 	}, "$")
 }
 

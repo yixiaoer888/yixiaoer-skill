@@ -50,7 +50,7 @@ var validateCmd = &cobra.Command{
 		if !result.Valid {
 			return yxerrors.Usage("Schema validation failed", result.Errors).
 				WithHint("请根据 schema 要求修正 payload 字段、类型和必填项。").
-				WithNextCommand("yxer schema get <platform> <type>")
+				WithNextCommand("yxer schema fields <platform> <type>")
 		}
 		if err := requireStandardPublishPayload(payload, platform, publishType); err != nil {
 			return err
@@ -95,7 +95,7 @@ func requireStandardPublishPayload(payload map[string]interface{}, platform, pub
 		"missing publishArgs",
 	}).
 		WithHint("请使用标准请求体：顶层保留 action/publishType/platforms/publishArgs，实际业务字段放到 publishArgs.accountForms[].contentPublishForm。").
-		WithNextCommand(fmt.Sprintf("yxer schema get %s %s", platform, publishType))
+		WithNextCommand(fmt.Sprintf("yxer schema fields %s %s", platform, publishType))
 }
 
 func readPayload(path string) (map[string]interface{}, error) {

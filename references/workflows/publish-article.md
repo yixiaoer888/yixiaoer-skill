@@ -11,6 +11,7 @@
 
 ```bash
 yxer prepare <platform> article
+yxer schema fields <platform> article
 yxer schema get <platform> article
 ```
 
@@ -24,7 +25,7 @@ yxer schema get <platform> article
 
 1. 查询账号：`yxer accounts list [platform] [--status 1] [--json]`
 2. 获取前置数据：`yxer prepare <platform> article`
-3. 获取 schema：`yxer schema get <platform> article`
+3. 先获取字段视图：`yxer schema fields <platform> article`；需要 payload 骨架时再执行 `yxer schema get <platform> article`
 4. 上传封面：`yxer upload <封面路径或URL>`
 5. 如正文含图片，先逐张上传并替换引用
 6. 按需查询分类、位置、话题
@@ -39,7 +40,7 @@ yxer schema get <platform> article
 - 文章必须有封面，未提供时必须补问
 - 文章正文中的图片不能直接引用外部 URL，必须先上传
 - 文章分类通常必须选到叶子节点
-- 发布前先看 `prepare` 和 `schema get` 返回的表单字段，再填写 payload
+- 发布前先看 `prepare` 和 `schema fields` 返回的字段；只有要确认完整骨架时再看 `schema get`
 - `payload.json` 必须使用统一标准结构：顶层 `publishArgs`
 - 文章正文 `content` 应放在 `publishArgs.content`，与 `accountForms` 同级
 - 账号和平台差异字段放在 `publishArgs.accountForms[].contentPublishForm`

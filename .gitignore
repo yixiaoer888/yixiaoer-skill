@@ -4,3 +4,4 @@ bin/**
 .tmp/**
 .codex-tmp/**
 .agents/**
+.gomodcache/**

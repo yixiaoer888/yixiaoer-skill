@@ -42,14 +42,15 @@ yxer --help
 yxer doctor
 yxer <command> --help
 yxer prepare <platform> <type>
+yxer schema fields <platform> <type>
 yxer schema get <platform> <type>
 ```
 
 ## 全局规则
 
 - 发布、草稿、素材、排查都只允许通过 `yxer` CLI 执行。
-- 正式发布前固定顺序是：`doctor -> accounts list -> prepare -> schema get -> validate -> publish --dry-run -> publish`。
-- `prepare`、`schema get`、workflow、平台文档和 CLI 实际输出，是组装 payload 的唯一依据。
+- 正式发布前固定顺序是：`doctor -> accounts list -> prepare -> schema fields -> validate -> publish --dry-run -> publish`；只有需要 payload 骨架时再补 `schema get`。
+- `prepare`、`schema fields` / `schema get`、workflow、平台文档和 CLI 实际输出，是组装 payload 的唯一依据。
 - 图片、视频、封面等资源必须先上传，且只能复用 `yxer upload` 返回的真实字段。
 - `category`、`location`、`music`、`collection`、`challenge`、`goods` 等动态字段必须先查询，不能手写对象。
 - `validate`、`publish --dry-run`、正式 `publish` 必须使用同一套发布通道参数。

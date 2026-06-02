@@ -60,6 +60,7 @@ yxer collections <account_id> [--type video|article]
 yxer challenges <account_id> [--query 关键词] [--type video]
 yxer records list [--platform P] [--limit N] [--status S] [--json]
 yxer prepare <platform> <type>
+yxer schema fields <platform> <type>
 yxer schema get <platform> <type>
 ```
 
@@ -68,7 +69,7 @@ yxer schema get <platform> <type>
 - 发布类型统一使用：`video`、`imageText`、`article`
 - 单次 `yxer publish` 只处理一个平台
 - `publish` 仅支持 `payload.json` 模式
-- 发布前必须先执行 `yxer prepare <platform> <type>` 和 `yxer schema get <platform> <type>`，确认表单字段和 schema 后再填写 payload
+- 发布前必须先执行 `yxer prepare <platform> <type>` 和 `yxer schema fields <platform> <type>`；`schema fields` 默认返回扁平路径清单，只有需要完整 payload 骨架时再执行 `yxer schema get <platform> <type>`
 - `payload.json` 只支持标准 `publishArgs` 结构，所有平台统一
 - CLI 会根据 `publishArgs` 自动补齐最外层 `cover`、`coverKey`、`desc`、`isDraft`、`isAppContent`
 - 云发布是默认模式
@@ -145,6 +146,7 @@ yxer upload --url https://example.com/demo.jpg
 
 ```bash
 yxer prepare 小红书 imageText
+yxer schema fields 小红书 imageText
 yxer schema get 小红书 imageText
 ```
 

@@ -54,7 +54,7 @@ func (Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 		if !result.Valid {
 			return DryRunResult{}, yxerrors.Usage("Schema validation failed", result.Errors).
 				WithHint("请根据对应平台 schema 修正 payload 字段后重试。").
-				WithNextCommand("yxer schema get <platform> <type>")
+				WithNextCommand("yxer schema fields <platform> <type>")
 		}
 	}
 	preflight := publishmod.Preflight(input.PublishType, platforms, payloadWithPublishMode(resolvedPayload, channel, clientID))

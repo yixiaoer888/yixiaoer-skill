@@ -33,7 +33,7 @@ yxer material add --file .\demo.mp4 --type video
 
 - `material add` 优先于手工 `upload + material create`
 - `material create` 前提是资源已经上传到 `material-library`
-- 素材任务不等同于发布任务；不需要 `prepare` / `schema get`，除非用户随后要直接发布
+- 素材任务不等同于发布任务；不需要 `prepare` / `schema fields` / `schema get`，除非用户随后要直接发布
 - 若用户要“上传后马上发布”，完成素材任务后切回对应发布 workflow
 
 ## 严禁行为
