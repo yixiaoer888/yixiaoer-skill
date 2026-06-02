@@ -187,21 +187,44 @@ yxer linked-app toggle
 
 ## 面向 AI Agent
 
-如果你是把本仓库接给 AI agent、Codex 或其他命令式助手使用，建议按下面的入口顺序读取：
+如果你是把本仓库接给 AI agent、Codex 或其他命令式助手使用，不要只按一个线性发布流程读取；应先读技能入口，再按任务类型进入对应 workflow 节点。
+
+### 统一入口
 
 1. `skills/yixiaoer/SKILL.md`
-2. `references/workflows/common-rules.md`
-3. 对应类型的工作流：
-   `references/workflows/publish-video.md`、
-   `references/workflows/publish-imageText.md`、
-   `references/workflows/publish-article.md`
-4. 需要平台差异时，再查 `docs/publish/`
+2. 再按任务类型继续读取下列节点
+
+### 任务路由
+
+- 发布任务：
+  - `references/workflows/common-rules.md`
+  - `references/workflows/account-selection.md`
+  - `references/workflows/local-vs-cloud.md`
+  - `references/workflows/payload-sourcing.md`
+  - 再按类型进入：
+    - `references/workflows/publish-video.md`
+    - `references/workflows/publish-imageText.md`
+    - `references/workflows/publish-article.md`
+- 草稿任务：
+  - `references/workflows/draft-workflow.md`
+- 素材库任务：
+  - `references/workflows/material-workflow.md`
+- 发布失败排查 / 历史记录：
+  - `references/workflows/publish-troubleshooting.md`
+- 只生成或修 payload：
+  - `references/workflows/payload-sourcing.md`
+- 只查账号：
+  - `references/workflows/account-selection.md`
+- 只判断云发布 / 本机发布：
+  - `references/workflows/local-vs-cloud.md`
+- 需要平台差异时，再查：
+  - `docs/publish/`
 
 推荐约束：
 
 - 优先调用 `yxer` CLI，通过 `prepare` / `schema get` 了解字段后再填写 `payload.json`
 - `payload.json` 必须使用标准 envelope：`action/publishType/platforms/publishArgs`
-- 发布前先查账号，再上传资源
+- 账号选择、通道判断、payload 来源、失败排查都应走对应 workflow，不要混写在一个大 prompt 里
 - 复杂对象通过查询命令获取，不手写 `raw`
 - 本机发布显式传 `--publish-channel local` 和 `--client-id`
 
@@ -260,7 +283,16 @@ yxer records list [--platform P] [--limit N] [--status S] [--json]
 - 本机发布必须提供 `clientId`，可通过 `yxer config set-local-client-id <clientId>` 预设。
 - `validate`、`publish --dry-run`、`publish` 会共用同一套发布通道解析规则；若已预设默认 `clientId`，可在本机发布时只传 `--publish-channel local`。
 
-### 推荐执行顺序
+### 推荐任务分流
+
+- 用户要“发布”：先走 `common-rules` + `account-selection` + `local-vs-cloud` + `payload-sourcing`，再进具体类型 workflow
+- 用户要“保存草稿”：先走 `draft-workflow`，先区分蚁小二草稿和平台草稿箱
+- 用户要“素材库”：先走 `material-workflow`，优先判断是 `material add` 还是 `material create`
+- 用户要“查账号”：先走 `account-selection`
+- 用户要“修 payload”：先走 `payload-sourcing`
+- 用户要“排查发布失败”或“看历史记录”：先走 `publish-troubleshooting`
+
+### 推荐发布顺序
 
 发布类任务建议始终按这个顺序执行：
 
@@ -274,6 +306,8 @@ yxer records list [--platform P] [--limit N] [--status S] [--json]
 8. `yxer validate`
 9. `yxer publish --dry-run`
 10. `yxer publish`
+
+上面这 10 步只适用于“正式发布链路”；草稿、素材库、排查等任务不要强行套这条主流程。
 
 ### Skill 与 CLI 的分工
 
@@ -362,11 +396,12 @@ yxer skill sync --global
 - 蚁小二草稿
 - 平台草稿箱
 
-详细排查和错误说明见：
+对应入口：
 
-- `docs/troubleshooting-guide.md`
-- `docs/execution-standard.md`
-- `references/workflows/`
+- 蚁小二草稿：`references/workflows/draft-workflow.md`
+- 发布失败排查：`references/workflows/publish-troubleshooting.md`
+- 通道判断：`references/workflows/local-vs-cloud.md`
+- payload 修订：`references/workflows/payload-sourcing.md`
 
 ## 目录结构
 

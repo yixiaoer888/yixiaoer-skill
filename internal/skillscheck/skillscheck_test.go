@@ -68,3 +68,57 @@ func TestNoticeStale(t *testing.T) {
 		t.Fatalf("notice[state] = %v, want stale", got)
 	}
 }
+
+func TestCheckSkillLinksSuccess(t *testing.T) {
+	dir := t.TempDir()
+	skillDir := filepath.Join(dir, "skills", "yixiaoer")
+	refsDir := filepath.Join(skillDir, "references")
+	if err := os.MkdirAll(refsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("[ref](./references/doc.md)\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(refsDir, "doc.md"), []byte("[home](../SKILL.md)\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	report, err := CheckSkillLinks(skillDir)
+	if err != nil {
+		t.Fatalf("CheckSkillLinks returned error: %v", err)
+	}
+	if report.FilesScanned != 2 {
+		t.Fatalf("FilesScanned = %d, want 2", report.FilesScanned)
+	}
+	if report.LinksChecked != 2 {
+		t.Fatalf("LinksChecked = %d, want 2", report.LinksChecked)
+	}
+	if report.InvalidLinks != 0 {
+		t.Fatalf("InvalidLinks = %d, want 0", report.InvalidLinks)
+	}
+}
+
+func TestCheckSkillLinksMissingTarget(t *testing.T) {
+	dir := t.TempDir()
+	skillDir := filepath.Join(dir, "skills", "yixiaoer")
+	if err := os.MkdirAll(skillDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("[missing](./references/missing.md)\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	report, err := CheckSkillLinks(skillDir)
+	if err == nil {
+		t.Fatal("CheckSkillLinks error = nil, want non-nil")
+	}
+	if report.InvalidLinks != 1 {
+		t.Fatalf("InvalidLinks = %d, want 1", report.InvalidLinks)
+	}
+	if len(report.Issues) != 1 {
+		t.Fatalf("len(Issues) = %d, want 1", len(report.Issues))
+	}
+	if report.Issues[0].File != "SKILL.md" {
+		t.Fatalf("issue file = %q, want SKILL.md", report.Issues[0].File)
+	}
+}

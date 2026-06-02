@@ -14,16 +14,17 @@
 
 1. 读取 `skills/yixiaoer/SKILL.md`
 2. 读取当前文件
-3. 读取对应类型 workflow
-4. 执行 `yxer doctor`
-5. 执行 `yxer accounts`
-6. 执行 `yxer prepare <platform> <type>`
-7. 执行 `yxer schema get <platform> <type>`
-8. 执行 `yxer upload`
-9. 执行动态字段查询命令
-10. 组装 payload
-11. 执行 `yxer validate`
-12. 执行 `yxer publish`
+3. 读取 `account-selection.md`、`local-vs-cloud.md`、`payload-sourcing.md`
+4. 读取对应类型 workflow
+5. 执行 `yxer doctor`
+6. 执行 `yxer accounts list`
+7. 执行 `yxer prepare <platform> <type>`
+8. 执行 `yxer schema get <platform> <type>`
+9. 执行 `yxer upload`
+10. 执行动态字段查询命令
+11. 组装 payload
+12. 执行 `yxer validate`
+13. 执行 `yxer publish`
 
 禁止行为：
 
@@ -59,7 +60,7 @@
 
 ## 发布通道判断规则
 
-Agent 在任何 `publish` 之前，都要先判断这次任务是云发布还是本机发布。
+Agent 在任何 `publish` 之前，都要先读取 [`local-vs-cloud.md`](./local-vs-cloud.md) 并判断这次任务是云发布还是本机发布。
 
 ### 何时用云发布
 
@@ -106,6 +107,8 @@ yxer publish <type> <platform> .\payload.json --publish-channel local --client-i
 ---
 
 ## 默认值自动补全规则
+
+字段来源和修 payload 顺序，优先遵循 [`payload-sourcing.md`](./payload-sourcing.md)。
 
 ### 标准 payload 结构
 
@@ -194,6 +197,8 @@ yxer publish <type> <platform> .\payload.json --publish-channel local --client-i
 ---
 
 ## 复杂对象查询规范
+
+账号选择和 `platformAccountId` 确认，优先遵循 [`account-selection.md`](./account-selection.md)。
 
 以下字段严禁手动构造，必须通过查询命令获取完整 `raw` 对象：
 

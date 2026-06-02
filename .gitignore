@@ -1,3 +1,6 @@
 node_modules/**
 .gocache/**
 bin/**
+.tmp/**
+.codex-tmp/**
+.agents/**

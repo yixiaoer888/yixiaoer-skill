@@ -14,15 +14,21 @@ yxer prepare <platform> video
 yxer schema get <platform> video
 ```
 
+开始前，先补读：
+
+- [`account-selection.md`](./account-selection.md)
+- [`local-vs-cloud.md`](./local-vs-cloud.md)
+- [`payload-sourcing.md`](./payload-sourcing.md)
+
 ## 执行顺序
 
-1. 查询账号：`yxer accounts [platform]`
+1. 查询账号：`yxer accounts list [platform] [--status 1] [--json]`
 2. 获取前置数据：`yxer prepare <platform> video`
 3. 获取 schema：`yxer schema get <platform> video`
 4. 上传视频：`yxer upload <视频路径或URL>`
 5. 上传封面：`yxer upload <封面路径或URL>`
 6. 按需查询分类、位置、音乐、合集、话题、商品
-7. 根据前置数据与 schema 填写 `payload.json`
+7. 根据前置数据、schema 和字段来源纪律填写 `payload.json`
 8. 查阅对应平台文档：`docs/publish/video/`
 9. 执行校验：`yxer validate <platform> video <payload.json>`
 10. 正式发布：`yxer publish video <platform> <payload.json>`

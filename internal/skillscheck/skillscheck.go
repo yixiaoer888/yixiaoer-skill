@@ -2,19 +2,39 @@ package skillscheck
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
+	"sort"
 	"strings"
 )
 
 const stampFile = "skills.stamp"
+
+var markdownLinkPattern = regexp.MustCompile(`!?\[[^\]]*\]\(([^)]+)\)`)
 
 type Status struct {
 	Current string `json:"current"`
 	Target  string `json:"target"`
 	Sync    bool   `json:"inSync"`
 	State   string `json:"state"`
+}
+
+type LinkIssue struct {
+	File   string `json:"file"`
+	Link   string `json:"link"`
+	Target string `json:"target"`
+	Error  string `json:"error"`
+}
+
+type LinkCheckReport struct {
+	SkillDir      string      `json:"skillDir"`
+	FilesScanned  int         `json:"filesScanned"`
+	LinksChecked  int         `json:"linksChecked"`
+	InvalidLinks  int         `json:"invalidLinks"`
+	Issues        []LinkIssue `json:"issues,omitempty"`
 }
 
 func StampPath() (string, error) {
@@ -146,4 +166,102 @@ func resolveBaseDir() (string, error) {
 		return "", err
 	}
 	return filepath.Join(home, ".yxer"), nil
+}
+
+func CheckSkillLinks(skillDir string) (LinkCheckReport, error) {
+	report := LinkCheckReport{SkillDir: skillDir}
+	root, err := filepath.Abs(skillDir)
+	if err != nil {
+		return report, err
+	}
+	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if strings.ToLower(filepath.Ext(path)) != ".md" {
+			return nil
+		}
+		report.FilesScanned++
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		matches := markdownLinkPattern.FindAllStringSubmatch(string(raw), -1)
+		for _, match := range matches {
+			if len(match) < 2 {
+				continue
+			}
+			link := strings.TrimSpace(match[1])
+			if !shouldCheckLocalLink(link) {
+				continue
+			}
+			report.LinksChecked++
+			targetPath := resolveLocalLink(path, link)
+			info, statErr := os.Stat(targetPath)
+			if statErr != nil || info == nil {
+				report.Issues = append(report.Issues, LinkIssue{
+					File:   relativeTo(root, path),
+					Link:   link,
+					Target: relativeTo(root, targetPath),
+					Error:  statErr.Error(),
+				})
+				continue
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return report, err
+	}
+	sort.Slice(report.Issues, func(i, j int) bool {
+		if report.Issues[i].File == report.Issues[j].File {
+			return report.Issues[i].Link < report.Issues[j].Link
+		}
+		return report.Issues[i].File < report.Issues[j].File
+	})
+	report.InvalidLinks = len(report.Issues)
+	if report.InvalidLinks > 0 {
+		return report, fmt.Errorf("skill link check found %d invalid links", report.InvalidLinks)
+	}
+	return report, nil
+}
+
+func shouldCheckLocalLink(link string) bool {
+	if link == "" {
+		return false
+	}
+	if strings.HasPrefix(link, "#") {
+		return false
+	}
+	lower := strings.ToLower(link)
+	for _, prefix := range []string{"http://", "https://", "mailto:", "tel:"} {
+		if strings.HasPrefix(lower, prefix) {
+			return false
+		}
+	}
+	return true
+}
+
+func resolveLocalLink(baseFile, link string) string {
+	link = strings.TrimSpace(link)
+	link = strings.Trim(strings.TrimPrefix(link, "<"), ">")
+	if idx := strings.Index(link, "#"); idx >= 0 {
+		link = link[:idx]
+	}
+	link = filepath.FromSlash(link)
+	if filepath.IsAbs(link) {
+		return filepath.Clean(link)
+	}
+	return filepath.Clean(filepath.Join(filepath.Dir(baseFile), link))
+}
+
+func relativeTo(root, path string) string {
+	rel, err := filepath.Rel(root, path)
+	if err != nil {
+		return path
+	}
+	return filepath.ToSlash(rel)
 }

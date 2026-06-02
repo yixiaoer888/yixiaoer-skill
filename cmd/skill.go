@@ -17,6 +17,7 @@ import (
 func init() {
 	rootCmd.AddCommand(skillCmd)
 	skillCmd.AddCommand(skillShowCmd)
+	skillCmd.AddCommand(skillCheckCmd)
 	skillCmd.AddCommand(skillSyncCmd)
 	skillSyncCmd.Flags().Bool("global", false, "install skill globally")
 }
@@ -42,6 +43,14 @@ var skillSyncCmd = &cobra.Command{
 	Short: "安装或同步当前项目的 AI skill，并写入本地版本戳",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runSkillSync(cmd)
+	},
+}
+
+var skillCheckCmd = &cobra.Command{
+	Use:   "check",
+	Short: "检查当前 skill 包内 Markdown 链接是否都能解析",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runSkillCheck(cmd)
 	},
 }
 
@@ -113,6 +122,18 @@ func runSkillSync(cmd *cobra.Command) error {
 	globalInstall, _ := cmd.Flags().GetBool("global")
 
 	return syncSkill(cmd, skillDir, globalInstall)
+}
+
+func runSkillCheck(cmd *cobra.Command) error {
+	skillDir, err := skillscheck.DetectSkillDir()
+	if err != nil {
+		return err
+	}
+	report, checkErr := skillscheck.CheckSkillLinks(skillDir)
+	if checkErr != nil {
+		return fmt.Errorf("%w: %+v", checkErr, report.Issues)
+	}
+	return output.Success(cmd.OutOrStdout(), "skill.check", report)
 }
 
 func syncSkill(cmd *cobra.Command, skillDir string, globalInstall bool) error {

@@ -14,15 +14,21 @@ yxer prepare <platform> article
 yxer schema get <platform> article
 ```
 
+开始前，先补读：
+
+- [`account-selection.md`](./account-selection.md)
+- [`local-vs-cloud.md`](./local-vs-cloud.md)
+- [`payload-sourcing.md`](./payload-sourcing.md)
+
 ## 执行顺序
 
-1. 查询账号：`yxer accounts [platform]`
+1. 查询账号：`yxer accounts list [platform] [--status 1] [--json]`
 2. 获取前置数据：`yxer prepare <platform> article`
 3. 获取 schema：`yxer schema get <platform> article`
 4. 上传封面：`yxer upload <封面路径或URL>`
 5. 如正文含图片，先逐张上传并替换引用
 6. 按需查询分类、位置、话题
-7. 根据前置数据与 schema 填写 `payload.json`
+7. 根据前置数据、schema 和字段来源纪律填写 `payload.json`
 8. 查阅对应平台文档：`docs/publish/article/`
 9. 执行校验：`yxer validate <platform> article <payload.json>`
 10. 正式发布：`yxer publish article <platform> <payload.json>`
