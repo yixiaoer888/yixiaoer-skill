@@ -57,10 +57,6 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	apiURL := strings.TrimRight(os.Getenv("YIXIAOER_API_URL"), "/")
-	if apiURL == "" {
-		apiURL = DefaultAPIURL
-	}
 	configPath, err := resolveConfigPath()
 	if err != nil {
 		return Config{}, err
@@ -71,7 +67,7 @@ func Load() (Config, error) {
 	}
 	return Config{
 		APIKey:        strings.TrimSpace(fileCfg.APIKey),
-		APIURL:        apiURL,
+		APIURL:        DefaultAPIURL,
 		ProjectDir:    projectDir,
 		SchemaDir:     filepath.Join(projectDir, "schemas"),
 		WorkDir:       cwd,

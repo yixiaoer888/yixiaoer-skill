@@ -437,7 +437,7 @@ tests/
 | 错误码 | 类型 | 场景 | 修复建议 |
 | --- | --- | --- | --- |
 | `YIXIAOER_ENV_NO_API_KEY` | env_error | 未配置 API Key | 运行 `yxer config set-api-key` |
-| `YIXIAOER_ENV_NETWORK` | env_error | API 不可达 | 检查网络或 `YIXIAOER_API_URL` |
+| `YIXIAOER_ENV_NETWORK` | env_error | API 不可达 | 检查网络或蚁小二服务连通性 |
 | `YIXIAOER_VALIDATION_JSON` | validation_error | JSON 格式错误 | 使用 `--payload @file.json` |
 | `YIXIAOER_INVALID_PLATFORM` | validation_error | 平台名无法识别 | 运行 `yxer platforms list` |
 | `YIXIAOER_INVALID_PUBLISH_TYPE` | validation_error | 发布类型错误 | 使用 `video/imageText/article` |

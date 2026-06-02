@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/config"
@@ -18,6 +19,11 @@ type Client struct {
 	cfg        config.Config
 	httpClient *http.Client
 }
+
+var (
+	testBaseURLMu       sync.RWMutex
+	testBaseURLOverride string
+)
 
 func NewClient(cfg config.Config) *Client {
 	return &Client{
@@ -46,7 +52,7 @@ func (c *Client) Do(method, endpoint string, body interface{}, out interface{}) 
 	}
 	target := endpoint
 	if !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://") {
-		target = c.cfg.APIURL + "/" + strings.TrimPrefix(endpoint, "/")
+		target = baseURL(c.cfg) + "/" + strings.TrimPrefix(endpoint, "/")
 	}
 
 	var reader io.Reader
@@ -82,6 +88,28 @@ func (c *Client) Do(method, endpoint string, body interface{}, out interface{}) 
 		return nil
 	}
 	return json.Unmarshal(raw, out)
+}
+
+func baseURL(cfg config.Config) string {
+	testBaseURLMu.RLock()
+	override := testBaseURLOverride
+	testBaseURLMu.RUnlock()
+	if override != "" {
+		return override
+	}
+	return cfg.APIURL
+}
+
+func SetBaseURLForTest(rawURL string) func() {
+	testBaseURLMu.Lock()
+	previous := testBaseURLOverride
+	testBaseURLOverride = strings.TrimRight(rawURL, "/")
+	testBaseURLMu.Unlock()
+	return func() {
+		testBaseURLMu.Lock()
+		testBaseURLOverride = previous
+		testBaseURLMu.Unlock()
+	}
 }
 
 func Query(endpoint string, params map[string]string) string {

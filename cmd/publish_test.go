@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+	"github.com/yixiaoer/yixiaoer-skill/internal/api"
 	"github.com/yixiaoer/yixiaoer-skill/internal/config"
 	publishflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/publish"
 )
@@ -25,7 +26,7 @@ func TestPublishCommandSuccessCallsTaskSetAPI(t *testing.T) {
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err != nil {
@@ -66,7 +67,7 @@ func TestPublishCommandWithClientIDUsesLocalChannel(t *testing.T) {
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath, "client_1"})
 	if err != nil {
@@ -89,7 +90,7 @@ func TestPublishCommandMapsPlatformKeyToChineseForAPIRequests(t *testing.T) {
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "douyin", payloadPath})
 	if err != nil {
@@ -112,7 +113,7 @@ func TestPublishCommandConvertsScheduledTimeMillisecondsToSeconds(t *testing.T) 
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err != nil {
@@ -143,7 +144,7 @@ func TestPublishCommandRejectsMultiPlatformArgument(t *testing.T) {
 	}))
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音,知乎", payloadPath})
 	if err == nil {
@@ -177,7 +178,7 @@ func TestPublishCommandAcceptsFullPublishRequestPayload(t *testing.T) {
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err != nil {
@@ -259,7 +260,7 @@ func TestPublishCommandAcceptsStandardRequestPayloadShape(t *testing.T) {
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err != nil {
@@ -336,7 +337,7 @@ func TestPublishCommandAcceptsNodeStyleLocalStandardPayloadWithoutDuplicatedAcco
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err != nil {
@@ -395,7 +396,7 @@ func TestPublishCommandAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err != nil {
@@ -496,7 +497,7 @@ func TestPublishCommandUsesLocalFlagsLikeNodeExample(t *testing.T) {
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err != nil {
@@ -544,7 +545,7 @@ func TestPublishCommandRejectsLocalWithoutClientID(t *testing.T) {
 	}))
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err == nil {
@@ -578,7 +579,7 @@ func TestPublishCommandUsesConfiguredLocalClientID(t *testing.T) {
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err != nil {
@@ -633,7 +634,7 @@ func TestPublishCommandPromptsAndRetriesLocalWhenCloudProxyMissing(t *testing.T)
 	}))
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err != nil {
@@ -680,7 +681,7 @@ func TestPublishCommandKeepsOriginalErrorWhenLocalRetryDeclined(t *testing.T) {
 	}))
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err == nil {
@@ -718,7 +719,7 @@ func TestPublishCommandSchemaFailureDoesNotCallAPIs(t *testing.T) {
 	}))
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err == nil {
@@ -780,7 +781,7 @@ func TestPublishCommandRejectsKuaishouImageTextWithMoreThanFourTags(t *testing.T
 	}))
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"imageText", "快手", payloadPath})
 	if err == nil {
@@ -815,7 +816,7 @@ func TestPublishCommandPreflightFailureDoesNotCallAPIs(t *testing.T) {
 	}))
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err == nil {
@@ -854,7 +855,7 @@ func TestPublishCommandRejectsInvalidTopLevelCoverInFullPublishRequest(t *testin
 	}))
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err == nil {
@@ -874,7 +875,7 @@ func TestPublishCommandOfflineAccountDoesNotPublish(t *testing.T) {
 	server := publishTestServer(t, 0, &publishCalls, &publishBody)
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err == nil {
@@ -941,7 +942,7 @@ func TestPublishCommandPreservesDistinctImageTextDescriptionAndContentFromPayloa
 	server := imageTextPublishTestServer(t, &publishCalls, &publishBody)
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"imageText", "小红书", payloadPath})
 	if err != nil {
@@ -1010,7 +1011,7 @@ func TestPublishCommandNormalizesTopicHTMLIntoDescriptionAndContent(t *testing.T
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"imageText", "抖音", payloadPath})
 	if err != nil {
@@ -1050,7 +1051,7 @@ func TestPublishCommandNormalizesDouyinShoppingCartStructure(t *testing.T) {
 	server := publishTestServer(t, 1, &publishCalls, &publishBody)
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err != nil {
@@ -1129,7 +1130,7 @@ func TestPublishCommandUsesImageTextPublishType(t *testing.T) {
 	server := imageTextPublishTestServer(t, &publishCalls, &publishBody)
 	defer server.Close()
 	configureAPIKey(t, "test-key")
-	t.Setenv("YIXIAOER_API_URL", server.URL)
+	useTestAPIBaseURL(t, server.URL)
 
 	err := publishCmd.RunE(testCobraCommand(), []string{"imageText", "小红书", payloadPath})
 	if err != nil {
@@ -1272,6 +1273,11 @@ func configureAPIKey(t *testing.T, apiKey string) {
 	if _, err := config.SaveAPIKey(apiKey); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func useTestAPIBaseURL(t *testing.T, rawURL string) {
+	t.Helper()
+	t.Cleanup(api.SetBaseURLForTest(rawURL))
 }
 
 func testCobraCommand() *cobra.Command {
