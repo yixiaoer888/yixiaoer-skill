@@ -15,6 +15,7 @@ type PreflightResult struct {
 }
 
 var externalURLPattern = regexp.MustCompile(`(?i)^https?://`)
+var placeholderPattern = regexp.MustCompile(`^<[^<>]+>$`)
 
 const shipinghaoCoverMaxBytes = 512 * 1024
 
@@ -23,6 +24,11 @@ func RequireStandardPayload(payload map[string]interface{}) error {
 		return yxerrors.Usage("Standard publish payload is required", []string{
 			"missing payload body",
 		}).WithHint("请使用标准请求体：顶层包含 action、publishType、platforms、publishArgs。")
+	}
+	if _, exists := payload["accountForms"]; exists {
+		return yxerrors.Usage("Legacy publish payload is not supported", []string{
+			"top-level accountForms is deprecated",
+		}).WithHint("请改用标准请求体：顶层保留 action、publishType、platforms、publishArgs，账号数据放到 publishArgs.accountForms[]。")
 	}
 	publishArgs, ok := payload["publishArgs"].(map[string]interface{})
 	if !ok || publishArgs == nil {
@@ -49,6 +55,7 @@ func Preflight(publishType string, platforms []string, payload map[string]interf
 	NormalizeStandardPublishArgs(payload)
 	NormalizePlatformSpecificFields(publishType, platforms, payload)
 	NormalizeScheduledTimes(payload, &result.Errors)
+	rejectTemplatePlaceholders(payload, &result.Errors)
 	if publishType != "video" && publishType != "imageText" && publishType != "article" {
 		result.Errors = append(result.Errors, fmt.Sprintf("publish type %q is not supported; expected video, imageText, or article", publishType))
 	}
@@ -544,6 +551,20 @@ func stringField(obj map[string]interface{}, key string) string {
 func matchesString(value interface{}) bool {
 	_, ok := value.(string)
 	return ok
+}
+
+func rejectTemplatePlaceholders(value interface{}, errors *[]string) {
+	walk(value, func(current interface{}, path string) {
+		text, ok := current.(string)
+		if !ok {
+			return
+		}
+		text = strings.TrimSpace(text)
+		if !placeholderPattern.MatchString(text) {
+			return
+		}
+		*errors = append(*errors, fmt.Sprintf("%s: unresolved template placeholder %q; run prepare/schema get and replace template values before validate/publish", strings.TrimPrefix(path, "$."), text))
+	}, "$")
 }
 
 func samePublishType(left, right string) bool {

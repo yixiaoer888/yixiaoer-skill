@@ -10,6 +10,20 @@ func TestPreflightRequiresStandardPayload(t *testing.T) {
 	assertHasError(t, result.Errors, "Standard publish payload is required")
 }
 
+func TestPreflightRejectsLegacyTopLevelAccountForms(t *testing.T) {
+	result := Preflight("video", []string{"抖音"}, map[string]interface{}{
+		"action":      "publish",
+		"publishType": "video",
+		"platforms":   []interface{}{"抖音"},
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_001",
+			},
+		},
+	})
+	assertHasError(t, result.Errors, "Legacy publish payload is not supported")
+}
+
 func TestPreflightAcceptsValidStandardVideoPayload(t *testing.T) {
 	payload := validVideoPayload()
 	result := Preflight("video", []string{"抖音"}, payload)
@@ -173,6 +187,17 @@ func TestPreflightRejectsArticleMissingContent(t *testing.T) {
 	})
 	result := Preflight("article", []string{"知乎"}, payload)
 	assertHasError(t, result.Errors, "accountForms[0].contentPublishForm.content: article publish requires content")
+}
+
+func TestPreflightRejectsUnresolvedTemplatePlaceholders(t *testing.T) {
+	payload := validVideoPayload()
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	form["platformAccountId"] = "<platformAccountId>"
+	form["contentPublishForm"].(map[string]interface{})["title"] = "<title>"
+
+	result := Preflight("video", []string{"抖音"}, payload)
+	assertHasError(t, result.Errors, `accountForms[0].platformAccountId: unresolved template placeholder "<platformAccountId>"`)
+	assertHasError(t, result.Errors, `accountForms[0].contentPublishForm.title: unresolved template placeholder "<title>"`)
 }
 
 func TestPreflightNormalizesScheduledTimeFromMilliseconds(t *testing.T) {
