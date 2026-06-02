@@ -44,10 +44,48 @@ npx skills add /path/to/yixiaoer-skill/skills/yixiaoer -g -y
 10. 生成 payload 后必须先执行 `yxer validate`，再执行 `yxer publish`。
 11. 真正执行统一走 `yxer` CLI，不要假设存在旧的 Node 脚本入口。
 
+## 强制执行顺序
+
+遇到发布任务时，必须按以下顺序执行；禁止跳步，禁止凭记忆补字段，禁止先手写 payload 再回头补文档。
+
+1. 先读本文件。
+2. 再读 `../../../references/workflows/common-rules.md`。
+3. 再读对应类型工作流：
+   - 图文：`../../../references/workflows/publish-imageText.md`
+   - 视频：`../../../references/workflows/publish-video.md`
+   - 文章：`../../../references/workflows/publish-article.md`
+4. 运行 `yxer doctor`。
+5. 运行 `yxer accounts [platform] [--status 1]`，确认目标账号可用。
+6. 运行 `yxer prepare <platform> <type>`。
+7. 运行 `yxer schema get <platform> <type>`。
+8. 如需资源，先运行 `yxer upload`。
+9. 如需分类/位置/音乐/合集/商品/话题等复杂对象，先运行对应查询命令。
+10. 只能基于前面步骤的返回结果填写 payload。
+11. 先运行 `yxer validate <platform> <type> <payload.json>`。
+12. 最后运行 `yxer publish <type> <platform> <payload.json>`。
+
+## 发布前 Checklist
+
+执行 `validate` 或 `publish` 前，Agent 必须先自检以下事项；任一项不满足，都不允许继续：
+
+- `[ ]` 已读 `SKILL.md`
+- `[ ]` 已读 `common-rules.md`
+- `[ ]` 已读对应类型 workflow
+- `[ ]` 已执行 `yxer doctor`
+- `[ ]` 已执行 `yxer accounts`
+- `[ ]` 已确认账号 `status=1`
+- `[ ]` 已执行 `yxer prepare`
+- `[ ]` 已执行 `yxer schema get`
+- `[ ]` 资源已通过 `yxer upload` 获取 key
+- `[ ]` 动态字段已通过查询命令取得完整对象
+- `[ ]` payload 不是从空白 JSON 猜出来的
+- `[ ]` 尚未执行 `publish` 之前已经先执行 `validate`
+
 ## Agent 数据纪律
 
 - 先查再填：发布前先执行 `yxer prepare <platform> <type>` 和 `yxer schema get <platform> <type>`，确认字段名、层级、类型、必填项后再写请求数据。
 - 共享字段与账号字段都必须按标准结构放置，不能把文档中属于 `publishArgs` 的字段擅自塞进 `contentPublishForm`，也不能反过来移动。
+- 不允许从空白文件手工创建 payload；必须先基于 CLI 模板或标准结构生成骨架，再按 `prepare` / `schema get` 结果填值。
 - 上传产物只能复用 `yxer upload` 返回的真实 `key`、`size`、`width`、`height`、`duration`、`format`，不能手工补数字。
 - 文档没有写、schema 没有定义、CLI 没有返回的字段，一律不要出现在 payload 里。
 - 用户没给到的业务内容，如标题、正文、描述、定时发布时间，除非工作流明确允许自动生成并要求先向用户确认，否则不能私自编写。

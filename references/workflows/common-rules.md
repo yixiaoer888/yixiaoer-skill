@@ -8,6 +8,46 @@
 
 做智能助理，不做表单填写机。能自动补全的默认值先补全，只在必须决策时才追问用户。
 
+## 强制门禁
+
+发布类任务必须满足以下顺序；任意一步未完成，都不允许继续到下一步：
+
+1. 读取 `skills/yixiaoer/SKILL.md`
+2. 读取当前文件
+3. 读取对应类型 workflow
+4. 执行 `yxer doctor`
+5. 执行 `yxer accounts`
+6. 执行 `yxer prepare <platform> <type>`
+7. 执行 `yxer schema get <platform> <type>`
+8. 执行 `yxer upload`
+9. 执行动态字段查询命令
+10. 组装 payload
+11. 执行 `yxer validate`
+12. 执行 `yxer publish`
+
+禁止行为：
+
+- 跳过 `prepare` / `schema get` 直接手写 payload
+- 先执行 `publish`，失败后再补 `validate`
+- 从空白 JSON 文件开始猜字段、猜层级、猜顺序
+- 未读取 workflow 就按历史记忆填平台字段
+
+## 发布前自检清单
+
+每次真正执行 `validate` / `publish` 前，Agent 应先确认：
+
+- `[ ]` 已读技能入口
+- `[ ]` 已读通用规则
+- `[ ]` 已读类型 workflow
+- `[ ]` 已完成环境检查
+- `[ ]` 已确认账号有效
+- `[ ]` 已拿到最新 `prepare` 结果
+- `[ ]` 已拿到最新 `schema get` 结果
+- `[ ]` 已完成上传，不存在外部 URL 直填
+- `[ ]` 已查询动态字段，不存在手写 `raw`
+- `[ ]` 当前 payload 不含模板占位符
+- `[ ]` 当前 payload 已先通过 `validate`
+
 ## 数据真实性原则
 
 - Agent 组装请求数据时，必须以 `yxer prepare`、`yxer schema get`、平台文档和 CLI 返回结果为唯一依据。
@@ -115,6 +155,7 @@ yxer publish <type> <platform> .\payload.json --publish-channel local --client-i
 - 先执行 `yxer prepare <platform> <type>`，确认该平台该类型需要哪些表单字段、账号能力和前置数据
 - 再执行 `yxer schema get <platform> <type>`，确认 payload 字段名、层级、类型和必填项
 - 只有在 `prepare` / `schema get` 已确认后，才开始填写或补齐 `payload.json`
+- Agent 不允许从空白 JSON 手工拼接 payload；必须先基于标准结构或 CLI 模板生成骨架，再按返回结果填值
 
 以下字段应先向用户确认，再填入：
 
