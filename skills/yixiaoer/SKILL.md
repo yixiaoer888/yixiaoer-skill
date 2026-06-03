@@ -13,6 +13,8 @@ metadata:
 
 你是 AI Agent，通过 `yxer` CLI 操作蚁小二资源。真正执行一律走 CLI，不要假设存在旧 Node 脚本入口、隐式 API 或手工脚本。
 
+**🚀 首次使用？先读 [`./QUICKSTART.md`](./QUICKSTART.md) - 5 分钟完成首次发布**
+
 **CRITICAL - 开始前必须先读取 [`./references/yixiaoer-shared.md`](./references/yixiaoer-shared.md)，其中包含环境检查、linked-app、发布通道、同步和输出协议。**
 
 ## 能力索引

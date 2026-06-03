@@ -48,9 +48,22 @@ var validateCmd = &cobra.Command{
 		}
 		result := schema.NewValidator(cfg.SchemaDir).Validate(platform, publishType, payload)
 		if !result.Valid {
-			return yxerrors.Usage("Schema validation failed", result.Errors).
-				WithHint("请根据 schema 要求修正 payload 字段、类型和必填项。").
-				WithNextCommand("yxer schema fields <platform> <type>")
+			// 增强错误提示
+			suggestions := analyzeValidationErrors(result.Errors, platform, publishType)
+
+			return yxerrors.Usage("Schema validation failed", map[string]interface{}{
+				"errors":      result.Errors,
+				"suggestions": suggestions,
+				"checklist": []string{
+					"✓ 已执行 yxer schema fields " + platform + " " + publishType + "?",
+					"✓ payload 顶层包含 publishArgs?",
+					"✓ 业务字段在 publishArgs.accountForms[].contentPublishForm?",
+					"✓ 资源已通过 yxer upload 上传并使用返回的完整对象?",
+					"✓ 复杂对象（location/music等）已通过查询命令获取?",
+				},
+			}).
+				WithHint("根据上方 suggestions 修正字段，或查看 checklist 确认流程是否正确。").
+				WithNextCommand(fmt.Sprintf("yxer schema fields %s %s", platform, publishType))
 		}
 		if err := requireStandardPublishPayload(payload, platform, publishType); err != nil {
 			return err
@@ -67,6 +80,7 @@ var validateCmd = &cobra.Command{
 			"platform": platform,
 			"type":     publishType,
 			"valid":    true,
+			"nextStep": fmt.Sprintf("yxer publish %s %s %s --dry-run", publishType, platform, payloadPath),
 		})
 	},
 }

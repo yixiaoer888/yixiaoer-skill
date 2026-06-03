@@ -25,6 +25,36 @@ func buildPayloadTemplate(doc schema.Document) map[string]interface{} {
 	return template
 }
 
+// buildMinimalPayloadTemplate 构建最小可用模板（仅包含必填字段）
+func buildMinimalPayloadTemplate(doc schema.Document) map[string]interface{} {
+	// 只提取必填字段
+	requiredFields := make(map[string]interface{})
+	for key, prop := range doc.Properties {
+		if prop.Required {
+			value, ok := buildTemplateValue(key, prop)
+			if ok {
+				requiredFields[key] = value
+			}
+		}
+	}
+
+	template := map[string]interface{}{
+		"action":      "publish",
+		"publishType": doc.Type,
+		"platforms":   []interface{}{platformutil.ChineseName(doc.Platform)},
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId":  "<从 accounts list 获取>",
+					"contentPublishForm": requiredFields,
+				},
+			},
+		},
+	}
+
+	return template
+}
+
 func buildTemplateObject(properties map[string]schema.PropertyView) map[string]interface{} {
 	if len(properties) == 0 {
 		return map[string]interface{}{}

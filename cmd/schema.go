@@ -3,6 +3,7 @@ package cmd
 import (
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/config"
@@ -123,28 +124,57 @@ func runSchemaGet(cmd *cobra.Command, platform, publishType string) error {
 			WithHint("未找到对应平台和发布类型的 schema，请先查看支持的平台和类型列表。").
 			WithNextCommand("yxer schema list")
 	}
+
 	envelopeSchema := buildStandardPublishSchema(schemaDoc)
+
+	// 基础返回结果（简化版）
 	result := map[string]interface{}{
-		"key":                      schemaDoc.Key,
-		"platform":                 schemaDoc.Platform,
-		"type":                     schemaDoc.Type,
-		"file":                     filepath.ToSlash(schemaDoc.File),
-		"rootSchema":               schemaDoc.RootSchema,
-		"document":                 envelopeSchema,
-		"payloadTemplate":          buildPayloadTemplate(schemaDoc),
-		"recommendedCommand":       "yxer schema fields <platform> <type>",
-		"agentGuidance": []string{
-			"`document` 是标准 publish payload 的权威结构，用它确认最外层字段和层级。",
-			"`payloadTemplate` 提供最小可填骨架；按需补真实值，不要照抄占位内容。",
-			"只想看字段名、类型、必填项时，优先改用 `yxer schema fields <platform> <type>`，输出更短。",
+		"key":      schemaDoc.Key,
+		"platform": schemaDoc.Platform,
+		"type":     schemaDoc.Type,
+		"file":     filepath.ToSlash(schemaDoc.File),
+
+		// 只返回业务字段定义（最核心的部分）
+		"businessFields": schemaDoc.Properties,
+
+		// 标准结构说明（文本形式）
+		"standardStructure": map[string]interface{}{
+			"description": "所有平台统一使用的标准 payload 结构",
+			"envelope": []string{
+				"action: 'publish' (固定值)",
+				"publishType: '" + publishType + "' (固定值)",
+				"platforms: ['" + platformutil.ChineseName(schemaDoc.Platform) + "'] (固定值)",
+				"publishChannel: 'cloud' | 'local' (默认 cloud)",
+				"publishArgs: { ... } (必填，包含 accountForms)",
+				"publishArgs.accountForms[]: 账号级表单数组",
+				"publishArgs.accountForms[].platformAccountId: 账号ID (必填)",
+				"publishArgs.accountForms[].contentPublishForm: 业务字段 (必填，见 businessFields)",
+			},
 		},
+
+		// 最小可用模板
+		"minimalTemplate": buildMinimalPayloadTemplate(schemaDoc),
+
+		// 使用指引
+		"guidance": []string{
+			"1. 优先使用 'yxer schema fields' 查看紧凑字段列表",
+			"2. businessFields 是平台特定的业务字段，应填入 publishArgs.accountForms[].contentPublishForm",
+			"3. 复杂对象（location/music/challenge等）必须通过查询命令获取完整对象",
+			"4. 资源（video/images/cover）必须先通过 'yxer upload' 上传并使用返回的完整对象",
+			"5. minimalTemplate 提供最小可用骨架，实际使用时需填入真实值",
+		},
+
+		"recommendedCommand": "yxer schema fields " + platform + " " + publishType,
 	}
+
+	// verbose 模式返回完整 schema（用于调试）
 	if schemaGetVerbose {
-		result["schema"] = envelopeSchema
-		result["businessSchema"] = schemaDoc
+		result["fullDocument"] = envelopeSchema
 		result["accountFormSchema"] = buildAccountFormSchema(schemaDoc)
 		result["contentPublishFormSchema"] = buildContentPublishFormSchema(schemaDoc)
+		result["verboseNote"] = "完整 schema 仅用于调试，日常使用建议查看 businessFields 或使用 schema fields 命令"
 	}
+
 	return output.Success(cmd.OutOrStdout(), "schema.get", result)
 }
 
@@ -173,13 +203,41 @@ func runSchemaFields(cmd *cobra.Command, platform, publishType string) error {
 			WithNextCommand("yxer schema get <platform> <type>")
 	}
 	envelopeFields := buildStandardPublishFieldView(doc, fields)
+	flatFields := flattenFieldViews(envelopeFields)
+
+	// 按重要性分组字段
+	grouped := groupFieldsByImportance(flatFields, platform, publishType)
+
 	return output.Success(cmd.OutOrStdout(), "schema.fields", map[string]interface{}{
-		"platform":            doc.Platform,
-		"type":                doc.Type,
-		"key":                 doc.Key,
-		"recommendedResponse": "flatFields",
-		"flatFields":          flattenFieldViews(envelopeFields),
-		"fields":              envelopeFields,
+		"platform": doc.Platform,
+		"type":     doc.Type,
+		"key":      doc.Key,
+
+		// 汇总统计
+		"summary": map[string]interface{}{
+			"total":         len(flatFields),
+			"requiredCount": len(grouped.Required),
+			"optionalCount": len(grouped.Optional),
+			"complexCount":  len(grouped.Complex),
+		},
+
+		// 分组展示（AI 优先查看必填字段）
+		"required": grouped.Required,
+		"optional": grouped.Optional,
+		"complex":  grouped.Complex,
+
+		// 复杂字段的查询命令提示
+		"queryCommands": buildQueryCommandHints(grouped.Complex, platform),
+
+		// 平台特定说明
+		"platformNotes": getPlatformSpecificNotes(platform, publishType),
+
+		// 保留完整数据（向后兼容）
+		"flatFields": flatFields,
+		"fields":     envelopeFields,
+
+		// 推荐使用方式
+		"recommendedResponse": "required + optional（按需查看 complex）",
 	})
 }
 
@@ -403,4 +461,181 @@ func sortedPropertyKeys(fields map[string]schema.PropertyView) []string {
 		return keys[i] < keys[j]
 	})
 	return keys
+}
+
+// groupedFields 字段分组结果
+type groupedFields struct {
+	Required []flatFieldView
+	Optional []flatFieldView
+	Complex  []flatFieldView
+}
+
+// groupFieldsByImportance 按重要性分组字段
+func groupFieldsByImportance(flatFields []flatFieldView, platform, publishType string) groupedFields {
+	var required []flatFieldView
+	var optional []flatFieldView
+	var complex []flatFieldView
+
+	for _, field := range flatFields {
+		// 跳过标准顶层字段（这些字段在文档中已说明）
+		if isStandardTopLevelField(field.Path) {
+			continue
+		}
+
+		// 复杂对象字段（需要查询命令获取）
+		if isComplexField(field.Path) {
+			complex = append(complex, field)
+		} else if field.Required {
+			required = append(required, field)
+		} else {
+			optional = append(optional, field)
+		}
+	}
+
+	return groupedFields{
+		Required: required,
+		Optional: optional,
+		Complex:  complex,
+	}
+}
+
+// isStandardTopLevelField 判断是否为标准顶层字段
+func isStandardTopLevelField(path string) bool {
+	standardFields := []string{
+		"action", "publishType", "platforms", "publishChannel", "clientId",
+	}
+	for _, field := range standardFields {
+		if path == field {
+			return true
+		}
+	}
+	return false
+}
+
+// isComplexField 判断是否为复杂对象字段（需要查询命令）
+func isComplexField(path string) bool {
+	complexPatterns := []string{
+		"location", "music", "challenge", "collection", "sub_collection",
+		"category", "goods", "shopping_cart", "groupShopping",
+		"mini_app", "hot_event", "game", "sync_apps",
+		"cooperation_info", "friends", "group",
+	}
+	for _, pattern := range complexPatterns {
+		if strings.Contains(path, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+// buildQueryCommandHints 构建复杂字段的查询命令提示
+func buildQueryCommandHints(complexFields []flatFieldView, platform string) map[string]string {
+	hints := make(map[string]string)
+	seenTypes := make(map[string]bool)
+
+	for _, field := range complexFields {
+		path := field.Path
+
+		// 提取字段类型
+		var fieldType string
+		if strings.Contains(path, "location") {
+			fieldType = "location"
+		} else if strings.Contains(path, "music") {
+			fieldType = "music"
+		} else if strings.Contains(path, "challenge") {
+			fieldType = "challenge"
+		} else if strings.Contains(path, "collection") || strings.Contains(path, "sub_collection") {
+			fieldType = "collection"
+		} else if strings.Contains(path, "category") {
+			fieldType = "category"
+		} else if strings.Contains(path, "goods") || strings.Contains(path, "shopping_cart") || strings.Contains(path, "groupShopping") {
+			fieldType = "goods"
+		} else if strings.Contains(path, "mini_app") {
+			fieldType = "mini_app"
+		} else if strings.Contains(path, "hot_event") {
+			fieldType = "hot_event"
+		} else if strings.Contains(path, "game") {
+			fieldType = "game"
+		} else if strings.Contains(path, "friends") {
+			fieldType = "friends"
+		} else if strings.Contains(path, "group") {
+			fieldType = "group"
+		}
+
+		// 避免重复添加
+		if fieldType != "" && !seenTypes[fieldType] {
+			seenTypes[fieldType] = true
+			hints[fieldType] = getQueryCommand(fieldType)
+		}
+	}
+
+	return hints
+}
+
+// getQueryCommand 获取字段类型对应的查询命令
+func getQueryCommand(fieldType string) string {
+	commands := map[string]string{
+		"location":    "yxer locations <account_id> [--query 关键词]",
+		"music":       "yxer music <account_id> [--query 关键词]",
+		"challenge":   "yxer challenges <account_id> [--query 关键词] [--type video]",
+		"collection":  "yxer collections <account_id> [--type video|article]",
+		"category":    "yxer categories <account_id> [--type video|article]",
+		"goods":       "yxer goods <account_id> [--query 关键词]",
+		"mini_app":    "yxer miniapps <account_id> [--query 关键词]",
+		"hot_event":   "yxer hot-events <account_id> [--query 关键词]",
+		"game":        "yxer games <account_id> [--query 关键词]",
+		"friends":     "yxer friends <account_id>",
+		"group":       "yxer groups <account_id>",
+	}
+	if cmd, ok := commands[fieldType]; ok {
+		return cmd
+	}
+	return ""
+}
+
+// getPlatformSpecificNotes 获取平台特定说明
+func getPlatformSpecificNotes(platform, publishType string) []string {
+	notes := []string{}
+
+	// 标准化平台名
+	platform = strings.ToLower(strings.TrimSpace(platform))
+
+	switch platform {
+	case "douyin", "抖音":
+		if publishType == "video" {
+			notes = append(notes, "抖音视频支持挂车(shopping_cart)、话题(challenge)、合集(collection)、热点(hot_event)等高级功能")
+			notes = append(notes, "标题和描述最大长度均为30字符")
+		} else if publishType == "imageText" {
+			notes = append(notes, "抖音图文需要1-35张图片")
+		}
+
+	case "kuaishou", "快手":
+		if publishType == "video" {
+			notes = append(notes, "快手视频支持话题(challenge)和位置(location)")
+		}
+
+	case "xiaohongshu", "xhs", "小红书":
+		if publishType == "imageText" {
+			notes = append(notes, "小红书图文需要1-9张图片，支持话题标签")
+		} else if publishType == "video" {
+			notes = append(notes, "小红书视频支持话题和位置")
+		}
+
+	case "weixin", "shipinghao", "视频号", "微信视频号":
+		if publishType == "video" {
+			notes = append(notes, "视频号支持位置(location)和话题")
+		}
+
+	case "bilibili", "哔哩哔哩":
+		if publishType == "video" {
+			notes = append(notes, "B站视频需要选择分区(category)")
+		}
+
+	case "weixin.account", "微信公众号":
+		if publishType == "article" {
+			notes = append(notes, "公众号文章支持富文本和多媒体，需要使用 content 字段传递文章内容")
+		}
+	}
+
+	return notes
 }

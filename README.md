@@ -2,6 +2,16 @@
 
 蚁小二 `yxer` CLI 与 AI Skill 配套仓库。
 
+**🚀 新功能（2026-06-02）：**
+- ✨ **智能字段分组** - `schema fields` 现在按必填/可选/复杂字段分组展示
+- 🔍 **智能错误分析** - `validate` 失败时自动分析原因并给出修复建议  
+- 📚 **5分钟快速开始** - 查看 [`skills/yixiaoer/QUICKSTART.md`](skills/yixiaoer/QUICKSTART.md)
+- 💡 **自动查询提示** - 复杂字段自动提示对应的查询命令
+
+详见 [CHANGELOG.md](CHANGELOG.md)
+
+---
+
 仓库入口参考飞书 CLI 的组织方式来写：
 
 - `README.md` 面向人类用户和维护者，负责安装、快速开始和常用命令。
