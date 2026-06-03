@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
@@ -13,6 +14,14 @@ type PreflightResult struct {
 	AccountIDs []string
 	Errors     []string
 }
+
+type TopicHTMLFields struct {
+	HasTopics      bool
+	HasDescription bool
+	HasContent     bool
+}
+
+type TopicHTMLPolicy map[string]TopicHTMLFields
 
 var externalURLPattern = regexp.MustCompile(`(?i)^https?://`)
 var placeholderPattern = regexp.MustCompile(`^<[^<>]+>$`)
@@ -45,6 +54,10 @@ func RequireStandardPayload(payload map[string]interface{}) error {
 }
 
 func Preflight(publishType string, platforms []string, payload map[string]interface{}) PreflightResult {
+	return PreflightWithTopicHTMLPolicy(publishType, platforms, payload, nil)
+}
+
+func PreflightWithTopicHTMLPolicy(publishType string, platforms []string, payload map[string]interface{}, topicPolicy TopicHTMLPolicy) PreflightResult {
 	var result PreflightResult
 	publishType = NormalizePublishType(publishType)
 	if err := RequireStandardPayload(payload); err != nil {
@@ -53,7 +66,7 @@ func Preflight(publishType string, platforms []string, payload map[string]interf
 	}
 	payload = ValidateAndExtractPublishArgs(publishType, platforms, payload, &result.Errors)
 	NormalizeStandardPublishArgs(payload)
-	NormalizePlatformSpecificFields(publishType, platforms, payload)
+	NormalizePlatformSpecificFieldsWithTopicHTMLPolicy(publishType, platforms, payload, topicPolicy)
 	NormalizeScheduledTimes(payload, &result.Errors)
 	rejectTemplatePlaceholders(payload, &result.Errors)
 	if publishType != "video" && publishType != "imageText" && publishType != "article" {
@@ -238,12 +251,24 @@ func ValidateAndExtractPublishArgs(publishType string, platforms []string, paylo
 // resolved publishArgs. platforms must use canonical Chinese platform names so
 // platform-specific rules (e.g. 抖音/小红书 topic HTML) trigger consistently.
 func NormalizeStandardPayload(publishType string, platforms []string, payload map[string]interface{}) map[string]interface{} {
+	return NormalizeStandardPayloadWithTopicHTMLPolicy(publishType, platforms, payload, nil)
+}
+
+func NormalizeStandardPayloadWithTopicHTMLPolicy(publishType string, platforms []string, payload map[string]interface{}, topicPolicy TopicHTMLPolicy) map[string]interface{} {
+	return normalizeStandardPayload(publishType, platforms, payload, topicPolicy, true)
+}
+
+func NormalizeStandardPayloadForSchemaValidation(publishType string, platforms []string, payload map[string]interface{}) map[string]interface{} {
+	return normalizeStandardPayload(publishType, platforms, payload, nil, false)
+}
+
+func normalizeStandardPayload(publishType string, platforms []string, payload map[string]interface{}, topicPolicy TopicHTMLPolicy, normalizeTopics bool) map[string]interface{} {
 	publishArgs := ExtractPublishArgs(payload)
 	if publishArgs == nil {
 		return nil
 	}
 	NormalizeStandardPublishArgs(publishArgs)
-	NormalizePlatformSpecificFields(publishType, platforms, publishArgs)
+	normalizePlatformSpecificFields(publishType, platforms, publishArgs, topicPolicy, normalizeTopics)
 	return publishArgs
 }
 
@@ -272,6 +297,14 @@ func NormalizeStandardPublishArgs(payload map[string]interface{}) {
 }
 
 func NormalizePlatformSpecificFields(publishType string, platforms []string, payload map[string]interface{}) {
+	NormalizePlatformSpecificFieldsWithTopicHTMLPolicy(publishType, platforms, payload, nil)
+}
+
+func NormalizePlatformSpecificFieldsWithTopicHTMLPolicy(publishType string, platforms []string, payload map[string]interface{}, topicPolicy TopicHTMLPolicy) {
+	normalizePlatformSpecificFields(publishType, platforms, payload, topicPolicy, true)
+}
+
+func normalizePlatformSpecificFields(publishType string, platforms []string, payload map[string]interface{}, topicPolicy TopicHTMLPolicy, normalizeTopics bool) {
 	accountForms, ok := payload["accountForms"].([]interface{})
 	if !ok || len(accountForms) == 0 {
 		return
@@ -284,6 +317,10 @@ func NormalizePlatformSpecificFields(publishType string, platforms []string, pay
 	}
 
 	content, _ := payload["content"].(string)
+	topicTarget := topicHTMLTargetField(platforms, topicPolicy)
+	if !normalizeTopics {
+		topicTarget = ""
+	}
 	for _, item := range accountForms {
 		form, ok := item.(map[string]interface{})
 		if !ok {
@@ -294,8 +331,8 @@ func NormalizePlatformSpecificFields(publishType string, platforms []string, pay
 			continue
 		}
 
-		if publishType == "imageText" && (platformSet["抖音"] || platformSet["小红书"]) {
-			normalizeTopicHTML(payload, cpf, content)
+		if topicTarget != "" {
+			normalizeTopicHTML(payload, cpf, content, topicTarget)
 		}
 		if publishType == "video" && platformSet["抖音"] {
 			normalizeDouyinShoppingCart(cpf)
@@ -303,7 +340,44 @@ func NormalizePlatformSpecificFields(publishType string, platforms []string, pay
 	}
 }
 
-func normalizeTopicHTML(publishArgs, cpf map[string]interface{}, publishArgsContent string) {
+func TopicHTMLPolicyFromSchema(platform string, properties map[string]schema.PropertyView) TopicHTMLPolicy {
+	return TopicHTMLPolicy{
+		strings.TrimSpace(platform): TopicHTMLFields{
+			HasTopics:      properties["topics"].Type != "",
+			HasDescription: properties["description"].Type != "",
+			HasContent:     properties["content"].Type != "",
+		},
+	}
+}
+
+func topicHTMLTargetField(platforms []string, topicPolicy TopicHTMLPolicy) string {
+	hasPolicy := topicPolicy != nil && len(topicPolicy) > 0
+	hasDescription := !hasPolicy
+	hasContent := false
+	for _, platform := range platforms {
+		fields, ok := topicPolicy[strings.TrimSpace(platform)]
+		if hasPolicy && !ok {
+			continue
+		}
+		if fields.HasTopics {
+			return ""
+		}
+		hasDescription = hasDescription || fields.HasDescription
+		hasContent = hasContent || fields.HasContent
+	}
+	if hasDescription {
+		return "description"
+	}
+	if hasContent {
+		return "content"
+	}
+	return ""
+}
+
+func normalizeTopicHTML(publishArgs, cpf map[string]interface{}, publishArgsContent, targetField string) {
+	if _, hasTopics := cpf["topics"]; hasTopics {
+		return
+	}
 	tags, ok := cpf["tags"].([]interface{})
 	if !ok || len(tags) == 0 {
 		return
@@ -312,6 +386,9 @@ func normalizeTopicHTML(publishArgs, cpf map[string]interface{}, publishArgsCont
 	content := strings.TrimSpace(publishArgsContent)
 	if content == "" {
 		content = description
+	}
+	if description == "" && content == "" {
+		content = strings.TrimSpace(stringField(cpf, "content"))
 	}
 	if description == "" && content == "" {
 		return
@@ -325,8 +402,11 @@ func normalizeTopicHTML(publishArgs, cpf map[string]interface{}, publishArgsCont
 	if finalHTML == "" {
 		return
 	}
-	cpf["description"] = finalHTML
+	cpf[targetField] = finalHTML
 	publishArgs["content"] = finalHTML
+	if targetField != "content" {
+		cpf["content"] = finalHTML
+	}
 }
 
 func firstNonEmptyTopicHTML(values ...string) string {

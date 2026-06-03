@@ -61,10 +61,15 @@ var validateCmd = &cobra.Command{
 			delete(payload, "clientId")
 		}
 		canonicalPlatform := platformutil.ChineseName(platform)
-		if payload["publishArgs"] != nil {
-			publishmod.NormalizeStandardPayload(publishType, []string{canonicalPlatform}, payload)
+		validator := schema.NewValidator(cfg.SchemaDir)
+		var topicPolicy publishmod.TopicHTMLPolicy
+		if schemaDoc, err := validator.Schema(platform, publishType); err == nil {
+			topicPolicy = publishmod.TopicHTMLPolicyFromSchema(canonicalPlatform, schemaDoc.Properties)
 		}
-		result := schema.NewValidator(cfg.SchemaDir).Validate(platform, publishType, payload)
+		if payload["publishArgs"] != nil {
+			publishmod.NormalizeStandardPayloadForSchemaValidation(publishType, []string{canonicalPlatform}, payload)
+		}
+		result := validator.Validate(platform, publishType, payload)
 		if !result.Valid {
 			// 增强错误提示
 			suggestions := analyzeValidationErrors(result.Errors, platform, publishType)
@@ -87,7 +92,7 @@ var validateCmd = &cobra.Command{
 			return err
 		}
 		if _, hasAccountForms := payload["accountForms"]; hasAccountForms || payload["publishArgs"] != nil {
-			preflight := publishmod.Preflight(publishType, []string{canonicalPlatform}, payload)
+			preflight := publishmod.PreflightWithTopicHTMLPolicy(publishType, []string{canonicalPlatform}, payload, topicPolicy)
 			if len(preflight.Errors) > 0 {
 				return yxerrors.Usage("Publish preflight failed", preflight.Errors).
 					WithHint("请先完成资源上传，并确保 payload 中引用的是上传后的 key，而不是外部 URL。").

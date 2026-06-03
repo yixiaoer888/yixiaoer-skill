@@ -158,6 +158,98 @@ func TestPreflightAcceptsImageTextImagesInContentPublishForm(t *testing.T) {
 	}
 }
 
+func TestNormalizeTopicHTMLForVideoWithoutTopicsField(t *testing.T) {
+	payload := standardPayload("video", []string{"抖音"}, map[string]interface{}{
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_001",
+				"contentPublishForm": map[string]interface{}{
+					"formType":    "task",
+					"title":       "视频",
+					"description": "今日穿搭分享",
+					"tags":        []interface{}{"穿搭", "#夏日"},
+				},
+			},
+		},
+	})
+
+	NormalizeStandardPayloadWithTopicHTMLPolicy("video", []string{"抖音"}, payload, TopicHTMLPolicy{
+		"抖音": TopicHTMLFields{HasDescription: true},
+	})
+
+	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	expected := `<p>今日穿搭分享</p><p><topic text="穿搭">#穿搭</topic><topic text="夏日">#夏日</topic></p>`
+	if cpf["description"] != expected {
+		t.Fatalf("expected video description topic HTML, got %#v", cpf["description"])
+	}
+	if publishArgsOf(payload)["content"] != expected {
+		t.Fatalf("expected publishArgs.content topic HTML, got %#v", publishArgsOf(payload)["content"])
+	}
+	if cpf["content"] != expected {
+		t.Fatalf("expected contentPublishForm.content topic HTML, got %#v", cpf["content"])
+	}
+}
+
+func TestNormalizeTopicHTMLSkipsPlatformsWithoutDescriptionField(t *testing.T) {
+	payload := standardPayload("article", []string{"CSDN"}, map[string]interface{}{
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_001",
+				"contentPublishForm": map[string]interface{}{
+					"formType": "task",
+					"title":    "文章",
+					"content":  "今日穿搭分享",
+					"tags":     []interface{}{"穿搭", "#夏日"},
+				},
+			},
+		},
+	})
+
+	NormalizeStandardPayloadWithTopicHTMLPolicy("article", []string{"CSDN"}, payload, TopicHTMLPolicy{
+		"CSDN": TopicHTMLFields{HasContent: true},
+	})
+
+	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	expected := `<p>今日穿搭分享</p><p><topic text="穿搭">#穿搭</topic><topic text="夏日">#夏日</topic></p>`
+	if cpf["content"] != expected {
+		t.Fatalf("expected content topic HTML when description is unsupported, got %#v", cpf["content"])
+	}
+	if publishArgsOf(payload)["content"] != expected {
+		t.Fatalf("expected publishArgs.content topic HTML, got %#v", publishArgsOf(payload)["content"])
+	}
+	if _, exists := cpf["description"]; exists {
+		t.Fatalf("expected description to remain absent when description is unsupported, got %+v", cpf)
+	}
+}
+
+func TestNormalizeTopicHTMLSkipsSchemasWithTopicsField(t *testing.T) {
+	payload := standardPayload("article", []string{"知乎"}, map[string]interface{}{
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_001",
+				"contentPublishForm": map[string]interface{}{
+					"formType":    "task",
+					"title":       "文章",
+					"description": "今日穿搭分享",
+					"tags":        []interface{}{"穿搭"},
+				},
+			},
+		},
+	})
+
+	NormalizeStandardPayloadWithTopicHTMLPolicy("article", []string{"知乎"}, payload, TopicHTMLPolicy{
+		"知乎": TopicHTMLFields{HasTopics: true, HasDescription: true, HasContent: true},
+	})
+
+	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	if cpf["description"] != "今日穿搭分享" {
+		t.Fatalf("expected description to remain unchanged for topics-capable schema, got %#v", cpf["description"])
+	}
+	if cpf["content"] != nil || publishArgsOf(payload)["content"] != nil {
+		t.Fatalf("expected topics-capable schema not to synthesize content fields, got cpf=%+v publishArgs=%+v", cpf, publishArgsOf(payload))
+	}
+}
+
 func TestPreflightRejectsImageTextMissingImageKey(t *testing.T) {
 	payload := standardPayload("imageText", []string{"抖音"}, map[string]interface{}{
 		"accountForms": []interface{}{

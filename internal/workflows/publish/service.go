@@ -28,6 +28,23 @@ func NewService() Service {
 	return Service{}
 }
 
+func topicHTMLPolicyForPlatforms(validator schema.Validator, platforms []string, publishType string) publishmod.TopicHTMLPolicy {
+	policy := publishmod.TopicHTMLPolicy{}
+	for _, platform := range platforms {
+		doc, err := validator.Schema(platform, publishType)
+		if err != nil {
+			continue
+		}
+		for key, fields := range publishmod.TopicHTMLPolicyFromSchema(platform, doc.Properties) {
+			policy[key] = fields
+		}
+	}
+	if len(policy) == 0 {
+		return nil
+	}
+	return policy
+}
+
 func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	input.PublishType = publishmod.NormalizePublishType(input.PublishType)
 	platform, err := SinglePlatform(input.PlatformInput)
@@ -53,9 +70,10 @@ func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	if err := publishmod.RequireStandardPayload(resolvedPayload); err != nil {
 		return nil, err
 	}
-	publishArgs := publishmod.NormalizeStandardPayload(input.PublishType, platforms, resolvedPayload)
-
 	validator := schema.NewValidator(cfg.SchemaDir)
+	topicPolicy := topicHTMLPolicyForPlatforms(validator, platforms, input.PublishType)
+	publishArgs := publishmod.NormalizeStandardPayloadForSchemaValidation(input.PublishType, platforms, resolvedPayload)
+
 	for _, platform := range platforms {
 		result := validator.Validate(platform, input.PublishType, resolvedPayload)
 		if !result.Valid {
@@ -64,7 +82,7 @@ func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 				WithNextCommand(fmt.Sprintf("yxer validate %s %s <payload.json>", platform, input.PublishType))
 		}
 	}
-	preflight := publishmod.Preflight(input.PublishType, platforms, resolvedPayload)
+	preflight := publishmod.PreflightWithTopicHTMLPolicy(input.PublishType, platforms, resolvedPayload, topicPolicy)
 	if len(preflight.Errors) > 0 {
 		return nil, yxerrors.Usage("Publish preflight failed", preflight.Errors).
 			WithHint("请先完成资源上传、账号校验，并确保发布参数中不包含外部 URL。")
@@ -403,4 +421,3 @@ func AssertAccountsOnline(apiClient *client.Client, platforms []string, accountI
 	}
 	return nil
 }
-

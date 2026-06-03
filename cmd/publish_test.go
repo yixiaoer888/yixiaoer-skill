@@ -1040,12 +1040,12 @@ func TestPublishCommandNormalizesTopicHTMLIntoDescriptionAndContent(t *testing.T
 
 	expected := `<p>今日穿搭分享</p><p><topic text="穿搭">#穿搭</topic><topic text="夏日">#夏日</topic></p>`
 	args := publishBody["publishArgs"].(map[string]interface{})
-	if args["content"] != expected {
-		t.Fatalf("expected publishArgs.content topic HTML, got %+v", args["content"])
-	}
 	cpf := args["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
 	if cpf["description"] != expected {
 		t.Fatalf("expected contentPublishForm.description topic HTML, got %+v", cpf["description"])
+	}
+	if args["content"] != expected {
+		t.Fatalf("expected publishArgs.content topic HTML, got %+v", args["content"])
 	}
 }
 
