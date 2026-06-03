@@ -1,5 +1,30 @@
 # 变更日志
 
+## [3.0.8] - 2026-06-03
+
+### 🐛 缺陷修复（发布流程正确性）
+
+- **发布结果误判修复（高优先级）**
+  - `Publish` 现在解析网关响应信封：成功路径强制校验 `taskSetId`，缺失时（如后端 `HTTP 200 + data:null`）返回明确的远程错误，不再误报 `ok:true`
+  - HTTP 非 2xx 错误改为提取网关 `{statusCode, message, code}` 信封中的干净 `message`，不再把整串 JSON 当作错误信息
+  - 新增对 `HTTP 200 + 非零业务 statusCode` 的防御性校验，避免业务失败被当成成功
+
+- **云发布失败回退去除 stdout 污染（高优先级）**
+  - 移除写入 stdout 的交互式 `[y/N]` 提示（会破坏 Agent 的 JSON 输出协议且在非交互场景失效）
+  - 默认返回结构化的 `publish_channel_fallback` 错误并给出本机发布指引；新增 `--auto-fallback-local` 标志在需要时自动改走本机发布
+
+- **`validate` 与 `publish` 归一化对齐**
+  - 抽取共享的 `NormalizeStandardPayload`，使 `validate`、`--dry-run`、`publish` 在 schema 校验前执行完全一致的归一化（含平台名规范化），消除三者校验结果漂移
+
+- **参数顺序颠倒检测**
+  - `publish <type> <platform>` 与 `validate <platform> <type>` 顺序相反，新增智能检测：当参数明显写反时返回带正确顺序指引的用法错误，而非令人困惑的 schema-not-found
+
+### 🔧 技术改进
+
+- 统一错误分类：`yxerrors.Error` 新增 `Category`，贯穿 `output.Error` → 错误信封 `category` 字段；账号/上传/下载等远程错误标注 `remote_*` 分类
+- 删除死代码：移除 `internal/workflows/publish/preflight.go` 转发 shim、`resolveAccountID`/`accountDisplayName`、`payloadWithResolvedPublishMode`
+- 修复 2 个因 `schema get`/`schema fields` 输出重构而失配的测试，CI 恢复绿色
+
 ## [未发布] - 2026-06-02
 
 ### 🎉 新增功能

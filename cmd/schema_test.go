@@ -64,46 +64,34 @@ func TestSchemaGetCommandOutputsSchemaForChinesePlatformAlias(t *testing.T) {
 	if data["key"] != "douyin/video" {
 		t.Fatalf("unexpected schema key: %#v", data["key"])
 	}
-	if data["rootSchema"] != "schemas/publish.schema.json" {
-		t.Fatalf("unexpected root schema: %#v", data["rootSchema"])
-	}
-	schemaDoc := data["document"].(map[string]interface{})
-	required := schemaDoc["required"].([]interface{})
-	if len(required) == 0 {
-		t.Fatal("expected required fields in schema")
-	}
-	properties := schemaDoc["properties"].(map[string]interface{})
-	publishArgs := properties["publishArgs"].(map[string]interface{})
-	accountForms := publishArgs["properties"].(map[string]interface{})["accountForms"].(map[string]interface{})
-	contentPublishForm := accountForms["items"].(map[string]interface{})["properties"].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
-	title := contentPublishForm["properties"].(map[string]interface{})["title"].(map[string]interface{})
+	// businessFields holds the platform-specific content fields directly.
+	businessFields := data["businessFields"].(map[string]interface{})
+	title := businessFields["title"].(map[string]interface{})
 	if title["type"] != "string" || title["required"] != true {
-		t.Fatalf("expected nested title field view, got %#v", title)
+		t.Fatalf("expected required string title in businessFields, got %#v", title)
 	}
-	if _, ok := schemaDoc["$schema"]; ok {
-		t.Fatal("expected document output to omit raw $schema metadata")
-	}
-	template := data["payloadTemplate"].(map[string]interface{})
+	// minimalTemplate provides a ready-to-edit skeleton using the standard envelope.
+	template := data["minimalTemplate"].(map[string]interface{})
 	if template["action"] != "publish" {
-		t.Fatalf("expected payload template action=publish, got %#v", template)
+		t.Fatalf("expected minimalTemplate action=publish, got %#v", template)
 	}
 	templateArgs := template["publishArgs"].(map[string]interface{})
 	templateForms := templateArgs["accountForms"].([]interface{})
 	if len(templateForms) != 1 {
 		t.Fatalf("expected single template account form, got %#v", templateForms)
 	}
-	if _, ok := data["schema"]; ok {
-		t.Fatalf("expected default schema.get output to omit duplicated schema alias, got %#v", data["schema"])
+	// default (non-verbose) output must omit the debug-only schema views.
+	for _, key := range []string{"fullDocument", "accountFormSchema", "contentPublishFormSchema", "businessSchema"} {
+		if _, ok := data[key]; ok {
+			t.Fatalf("expected default schema.get output to omit %q", key)
+		}
 	}
-	if _, ok := data["businessSchema"]; ok {
-		t.Fatalf("expected default schema.get output to omit verbose businessSchema, got %#v", data["businessSchema"])
-	}
-	if data["recommendedCommand"] != "yxer schema fields <platform> <type>" {
+	if data["recommendedCommand"] != "yxer schema fields 抖音 video" {
 		t.Fatalf("expected recommended schema.fields command, got %#v", data["recommendedCommand"])
 	}
-	guidance := data["agentGuidance"].([]interface{})
+	guidance := data["guidance"].([]interface{})
 	if len(guidance) < 3 {
-		t.Fatalf("expected schema.get guidance for agents, got %#v", guidance)
+		t.Fatalf("expected schema.get guidance, got %#v", guidance)
 	}
 }
 
@@ -188,8 +176,8 @@ func TestSchemaFieldsCommandOutputsFieldView(t *testing.T) {
 	if data["key"] != "douyin/video" {
 		t.Fatalf("unexpected schema key: %#v", data["key"])
 	}
-	if data["recommendedResponse"] != "flatFields" {
-		t.Fatalf("expected flatFields to be recommended response, got %#v", data["recommendedResponse"])
+	if data["recommendedResponse"] != "required + optional（按需查看 complex）" {
+		t.Fatalf("expected grouped recommended response, got %#v", data["recommendedResponse"])
 	}
 	flatFields := data["flatFields"].([]interface{})
 	if len(flatFields) == 0 {

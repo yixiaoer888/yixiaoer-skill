@@ -8,24 +8,29 @@ import (
 )
 
 var (
-	publishChannelFlag string
-	publishClientID    string
-	publishDryRun      bool
+	publishChannelFlag       string
+	publishClientID          string
+	publishDryRun            bool
+	publishAutoFallbackLocal bool
 )
 
 func init() {
 	publishCmd.Flags().StringVar(&publishChannelFlag, "publish-channel", "", `publish channel: "cloud" or "local"`)
 	publishCmd.Flags().StringVar(&publishClientID, "client-id", "", "client ID for local publish")
 	publishCmd.Flags().BoolVar(&publishDryRun, "dry-run", false, "preview the publish request without performing the write")
+	publishCmd.Flags().BoolVar(&publishAutoFallbackLocal, "auto-fallback-local", false, "automatically retry with local publish when cloud publish fails due to proxy availability")
 	rootCmd.AddCommand(publishCmd)
 }
 
 var publishCmd = &cobra.Command{
 	Use:   "publish <type> <中文平台名|platform-key> <payload.json> [clientId]",
 	Short: "发布内容（单平台原子发布）",
-	Long: "仅支持 payload.json 模式。发布前请先通过 prepare / schema fields 获取表单字段和前置数据；需要完整骨架时再补 schema get，随后执行 validate 和 publish。",
-	Args: cobra.RangeArgs(3, 4),
+	Long:  "仅支持 payload.json 模式。发布前请先通过 prepare / schema fields 获取表单字段和前置数据；需要完整骨架时再补 schema get，随后执行 validate 和 publish。",
+	Args:  cobra.RangeArgs(3, 4),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := detectSwappedPublishArgs(args[0], args[1], "publish <type> <platform> <payload.json>"); err != nil {
+			return err
+		}
 		if !looksLikePayloadArg(args[2]) {
 			return yxerrors.Usage("publish requires a payload.json file", []string{
 				`Run "yxer prepare <platform> <type>" to inspect platform-specific form fields and preflight data.`,
@@ -48,6 +53,7 @@ var publishCmd = &cobra.Command{
 			PositionalClientID: positionalClientID,
 			FlagChannel:        publishChannelFlag,
 			FlagClientID:       publishClientID,
+			AutoFallbackLocal:  publishAutoFallbackLocal,
 		}
 		if publishDryRun {
 			result, err := publishflow.NewService().DryRun(input)

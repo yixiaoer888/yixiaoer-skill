@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/config"
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/output"
+	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/core/platform"
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/schema"
 	publishmod "github.com/yixiaoer/yixiaoer-skill/internal/modules/publish"
 	publishflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/publish"
@@ -33,6 +34,9 @@ var validateCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		platform, publishType, payloadPath := args[0], args[1], args[2]
+		if err := detectSwappedPublishArgs(publishType, platform, "validate <platform> <type> <payload.json>"); err != nil {
+			return err
+		}
 		cfg, err := config.Load()
 		if err != nil {
 			return err
@@ -45,6 +49,20 @@ var validateCmd = &cobra.Command{
 		channel, clientID, err := publishflow.ResolvePublishMode(cfg, payload, "", validateChannelFlag, validateClientID)
 		if err != nil {
 			return err
+		}
+		// Mirror the publish pipeline exactly: resolve the publish mode onto the
+		// payload, canonicalize the platform name, and apply the shared
+		// normalization BEFORE schema validation so validate, dry-run, and publish
+		// all evaluate the identical normalized payload.
+		payload["publishChannel"] = channel
+		if clientID != "" {
+			payload["clientId"] = clientID
+		} else {
+			delete(payload, "clientId")
+		}
+		canonicalPlatform := platformutil.ChineseName(platform)
+		if payload["publishArgs"] != nil {
+			publishmod.NormalizeStandardPayload(publishType, []string{canonicalPlatform}, payload)
 		}
 		result := schema.NewValidator(cfg.SchemaDir).Validate(platform, publishType, payload)
 		if !result.Valid {
@@ -69,7 +87,7 @@ var validateCmd = &cobra.Command{
 			return err
 		}
 		if _, hasAccountForms := payload["accountForms"]; hasAccountForms || payload["publishArgs"] != nil {
-			preflight := publishmod.Preflight(publishType, []string{platform}, payloadWithResolvedPublishMode(payload, channel, clientID))
+			preflight := publishmod.Preflight(publishType, []string{canonicalPlatform}, payload)
 			if len(preflight.Errors) > 0 {
 				return yxerrors.Usage("Publish preflight failed", preflight.Errors).
 					WithHint("请先完成资源上传，并确保 payload 中引用的是上传后的 key，而不是外部 URL。").
@@ -83,20 +101,6 @@ var validateCmd = &cobra.Command{
 			"nextStep": fmt.Sprintf("yxer publish %s %s %s --dry-run", publishType, platform, payloadPath),
 		})
 	},
-}
-
-func payloadWithResolvedPublishMode(payload map[string]interface{}, channel, clientID string) map[string]interface{} {
-	withMode := make(map[string]interface{}, len(payload)+2)
-	for key, value := range payload {
-		withMode[key] = value
-	}
-	withMode["publishChannel"] = channel
-	if clientID != "" {
-		withMode["clientId"] = clientID
-	} else {
-		delete(withMode, "clientId")
-	}
-	return withMode
 }
 
 func requireStandardPublishPayload(payload map[string]interface{}, platform, publishType string) error {

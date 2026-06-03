@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
 func (c *Client) Accounts(platform string) ([]map[string]interface{}, error) {
@@ -39,9 +40,11 @@ func normalizeAccounts(data interface{}) ([]map[string]interface{}, error) {
 		if hasAccountIdentity(typed) {
 			return []map[string]interface{}{typed}, nil
 		}
-		return nil, fmt.Errorf("unexpected accounts response")
+		return nil, yxerrors.Remote("unexpected accounts response", typed).
+			WithCategory("remote_response")
 	default:
-		return nil, fmt.Errorf("unexpected accounts response")
+		return nil, yxerrors.Remote("unexpected accounts response", typed).
+			WithCategory("remote_response")
 	}
 }
 

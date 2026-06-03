@@ -31,6 +31,7 @@ func Error(w io.Writer, err error, context string) {
 	hint := "请依次检查: 1. 技能版本号是否一致; 2. 请求参数是否符合 DTO 规范; 3. 查阅 skills/yixiaoer/references/troubleshooting-guide.md。"
 	retryable := false
 	nextCommand := ""
+	category := errType
 
 	if typed, ok := err.(*yxerrors.Error); ok {
 		if typed.Type != "" {
@@ -48,6 +49,9 @@ func Error(w io.Writer, err error, context string) {
 		}
 		retryable = typed.Retryable
 		nextCommand = typed.NextCommand
+		if typed.Category != "" {
+			category = typed.Category
+		}
 	}
 
 	_ = writeJSON(w, domain.ErrorResponse{
@@ -56,6 +60,7 @@ func Error(w io.Writer, err error, context string) {
 		Error: domain.ErrorEnvelope{
 			Type:        errType,
 			Code:        code,
+			Category:    category,
 			Message:     message,
 			Hint:        hint,
 			Retryable:   retryable,

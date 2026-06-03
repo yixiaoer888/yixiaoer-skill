@@ -1,10 +1,7 @@
 package publish
 
 import (
-	"bufio"
 	"fmt"
-	"io"
-	"os"
 	"strings"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/client"
@@ -22,21 +19,17 @@ type ExecuteInput struct {
 	PositionalClientID string
 	FlagChannel        string
 	FlagClientID       string
+	AutoFallbackLocal  bool
 }
 
 type Service struct{}
-
-var (
-	PromptInput  io.Reader = os.Stdin
-	PromptOutput io.Writer = os.Stdout
-)
 
 func NewService() Service {
 	return Service{}
 }
 
 func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
-	input.PublishType = NormalizePublishType(input.PublishType)
+	input.PublishType = publishmod.NormalizePublishType(input.PublishType)
 	platform, err := SinglePlatform(input.PlatformInput)
 	if err != nil {
 		return nil, err
@@ -60,9 +53,7 @@ func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	if err := publishmod.RequireStandardPayload(resolvedPayload); err != nil {
 		return nil, err
 	}
-	publishmod.NormalizeStandardPublishArgs(publishmod.ExtractPublishArgs(resolvedPayload))
-	publishArgs := publishmod.ExtractPublishArgs(resolvedPayload)
-	publishmod.NormalizePlatformSpecificFields(input.PublishType, platforms, publishArgs)
+	publishArgs := publishmod.NormalizeStandardPayload(input.PublishType, platforms, resolvedPayload)
 
 	validator := schema.NewValidator(cfg.SchemaDir)
 	for _, platform := range platforms {
@@ -92,12 +83,8 @@ func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	if !shouldOfferLocalPublishRetry(err, channel) {
 		return nil, err
 	}
-	confirmed, confirmErr := confirmLocalPublishRetry(platform)
-	if confirmErr != nil {
-		return nil, confirmErr
-	}
-	if !confirmed {
-		return nil, err
+	if !input.AutoFallbackLocal {
+		return nil, buildLocalFallbackError(platform, input.PublishType, clientID, err)
 	}
 	localChannel, localClientID, resolveErr := ResolvePublishMode(cfg, resolvedPayload, "", "local", "")
 	if resolveErr != nil {
@@ -200,7 +187,7 @@ func normalizePublishEnvelope(body, publishArgs map[string]interface{}, publishT
 }
 
 func inferOuterDesc(publishType string, publishArgs, contentPublishForm map[string]interface{}) string {
-	switch NormalizePublishType(publishType) {
+	switch publishmod.NormalizePublishType(publishType) {
 	case "article":
 		return firstNonEmptyString(
 			stringField(contentPublishForm, "title"),
@@ -346,19 +333,15 @@ func shouldOfferLocalPublishRetry(err error, channel string) bool {
 	return strings.Contains(message, "账号代理不存在") || strings.Contains(strings.ToLower(message), "proxy")
 }
 
-func confirmLocalPublishRetry(platform string) (bool, error) {
-	if PromptOutput != nil {
-		if _, err := fmt.Fprintf(PromptOutput, "%s 账号未设置代理，是否改为走本机发布？[y/N]: ", platform); err != nil {
-			return false, err
-		}
+func buildLocalFallbackError(platform, publishType, clientID string, cause error) error {
+	nextCommand := fmt.Sprintf("yxer publish %s %s <payload.json> --publish-channel local --client-id <clientId>", publishType, platform)
+	if strings.TrimSpace(clientID) != "" {
+		nextCommand = fmt.Sprintf("yxer publish %s %s <payload.json> --publish-channel local --client-id %s", publishType, platform, clientID)
 	}
-	reader := bufio.NewReader(PromptInput)
-	answer, err := reader.ReadString('\n')
-	if err != nil && err != io.EOF {
-		return false, err
-	}
-	answer = strings.ToLower(strings.TrimSpace(answer))
-	return answer == "y" || answer == "yes", nil
+	return yxerrors.Remote("cloud publish failed; local publish fallback is available", cause.Error()).
+		WithCategory("publish_channel_fallback").
+		WithHint("当前账号云发布失败，可改用本机发布；如需自动回退，请显式传入 --auto-fallback-local。").
+		WithNextCommand(nextCommand)
 }
 
 func SplitPlatforms(value string) []string {
@@ -421,57 +404,3 @@ func AssertAccountsOnline(apiClient *client.Client, platforms []string, accountI
 	return nil
 }
 
-func resolveAccountID(apiClient *client.Client, platform, selector string) (string, error) {
-	selector = strings.TrimSpace(selector)
-	if selector == "" {
-		return "", yxerrors.Usage("account is required in flags mode", nil).
-			WithHint("请传入 --account，值可以是账号 ID、名称或昵称。").
-			WithNextCommand(fmt.Sprintf("yxer accounts %s", platform))
-	}
-	accounts, err := apiClient.Accounts(platform)
-	if err != nil {
-		return "", err
-	}
-	var exact []map[string]interface{}
-	var fuzzy []map[string]interface{}
-	for _, account := range accounts {
-		id := strings.TrimSpace(client.AccountID(account))
-		name := accountDisplayName(account)
-		if id == selector || name == selector {
-			exact = append(exact, account)
-			continue
-		}
-		if strings.Contains(name, selector) {
-			fuzzy = append(fuzzy, account)
-		}
-	}
-	candidates := exact
-	if len(candidates) == 0 {
-		candidates = fuzzy
-	}
-	if len(candidates) == 1 {
-		if client.AccountStatus(candidates[0]) != 1 {
-			return "", yxerrors.Usage("selected account is offline", selector).
-				WithHint("目标账号当前不在线，请先检查账号状态。").
-				WithNextCommand(fmt.Sprintf("yxer accounts %s", platform))
-		}
-		return client.AccountID(candidates[0]), nil
-	}
-	if len(candidates) == 0 {
-		return "", yxerrors.Usage("account not found", selector).
-			WithHint("未找到匹配账号，请先查询平台账号列表。").
-			WithNextCommand(fmt.Sprintf("yxer accounts %s", platform))
-	}
-	return "", yxerrors.Usage("account selector is ambiguous", selector).
-		WithHint("匹配到多个账号，请改用更精确的名称或直接传账号 ID。").
-		WithNextCommand(fmt.Sprintf("yxer accounts %s --name %s", platform, selector))
-}
-
-func accountDisplayName(account map[string]interface{}) string {
-	for _, key := range []string{"platformAccountName", "name", "nickname", "remark", "platformAuthorId"} {
-		if value := strings.TrimSpace(fmt.Sprint(account[key])); value != "" && value != "<nil>" {
-			return value
-		}
-	}
-	return ""
-}

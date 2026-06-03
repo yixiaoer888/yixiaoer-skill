@@ -231,6 +231,22 @@ func ValidateAndExtractPublishArgs(publishType string, platforms []string, paylo
 	return publishArgs
 }
 
+// NormalizeStandardPayload applies the content/resource and platform-specific
+// normalization that publish performs before schema validation, so validate,
+// dry-run, and publish all evaluate the identical normalized payload. It mutates
+// payload in place (pass a clone to preserve the original) and returns the
+// resolved publishArgs. platforms must use canonical Chinese platform names so
+// platform-specific rules (e.g. 抖音/小红书 topic HTML) trigger consistently.
+func NormalizeStandardPayload(publishType string, platforms []string, payload map[string]interface{}) map[string]interface{} {
+	publishArgs := ExtractPublishArgs(payload)
+	if publishArgs == nil {
+		return nil
+	}
+	NormalizeStandardPublishArgs(publishArgs)
+	NormalizePlatformSpecificFields(publishType, platforms, publishArgs)
+	return publishArgs
+}
+
 func NormalizeStandardPublishArgs(payload map[string]interface{}) {
 	accountForms, ok := payload["accountForms"].([]interface{})
 	if !ok || len(accountForms) == 0 {

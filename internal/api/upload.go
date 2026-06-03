@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/media"
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
 type UploadResult struct {
@@ -51,7 +52,8 @@ func (c *Client) Upload(pathOrURL, bucket string, autoMeta bool) (UploadResult, 
 	serviceURL, _ := data["serviceUrl"].(string)
 	key, _ := data["key"].(string)
 	if serviceURL == "" || key == "" {
-		return UploadResult{}, fmt.Errorf("invalid upload info response: %v", uploadInfo)
+		return UploadResult{}, yxerrors.Remote("invalid upload info response", uploadInfo).
+			WithCategory("remote_response")
 	}
 
 	req, err := http.NewRequest(http.MethodPut, serviceURL, bytes.NewReader(buffer))
@@ -66,7 +68,8 @@ func (c *Client) Upload(pathOrURL, bucket string, autoMeta bool) (UploadResult, 
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		raw, _ := io.ReadAll(resp.Body)
-		return UploadResult{}, fmt.Errorf("failed to upload to OSS: %s", string(raw))
+		return UploadResult{}, yxerrors.Remote("failed to upload to OSS", string(raw)).
+			WithCategory("remote_upload")
 	}
 
 	width, height := imageDimensions(pathOrURL, buffer, contentType)
@@ -140,7 +143,10 @@ func readUploadContent(pathOrURL string) ([]byte, string, int64, error) {
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			return nil, "", 0, fmt.Errorf("HTTP error downloading file during sync upload: %d", resp.StatusCode)
+			return nil, "", 0, yxerrors.Remote("HTTP error downloading file during sync upload", map[string]interface{}{
+				"statusCode": resp.StatusCode,
+				"url":        pathOrURL,
+			}).WithCategory("remote_download")
 		}
 		raw, err := io.ReadAll(resp.Body)
 		if err != nil {

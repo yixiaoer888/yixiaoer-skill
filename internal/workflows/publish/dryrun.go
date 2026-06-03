@@ -19,7 +19,7 @@ type DryRunResult struct {
 }
 
 func (Service) DryRun(input ExecuteInput) (DryRunResult, error) {
-	input.PublishType = NormalizePublishType(input.PublishType)
+	input.PublishType = publishmod.NormalizePublishType(input.PublishType)
 	platform, err := SinglePlatform(input.PlatformInput)
 	if err != nil {
 		return DryRunResult{}, err
@@ -44,9 +44,7 @@ func (Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 	if err := publishmod.RequireStandardPayload(resolvedPayload); err != nil {
 		return DryRunResult{}, err
 	}
-	publishmod.NormalizeStandardPublishArgs(publishmod.ExtractPublishArgs(resolvedPayload))
-	publishArgs := publishmod.ExtractPublishArgs(resolvedPayload)
-	publishmod.NormalizePlatformSpecificFields(input.PublishType, platforms, publishArgs)
+	publishArgs := publishmod.NormalizeStandardPayload(input.PublishType, platforms, resolvedPayload)
 
 	validator := schema.NewValidator(cfg.SchemaDir)
 	for _, platform := range platforms {

@@ -1,6 +1,6 @@
 package domain
 
-const SkillVersion = "3.0.7"
+const SkillVersion = "3.0.8"
 
 type SuccessResponse struct {
 	OK      bool        `json:"ok"`
@@ -20,6 +20,7 @@ type ErrorResponse struct {
 type ErrorEnvelope struct {
 	Type        string      `json:"type,omitempty"`
 	Code        string      `json:"code"`
+	Category    string      `json:"category,omitempty"`
 	Message     string      `json:"message"`
 	Hint        string      `json:"hint,omitempty"`
 	Retryable   bool        `json:"retryable,omitempty"`

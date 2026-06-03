@@ -15,6 +15,7 @@ const (
 type Error struct {
 	Type        string
 	Code        string
+	Category    string
 	Message     string
 	Details     interface{}
 	Hint        string
@@ -29,10 +30,11 @@ func (e *Error) Error() string {
 
 func New(errType, code, message string, details interface{}) *Error {
 	return &Error{
-		Type:    errType,
-		Code:    code,
-		Message: message,
-		Details: details,
+		Type:     errType,
+		Code:     code,
+		Category: errType,
+		Message:  message,
+		Details:  details,
 	}
 }
 
@@ -66,5 +68,10 @@ func (e *Error) WithRetryable(retryable bool) *Error {
 
 func (e *Error) WithNextCommand(nextCommand string) *Error {
 	e.NextCommand = nextCommand
+	return e
+}
+
+func (e *Error) WithCategory(category string) *Error {
+	e.Category = category
 	return e
 }

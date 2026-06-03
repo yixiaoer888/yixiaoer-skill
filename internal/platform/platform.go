@@ -48,3 +48,26 @@ func ChineseName(value string) string {
 	}
 	return trimmed
 }
+
+// chineseNameSet holds every canonical Chinese platform name for reverse lookup.
+var chineseNameSet = func() map[string]bool {
+	set := make(map[string]bool, len(chineseNames))
+	for _, name := range chineseNames {
+		set[name] = true
+	}
+	return set
+}()
+
+// IsKnown reports whether value is a recognized platform, either by English
+// alias (e.g. "douyin") or canonical Chinese name (e.g. "抖音"). It is used to
+// detect swapped <platform>/<type> command arguments.
+func IsKnown(value string) bool {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return false
+	}
+	if _, ok := chineseNames[strings.ToLower(trimmed)]; ok {
+		return true
+	}
+	return chineseNameSet[trimmed]
+}
