@@ -26,22 +26,34 @@ type UploadResult struct {
 	Format      string  `json:"format,omitempty"`
 }
 
+func InspectUpload(pathOrURL string, autoMeta bool) (UploadResult, string, error) {
+	contentType := DetectContentType(pathOrURL)
+	buffer, fileName, size, err := readUploadContent(pathOrURL)
+	if err != nil {
+		return UploadResult{}, "", err
+	}
+	result, err := buildUploadMetadata(pathOrURL, buffer, fileName, size, contentType, autoMeta)
+	if err != nil {
+		return UploadResult{}, "", err
+	}
+	return result, fileName, nil
+}
+
 func (c *Client) Upload(pathOrURL, bucket string, autoMeta bool) (UploadResult, error) {
 	if bucket == "" {
 		bucket = "cloud-publish"
 	}
-	contentType := DetectContentType(pathOrURL)
-	buffer, fileName, size, err := readUploadContent(pathOrURL)
+	result, fileName, err := InspectUpload(pathOrURL, autoMeta)
 	if err != nil {
 		return UploadResult{}, err
 	}
 
 	params := map[string]string{
 		"fileKey":     fileName,
-		"contentType": contentType,
+		"contentType": result.ContentType,
 	}
-	if size > 0 {
-		params["size"] = fmt.Sprint(size)
+	if result.Size > 0 {
+		params["size"] = fmt.Sprint(result.Size)
 	}
 
 	var uploadInfo map[string]interface{}
@@ -56,11 +68,15 @@ func (c *Client) Upload(pathOrURL, bucket string, autoMeta bool) (UploadResult, 
 			WithCategory("remote_response")
 	}
 
+	buffer, _, _, err := readUploadContent(pathOrURL)
+	if err != nil {
+		return UploadResult{}, err
+	}
 	req, err := http.NewRequest(http.MethodPut, serviceURL, bytes.NewReader(buffer))
 	if err != nil {
 		return UploadResult{}, err
 	}
-	req.Header.Set("Content-Type", contentType)
+	req.Header.Set("Content-Type", result.ContentType)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return UploadResult{}, err
@@ -72,27 +88,9 @@ func (c *Client) Upload(pathOrURL, bucket string, autoMeta bool) (UploadResult, 
 			WithCategory("remote_upload")
 	}
 
-	width, height := imageDimensions(pathOrURL, buffer, contentType)
-	duration := float64(0)
-	if autoMeta && strings.HasPrefix(contentType, "video/") {
-		videoMeta, err := probeVideoMetadata(pathOrURL, buffer, fileName)
-		if err != nil {
-			return UploadResult{}, err
-		}
-		width = videoMeta.Width
-		height = videoMeta.Height
-		duration = videoMeta.Duration
-	}
-	return UploadResult{
-		Key:         key,
-		ContentType: contentType,
-		Bucket:      bucket,
-		Size:        size,
-		Width:       width,
-		Height:      height,
-		Duration:    duration,
-		Format:      strings.TrimPrefix(strings.ToLower(filepath.Ext(fileName)), "."),
-	}, nil
+	result.Key = key
+	result.Bucket = bucket
+	return result, nil
 }
 
 func probeVideoMetadata(pathOrURL string, raw []byte, fileName string) (media.VideoMetadata, error) {
@@ -115,6 +113,28 @@ func probeVideoMetadata(pathOrURL string, raw []byte, fileName string) (media.Vi
 		return media.VideoMetadata{}, err
 	}
 	return media.ProbeVideo(tmpPath)
+}
+
+func buildUploadMetadata(pathOrURL string, buffer []byte, fileName string, size int64, contentType string, autoMeta bool) (UploadResult, error) {
+	width, height := imageDimensions(pathOrURL, buffer, contentType)
+	duration := float64(0)
+	if strings.HasPrefix(contentType, "video/") && autoMeta {
+		videoMeta, err := probeVideoMetadata(pathOrURL, buffer, fileName)
+		if err != nil {
+			return UploadResult{}, err
+		}
+		width = videoMeta.Width
+		height = videoMeta.Height
+		duration = videoMeta.Duration
+	}
+	return UploadResult{
+		ContentType: contentType,
+		Size:        size,
+		Width:       width,
+		Height:      height,
+		Duration:    duration,
+		Format:      strings.TrimPrefix(strings.ToLower(filepath.Ext(fileName)), "."),
+	}, nil
 }
 
 func DetectContentType(pathOrURL string) string {

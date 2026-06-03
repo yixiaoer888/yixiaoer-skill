@@ -62,7 +62,7 @@ var publishInitCmd = &cobra.Command{
 			"payload":  template,
 			"next": []string{
 				"填写 platformAccountId 和 contentPublishForm 业务字段",
-				"如有视频/封面，先执行 yxer upload --auto-meta 获取真实资源元数据",
+				"如有视频/封面，先执行 yxer upload 获取真实资源元数据",
 				"执行 yxer validate <platform> <type> <payload.json>",
 			},
 			"platformName": platformutil.ChineseName(schemaDoc.Platform),

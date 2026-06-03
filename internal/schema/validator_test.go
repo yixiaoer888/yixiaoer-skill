@@ -224,28 +224,26 @@ func TestValidateAcceptsStandardPublishRequestBusinessFields(t *testing.T) {
 	}
 }
 
-func TestValidateAcceptsXiaohongshuNestedShoppingCartStructure(t *testing.T) {
+func TestValidateAcceptsXiaohongshuFlatShoppingCartStructure(t *testing.T) {
 	validator := NewValidator(filepath.Join("..", "..", "schemas"))
 	payload := map[string]interface{}{
 		"formType":    "task",
 		"visibleType": float64(0),
 		"shopping_cart": []interface{}{
 			map[string]interface{}{
-				"sale_title": "同款商品",
-				"images":     []interface{}{"https://example.invalid/goods.png"},
-				"data": map[string]interface{}{
-					"yixiaoerId":   "goods_001",
-					"yixiaoerName": "测试商品",
-					"raw":          map[string]interface{}{"id": "goods_001"},
-					"price":        float64(19900),
-				},
+				"yixiaoerId":       "goods_001",
+				"yixiaoerName":     "测试商品",
+				"yixiaoerImageUrl": "https://example.invalid/goods.png",
+				"yixiaoerDesc":     "--",
+				"price":            float64(19900),
+				"raw":              map[string]interface{}{"id": "goods_001"},
 			},
 		},
 	}
 
 	result := validator.Validate("小红书", "video", payload)
 	if !result.Valid {
-		t.Fatalf("expected xiaohongshu nested shopping_cart structure to pass, got %v", result.Errors)
+		t.Fatalf("expected xiaohongshu flat shopping_cart structure to pass, got %v", result.Errors)
 	}
 }
 

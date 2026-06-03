@@ -2,9 +2,9 @@
   "version": 1,
   "skills": {
     "yixiaoer": {
-      "source": "C:\\nvm4w\\nodejs\\node_modules\\yixiaoer-skill\\skills\\yixiaoer",
+      "source": "C:\\work\\yixiaoer\\yixiaoer-universal\\yixiaoer-skill\\skills\\yixiaoer",
       "sourceType": "local",
-      "computedHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      "computedHash": "147e8b18ae4b5a82aa3deafb2b13196fa053046903e15d460b65e8ad50847f28"
     }
   }
 }

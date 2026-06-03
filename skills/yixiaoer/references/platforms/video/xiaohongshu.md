@@ -115,16 +115,11 @@
 ### 3.5 ShoppingCartItem (商品)
 | 字段名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| `sale_title` | `string` | **是** | 挂车推广标题 |
-| `images` | `string[]` | **是** | 顶层商品图片数组 |
-| `data` | `object` | **是** | 核心商品数据对象 |
-
-`data` 内部必须包含以下字段：
-
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
 | `yixiaoerId` | `string` | **是** | 商品 ID |
 | `yixiaoerName` | `string` | **是** | 商品名称 |
+| `yixiaoerImageUrl` | `string` | 否 | 商品图片 URL |
+| `yixiaoerDesc` | `string` | 否 | 商品说明 |
+| `price` | `number` | 否 | 商品价格（单位：分） |
 | `raw` | `object` | **是** | 平台原始数据 (透传) |
 
 ## 相关接口

@@ -35,7 +35,7 @@
 | `location` | `object` | 否 | 抖音视频位置，使用 `PlatformDataItem` 结构 | - |
 | `scheduledTime` | `number` | 否 | 定时发布时间戳 (13 位 Unix 时间戳，单位: 毫秒) | - |
 | `allow_save` | `number` | 否 | 保存权限: 0-不允许, 1-允许 | 0 |
-| `shoppingCart` | `object[]` | 否 | 购物车列表，使用 `ShoppingCart` 结构 | - |
+| `shopping_cart` | `object[]` | 否 | 购物车列表，使用 `ShoppingCart` 结构；旧字段 `shoppingCart` 会在预检阶段自动归一化 | - |
 | `groupShopping` | `object` | 否 | 团购信息，使用 `ShoppingCart` 结构 | - |
 | `collection` | `object` | 否 | 合集信息，使用 `Category` 结构 | - |
 | `sub_collection` | `object` | 否 | 合集选集，使用 `Category` 结构 | - |
@@ -111,6 +111,15 @@
 | 字段名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
 | `sale_title` | `string` | **是** | 推广标题 (最多 10 字) |
+| `images` | `string[]` | **是** | 商品图片数组 |
+| `data` | `object` | **是** | 核心商品数据对象 |
+
+`data` 内部必须包含以下字段：
+
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `yixiaoerId` | `string` | **是** | 商品 ID |
+| `yixiaoerName` | `string` | **是** | 商品名称 |
 | `raw` | `object` | **是** | 平台原始数据 (透传) |
 
 ### 3.4 MusicItem (音乐)
@@ -127,5 +136,5 @@
 | :--- | :--- | :--- |
 | `location` | `locations` | [获取位置信息](../../get-locations.md) |
 | `collection` | `collections` | [获取合集列表](../../get-collections.md) |
-| `shoppingCart` | `goods` | [获取商品列表](../../get-goods.md) |
+| `shopping_cart` | `goods` | [获取商品列表](../../get-goods.md) |
 | ... | ... | ... |

@@ -1,6 +1,11 @@
 package publish
 
 import (
+	"image"
+	"image/color"
+	"image/png"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -155,6 +160,50 @@ func TestPreflightAcceptsImageTextImagesInContentPublishForm(t *testing.T) {
 	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
 	if images, _ := form["images"].([]interface{}); len(images) != 1 {
 		t.Fatalf("expected contentPublishForm.images to normalize into account form, got %+v", form)
+	}
+}
+
+func TestResolveStandardPayloadResourceMetadataFillsImageDimensionsFromLocalSource(t *testing.T) {
+	imagePath := writePNG(t, 8, 6)
+	payload := standardPayload("imageText", []string{"抖音"}, map[string]interface{}{
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_001",
+				"cover": map[string]interface{}{
+					"key":    "cover-key",
+					"source": imagePath,
+				},
+				"coverKey": "cover-key",
+				"contentPublishForm": map[string]interface{}{
+					"formType":    "task",
+					"title":       "图文",
+					"description": "正文",
+					"images": []interface{}{
+						map[string]interface{}{
+							"key":    "image-key",
+							"source": imagePath,
+						},
+					},
+				},
+			},
+		},
+	})
+
+	if err := ResolveStandardPayloadResourceMetadata(payload); err != nil {
+		t.Fatal(err)
+	}
+
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	cover := form["cover"].(map[string]interface{})
+	if cover["width"] != float64(8) || cover["height"] != float64(6) {
+		t.Fatalf("expected cover metadata to be filled, got %+v", cover)
+	}
+	if _, exists := cover["source"]; exists {
+		t.Fatalf("expected source helper field to be removed, got %+v", cover)
+	}
+	imageItem := form["contentPublishForm"].(map[string]interface{})["images"].([]interface{})[0].(map[string]interface{})
+	if imageItem["width"] != float64(8) || imageItem["height"] != float64(6) {
+		t.Fatalf("expected image metadata to be filled, got %+v", imageItem)
 	}
 }
 
@@ -317,24 +366,43 @@ func TestPreflightRejectsMiniappsMissingRaw(t *testing.T) {
 	assertHasError(t, result.Errors, "accountForms[0].contentPublishForm.miniapps[0]: dynamic platform object must include complete \"raw\" data")
 }
 
-func TestPreflightAcceptsNestedShoppingCartDataRaw(t *testing.T) {
+func TestPreflightAcceptsXiaohongshuFlatShoppingCartRaw(t *testing.T) {
 	payload := validVideoPayload()
 	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
 	form["contentPublishForm"].(map[string]interface{})["shopping_cart"] = []interface{}{
 		map[string]interface{}{
-			"sale_title": "同款商品",
-			"images":     []interface{}{"goods-cover-key"},
-			"data": map[string]interface{}{
-				"yixiaoerId":   "goods_001",
-				"yixiaoerName": "测试商品",
-				"raw":          map[string]interface{}{"id": "goods_001"},
-			},
+			"yixiaoerId":       "goods_001",
+			"yixiaoerName":     "测试商品",
+			"yixiaoerImageUrl": "https://example.invalid/goods.png",
+			"yixiaoerDesc":     "--",
+			"price":            float64(19900),
+			"raw":              map[string]interface{}{"id": "goods_001"},
 		},
 	}
 
 	result := Preflight("video", []string{"小红书"}, payload)
 	if len(result.Errors) > 0 {
-		t.Fatalf("expected nested shopping_cart.data.raw to pass, got %v", result.Errors)
+		t.Fatalf("expected flat shopping_cart.raw to pass, got %v", result.Errors)
+	}
+}
+
+func TestPreflightAcceptsCompleteMusicObjectWithPlayURLs(t *testing.T) {
+	payload := validVideoPayload()
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	form["contentPublishForm"].(map[string]interface{})["music"] = map[string]interface{}{
+		"yixiaoerId":   "music_001",
+		"yixiaoerName": "稻香",
+		"duration":     float64(240),
+		"url":          "https://example.invalid/music",
+		"playUrl":      "https://example.invalid/preview.mp3",
+		"raw": map[string]interface{}{
+			"id": "music_001",
+		},
+	}
+
+	result := Preflight("video", []string{"抖音"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected complete music object with metadata URLs to pass, got %v", result.Errors)
 	}
 }
 
@@ -373,21 +441,18 @@ func TestPreflightNormalizesLegacyDouyinShoppingCartShape(t *testing.T) {
 	}
 }
 
-func TestPreflightRejectsNestedShoppingCartDataMissingRaw(t *testing.T) {
+func TestPreflightRejectsXiaohongshuShoppingCartMissingRaw(t *testing.T) {
 	payload := validVideoPayload()
 	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
 	form["contentPublishForm"].(map[string]interface{})["shopping_cart"] = []interface{}{
 		map[string]interface{}{
-			"sale_title": "同款商品",
-			"data": map[string]interface{}{
-				"yixiaoerId":   "goods_001",
-				"yixiaoerName": "测试商品",
-			},
+			"yixiaoerId":   "goods_001",
+			"yixiaoerName": "测试商品",
 		},
 	}
 
 	result := Preflight("video", []string{"小红书"}, payload)
-	assertHasError(t, result.Errors, "accountForms[0].contentPublishForm.shopping_cart[0].data: dynamic platform object must include complete \"raw\" data")
+	assertHasError(t, result.Errors, "accountForms[0].contentPublishForm.shopping_cart[0]: dynamic platform object must include complete \"raw\" data")
 }
 
 func validVideoPayload() map[string]interface{} {
@@ -451,4 +516,24 @@ func assertHasError(t *testing.T, errors []string, want string) {
 		}
 	}
 	t.Fatalf("expected error containing %q, got %v", want, errors)
+}
+
+func writePNG(t *testing.T, width, height int) string {
+	t.Helper()
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	for x := 0; x < width; x++ {
+		for y := 0; y < height; y++ {
+			img.Set(x, y, color.RGBA{R: 20, G: 120, B: 200, A: 255})
+		}
+	}
+	path := filepath.Join(t.TempDir(), "resource.png")
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	if err := png.Encode(file, img); err != nil {
+		t.Fatal(err)
+	}
+	return path
 }

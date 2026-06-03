@@ -123,39 +123,28 @@
       "items": {
         "type": "object",
         "required": [
-          "sale_title",
-          "images",
-          "data"
+          "yixiaoerId",
+          "yixiaoerName",
+          "raw"
         ],
         "properties": {
-          "sale_title": {
+          "yixiaoerId": {
             "type": "string"
           },
-          "images": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "yixiaoerName": {
+            "type": "string"
           },
-          "data": {
-            "type": "object",
-            "required": [
-              "yixiaoerId",
-              "yixiaoerName",
-              "raw"
-            ],
-            "properties": {
-              "yixiaoerId": {
-                "type": "string"
-              },
-              "yixiaoerName": {
-                "type": "string"
-              },
-              "raw": {
-                "type": "object"
-              }
-            },
-            "additionalProperties": true
+          "yixiaoerImageUrl": {
+            "type": "string"
+          },
+          "yixiaoerDesc": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "raw": {
+            "type": "object"
           }
         },
         "additionalProperties": true

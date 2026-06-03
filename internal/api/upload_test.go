@@ -134,6 +134,32 @@ func TestDetectContentTypeVideoFallbacks(t *testing.T) {
 	}
 }
 
+func TestInspectUploadLocalImage(t *testing.T) {
+	imageBytes := testPNG(t, 6, 4)
+	tmpDir := t.TempDir()
+	imagePath := filepath.Join(tmpDir, "preview.png")
+	if err := os.WriteFile(imagePath, imageBytes, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	result, fileName, err := InspectUpload(imagePath, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fileName != "preview.png" {
+		t.Fatalf("unexpected fileName: %s", fileName)
+	}
+	if result.ContentType != "image/png" || result.Format != "png" {
+		t.Fatalf("unexpected metadata: %+v", result)
+	}
+	if result.Width != 6 || result.Height != 4 {
+		t.Fatalf("unexpected dimensions: %dx%d", result.Width, result.Height)
+	}
+	if result.Size != int64(len(imageBytes)) {
+		t.Fatalf("unexpected size: %d", result.Size)
+	}
+}
+
 func testPNG(t *testing.T, width, height int) []byte {
 	t.Helper()
 	img := image.NewRGBA(image.Rect(0, 0, width, height))

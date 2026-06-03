@@ -357,6 +357,68 @@ func TestPublishCommandAcceptsNodeStyleLocalStandardPayloadWithoutDuplicatedAcco
 	}
 }
 
+func TestPublishCommandAutoExtractsResourceMetadataFromLocalSourceFields(t *testing.T) {
+	withRepoRoot(t)
+	imagePath := filepath.Join(t.TempDir(), "cover.png")
+	if err := os.WriteFile(imagePath, testPNGBytes(t), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "imageText",
+		"platforms":      []interface{}{"抖音"},
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_001",
+					"cover": map[string]interface{}{
+						"key":    "uploaded/cover.png",
+						"source": imagePath,
+					},
+					"coverKey": "uploaded/cover.png",
+					"contentPublishForm": map[string]interface{}{
+						"formType":    "task",
+						"title":       "夏日穿搭",
+						"description": "今日穿搭分享",
+						"images": []interface{}{
+							map[string]interface{}{
+								"key":    "uploaded/cover.png",
+								"source": imagePath,
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := publishTestServer(t, 1, &publishCalls, &publishBody)
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"imageText", "抖音", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	form := publishBody["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	cover := form["cover"].(map[string]interface{})
+	if cover["width"] != float64(1) || cover["height"] != float64(1) {
+		t.Fatalf("expected cover metadata to be auto-extracted, got %+v", cover)
+	}
+	if _, exists := cover["source"]; exists {
+		t.Fatalf("expected source helper field to be stripped before publish, got %+v", cover)
+	}
+	imageItem := form["images"].([]interface{})[0].(map[string]interface{})
+	if imageItem["width"] != float64(1) || imageItem["height"] != float64(1) {
+		t.Fatalf("expected image metadata to be auto-extracted, got %+v", imageItem)
+	}
+}
+
 func TestPublishCommandAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
 	withRepoRoot(t)
 	payloadPath := writePublishPayload(t, map[string]interface{}{

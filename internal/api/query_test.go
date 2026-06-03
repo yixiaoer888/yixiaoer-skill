@@ -170,6 +170,58 @@ func TestQueryDataAcceptsTopLevelArrayResponse(t *testing.T) {
 	}
 }
 
+func TestQueryDataPreservesCompleteDynamicObjects(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/platform-accounts/acc_1/music" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": []map[string]interface{}{
+				{
+					"yixiaoerId":   "music_1",
+					"yixiaoerName": "完整音乐对象",
+					"playUrl":      "https://example.invalid/preview.mp3",
+					"url":          "https://example.invalid/music",
+					"duration":     240,
+					"artist":       "artist_1",
+					"raw": map[string]interface{}{
+						"id":      "music_1",
+						"nested":  map[string]interface{}{"value": "kept"},
+						"extUrl":  "https://example.invalid/raw",
+						"numbers": []interface{}{1, 2, 3},
+					},
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	data, err := client.Music("acc_1", "完整")
+	if err != nil {
+		t.Fatal(err)
+	}
+	items, ok := data.([]interface{})
+	if !ok || len(items) != 1 {
+		t.Fatalf("unexpected data: %#v", data)
+	}
+	item, ok := items[0].(map[string]interface{})
+	if !ok {
+		t.Fatalf("unexpected item type: %#v", items[0])
+	}
+	if item["playUrl"] != "https://example.invalid/preview.mp3" || item["url"] != "https://example.invalid/music" {
+		t.Fatalf("expected query result URLs to be preserved, got %#v", item)
+	}
+	raw, ok := item["raw"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected raw object, got %#v", item["raw"])
+	}
+	nested, ok := raw["nested"].(map[string]interface{})
+	if !ok || nested["value"] != "kept" {
+		t.Fatalf("expected nested raw fields to be preserved, got %#v", raw)
+	}
+}
+
 func TestImageTextQueriesNormalizePublishType(t *testing.T) {
 	tests := []struct {
 		name string

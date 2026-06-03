@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/yixiaoer/yixiaoer-skill/internal/api"
 	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
@@ -64,6 +65,7 @@ func PreflightWithTopicHTMLPolicy(publishType string, platforms []string, payloa
 		result.Errors = append(result.Errors, err.Error())
 		return result
 	}
+	resolveStandardPayloadResourceMetadata(payload, &result.Errors)
 	payload = ValidateAndExtractPublishArgs(publishType, platforms, payload, &result.Errors)
 	NormalizeStandardPublishArgs(payload)
 	NormalizePlatformSpecificFieldsWithTopicHTMLPolicy(publishType, platforms, payload, topicPolicy)
@@ -173,13 +175,29 @@ func shouldIgnoreExternalURLPath(path string) bool {
 	if strings.Contains(path, ".raw.") || strings.HasSuffix(path, ".raw") {
 		return true
 	}
+	if isMusicMetadataURLPath(path) {
+		return true
+	}
 	if strings.Contains(path, ".shopping_cart[") && strings.Contains(path, ".images[") {
 		return true
 	}
 	if strings.Contains(path, ".shoppingCart[") && strings.Contains(path, ".images[") {
 		return true
 	}
+	if strings.Contains(path, ".shopping_cart[") && strings.HasSuffix(path, ".yixiaoerImageUrl") {
+		return true
+	}
+	if strings.Contains(path, ".shoppingCart[") && strings.HasSuffix(path, ".yixiaoerImageUrl") {
+		return true
+	}
 	return false
+}
+
+func isMusicMetadataURLPath(path string) bool {
+	if !strings.HasSuffix(path, ".url") && !strings.HasSuffix(path, ".playUrl") {
+		return false
+	}
+	return strings.Contains(path, ".music.") || strings.Contains(path, ".music[")
 }
 
 func ExtractPublishArgs(payload map[string]interface{}) map[string]interface{} {
@@ -268,6 +286,7 @@ func normalizeStandardPayload(publishType string, platforms []string, payload ma
 		return nil
 	}
 	NormalizeStandardPublishArgs(publishArgs)
+	resolveStandardPayloadResourceMetadata(payload, nil)
 	normalizePlatformSpecificFields(publishType, platforms, publishArgs, topicPolicy, normalizeTopics)
 	return publishArgs
 }
@@ -761,5 +780,126 @@ func integerField(obj map[string]interface{}, key string) (int64, bool) {
 		return typed, true
 	default:
 		return 0, false
+	}
+}
+
+func ResolveStandardPayloadResourceMetadata(payload map[string]interface{}) error {
+	var errors []string
+	resolveStandardPayloadResourceMetadata(payload, &errors)
+	if len(errors) == 0 {
+		return nil
+	}
+	return yxerrors.Usage("Publish resource metadata extraction failed", errors).
+		WithHint("请在资源对象中保留已上传的 key，并使用 source/path/localPath/filePath 指向本地文件以自动提取元数据；或直接使用 yxer upload 返回的完整对象。")
+}
+
+func resolveStandardPayloadResourceMetadata(payload map[string]interface{}, errors *[]string) {
+	if payload == nil {
+		return
+	}
+	enrichResourceObjectMetadata(objectField(payload, "cover"), "cover", errors)
+	publishArgs := ExtractPublishArgs(payload)
+	if publishArgs == nil {
+		return
+	}
+	enrichResourceContainerMetadata(publishArgs, "publishArgs", errors)
+	accountForms, _ := publishArgs["accountForms"].([]interface{})
+	for i, item := range accountForms {
+		form, _ := item.(map[string]interface{})
+		if form == nil {
+			continue
+		}
+		formPath := fmt.Sprintf("publishArgs.accountForms[%d]", i)
+		enrichResourceContainerMetadata(form, formPath, errors)
+		cpf, _ := form["contentPublishForm"].(map[string]interface{})
+		if cpf != nil {
+			enrichResourceContainerMetadata(cpf, formPath+".contentPublishForm", errors)
+		}
+	}
+}
+
+func enrichResourceContainerMetadata(container map[string]interface{}, path string, errors *[]string) {
+	if container == nil {
+		return
+	}
+	enrichResourceObjectMetadata(objectField(container, "video"), path+".video", errors)
+	enrichResourceObjectMetadata(objectField(container, "cover"), path+".cover", errors)
+	if items, _ := container["images"].([]interface{}); len(items) > 0 {
+		for i, item := range items {
+			resource, _ := item.(map[string]interface{})
+			if resource == nil {
+				continue
+			}
+			enrichResourceObjectMetadata(resource, fmt.Sprintf("%s.images[%d]", path, i), errors)
+		}
+	}
+}
+
+func enrichResourceObjectMetadata(resource map[string]interface{}, path string, errors *[]string) {
+	if resource == nil {
+		return
+	}
+	source := consumeResourceMetadataSource(resource)
+	if source == "" {
+		return
+	}
+	meta, _, err := api.InspectUpload(source, true)
+	if err != nil {
+		appendResourceMetadataError(errors, fmt.Sprintf("%s: failed to inspect media metadata from %q: %v", path, source, err))
+		return
+	}
+	if empty(resource["size"]) && meta.Size > 0 {
+		resource["size"] = float64(meta.Size)
+	}
+	if numericFieldMissingOrZero(resource, "width") && meta.Width > 0 {
+		resource["width"] = float64(meta.Width)
+	}
+	if numericFieldMissingOrZero(resource, "height") && meta.Height > 0 {
+		resource["height"] = float64(meta.Height)
+	}
+	if numericFieldMissingOrZero(resource, "duration") && meta.Duration > 0 {
+		resource["duration"] = meta.Duration
+	}
+	if empty(resource["format"]) && meta.Format != "" {
+		resource["format"] = meta.Format
+	}
+}
+
+func consumeResourceMetadataSource(resource map[string]interface{}) string {
+	if resource == nil {
+		return ""
+	}
+	keys := []string{"source", "path", "localPath", "filePath"}
+	source := ""
+	for _, key := range keys {
+		if source == "" {
+			source = strings.TrimSpace(stringField(resource, key))
+		}
+		delete(resource, key)
+	}
+	return source
+}
+
+func appendResourceMetadataError(errors *[]string, message string) {
+	if errors == nil || strings.TrimSpace(message) == "" {
+		return
+	}
+	*errors = append(*errors, message)
+}
+
+func numericFieldMissingOrZero(resource map[string]interface{}, key string) bool {
+	value, exists := resource[key]
+	if !exists || value == nil {
+		return true
+	}
+	switch typed := value.(type) {
+	case float64:
+		return typed == 0
+	case int:
+		return typed == 0
+	case int64:
+		return typed == 0
+	default:
+		return empty(value)
 	}
 }

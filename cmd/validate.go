@@ -67,6 +67,9 @@ var validateCmd = &cobra.Command{
 			topicPolicy = publishmod.TopicHTMLPolicyFromSchema(canonicalPlatform, schemaDoc.Properties)
 		}
 		if payload["publishArgs"] != nil {
+			if err := publishmod.ResolveStandardPayloadResourceMetadata(payload); err != nil {
+				return err
+			}
 			publishmod.NormalizeStandardPayloadForSchemaValidation(publishType, []string{canonicalPlatform}, payload)
 		}
 		result := validator.Validate(platform, publishType, payload)

@@ -20,7 +20,7 @@ func init() {
 	uploadCmd.Flags().StringVar(&uploadFile, "file", "", "local file path to upload")
 	uploadCmd.Flags().StringVar(&uploadURL, "url", "", "remote URL to upload")
 	uploadCmd.Flags().BoolVar(&uploadDryRun, "dry-run", false, "preview upload request without performing the write")
-	uploadCmd.Flags().BoolVar(&uploadAutoMeta, "auto-meta", false, "extract media metadata automatically for uploaded assets")
+	uploadCmd.Flags().BoolVar(&uploadAutoMeta, "auto-meta", true, "extract media metadata automatically for uploaded assets")
 	rootCmd.AddCommand(uploadCmd)
 }
 

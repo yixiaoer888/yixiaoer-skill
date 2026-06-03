@@ -10,5 +10,5 @@ yxer challenges YOUR_ACCOUNT_ID --query 搜索词 --json
 
 ## 2. 返回数据结构
 
-返回 `Category` 数组。
+返回 `Category` 数组。发布时必须直接使用 `yxer challenges` 返回的完整对象，不能只保留 ID、名称或 `raw` 的局部字段。
 

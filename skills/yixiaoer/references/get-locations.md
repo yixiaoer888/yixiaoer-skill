@@ -19,7 +19,7 @@ yxer locations XXX --query 深圳 --type 1 --json
 
 ## 返回结果 (Response)
 
-返回一个包含地理位置对象的数组。发布时请将整个对象（其基础结构符合 `yixiaoerId`, `yixiaoerName`, `raw`）作为 `location` 参数传递给发布流程。
+返回一个包含地理位置对象的数组。发布时必须将 `yxer locations` 返回的整个对象作为 `location` 参数传递给发布流程，不能只摘取 `yixiaoerId`、`yixiaoerName` 或 `raw`。
 
 ```json
 [

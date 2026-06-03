@@ -70,6 +70,9 @@ func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	if err := publishmod.RequireStandardPayload(resolvedPayload); err != nil {
 		return nil, err
 	}
+	if err := publishmod.ResolveStandardPayloadResourceMetadata(resolvedPayload); err != nil {
+		return nil, err
+	}
 	validator := schema.NewValidator(cfg.SchemaDir)
 	topicPolicy := topicHTMLPolicyForPlatforms(validator, platforms, input.PublishType)
 	publishArgs := publishmod.NormalizeStandardPayloadForSchemaValidation(input.PublishType, platforms, resolvedPayload)
