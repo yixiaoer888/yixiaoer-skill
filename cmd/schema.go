@@ -94,6 +94,12 @@ type flatFieldView struct {
 	Default  interface{}   `json:"default,omitempty"`
 }
 
+type fieldPlacementView struct {
+	SchemaPath string   `json:"schemaPath"`
+	InputPaths []string `json:"inputPaths"`
+	Note       string   `json:"note,omitempty"`
+}
+
 func runSchemaList(cmd *cobra.Command) error {
 	cfg, err := config.Load()
 	if err != nil {
@@ -136,6 +142,7 @@ func runSchemaGet(cmd *cobra.Command, platform, publishType string) error {
 
 		// 只返回业务字段定义（最核心的部分）
 		"businessFields": schemaDoc.Properties,
+		"fieldPlacements": buildFieldPlacements(schemaDoc),
 
 		// 标准结构说明（文本形式）
 		"standardStructure": map[string]interface{}{
@@ -148,6 +155,7 @@ func runSchemaGet(cmd *cobra.Command, platform, publishType string) error {
 				"publishArgs: { ... } (必填，包含 accountForms)",
 				"publishArgs.accountForms[]: 账号级表单数组",
 				"publishArgs.accountForms[].platformAccountId: 账号ID (必填)",
+				"publishArgs.accountForms[].cover / coverKey: 账号层资源字段；若 businessFields 也出现 cover / coverKey，需要同步填写",
 				"publishArgs.accountForms[].contentPublishForm: 业务字段 (必填，见 businessFields)",
 			},
 		},
@@ -158,7 +166,7 @@ func runSchemaGet(cmd *cobra.Command, platform, publishType string) error {
 		// 使用指引
 		"guidance": []string{
 			"1. 优先使用 'yxer schema fields' 查看紧凑字段列表",
-			"2. businessFields 是平台特定的业务字段，应填入 publishArgs.accountForms[].contentPublishForm",
+			"2. businessFields 只描述平台字段定义；实际填写位置请看 fieldPlacements，不能默认全部写进 contentPublishForm",
 			"3. 复杂对象（location/music/challenge等）必须通过查询命令获取完整对象",
 			"4. 资源（video/images/cover）必须先通过 'yxer upload' 上传并使用返回的完整对象",
 			"5. minimalTemplate 提供最小可用骨架，实际使用时需填入真实值",
@@ -176,6 +184,44 @@ func runSchemaGet(cmd *cobra.Command, platform, publishType string) error {
 	}
 
 	return output.Success(cmd.OutOrStdout(), "schema.get", result)
+}
+
+func buildFieldPlacements(doc schema.Document) map[string]fieldPlacementView {
+	if len(doc.Properties) == 0 {
+		return nil
+	}
+	placements := make(map[string]fieldPlacementView, len(doc.Properties))
+	for _, key := range sortedPropertyKeys(doc.Properties) {
+		placements[key] = fieldPlacementFor(doc, key)
+	}
+	return placements
+}
+
+func fieldPlacementFor(doc schema.Document, key string) fieldPlacementView {
+	view := fieldPlacementView{
+		SchemaPath: "businessFields." + key,
+		InputPaths: []string{"publishArgs.accountForms[].contentPublishForm." + key},
+	}
+	switch key {
+	case "cover":
+		view.InputPaths = []string{
+			"publishArgs.accountForms[].cover",
+			"publishArgs.accountForms[].contentPublishForm.cover",
+		}
+		view.Note = "平台端可能从 accountForms[] 层读取 cover；若 schema 在 contentPublishForm 暴露该字段，也要同步填写 accountForms[].cover。"
+	case "coverKey":
+		view.InputPaths = []string{
+			"publishArgs.accountForms[].coverKey",
+			"publishArgs.accountForms[].contentPublishForm.coverKey",
+		}
+		view.Note = "coverKey 需要和 accountForms[].cover.key 保持一致；若 contentPublishForm 也有该字段，两个层级都要同步。"
+	case "content":
+		if doc.Type == "article" {
+			view.InputPaths = []string{"publishArgs.content"}
+			view.Note = "文章正文应写在 publishArgs.content；CLI 会在校验阶段补齐内层副本，并在最终发布体移除 contentPublishForm.content。"
+		}
+	}
+	return view
 }
 
 func runSchemaFields(cmd *cobra.Command, platform, publishType string) error {
@@ -258,6 +304,59 @@ func buildStandardPublishSchema(doc schema.Document) schema.Document {
 
 func buildStandardPublishFieldView(doc schema.Document, businessFields map[string]schema.PropertyView) map[string]schema.PropertyView {
 	platformName := platformutil.ChineseName(doc.Platform)
+	contentPublishFields := contentPublishFormFieldsForEnvelope(doc)
+	publishArgsProperties := map[string]schema.PropertyView{
+		"cover": {
+			Type: "object",
+		},
+		"coverKey": {
+			Type: "string",
+		},
+		"accountForms": {
+			Type:     "array",
+			Required: true,
+			MinItems: intPtr(1),
+			Items: &schema.PropertyView{
+				Type: "object",
+				Properties: map[string]schema.PropertyView{
+					"platformAccountId": {
+						Type:     "string",
+						Required: true,
+					},
+					"account_id": {
+						Type: "string",
+					},
+					"video": {
+						Type: "object",
+					},
+					"images": {
+						Type: "array",
+					},
+					"cover": {
+						Type: "object",
+					},
+					"coverKey": {
+						Type: "string",
+					},
+					"contentPublishForm": {
+						Type:       "object",
+						Required:   true,
+						Properties: contentPublishFields,
+					},
+				},
+			},
+		},
+	}
+	if doc.Type == "article" {
+		publishArgsProperties["content"] = schema.PropertyView{
+			Type:     "string",
+			Required: true,
+		}
+	} else {
+		publishArgsProperties["content"] = schema.PropertyView{
+			Type: "string",
+		}
+	}
 	return map[string]schema.PropertyView{
 		"action": {
 			Type:     "string",
@@ -306,51 +405,7 @@ func buildStandardPublishFieldView(doc schema.Document, businessFields map[strin
 		"publishArgs": {
 			Type:     "object",
 			Required: true,
-			Properties: map[string]schema.PropertyView{
-				"content": {
-					Type: "string",
-				},
-				"cover": {
-					Type: "object",
-				},
-				"coverKey": {
-					Type: "string",
-				},
-				"accountForms": {
-					Type:     "array",
-					Required: true,
-					MinItems: intPtr(1),
-					Items: &schema.PropertyView{
-						Type: "object",
-						Properties: map[string]schema.PropertyView{
-							"platformAccountId": {
-								Type:     "string",
-								Required: true,
-							},
-							"account_id": {
-								Type: "string",
-							},
-							"video": {
-								Type: "object",
-							},
-							"images": {
-								Type: "array",
-							},
-							"cover": {
-								Type: "object",
-							},
-							"coverKey": {
-								Type: "string",
-							},
-							"contentPublishForm": {
-								Type:       "object",
-								Required:   true,
-								Properties: businessFields,
-							},
-						},
-					},
-				},
-			},
+			Properties: publishArgsProperties,
 		},
 	}
 }
@@ -382,7 +437,7 @@ func buildAccountFormSchema(doc schema.Document) schema.PropertyView {
 			"contentPublishForm": {
 				Type:       "object",
 				Required:   true,
-				Properties: doc.Properties,
+				Properties: contentPublishFormFieldsForEnvelope(doc),
 			},
 		},
 	}
@@ -396,10 +451,28 @@ func buildContentPublishFormSchema(doc schema.Document) schema.Document {
 		File:                 doc.File,
 		RootSchema:           doc.RootSchema,
 		Title:                doc.Title,
-		Required:             doc.Required,
+		Required:             requiredPropertyKeys(contentPublishFormFieldsForEnvelope(doc)),
 		AdditionalProperties: doc.AdditionalProperties,
-		Properties:           doc.Properties,
+		Properties:           contentPublishFormFieldsForEnvelope(doc),
 	}
+}
+
+func contentPublishFormFieldsForEnvelope(doc schema.Document) map[string]schema.PropertyView {
+	if doc.Type != "article" {
+		return doc.Properties
+	}
+	return clonePropertyViewsWithoutKeys(doc.Properties, "content")
+}
+
+func requiredPropertyKeys(fields map[string]schema.PropertyView) []string {
+	keys := make([]string, 0, len(fields))
+	for key, prop := range fields {
+		if prop.Required {
+			keys = append(keys, key)
+		}
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func intPtr(value int) *int {

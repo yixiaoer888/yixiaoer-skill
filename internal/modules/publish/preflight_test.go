@@ -327,7 +327,7 @@ func TestPreflightRejectsArticleMissingContent(t *testing.T) {
 		},
 	})
 	result := Preflight("article", []string{"知乎"}, payload)
-	assertHasError(t, result.Errors, "accountForms[0].contentPublishForm.content: article publish requires content")
+	assertHasError(t, result.Errors, "publishArgs.content: article publish requires content")
 }
 
 func TestPreflightRejectsUnresolvedTemplatePlaceholders(t *testing.T) {

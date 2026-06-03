@@ -54,7 +54,7 @@
         }
       }
     },
-    "description": {
+    "desc": {
       "type": "string",
       "maxLength": 30
     },
@@ -214,7 +214,7 @@
                   }
                 }
               },
-              "description": {
+              "desc": {
                 "type": "string",
                 "maxLength": 30
               },

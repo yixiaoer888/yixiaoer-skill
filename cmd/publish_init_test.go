@@ -51,3 +51,44 @@ func TestPublishInitCommandWritesTemplateFile(t *testing.T) {
 		t.Fatalf("expected required schema fields in template, got %#v", cpf)
 	}
 }
+
+func TestPublishInitCommandPlacesArticleContentUnderPublishArgs(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+
+	outputPath := filepath.Join(t.TempDir(), "zhihu-article-payload.json")
+	publishInitOutput = outputPath
+	t.Cleanup(func() {
+		publishInitOutput = ""
+	})
+
+	var out bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.SetOut(&out)
+
+	if err := publishInitCmd.RunE(cmd, []string{"知乎", "article"}); err != nil {
+		t.Fatal(err)
+	}
+
+	raw, err := os.ReadFile(outputPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var payload map[string]interface{}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["desc"] == nil {
+		t.Fatalf("expected article template to expose top-level desc, got %#v", payload)
+	}
+	args := payload["publishArgs"].(map[string]interface{})
+	if args["content"] == nil {
+		t.Fatalf("expected article content under publishArgs, got %#v", args)
+	}
+	form := args["accountForms"].([]interface{})[0].(map[string]interface{})
+	cpf := form["contentPublishForm"].(map[string]interface{})
+	if _, exists := cpf["content"]; exists {
+		t.Fatalf("did not expect article content inside contentPublishForm template, got %#v", cpf)
+	}
+}

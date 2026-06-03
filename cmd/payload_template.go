@@ -8,19 +8,30 @@ import (
 )
 
 func buildPayloadTemplate(doc schema.Document) map[string]interface{} {
+	contentProperties := doc.Properties
+	if doc.Type == "article" {
+		contentProperties = clonePropertyViewsWithoutKeys(doc.Properties, "content")
+	}
+	publishArgs := map[string]interface{}{
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId":  "<platformAccountId>",
+				"contentPublishForm": buildTemplateObject(contentProperties),
+			},
+		},
+	}
+	if doc.Type == "article" {
+		publishArgs["content"] = "<content>"
+	}
 	template := map[string]interface{}{
 		"action":         "publish",
 		"publishType":    doc.Type,
 		"platforms":      []interface{}{platformutil.ChineseName(doc.Platform)},
 		"publishChannel": "cloud",
-		"publishArgs": map[string]interface{}{
-			"accountForms": []interface{}{
-				map[string]interface{}{
-					"platformAccountId":  "<platformAccountId>",
-					"contentPublishForm": buildTemplateObject(doc.Properties),
-				},
-			},
-		},
+		"publishArgs":    publishArgs,
+	}
+	if doc.Type == "article" {
+		template["desc"] = "<desc>"
 	}
 	return template
 }
@@ -29,7 +40,7 @@ func buildPayloadTemplate(doc schema.Document) map[string]interface{} {
 func buildMinimalPayloadTemplate(doc schema.Document) map[string]interface{} {
 	// 只提取必填字段
 	requiredFields := make(map[string]interface{})
-	for key, prop := range doc.Properties {
+	for key, prop := range clonePropertyViewsWithoutKeys(doc.Properties, articleContentTemplateExclusion(doc.Type)...) {
 		if prop.Required {
 			value, ok := buildTemplateValue(key, prop)
 			if ok {
@@ -51,8 +62,37 @@ func buildMinimalPayloadTemplate(doc schema.Document) map[string]interface{} {
 			},
 		},
 	}
+	if doc.Type == "article" {
+		template["publishArgs"].(map[string]interface{})["content"] = "<从正文生成>"
+		template["desc"] = "<任务描述>"
+	}
 
 	return template
+}
+
+func articleContentTemplateExclusion(publishType string) []string {
+	if publishType != "article" {
+		return nil
+	}
+	return []string{"content"}
+}
+
+func clonePropertyViewsWithoutKeys(src map[string]schema.PropertyView, keys ...string) map[string]schema.PropertyView {
+	if len(src) == 0 {
+		return nil
+	}
+	omit := map[string]bool{}
+	for _, key := range keys {
+		omit[key] = true
+	}
+	dst := make(map[string]schema.PropertyView, len(src))
+	for key, value := range src {
+		if omit[key] {
+			continue
+		}
+		dst[key] = value
+	}
+	return dst
 }
 
 func buildTemplateObject(properties map[string]schema.PropertyView) map[string]interface{} {

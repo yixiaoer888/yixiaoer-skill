@@ -137,8 +137,8 @@ func PreflightWithTopicHTMLPolicy(publishType string, platforms []string, payloa
 			requireUploadedResource(cover, formPath+".cover", &result.Errors)
 			requireCoverKey(form, cpf, cover, formPath, &result.Errors)
 		case "article":
-			if cpf == nil || stringField(cpf, "content") == "" {
-				result.Errors = append(result.Errors, formPath+".contentPublishForm.content: article publish requires content")
+			if stringField(payload, "content") == "" {
+				result.Errors = append(result.Errors, "publishArgs.content: article publish requires content")
 			}
 			cover := objectField(form, "cover")
 			if cover == nil && cpf != nil {
@@ -273,19 +273,26 @@ func NormalizeStandardPayload(publishType string, platforms []string, payload ma
 }
 
 func NormalizeStandardPayloadWithTopicHTMLPolicy(publishType string, platforms []string, payload map[string]interface{}, topicPolicy TopicHTMLPolicy) map[string]interface{} {
-	return normalizeStandardPayload(publishType, platforms, payload, topicPolicy, true)
+	return normalizeStandardPayloadInternal(publishType, platforms, payload, topicPolicy, true, false)
 }
 
 func NormalizeStandardPayloadForSchemaValidation(publishType string, platforms []string, payload map[string]interface{}) map[string]interface{} {
-	return normalizeStandardPayload(publishType, platforms, payload, nil, false)
+	return normalizeStandardPayloadInternal(publishType, platforms, payload, nil, false, true)
 }
 
 func normalizeStandardPayload(publishType string, platforms []string, payload map[string]interface{}, topicPolicy TopicHTMLPolicy, normalizeTopics bool) map[string]interface{} {
+	return normalizeStandardPayloadInternal(publishType, platforms, payload, topicPolicy, normalizeTopics, false)
+}
+
+func normalizeStandardPayloadInternal(publishType string, platforms []string, payload map[string]interface{}, topicPolicy TopicHTMLPolicy, normalizeTopics bool, copyArticleContentToForm bool) map[string]interface{} {
 	publishArgs := ExtractPublishArgs(payload)
 	if publishArgs == nil {
 		return nil
 	}
 	NormalizeStandardPublishArgs(publishArgs)
+	if copyArticleContentToForm && NormalizePublishType(publishType) == "article" {
+		copyArticleContentIntoForms(publishArgs)
+	}
 	resolveStandardPayloadResourceMetadata(payload, nil)
 	normalizePlatformSpecificFields(publishType, platforms, publishArgs, topicPolicy, normalizeTopics)
 	return publishArgs
@@ -311,6 +318,29 @@ func NormalizeStandardPublishArgs(payload map[string]interface{}) {
 			continue
 		}
 		copyIfMissing(form, cpf, "images")
+		copyIfMissing(form, cpf, "cover")
+		copyIfMissing(form, cpf, "coverKey")
+	}
+}
+
+func copyArticleContentIntoForms(payload map[string]interface{}) {
+	content := stringField(payload, "content")
+	if content == "" {
+		return
+	}
+	accountForms, ok := payload["accountForms"].([]interface{})
+	if !ok || len(accountForms) == 0 {
+		return
+	}
+	for _, item := range accountForms {
+		form, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		cpf, _ := form["contentPublishForm"].(map[string]interface{})
+		if cpf == nil {
+			continue
+		}
 		copyIfMissing(cpf, payload, "content")
 	}
 }

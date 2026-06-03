@@ -1040,6 +1040,66 @@ func TestPublishCommandPreservesDistinctImageTextDescriptionAndContentFromPayloa
 	}
 }
 
+func TestPublishCommandCopiesImageTextCoverFieldsFromContentPublishFormToAccountForm(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "imageText",
+		"platforms":      []interface{}{"抖音"},
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_001",
+					"contentPublishForm": map[string]interface{}{
+						"formType":    "task",
+						"title":       "夏日穿搭",
+						"description": "<p>今日穿搭分享</p>",
+						"cover": map[string]interface{}{
+							"key":    "uploaded/cover.png",
+							"size":   float64(512),
+							"width":  float64(1080),
+							"height": float64(1080),
+							"format": "png",
+						},
+						"coverKey": "uploaded/cover.png",
+						"images": []interface{}{
+							map[string]interface{}{
+								"key":    "uploaded/cover.png",
+								"size":   float64(512),
+								"width":  float64(1080),
+								"height": float64(1080),
+								"format": "png",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := imageTextPublishTestServer(t, &publishCalls, &publishBody)
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"imageText", "抖音", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	form := publishBody["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	if form["coverKey"] != "uploaded/cover.png" {
+		t.Fatalf("expected account form coverKey copied from contentPublishForm, got %+v", form)
+	}
+	cover, _ := form["cover"].(map[string]interface{})
+	if cover["key"] != "uploaded/cover.png" {
+		t.Fatalf("expected account form cover copied from contentPublishForm, got %+v", form)
+	}
+}
+
 func TestPublishCommandNormalizesTopicHTMLIntoDescriptionAndContent(t *testing.T) {
 	withRepoRoot(t)
 	payloadPath := writePublishPayload(t, map[string]interface{}{
@@ -1223,6 +1283,82 @@ func TestPublishCommandUsesImageTextPublishType(t *testing.T) {
 	}
 }
 
+func TestPublishCommandKeepsArticleContentOnlyUnderPublishArgs(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "article",
+		"platforms":      []interface{}{"知乎"},
+		"desc":           "文章任务描述",
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"content": "<p>文章正文</p>",
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_zhihu_1",
+					"cover": map[string]interface{}{
+						"key":    "cover-key",
+						"size":   float64(512),
+						"width":  float64(1080),
+						"height": float64(1080),
+					},
+					"coverKey": "cover-key",
+					"contentPublishForm": map[string]interface{}{
+						"formType": "task",
+						"title":    "知乎文章标题示例一",
+						"pubType":  float64(1),
+					},
+				},
+			},
+		},
+	})
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{
+					{"platformAccountId": "acc_zhihu_1", "name": "文章账号", "status": 1},
+				},
+			})
+		case "/taskSets/v2":
+			publishCalls++
+			if err := json.NewDecoder(r.Body).Decode(&publishBody); err != nil {
+				t.Fatal(err)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{"taskSetId": "task_set_article_1"},
+			})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"article", "知乎", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if publishCalls != 1 {
+		t.Fatalf("expected one publish call, got %d", publishCalls)
+	}
+	args := publishBody["publishArgs"].(map[string]interface{})
+	if args["content"] != "<p>文章正文</p>" {
+		t.Fatalf("expected article content under publishArgs, got %#v", args["content"])
+	}
+	cpf := args["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	if _, exists := cpf["content"]; exists {
+		t.Fatalf("did not expect article content inside contentPublishForm publish body, got %+v", cpf)
+	}
+	if publishBody["desc"] != "文章任务描述" {
+		t.Fatalf("expected top-level desc to be preserved, got %#v", publishBody["desc"])
+	}
+}
+
 func imageTextPublishTestServer(t *testing.T, publishCalls *int, publishBody *map[string]interface{}) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1231,6 +1367,7 @@ func imageTextPublishTestServer(t *testing.T, publishCalls *int, publishBody *ma
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"data": []map[string]interface{}{
 					{"platformAccountId": "acc_xhs_1", "name": "图文账号", "status": 1},
+					{"platformAccountId": "acc_001", "name": "抖音图文账号", "status": 1},
 				},
 			})
 		case "/taskSets/v2":

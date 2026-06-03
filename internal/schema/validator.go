@@ -37,7 +37,7 @@ func (v Validator) Validate(platform, publishType string, payload map[string]int
 		return basicValidate(payload)
 	}
 	sanitizeSchemaDocument(schema)
-	targets := validationTargets(payload)
+	targets := validationTargets(publishType, payload)
 	var errors []string
 	for _, target := range targets {
 		errors = append(errors, validateValue(schema, target.Value, "/", target.Prefix)...)
@@ -202,9 +202,9 @@ func sanitizeSchemaDocument(schema map[string]interface{}) {
 	}
 }
 
-func validationTargets(payload map[string]interface{}) []validationTarget {
+func validationTargets(publishType string, payload map[string]interface{}) []validationTarget {
 	if publishArgs, ok := payload["publishArgs"].(map[string]interface{}); ok {
-		return validationTargets(publishArgs)
+		return validationTargets(publishType, normalizeValidationPayload(publishType, publishArgs))
 	}
 	if accountForms, ok := payload["accountForms"].([]interface{}); ok {
 		var targets []validationTarget
@@ -234,6 +234,34 @@ func validationTargets(payload map[string]interface{}) []validationTarget {
 		return []validationTarget{{Value: payload}}
 	}
 	return []validationTarget{{Value: payload}}
+}
+
+func normalizeValidationPayload(publishType string, payload map[string]interface{}) map[string]interface{} {
+	if TypeKey(publishType) != "article" {
+		return payload
+	}
+	content, _ := payload["content"].(string)
+	if strings.TrimSpace(content) == "" {
+		return payload
+	}
+	accountForms, ok := payload["accountForms"].([]interface{})
+	if !ok || len(accountForms) == 0 {
+		return payload
+	}
+	for _, item := range accountForms {
+		form, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		cpf, _ := form["contentPublishForm"].(map[string]interface{})
+		if cpf == nil {
+			continue
+		}
+		if _, exists := cpf["content"]; !exists {
+			cpf["content"] = content
+		}
+	}
+	return payload
 }
 
 func validateValue(schema map[string]interface{}, value interface{}, pathLabel, prefix string) []string {

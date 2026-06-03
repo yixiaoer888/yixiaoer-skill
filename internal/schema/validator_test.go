@@ -304,6 +304,30 @@ func TestValidateAcceptsBaijiahaoCategoryPathArray(t *testing.T) {
 	}
 }
 
+func TestValidateAcceptsArticleContentUnderPublishArgs(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	payload := map[string]interface{}{
+		"publishArgs": map[string]interface{}{
+			"content": "<p>文章正文</p>",
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_1",
+					"contentPublishForm": map[string]interface{}{
+						"formType": "task",
+						"title":    "知乎文章标题示例一",
+						"pubType":  float64(1),
+					},
+				},
+			},
+		},
+	}
+
+	result := validator.Validate("知乎", "article", payload)
+	if !result.Valid {
+		t.Fatalf("expected publishArgs.content article payload to pass, got %v", result.Errors)
+	}
+}
+
 func TestValidateMissingSchemaFallsBackToBasicValidation(t *testing.T) {
 	validator := NewValidator(t.TempDir())
 	payload := map[string]interface{}{

@@ -148,6 +148,7 @@ func BuildPublishBody(payload, publishArgs map[string]interface{}, publishType s
 	body["publishType"] = publishType
 	body["platforms"] = platforms
 	applyPublishMode(body, channel, clientID)
+	stripArticleContentFromForms(body)
 	normalizePublishEnvelope(body, publishArgs, publishType)
 	return body
 }
@@ -211,8 +212,8 @@ func inferOuterDesc(publishType string, publishArgs, contentPublishForm map[stri
 	switch publishmod.NormalizePublishType(publishType) {
 	case "article":
 		return firstNonEmptyString(
+			stringField(contentPublishForm, "desc"),
 			stringField(contentPublishForm, "title"),
-			stringField(contentPublishForm, "description"),
 			stringField(publishArgs, "content"),
 			stringField(contentPublishForm, "content"),
 		)
@@ -230,6 +231,28 @@ func inferOuterDesc(publishType string, publishArgs, contentPublishForm map[stri
 			stringField(publishArgs, "content"),
 			stringField(contentPublishForm, "content"),
 		)
+	}
+}
+
+func stripArticleContentFromForms(body map[string]interface{}) {
+	if publishmod.NormalizePublishType(stringField(body, "publishType")) != "article" {
+		return
+	}
+	publishArgs, _ := body["publishArgs"].(map[string]interface{})
+	if publishArgs == nil {
+		return
+	}
+	accountForms, _ := publishArgs["accountForms"].([]interface{})
+	for _, item := range accountForms {
+		form, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		cpf, _ := form["contentPublishForm"].(map[string]interface{})
+		if cpf == nil {
+			continue
+		}
+		delete(cpf, "content")
 	}
 }
 

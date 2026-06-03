@@ -70,6 +70,12 @@ func TestSchemaGetCommandOutputsSchemaForChinesePlatformAlias(t *testing.T) {
 	if title["type"] != "string" || title["required"] != true {
 		t.Fatalf("expected required string title in businessFields, got %#v", title)
 	}
+	fieldPlacements := data["fieldPlacements"].(map[string]interface{})
+	titlePlacement := fieldPlacements["title"].(map[string]interface{})
+	titlePaths := titlePlacement["inputPaths"].([]interface{})
+	if len(titlePaths) != 1 || titlePaths[0] != "publishArgs.accountForms[].contentPublishForm.title" {
+		t.Fatalf("expected title placement under contentPublishForm, got %#v", titlePlacement)
+	}
 	// minimalTemplate provides a ready-to-edit skeleton using the standard envelope.
 	template := data["minimalTemplate"].(map[string]interface{})
 	if template["action"] != "publish" {
@@ -92,6 +98,44 @@ func TestSchemaGetCommandOutputsSchemaForChinesePlatformAlias(t *testing.T) {
 	guidance := data["guidance"].([]interface{})
 	if len(guidance) < 3 {
 		t.Fatalf("expected schema.get guidance, got %#v", guidance)
+	}
+}
+
+func TestSchemaGetCommandExplainsDuplicatedCoverPlacementForImageText(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	var out bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.SetOut(&out)
+
+	if err := schemaGetCmd.RunE(cmd, []string{"抖音", "imageText"}); err != nil {
+		t.Fatal(err)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	fieldPlacements := data["fieldPlacements"].(map[string]interface{})
+
+	coverPlacement := fieldPlacements["cover"].(map[string]interface{})
+	coverPaths := coverPlacement["inputPaths"].([]interface{})
+	if len(coverPaths) != 2 ||
+		coverPaths[0] != "publishArgs.accountForms[].cover" ||
+		coverPaths[1] != "publishArgs.accountForms[].contentPublishForm.cover" {
+		t.Fatalf("expected duplicated cover placement, got %#v", coverPlacement)
+	}
+	if coverPlacement["note"] == nil {
+		t.Fatalf("expected cover placement note, got %#v", coverPlacement)
+	}
+
+	coverKeyPlacement := fieldPlacements["coverKey"].(map[string]interface{})
+	coverKeyPaths := coverKeyPlacement["inputPaths"].([]interface{})
+	if len(coverKeyPaths) != 2 ||
+		coverKeyPaths[0] != "publishArgs.accountForms[].coverKey" ||
+		coverKeyPaths[1] != "publishArgs.accountForms[].contentPublishForm.coverKey" {
+		t.Fatalf("expected duplicated coverKey placement, got %#v", coverKeyPlacement)
 	}
 }
 
@@ -207,6 +251,73 @@ func TestSchemaFieldsCommandOutputsFieldView(t *testing.T) {
 	title := accountForms["items"].(map[string]interface{})["properties"].(map[string]interface{})["contentPublishForm"].(map[string]interface{})["properties"].(map[string]interface{})["title"].(map[string]interface{})
 	if title["required"] != true {
 		t.Fatalf("expected title to be required, got %#v", title)
+	}
+}
+
+func TestSchemaFieldsCommandPlacesArticleContentUnderPublishArgs(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	var out bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.SetOut(&out)
+
+	if err := schemaFieldsCmd.RunE(cmd, []string{"知乎", "article"}); err != nil {
+		t.Fatal(err)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	flatFields := data["flatFields"].([]interface{})
+	foundPublishArgsContent := false
+	for _, entry := range flatFields {
+		item := entry.(map[string]interface{})
+		if item["path"] == "publishArgs.content" {
+			foundPublishArgsContent = true
+			if item["required"] != true {
+				t.Fatalf("expected publishArgs.content required for article, got %#v", item)
+			}
+		}
+		if item["path"] == "publishArgs.accountForms[].contentPublishForm.content" {
+			t.Fatalf("did not expect article content in contentPublishForm flatFields, got %#v", item)
+		}
+	}
+	if !foundPublishArgsContent {
+		t.Fatal("expected publishArgs.content in article flatFields")
+	}
+}
+
+func TestSchemaFieldsCommandUsesArticleDescFieldName(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	var out bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.SetOut(&out)
+
+	if err := schemaFieldsCmd.RunE(cmd, []string{"抖音", "article"}); err != nil {
+		t.Fatal(err)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	flatFields := data["flatFields"].([]interface{})
+	foundDesc := false
+	for _, entry := range flatFields {
+		item := entry.(map[string]interface{})
+		if item["path"] == "publishArgs.accountForms[].contentPublishForm.desc" {
+			foundDesc = true
+		}
+		if item["path"] == "publishArgs.accountForms[].contentPublishForm.description" {
+			t.Fatalf("did not expect article description field name, got %#v", item)
+		}
+	}
+	if !foundDesc {
+		t.Fatal("expected article desc field in contentPublishForm")
 	}
 }
 
