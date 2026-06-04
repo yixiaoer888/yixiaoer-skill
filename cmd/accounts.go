@@ -6,15 +6,22 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/client"
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/output"
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 	accountsflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/accounts"
 )
 
 var accountsName string
 var accountsStatus int
+var accountsPage int
+var accountsSize int
+var accountsAll bool
 
 func init() {
 	accountsCmd.PersistentFlags().StringVar(&accountsName, "name", "", "filter by name")
 	accountsCmd.PersistentFlags().IntVar(&accountsStatus, "status", -1, "filter by status")
+	accountsCmd.PersistentFlags().IntVar(&accountsPage, "page", 1, "page number")
+	accountsCmd.PersistentFlags().IntVar(&accountsSize, "size", 20, "page size")
+	accountsCmd.PersistentFlags().BoolVar(&accountsAll, "all", false, "fetch all pages when remote pagination metadata allows it")
 	accountsCmd.AddCommand(accountsListCmd)
 	rootCmd.AddCommand(accountsCmd)
 }
@@ -39,11 +46,24 @@ var accountsListCmd = &cobra.Command{
 }
 
 func runAccountsList(cmd *cobra.Command, args []string) error {
+	if accountsPage <= 0 {
+		return yxerrors.Usage("accounts page must be greater than 0", map[string]interface{}{"page": accountsPage}).
+			WithCategory("invalid_input")
+	}
+	if accountsSize <= 0 {
+		return yxerrors.Usage("accounts size must be greater than 0", map[string]interface{}{"size": accountsSize}).
+			WithCategory("invalid_input")
+	}
+
 	platform := ""
 	if len(args) > 0 {
 		platform = args[0]
 	}
-	filtered, err := accountsflow.NewService().List(platform, accountsName, accountsStatus)
+	filtered, err := accountsflow.NewService().ListWithOptions(platform, accountsName, accountsStatus, accountsflow.ListOptions{
+		Page: accountsPage,
+		Size: accountsSize,
+		All:  accountsAll,
+	})
 	if err != nil {
 		return err
 	}

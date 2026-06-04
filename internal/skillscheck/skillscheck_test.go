@@ -122,3 +122,192 @@ func TestCheckSkillLinksMissingTarget(t *testing.T) {
 		t.Fatalf("issue file = %q, want SKILL.md", report.Issues[0].File)
 	}
 }
+
+func TestCheckSkillFormatSuccess(t *testing.T) {
+	skillDir := createValidSkillFixture(t)
+
+	report, err := CheckSkillFormat(skillDir)
+	if err != nil {
+		t.Fatalf("CheckSkillFormat returned error: %v", err)
+	}
+	if report.InvalidFields != 0 {
+		t.Fatalf("InvalidFields = %d, want 0", report.InvalidFields)
+	}
+	if report.MissingSections != 0 {
+		t.Fatalf("MissingSections = %d, want 0", report.MissingSections)
+	}
+}
+
+func TestCheckSkillFormatMissingCliHelp(t *testing.T) {
+	skillDir := createValidSkillFixture(t)
+	content := `---
+name: yixiaoer
+version: 3.1.0
+description: "skill"
+metadata:
+  requires:
+    bins: ["yxer"]
+---
+
+# 蚁小二 Skill
+
+## 能力索引
+
+## 意图分流
+
+## 命令探索
+
+## 全局规则
+`
+	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	report, err := CheckSkillFormat(skillDir)
+	if err == nil {
+		t.Fatal("CheckSkillFormat error = nil, want non-nil")
+	}
+	if report.InvalidFields == 0 {
+		t.Fatal("InvalidFields = 0, want > 0")
+	}
+}
+
+func TestCheckSkillStructureSuccess(t *testing.T) {
+	skillDir := createValidSkillFixture(t)
+
+	report, err := CheckSkillStructure(skillDir)
+	if err != nil {
+		t.Fatalf("CheckSkillStructure returned error: %v", err)
+	}
+	if report.MissingPaths != 0 {
+		t.Fatalf("MissingPaths = %d, want 0", report.MissingPaths)
+	}
+	if report.InvalidDomainDocs != 0 {
+		t.Fatalf("InvalidDomainDocs = %d, want 0", report.InvalidDomainDocs)
+	}
+	if report.MissingIntentRoutes != 0 {
+		t.Fatalf("MissingIntentRoutes = %d, want 0", report.MissingIntentRoutes)
+	}
+}
+
+func TestCheckSkillStructureMissingQuickstart(t *testing.T) {
+	skillDir := createValidSkillFixture(t)
+	if err := os.Remove(filepath.Join(skillDir, "QUICKSTART.md")); err != nil {
+		t.Fatal(err)
+	}
+
+	report, err := CheckSkillStructure(skillDir)
+	if err == nil {
+		t.Fatal("CheckSkillStructure error = nil, want non-nil")
+	}
+	if report.MissingPaths == 0 {
+		t.Fatal("MissingPaths = 0, want > 0")
+	}
+}
+
+func TestCheckSkillPackageSuccess(t *testing.T) {
+	skillDir := createValidSkillFixture(t)
+
+	report, err := CheckSkillPackage(skillDir)
+	if err != nil {
+		t.Fatalf("CheckSkillPackage returned error: %v", err)
+	}
+	if !report.Valid {
+		t.Fatal("report.Valid = false, want true")
+	}
+	if report.InvalidChecks != 0 {
+		t.Fatalf("InvalidChecks = %d, want 0", report.InvalidChecks)
+	}
+}
+
+func createValidSkillFixture(t *testing.T) string {
+	t.Helper()
+
+	skillDir := filepath.Join(t.TempDir(), "skills", "yixiaoer")
+	dirs := []string{
+		skillDir,
+		filepath.Join(skillDir, "references"),
+		filepath.Join(skillDir, "references", "domains"),
+		filepath.Join(skillDir, "references", "workflows"),
+	}
+	for _, dir := range dirs {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	skillContent := `---
+name: yixiaoer
+version: 3.1.0
+description: "通过 yxer CLI 操作蚁小二"
+metadata:
+  requires:
+    bins: ["yxer"]
+  cliHelp: "yxer --help"
+---
+
+# 蚁小二 Skill
+
+## 能力索引
+
+- 发布：[./references/domains/publish.md](./references/domains/publish.md)
+
+## 意图分流
+
+| 用户意图 | 先读 |
+| --- | --- |
+| 帮我发 | [publish](./references/domains/publish.md) |
+
+## 命令探索
+
+` + "```bash\nyxer --help\n```\n" + `
+
+## 全局规则
+
+- 先读 [shared](./references/yixiaoer-shared.md)
+`
+	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte(skillContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(skillDir, "QUICKSTART.md"), []byte("# Quickstart\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(skillDir, "references", "yixiaoer-shared.md"), []byte("# Shared\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	workflowDoc := "# Workflow\n"
+	if err := os.WriteFile(filepath.Join(skillDir, "references", "workflows", "publish-workflow.md"), []byte(workflowDoc), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	domainContent := `# Domain
+
+适用范围：用户只说“帮我发”时，先进入本域。
+
+## 读取顺序
+
+1. [workflow](../workflows/publish-workflow.md)
+
+## 常用命令
+
+` + "```bash\nyxer doctor\n```\n" + `
+
+## 规则
+
+- 用户明确说本机发布时，改走本机流程
+`
+	for _, name := range []string{
+		"publish.md",
+		"accounts-and-env.md",
+		"draft-and-material.md",
+		"troubleshooting.md",
+		"install-and-sync.md",
+	} {
+		if err := os.WriteFile(filepath.Join(skillDir, "references", "domains", name), []byte(domainContent), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	return skillDir
+}

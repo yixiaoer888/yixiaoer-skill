@@ -136,3 +136,175 @@ func TestAccountsMapsLegacyShipinghaoAliasToCanonicalChineseQuery(t *testing.T) 
 		t.Fatal(err)
 	}
 }
+
+func TestAccountsPageUsesExplicitPageAndSize(t *testing.T) {
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if got := r.URL.Query().Get("platform"); got != "抖音" {
+			t.Fatalf("unexpected platform query: %s", got)
+		}
+		if got := r.URL.Query().Get("page"); got != "3" {
+			t.Fatalf("unexpected page query: %s", got)
+		}
+		if got := r.URL.Query().Get("size"); got != "50" {
+			t.Fatalf("unexpected size query: %s", got)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": map[string]interface{}{
+				"list": []map[string]interface{}{
+					{"platformAccountId": "acc_101", "platformAccountName": "账号101", "status": 1},
+				},
+				"page":  3,
+				"size":  50,
+				"total": 120,
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	accounts, meta, err := client.AccountsPage("抖音", 3, 50)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if requests != 1 {
+		t.Fatalf("expected one request, got %d", requests)
+	}
+	if len(accounts) != 1 {
+		t.Fatalf("expected one account, got %d", len(accounts))
+	}
+	if meta.page != 3 || meta.size != 50 || meta.total != 120 {
+		t.Fatalf("unexpected meta: %+v", meta)
+	}
+}
+
+func TestAccountsDoesNotGuessNextPageWithoutPaginationMeta(t *testing.T) {
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if got := r.URL.Query().Get("platform"); got != "抖音" {
+			t.Fatalf("unexpected platform query: %s", got)
+		}
+		if got := r.URL.Query().Get("size"); got != "20" {
+			t.Fatalf("unexpected size query: %s", got)
+		}
+		if page := r.URL.Query().Get("page"); page != "1" {
+			t.Fatalf("unexpected page query: %s", page)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": []map[string]interface{}{
+				{"platformAccountId": "acc_1", "platformAccountName": "账号1", "status": 1},
+				{"platformAccountId": "acc_2", "platformAccountName": "账号2", "status": 1},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	accounts, err := client.Accounts("抖音")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if requests != 1 {
+		t.Fatalf("expected one request, got %d", requests)
+	}
+	if len(accounts) != 2 {
+		t.Fatalf("expected 2 accounts, got %d", len(accounts))
+	}
+}
+
+func TestAccountsStopsWhenPaginatedMetaReportsAllRowsFetched(t *testing.T) {
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		page := r.URL.Query().Get("page")
+		switch page {
+		case "1":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"data": []map[string]interface{}{
+						{"platformAccountId": "acc_1", "platformAccountName": "账号1", "status": 1},
+						{"platformAccountId": "acc_2", "platformAccountName": "账号2", "status": 1},
+					},
+					"page":  1,
+					"size":  2,
+					"total": 3,
+				},
+			})
+		case "2":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"data": []map[string]interface{}{
+						{"platformAccountId": "acc_3", "platformAccountName": "账号3", "status": 1},
+					},
+					"page":  2,
+					"size":  2,
+					"total": 3,
+				},
+			})
+		default:
+			t.Fatalf("unexpected page query: %s", page)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	accounts, err := client.Accounts("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if requests != 2 {
+		t.Fatalf("expected two requests, got %d", requests)
+	}
+	if len(accounts) != 3 {
+		t.Fatalf("expected three accounts, got %d", len(accounts))
+	}
+}
+
+func TestAccountsFetchesNextPageWhenHasNextIsTrue(t *testing.T) {
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		page := r.URL.Query().Get("page")
+		switch page {
+		case "1":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"list": []map[string]interface{}{
+						{"platformAccountId": "acc_1", "platformAccountName": "账号1", "status": 1},
+					},
+					"page":    1,
+					"size":    20,
+					"hasNext": true,
+				},
+			})
+		case "2":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"list": []map[string]interface{}{
+						{"platformAccountId": "acc_2", "platformAccountName": "账号2", "status": 1},
+					},
+					"page":    2,
+					"size":    20,
+					"hasNext": false,
+				},
+			})
+		default:
+			t.Fatalf("unexpected page query: %s", page)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	accounts, err := client.Accounts("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if requests != 2 {
+		t.Fatalf("expected two requests, got %d", requests)
+	}
+	if len(accounts) != 2 {
+		t.Fatalf("expected two accounts, got %d", len(accounts))
+	}
+}

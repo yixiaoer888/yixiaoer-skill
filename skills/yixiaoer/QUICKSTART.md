@@ -4,6 +4,8 @@
 
 本指南帮助 AI Agent 和人类用户快速完成第一次发布，跳过复杂的文档层级。
 
+**使用边界：本文只提供最短上手路径，不替代正式规则。若与 [`references/yixiaoer-shared.md`](./references/yixiaoer-shared.md) 或 `references/workflows/` 中的 workflow 有冲突，以共享规则和 workflow 为准。**
+
 ---
 
 ## 🚀 5 步发布流程
@@ -239,10 +241,11 @@ yxer publish video 抖音 payload.json --publish-channel local
 如果你是 AI Agent，使用本指南时：
 
 1. **优先阅读本文档**，而不是从 `SKILL.md` 开始读 7 个文档
-2. **优先使用 `schema fields`**，只在需要完整结构时才用 `schema get`
-3. **关注错误信息中的 `suggestions`**，而不是自己猜测
-4. **使用 CLI 返回的完整对象**，不要手动编造字段值
-5. **遇到复杂字段时查看 `queryCommands`**，使用对应的查询命令
+2. **真正进入写操作前，仍必须回读** `references/yixiaoer-shared.md` 和对应 workflow
+3. **优先使用 `schema fields`**，只在需要完整结构时才用 `schema get`
+4. **关注错误信息中的 `suggestions`**，而不是自己猜测
+5. **使用 CLI 返回的完整对象**，不要手动编造字段值
+6. **遇到复杂字段时查看 `queryCommands`**，使用对应的查询命令
 
 ---
 

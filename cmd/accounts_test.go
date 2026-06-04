@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -67,5 +68,54 @@ func TestAccountsListSubcommandInheritsNameAndStatusFlags(t *testing.T) {
 	}
 	if accountsListCmd.InheritedFlags().Lookup("status") == nil {
 		t.Fatal("expected accounts list to inherit --status flag")
+	}
+	if accountsListCmd.InheritedFlags().Lookup("page") == nil {
+		t.Fatal("expected accounts list to inherit --page flag")
+	}
+	if accountsListCmd.InheritedFlags().Lookup("size") == nil {
+		t.Fatal("expected accounts list to inherit --size flag")
+	}
+	if accountsListCmd.InheritedFlags().Lookup("all") == nil {
+		t.Fatal("expected accounts list to inherit --all flag")
+	}
+}
+
+func TestRunAccountsListRejectsInvalidPage(t *testing.T) {
+	previousPage := accountsPage
+	previousSize := accountsSize
+	t.Cleanup(func() {
+		accountsPage = previousPage
+		accountsSize = previousSize
+	})
+
+	accountsPage = 0
+	accountsSize = 20
+
+	err := runAccountsList(&cobra.Command{}, nil)
+	if err == nil {
+		t.Fatal("expected error for invalid page")
+	}
+	if !strings.Contains(err.Error(), "accounts page must be greater than 0") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRunAccountsListRejectsInvalidSize(t *testing.T) {
+	previousPage := accountsPage
+	previousSize := accountsSize
+	t.Cleanup(func() {
+		accountsPage = previousPage
+		accountsSize = previousSize
+	})
+
+	accountsPage = 1
+	accountsSize = 0
+
+	err := runAccountsList(&cobra.Command{}, nil)
+	if err == nil {
+		t.Fatal("expected error for invalid size")
+	}
+	if !strings.Contains(err.Error(), "accounts size must be greater than 0") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

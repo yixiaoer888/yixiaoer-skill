@@ -15,7 +15,8 @@ metadata:
 
 **🚀 首次使用？先读 [`./QUICKSTART.md`](./QUICKSTART.md) - 5 分钟完成首次发布**
 
-**CRITICAL - 开始前必须先读取 [`./references/yixiaoer-shared.md`](./references/yixiaoer-shared.md)，其中包含环境检查、发布通道、同步和输出协议。**
+**CRITICAL - 开始前 MUST 先读取 [`./references/yixiaoer-shared.md`](./references/yixiaoer-shared.md)，其中包含环境检查、发布通道、同步和输出协议。**
+**BLOCKING REQUIREMENT - 涉及正式写操作时，禁止凭记忆拼 payload、禁止跳过 workflow、禁止绕过 `yxer` CLI 直接执行旧脚本或隐式 API。**
 
 ## 能力索引
 
@@ -37,6 +38,17 @@ metadata:
   - 入口：[`./references/domains/install-and-sync.md`](./references/domains/install-and-sync.md)
   - 覆盖 skill 安装、同步、升级和宿主侧接入说明。
 
+## 意图分流
+
+| 用户意图 / 说法 | 先读入口 | 后续动作 |
+| --- | --- | --- |
+| “帮我发一下”“发个抖音/小红书”“发布视频/图文/文章” | [`./references/domains/publish.md`](./references/domains/publish.md) | 再按类型进入对应 workflow；正式发布前必须走 `doctor -> accounts list -> prepare -> schema fields -> validate -> publish --dry-run -> publish` |
+| “先别发，只生成/修一下 payload” | [`./references/domains/publish.md`](./references/domains/publish.md) | 强制读取 payload 来源和类型 workflow，只做字段修订，不擅自正式发布 |
+| “查下账号/环境”“怎么配置 clientId”“看看 skill 要不要同步” | [`./references/domains/accounts-and-env.md`](./references/domains/accounts-and-env.md) | 先做环境检查，再决定是否继续业务流程 |
+| “存草稿”“传素材”“放到素材库里” | [`./references/domains/draft-and-material.md`](./references/domains/draft-and-material.md) | 先区分草稿和素材，再判断是否需要回切发布域 |
+| “为什么失败了”“查发布记录”“解释 validate / publish 报错” | [`./references/domains/troubleshooting.md`](./references/domains/troubleshooting.md) | 先定位失败阶段，再回退到对应 workflow 修复 |
+| “安装 skill”“升级后怎么同步”“怎么接入这个技能” | [`./references/domains/install-and-sync.md`](./references/domains/install-and-sync.md) | 优先走 skill 展示、同步和安装说明 |
+
 ## 命令探索
 
 ```bash
@@ -51,8 +63,8 @@ yxer schema get <platform> <type>
 ## 全局规则
 
 - 发布、草稿、素材、排查都只允许通过 `yxer` CLI 执行。
-- 正式发布前固定顺序是：`doctor -> accounts list -> prepare -> schema fields -> validate -> publish --dry-run -> publish`；只有需要 payload 骨架时再补 `schema get`。
+- BLOCKING REQUIREMENT: 正式发布前固定顺序是 `doctor -> accounts list -> prepare -> schema fields -> validate -> publish --dry-run -> publish`；只有需要 payload 骨架时再补 `schema get`。
 - `prepare`、`schema fields` / `schema get`、workflow、平台文档和 CLI 实际输出，是组装 payload 的唯一依据。
 - 图片、视频、封面等资源必须先上传，且只能复用 `yxer upload` 返回的真实字段。
 - `category`、`location`、`music`、`collection`、`challenge`、`goods` 等动态字段必须先查询，不能手写对象。
-- `validate`、`publish --dry-run`、正式 `publish` 必须使用同一套发布通道参数。
+- CRITICAL: `validate`、`publish --dry-run`、正式 `publish` 必须使用同一套发布通道参数。

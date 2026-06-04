@@ -2,6 +2,9 @@
 
 适用范围：用户要发布视频、图文、文章，或要修订发布 payload、解释字段归属、确认发布通道。
 
+**CRITICAL - 只要用户意图落在本域，MUST 先读取下方 workflow，再决定是否执行任何 `prepare`、字段查询、`validate` 或 `publish`。**
+**BLOCKING REQUIREMENT - 未完成 `doctor`、账号确认、`prepare`、`schema fields`、`validate`、`publish --dry-run` 前，绝对禁止正式 `publish`。**
+
 ## 读取顺序
 
 1. [`../workflows/common-rules.md`](../workflows/common-rules.md)
@@ -12,6 +15,13 @@
    - 图文：[`../workflows/publish-imageText.md`](../workflows/publish-imageText.md)
    - 视频：[`../workflows/publish-video.md`](../workflows/publish-video.md)
    - 文章：[`../workflows/publish-article.md`](../workflows/publish-article.md)
+
+## 意图路由
+
+- 用户只说“帮我发一下”“发个抖音/小红书”“发视频/图文/文章”时，直接进入本域，并继续按类型读取 workflow。
+- 用户明确说“先别发，只生成 payload”“帮我修 payload”时，仍进入本域，但最终动作只停留在 payload 修订或 `validate` / `publish --dry-run`。
+- 用户明确说“查为什么发失败了”“解释报错”时，先切 [`./troubleshooting.md`](./troubleshooting.md)，不要直接重试正式发布。
+- 用户明确说“上传素材后马上发”时，先完成素材流程，再回切本域继续执行发布主流程。
 
 ## 平台差异入口
 
@@ -26,7 +36,7 @@
 
 - 未执行 `yxer doctor` 不进入发布流程
 - 未确认 `accounts list` 中账号 `status=1` 不继续
-- 未执行 `prepare` / `schema get` 不组装 payload
+- 未执行 `prepare` / `schema fields` 不组装 payload；只有需要 payload 骨架时再补 `schema get`
 - 未先 `validate` 与 `publish --dry-run` 不执行正式 `publish`
 
 ## 常用命令

@@ -2,6 +2,8 @@
 
 本文件是 `yxer` skill 的共享前置规则。只要任务涉及发布、草稿、素材、账号、排查、payload 修订，就应先读取本文件。
 
+**CRITICAL - 本文档是共享规则唯一真源。若 QUICKSTART、domain 文档、workflow 文档和本文存在表述差异，以本文和对应 workflow 为准。**
+
 ## 唯一执行入口
 
 - 真正执行一律走 `yxer` CLI
@@ -84,9 +86,10 @@ yxer skill sync --global
   1. `yxer doctor`
   2. `yxer accounts list`
   3. `yxer prepare`
-  4. `yxer schema get`
-  5. `yxer validate`
-  6. `yxer publish --dry-run`
-  7. `yxer publish`
+  4. `yxer schema fields`
+  5. 只有需要 payload 骨架时再补 `yxer schema get`
+  6. `yxer validate`
+  7. `yxer publish --dry-run`
+  8. `yxer publish`
 - 不允许跳过 `validate`
 - 不允许把正式 `publish` 当成试错手段

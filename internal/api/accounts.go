@@ -2,21 +2,65 @@ package api
 
 import (
 	"fmt"
+	"strconv"
 
 	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
+const accountsPageSize = 20
+
 func (c *Client) Accounts(platform string) ([]map[string]interface{}, error) {
-	endpoint := "/v2/platform/accounts"
-	if platform != "" {
-		endpoint = Query(endpoint, map[string]string{"platform": platformutil.ChineseName(platform)})
+	return c.AccountsAll(platform, accountsPageSize)
+}
+
+func (c *Client) AccountsAll(platform string, size int) ([]map[string]interface{}, error) {
+	if size <= 0 {
+		size = accountsPageSize
 	}
+
+	var all []map[string]interface{}
+	for page := 1; ; page++ {
+		accounts, meta, err := c.AccountsPage(platform, page, size)
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, accounts...)
+		if !shouldFetchNextAccountsPage(meta) {
+			return all, nil
+		}
+	}
+}
+
+func (c *Client) AccountsPage(platform string, page, size int) ([]map[string]interface{}, accountsPageMeta, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 {
+		size = accountsPageSize
+	}
+
+	baseEndpoint := "/v2/platform/accounts"
+	params := map[string]string{
+		"page": strconv.Itoa(page),
+		"size": strconv.Itoa(size),
+	}
+	if platform != "" {
+		params["platform"] = platformutil.ChineseName(platform)
+	}
+
+	endpoint := Query(baseEndpoint, params)
 	var result map[string]interface{}
 	if err := c.Get(endpoint, &result); err != nil {
-		return nil, err
+		return nil, accountsPageMeta{}, err
 	}
-	return normalizeAccounts(DataOrSelf(result))
+
+	data := DataOrSelf(result)
+	accounts, err := normalizeAccounts(data)
+	if err != nil {
+		return nil, accountsPageMeta{}, err
+	}
+	return accounts, extractAccountsPageMeta(data), nil
 }
 
 func normalizeAccounts(data interface{}) ([]map[string]interface{}, error) {
@@ -55,6 +99,112 @@ func hasAccountIdentity(account map[string]interface{}) bool {
 		}
 	}
 	return false
+}
+
+type accountsPageMeta struct {
+	total   int
+	page    int
+	size    int
+	hasNext *bool
+}
+
+func extractAccountsPageMeta(data interface{}) accountsPageMeta {
+	meta := accountsPageMeta{}
+	typed, ok := data.(map[string]interface{})
+	if !ok {
+		return meta
+	}
+
+	meta.total = firstPositiveInt(typed, "total", "count")
+	meta.page = firstPositiveInt(typed, "page", "pageNum", "current", "currentPage")
+	meta.size = firstPositiveInt(typed, "size", "pageSize", "limit", "perPage")
+	if value, ok := firstBool(typed, "hasNext", "has_next", "nextPage"); ok {
+		meta.hasNext = &value
+	}
+	if pages := firstPositiveInt(typed, "pages", "totalPages", "pageCount"); pages > 0 {
+		current := meta.page
+		if current == 0 {
+			current = 1
+		}
+		hasNext := current < pages
+		meta.hasNext = &hasNext
+	}
+	if meta.hasNext == nil && (meta.total > 0 || meta.page > 0 || meta.size > 0) {
+		current := meta.page
+		if current == 0 {
+			current = 1
+		}
+		size := meta.size
+		if size == 0 {
+			size = accountsPageSize
+		}
+		hasNext := current*size < meta.total
+		meta.hasNext = &hasNext
+	}
+	return meta
+}
+
+func shouldFetchNextAccountsPage(meta accountsPageMeta) bool {
+	return meta.hasNext != nil && *meta.hasNext
+}
+
+func firstPositiveInt(data map[string]interface{}, keys ...string) int {
+	for _, key := range keys {
+		if value, ok := data[key]; ok {
+			if parsed := positiveInt(value); parsed > 0 {
+				return parsed
+			}
+		}
+	}
+	return 0
+}
+
+func firstBool(data map[string]interface{}, keys ...string) (bool, bool) {
+	for _, key := range keys {
+		if value, ok := data[key]; ok {
+			switch typed := value.(type) {
+			case bool:
+				return typed, true
+			case float64:
+				return typed != 0, true
+			case int:
+				return typed != 0, true
+			case string:
+				switch typed {
+				case "true", "1":
+					return true, true
+				case "false", "0":
+					return false, true
+				}
+			}
+		}
+	}
+	return false, false
+}
+
+func positiveInt(value interface{}) int {
+	switch typed := value.(type) {
+	case float64:
+		if typed > 0 {
+			return int(typed)
+		}
+	case int:
+		if typed > 0 {
+			return typed
+		}
+	case int64:
+		if typed > 0 {
+			return int(typed)
+		}
+	case string:
+		if typed == "" {
+			return 0
+		}
+		if parsed, err := strconv.Atoi(typed); err == nil && parsed > 0 {
+			return parsed
+		}
+	}
+	return 0
 }
 
 func AccountID(account map[string]interface{}) string {

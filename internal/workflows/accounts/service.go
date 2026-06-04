@@ -11,16 +11,33 @@ import (
 
 type Service struct{}
 
+type ListOptions struct {
+	Page int
+	Size int
+	All  bool
+}
+
 func NewService() Service {
 	return Service{}
 }
 
-func (Service) List(platform, name string, status int) ([]map[string]interface{}, error) {
+func (s Service) List(platform, name string, status int) ([]map[string]interface{}, error) {
+	return s.ListWithOptions(platform, name, status, ListOptions{})
+}
+
+func (Service) ListWithOptions(platform, name string, status int, opts ListOptions) ([]map[string]interface{}, error) {
 	cfg, err := config.Load()
 	if err != nil {
 		return nil, err
 	}
-	accounts, err := client.New(cfg).Accounts(platform)
+
+	apiClient := client.New(cfg)
+	var accounts []map[string]interface{}
+	if opts.All {
+		accounts, err = apiClient.AccountsAll(platform, opts.Size)
+	} else {
+		accounts, _, err = apiClient.AccountsPage(platform, opts.Page, opts.Size)
+	}
 	if err != nil {
 		return nil, err
 	}

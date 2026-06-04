@@ -46,7 +46,7 @@ var skillSyncCmd = &cobra.Command{
 
 var skillCheckCmd = &cobra.Command{
 	Use:   "check",
-	Short: "检查当前 skill 包内 Markdown 链接是否都能解析",
+	Short: "检查当前 skill 包的入口格式、文档结构和 Markdown 链接",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runSkillCheck(cmd)
 	},
@@ -120,9 +120,9 @@ func runSkillCheck(cmd *cobra.Command) error {
 	if err != nil {
 		return err
 	}
-	report, checkErr := skillscheck.CheckSkillLinks(skillDir)
+	report, checkErr := skillscheck.CheckSkillPackage(skillDir)
 	if checkErr != nil {
-		return fmt.Errorf("%w: %+v", checkErr, report.Issues)
+		return fmt.Errorf("%w: valid=%t invalidChecks=%d", checkErr, report.Valid, report.InvalidChecks)
 	}
 	return output.Success(cmd.OutOrStdout(), "skill.check", report)
 }

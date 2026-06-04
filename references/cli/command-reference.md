@@ -29,7 +29,7 @@ yxer skill sync [--global]
 ### 账号与资源
 
 ```bash
-yxer accounts list [platform] [--name 关键词] [--status 1] [--json]
+yxer accounts list [platform] [--name 关键词] [--status 1] [--page 1] [--size 20] [--all] [--json]
 yxer upload --file <file_path> [--bucket cloud-publish|material-library] [--dry-run]
 yxer upload --url <resource_url> [--bucket cloud-publish|material-library] [--dry-run]
 ```
@@ -100,8 +100,17 @@ yxer config get
 
 ```bash
 yxer accounts list 抖音 --json
+yxer accounts list 抖音 --page 2 --size 20 --json
+yxer accounts list 小红书 --all --status 1 --json
 yxer accounts list 小红书 --status 1
 ```
+
+说明：
+
+- `accounts list` 默认查询第 `1` 页、每页 `20` 条
+- 显式传 `--page`、`--size` 可控制单页查询范围
+- 传 `--all` 时，CLI 才会根据远端返回的分页信号继续翻页汇总后续账号
+- 不会用“当前页已满”来猜测下一页是否存在
 
 ### 上传资源
 

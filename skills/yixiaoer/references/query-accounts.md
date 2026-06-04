@@ -46,7 +46,8 @@
 2. **状态前置**：若涉及“失效账号查询”，自动注入 `loginStatus: 2` 参数。
 3. **参数装配**：构造 `action: "accounts"` 及其余过滤参数（如 `page`, `size`）。
 4. **指令执行**：调用 `yxer accounts [platform] [--name 关键词] [--status 1] [--json]`。
-5. **结果解析**：处理返回的 `PlatformAccountDTO` 列表，重点提取 `id` 和 `status` 供后续操作。
+5. **分页处理**：CLI 默认查询第 `1` 页、每页 `20` 条；可通过 `--page`、`--size` 控制单页查询，通过 `--all` 按接口返回的分页信号继续汇总后续页。
+6. **结果解析**：处理返回的 `PlatformAccountDTO` 列表，重点提取 `id` 和 `status` 供后续操作。
 
 ## 返回结果说明 (Response Details)
 
@@ -74,8 +75,11 @@
 
 ```bash
 yxer accounts 抖音 --name 昵称 --json
+yxer accounts list 抖音 --page 2 --size 20 --json
+yxer accounts list 小红书 --all --status 1 --json
 ```
 
 ## 注意事项
 - 请确保环境变量 `YIXIAOER_API_KEY` 已设置。
 - **账号有效性提示**：发布前应校验账号 `status` 是否为 `1`。
+- **分页约定**：不要根据“当前页条数已满”猜测还有下一页；只有显式传 `--all` 时，CLI 才会按接口返回的分页字段继续翻页。
