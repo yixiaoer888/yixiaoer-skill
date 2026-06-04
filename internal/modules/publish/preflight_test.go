@@ -315,6 +315,97 @@ func TestPreflightRejectsImageTextMissingImageKey(t *testing.T) {
 	assertHasError(t, result.Errors, `accountForms[0].images[0]: missing uploaded resource field "key"`)
 }
 
+func TestPreflightRejectsShipinhaoImageTextImageOver512KB(t *testing.T) {
+	payload := standardPayload("imageText", []string{"视频号"}, map[string]interface{}{
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_001",
+				"cover":             uploadedResourceWithKey("cover-key"),
+				"coverKey":          "cover-key",
+				"contentPublishForm": map[string]interface{}{
+					"formType":    "task",
+					"title":       "图文",
+					"description": "正文",
+					"images": []interface{}{
+						map[string]interface{}{
+							"key":    "image-key",
+							"size":   float64(512*1024 + 1),
+							"width":  float64(1080),
+							"height": float64(1440),
+						},
+					},
+				},
+			},
+		},
+	})
+
+	result := Preflight("imageText", []string{"视频号"}, payload)
+	assertHasError(t, result.Errors, "accountForms[0].images[0].size: 视频号图片不能超过 512KB")
+}
+
+func TestPreflightRejectsShipinhaoCoverOver512KB(t *testing.T) {
+	payload := standardPayload("video", []string{"视频号"}, map[string]interface{}{
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_001",
+				"cover": map[string]interface{}{
+					"key":    "cover-key",
+					"size":   float64(512*1024 + 1),
+					"width":  float64(1080),
+					"height": float64(1440),
+				},
+				"coverKey": "cover-key",
+				"video":    uploadedResource(),
+				"contentPublishForm": map[string]interface{}{
+					"formType":    "task",
+					"title":       "视频",
+					"description": "正文",
+				},
+			},
+		},
+	})
+
+	result := Preflight("video", []string{"视频号"}, payload)
+	assertHasError(t, result.Errors, "accountForms[0].cover.size: 视频号封面不能超过 512KB")
+}
+
+func TestPreflightDoesNotApplyShipinhao512KBRuleToOtherPlatforms(t *testing.T) {
+	payload := standardPayload("imageText", []string{"抖音"}, map[string]interface{}{
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_001",
+				"cover": map[string]interface{}{
+					"key":    "cover-key",
+					"size":   float64(512*1024 + 1),
+					"width":  float64(1080),
+					"height": float64(1440),
+				},
+				"coverKey": "cover-key",
+				"contentPublishForm": map[string]interface{}{
+					"formType":    "task",
+					"title":       "图文",
+					"description": "正文",
+					"images": []interface{}{
+						map[string]interface{}{
+							"key":    "image-key",
+							"size":   float64(512*1024 + 1),
+							"width":  float64(1080),
+							"height": float64(1440),
+						},
+					},
+				},
+			},
+		},
+	})
+
+	result := Preflight("imageText", []string{"抖音"}, payload)
+	for _, err := range result.Errors {
+		if strings.Contains(err, "512KB") {
+			t.Fatalf("expected non-shipinhao platform to skip 512KB limit, got %v", result.Errors)
+		}
+	}
+}
+
 func TestPreflightRejectsArticleMissingContent(t *testing.T) {
 	payload := standardPayload("article", []string{"知乎"}, map[string]interface{}{
 		"accountForms": []interface{}{

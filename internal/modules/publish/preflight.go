@@ -27,7 +27,7 @@ type TopicHTMLPolicy map[string]TopicHTMLFields
 var externalURLPattern = regexp.MustCompile(`(?i)^https?://`)
 var placeholderPattern = regexp.MustCompile(`^<[^<>]+>$`)
 
-const shipinhaoCoverMaxBytes = 512 * 1024
+const shipinhaoImageMaxBytes = 512 * 1024
 
 func RequireStandardPayload(payload map[string]interface{}) error {
 	if payload == nil {
@@ -136,6 +136,7 @@ func PreflightWithTopicHTMLPolicy(publishType string, platforms []string, payloa
 			}
 			requireUploadedResource(cover, formPath+".cover", &result.Errors)
 			requireCoverKey(form, cpf, cover, formPath, &result.Errors)
+			requirePlatformImageTextConstraints(platforms, images, cover, formPath, &result.Errors)
 		case "article":
 			if stringField(payload, "content") == "" {
 				result.Errors = append(result.Errors, "publishArgs.content: article publish requires content")
@@ -587,6 +588,32 @@ func requirePlatformConstraints(platforms []string, cover map[string]interface{}
 	}
 }
 
+func requirePlatformImageTextConstraints(platforms []string, images []interface{}, cover map[string]interface{}, formPath string, errors *[]string) {
+	for _, platform := range platforms {
+		switch strings.TrimSpace(platform) {
+		case "视频号", "微信视频号", "shipinhao":
+			requireShipinhaoImageSizes(images, formPath, errors)
+			requireShipinhaoCoverSize(cover, formPath, errors)
+		}
+	}
+}
+
+func requireShipinhaoImageSizes(images []interface{}, formPath string, errors *[]string) {
+	for i, item := range images {
+		imageObj, _ := item.(map[string]interface{})
+		if imageObj == nil {
+			continue
+		}
+		size, ok := integerField(imageObj, "size")
+		if !ok {
+			continue
+		}
+		if size > shipinhaoImageMaxBytes {
+			*errors = append(*errors, fmt.Sprintf("%s.images[%d].size: 视频号图片不能超过 512KB，当前为 %d bytes", formPath, i, size))
+		}
+	}
+}
+
 func requireShipinhaoCoverSize(cover map[string]interface{}, formPath string, errors *[]string) {
 	if cover == nil {
 		return
@@ -595,7 +622,7 @@ func requireShipinhaoCoverSize(cover map[string]interface{}, formPath string, er
 	if !ok {
 		return
 	}
-	if size > shipinhaoCoverMaxBytes {
+	if size > shipinhaoImageMaxBytes {
 		*errors = append(*errors, fmt.Sprintf("%s.cover.size: 视频号封面不能超过 512KB，当前为 %d bytes", formPath, size))
 	}
 }
