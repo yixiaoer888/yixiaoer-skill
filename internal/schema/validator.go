@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
 )
 
 type Validator struct {
@@ -117,45 +119,15 @@ func (v Validator) readSchema(platform, publishType string) ([]byte, string, err
 	return nil, "", lastErr
 }
 
-func schemaPlatformKeys(platform, publishType string) []string {
-	normalized := strings.ToLower(strings.TrimSpace(platform))
-	keys := []string{normalized}
-	aliases := map[string][]string{
-		"抖音":     {"douyin"},
-		"快手":     {"kuaishou"},
-		"小红书":    {"xhs", "xiaohongshu"},
-		"小红书商家号": {"xiaohongshushop"},
-		"视频号":    {"shipinhao"},
-		"微信视频号":  {"shipinhao"},
-		"微信公众号":  {"weixin.account"},
-		"哔哩哔哩":   {"bilibili"},
-		"百家号":    {"baijiahao"},
-		"头条号":    {"toutiaohao"},
-		"知乎":     {"zhihu"},
-		"企鹅号":    {"qiehao"},
-		"新浪微博":   {"xinlang"},
-		"搜狐号":    {"souhuhao"},
-		"搜狐视频":   {"souhushipin"},
-		"一点号":    {"yidianhao"},
-		"大鱼号":    {"dayuhao"},
-		"网易号":    {"wangyihao"},
-		"爱奇艺":    {"aiqiyi"},
-		"腾讯微视":   {"weishi"},
-		"腾讯视频":   {"tengxunshipin"},
-		"皮皮虾":    {"pipixia"},
-		"多多视频":   {"duoduoshipin"},
-		"美拍":     {"meipai"},
-		"快传号":    {"kuaichuanhao"},
-		"雪球号":    {"xueqiuhao"},
-		"车家号":    {"chejiahao"},
-		"易车号":    {"yichehao"},
-		"蜂网":     {"fengwang"},
-		"豆瓣":     {"douban"},
-		"得物":     {"dewu"},
-		"简书":     {"jianshu"},
-		"美柚":     {"meiyou"},
+func schemaPlatformKeys(platformName, publishType string) []string {
+	trimmed := strings.TrimSpace(platformName)
+	normalized := strings.ToLower(trimmed)
+	canonicalKey := platformutil.CanonicalKey(platformName)
+	keys := []string{canonicalKey, normalized}
+	if canonicalChineseName := platformutil.ChineseName(platformName); canonicalChineseName != "" {
+		keys = append(keys, canonicalChineseName, strings.ToLower(canonicalChineseName))
 	}
-	keys = append(keys, aliases[strings.TrimSpace(platform)]...)
+	keys = append(keys, trimmed)
 	return uniqueStrings(keys)
 }
 

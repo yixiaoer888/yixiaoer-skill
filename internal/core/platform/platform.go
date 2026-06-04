@@ -2,6 +2,10 @@ package platform
 
 import base "github.com/yixiaoer/yixiaoer-skill/internal/platform"
 
+func CanonicalKey(value string) string {
+	return base.CanonicalKey(value)
+}
+
 func ChineseName(value string) string {
 	return base.ChineseName(value)
 }

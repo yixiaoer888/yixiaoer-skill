@@ -94,6 +94,9 @@ func TestAccountsMapsPlatformKeyToChineseQuery(t *testing.T) {
 
 func TestAccountsAcceptsTopLevelListResponse(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query().Get("platform"); got != "视频号" {
+			t.Fatalf("unexpected platform query: %s", got)
+		}
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"list": []map[string]interface{}{
 				{"platformAccountId": "acc_1", "platformAccountName": "视频号账号", "loginStatus": 1},
@@ -112,5 +115,24 @@ func TestAccountsAcceptsTopLevelListResponse(t *testing.T) {
 	}
 	if id := AccountID(accounts[0]); id != "acc_1" {
 		t.Fatalf("unexpected account id: %s", id)
+	}
+}
+
+func TestAccountsMapsLegacyShipinghaoAliasToCanonicalChineseQuery(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query().Get("platform"); got != "视频号" {
+			t.Fatalf("unexpected platform query: %s", got)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": []map[string]interface{}{
+				{"platformAccountId": "acc_1", "platformAccountName": "视频号账号", "status": 1},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	if _, err := client.Accounts("shipinghao"); err != nil {
+		t.Fatal(err)
 	}
 }
