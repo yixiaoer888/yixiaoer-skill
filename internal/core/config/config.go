@@ -17,7 +17,3 @@ func SaveAPIKey(apiKey string) (string, error) {
 func SaveLocalClientID(clientID string) (string, error) {
 	return base.SaveLocalClientID(clientID)
 }
-
-func SaveLinkedAppState(appID, accountID, accountName string, connected bool) (string, error) {
-	return base.SaveLinkedAppState(appID, accountID, accountName, connected)
-}

@@ -20,6 +20,7 @@ yxer schema get <platform> article
 - [`account-selection.md`](./account-selection.md)
 - [`local-vs-cloud.md`](./local-vs-cloud.md)
 - [`payload-sourcing.md`](./payload-sourcing.md)
+- 涉及话题/标签时：[`../topic-tags.md`](../topic-tags.md)
 
 ## 执行顺序
 
@@ -39,6 +40,7 @@ yxer schema get <platform> article
 - 发布前必须确认目标账号 `status=1`
 - 文章必须有封面，未提供时必须补问
 - 文章正文中的图片不能直接引用外部 URL，必须先上传
+- 话题/标签必须直接按 `../topic-tags.md` 的目标格式传入；有 `topics` 就直接传结构化对象，不要依赖 CLI 改写正文
 - 文章分类通常必须选到叶子节点
 - 发布前先看 `prepare` 和 `schema fields` 返回的字段；只有要确认完整骨架时再看 `schema get`
 - `payload.json` 必须使用统一标准结构：顶层 `publishArgs`

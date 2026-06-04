@@ -20,6 +20,7 @@ yxer schema get <platform> imageText
 - [`account-selection.md`](./account-selection.md)
 - [`local-vs-cloud.md`](./local-vs-cloud.md)
 - [`payload-sourcing.md`](./payload-sourcing.md)
+- 涉及话题/标签时：[`../topic-tags.md`](../topic-tags.md)
 
 ## 执行顺序
 
@@ -38,6 +39,7 @@ yxer schema get <platform> imageText
 - 发布前必须确认目标账号 `status=1`
 - 每张图片都要单独上传，封面默认取第一张图
 - 复杂对象必须通过查询命令获取完整对象，不要手写 `raw`
+- 话题/标签必须直接按 `../topic-tags.md` 的目标格式传入；需要 `<topic>` HTML 时由 Agent 直接写最终内容
 - 发布前先看 `prepare` 和 `schema fields` 返回的字段；只有要确认完整骨架时再看 `schema get`
 - `payload.json` 必须使用统一标准结构：顶层 `publishArgs`，业务字段放在 `publishArgs.accountForms[].contentPublishForm`
 - 多平台发布时，必须逐个平台分别执行完整流程

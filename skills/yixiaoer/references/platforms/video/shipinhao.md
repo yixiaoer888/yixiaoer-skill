@@ -1,4 +1,4 @@
-# 视频号视频发布参数 (WeiXin ShiPingHao Video)
+# 视频号视频发布参数 (WeiXin ShiPinHao Video)
 
 > [!IMPORTANT]
 > **前提条件 (Prerequisite)**:

@@ -17,12 +17,5 @@
     "composerIcon": "./assets/yixiaoer.png",
     "logo": "./assets/yixiaoer.png",
     "screenshots": []
-  },
-  "linkedApp": {
-    "enabled": true,
-    "statusCommand": "yxer linked-app status",
-    "connectCommand": "yxer linked-app connect",
-    "disconnectCommand": "yxer linked-app disconnect",
-    "toggleCommand": "yxer linked-app toggle"
   }
 }

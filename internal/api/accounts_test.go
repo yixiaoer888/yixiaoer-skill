@@ -91,3 +91,26 @@ func TestAccountsMapsPlatformKeyToChineseQuery(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestAccountsAcceptsTopLevelListResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"list": []map[string]interface{}{
+				{"platformAccountId": "acc_1", "platformAccountName": "视频号账号", "loginStatus": 1},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	accounts, err := client.Accounts("视频号")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(accounts) != 1 {
+		t.Fatalf("expected one account, got %d", len(accounts))
+	}
+	if id := AccountID(accounts[0]); id != "acc_1" {
+		t.Fatalf("unexpected account id: %s", id)
+	}
+}

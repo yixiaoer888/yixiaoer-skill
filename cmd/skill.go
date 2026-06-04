@@ -8,9 +8,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/config"
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/output"
-	"github.com/yixiaoer/yixiaoer-skill/internal/linkedapp"
 	"github.com/yixiaoer/yixiaoer-skill/internal/skillscheck"
 )
 
@@ -102,13 +100,6 @@ func runSkillShow(cmd *cobra.Command) error {
 			"yxer validate",
 			"yxer publish",
 		},
-	}
-
-	if cfg, err := config.Load(); err == nil {
-		data["linkedApp"] = map[string]interface{}{
-			"metadata": linkedapp.DefaultMetadata(),
-			"state":    cfg.LinkedApp,
-		}
 	}
 
 	return output.Success(cmd.OutOrStdout(), "skill.show", data)

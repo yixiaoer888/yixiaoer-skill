@@ -19,6 +19,9 @@
 > [!TIP]
 > 示例优先使用“标准请求体”格式：共享封面和正文放在 `publishArgs` 根级，账号差异字段放在 `accountForms[]`。CLI 会在校验阶段自动补齐缺失字段。
 
+> [!TIP]
+> 抖音文章如涉及话题，请先读取 [`../../topic-tags.md`](../../topic-tags.md)。标准做法是直接填写 `topics: Category[]`，不要只在 `description` 或 `content` 里写 `#标签`。
+
 本平台文章发布通过 `contentPublishForm` 承载以下参数。
 
 ## 1. contentPublishForm 参数定义

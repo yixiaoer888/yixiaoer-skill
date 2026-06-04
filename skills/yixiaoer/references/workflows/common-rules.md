@@ -15,16 +15,17 @@
 1. 读取 `../../SKILL.md`
 2. 读取当前文件
 3. 读取 `account-selection.md`、`local-vs-cloud.md`、`payload-sourcing.md`
-4. 读取对应类型 workflow
-5. 执行 `yxer doctor`
-6. 执行 `yxer accounts list`
-7. 执行 `yxer prepare <platform> <type>`
-8. 优先执行 `yxer schema fields <platform> <type>`；需要 payload 骨架时再执行 `yxer schema get <platform> <type>`
-9. 执行 `yxer upload`
-10. 执行动态字段查询命令
-11. 组装 payload
-12. 执行 `yxer validate`
-13. 执行 `yxer publish`
+4. 如涉及话题/标签，读取 `../topic-tags.md`
+5. 读取对应类型 workflow
+6. 执行 `yxer doctor`
+7. 执行 `yxer accounts list`
+8. 执行 `yxer prepare <platform> <type>`
+9. 优先执行 `yxer schema fields <platform> <type>`；需要 payload 骨架时再执行 `yxer schema get <platform> <type>`
+10. 执行 `yxer upload`
+11. 执行动态字段查询命令
+12. 组装 payload
+13. 执行 `yxer validate`
+14. 执行 `yxer publish`
 
 禁止行为：
 
@@ -55,6 +56,7 @@
 - 严禁自行猜测字段名、层级、枚举、默认值、示例值、`raw` 对象内容或资源元数据。
 - 文档未定义、schema 未声明、CLI 未返回的字段，不得写入 payload。
 - 动态字段和复杂对象必须先查询后填写；查不到时继续查询或向用户确认，不能凭经验编造。
+- 话题/标签字段必须按 `../topic-tags.md` 的最终格式直接写入 payload，不要依赖 CLI 修复 `description` / `content` 中的标签结构。
 
 ---
 

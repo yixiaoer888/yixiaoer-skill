@@ -61,63 +61,6 @@ func TestResolveProjectDirRejectsInvalidOverride(t *testing.T) {
 	}
 }
 
-func TestSaveLinkedAppStatePersistsConnection(t *testing.T) {
-	root := t.TempDir()
-	configPath := filepath.Join(root, "config.json")
-	t.Setenv("YIXIAOER_CONFIG", configPath)
-
-	gotPath, err := SaveLinkedAppState("yixiaoer", "acc_1", "测试账号", true)
-	if err != nil {
-		t.Fatalf("SaveLinkedAppState returned error: %v", err)
-	}
-	if gotPath != configPath {
-		t.Fatalf("configPath = %q, want %q", gotPath, configPath)
-	}
-
-	fileCfg, err := loadFileConfig(configPath)
-	if err != nil {
-		t.Fatalf("loadFileConfig returned error: %v", err)
-	}
-	state := fileCfg.linkedAppState("yixiaoer")
-	if !state.Connected {
-		t.Fatal("expected connected state to persist")
-	}
-	if state.AccountID != "acc_1" {
-		t.Fatalf("AccountID = %q, want %q", state.AccountID, "acc_1")
-	}
-	if state.AccountName != "测试账号" {
-		t.Fatalf("AccountName = %q, want %q", state.AccountName, "测试账号")
-	}
-	if state.UpdatedAt == "" {
-		t.Fatal("expected UpdatedAt to be populated")
-	}
-}
-
-func TestSaveLinkedAppStateDisconnectClearsAccount(t *testing.T) {
-	root := t.TempDir()
-	configPath := filepath.Join(root, "config.json")
-	t.Setenv("YIXIAOER_CONFIG", configPath)
-
-	if _, err := SaveLinkedAppState("yixiaoer", "acc_1", "测试账号", true); err != nil {
-		t.Fatalf("initial SaveLinkedAppState returned error: %v", err)
-	}
-	if _, err := SaveLinkedAppState("yixiaoer", "", "", false); err != nil {
-		t.Fatalf("disconnect SaveLinkedAppState returned error: %v", err)
-	}
-
-	fileCfg, err := loadFileConfig(configPath)
-	if err != nil {
-		t.Fatalf("loadFileConfig returned error: %v", err)
-	}
-	state := fileCfg.linkedAppState("yixiaoer")
-	if state.Connected {
-		t.Fatal("expected disconnected state to persist")
-	}
-	if state.AccountID != "" || state.AccountName != "" {
-		t.Fatalf("expected account info to be cleared, got %+v", state)
-	}
-}
-
 func mustMkdirAll(t *testing.T, path string) {
 	t.Helper()
 	if err := os.MkdirAll(path, 0o755); err != nil {

@@ -141,7 +141,7 @@
 | **头条号** | `Toutiaohao` | [toutiaohao.md](./toutiaohao.md) |
 | **哔哩哔哩** | `Bilibili` | [bilibili.md](./bilibili.md) |
 | **抖音** | `Douyin` | [douyin.md](./douyin.md) |
-| **视频号** | `Shipinghao` | [shipinghao.md](./shipinghao.md) |
+| **视频号** | `Shipinhao` | [shipinhao.md](./shipinhao.md) |
 | ... | ... | ... |
 
 ## 4. 通用规则 (Common DTO Rules)

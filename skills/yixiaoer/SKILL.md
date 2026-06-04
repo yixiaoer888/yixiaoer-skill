@@ -15,7 +15,7 @@ metadata:
 
 **🚀 首次使用？先读 [`./QUICKSTART.md`](./QUICKSTART.md) - 5 分钟完成首次发布**
 
-**CRITICAL - 开始前必须先读取 [`./references/yixiaoer-shared.md`](./references/yixiaoer-shared.md)，其中包含环境检查、linked-app、发布通道、同步和输出协议。**
+**CRITICAL - 开始前必须先读取 [`./references/yixiaoer-shared.md`](./references/yixiaoer-shared.md)，其中包含环境检查、发布通道、同步和输出协议。**
 
 ## 能力索引
 
@@ -24,9 +24,9 @@ metadata:
 - 发布与 payload 修订
   - 入口：[`./references/domains/publish.md`](./references/domains/publish.md)
   - 覆盖视频、图文、文章发布，账号选择，云/本机通道判断，payload 来源纪律，动态字段查询，平台差异文档入口。
-- 账号、环境与 linked-app
+- 账号、环境与 skill 同步
   - 入口：[`./references/domains/accounts-and-env.md`](./references/domains/accounts-and-env.md)
-  - 覆盖 `doctor`、`config`、账号查询、linked-app 连接与技能同步。
+  - 覆盖 `doctor`、`config`、账号查询与技能同步。
 - 草稿与素材库
   - 入口：[`./references/domains/draft-and-material.md`](./references/domains/draft-and-material.md)
   - 覆盖蚁小二草稿、平台草稿判断、素材上传、素材登记与“上传后立即发布”的切换路径。

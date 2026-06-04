@@ -694,7 +694,7 @@ func getPlatformSpecificNotes(platform, publishType string) []string {
 			notes = append(notes, "小红书视频支持话题和位置")
 		}
 
-	case "weixin", "shipinghao", "视频号", "微信视频号":
+	case "weixin", "shipinhao", "视频号", "微信视频号":
 		if publishType == "video" {
 			notes = append(notes, "视频号支持位置(location)和话题")
 		}

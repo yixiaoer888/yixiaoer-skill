@@ -19,6 +19,9 @@
 4. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
 
 > [!TIP]
+> 抖音视频如涉及话题，请先读取 [`../../topic-tags.md`](../../topic-tags.md)。标准做法是直接传平台字段定义的最终结构，不依赖 CLI 从 `tags` 自动改写 `description`。
+
+> [!TIP]
 > 示例优先使用“标准请求体”格式：共享资源放在 `publishArgs` 根级，账号差异字段放在 `accountForms[]`。CLI 会在校验阶段自动补齐缺失资源字段。
 
 > 说明：仓库当前不再把 `syncComment` 作为公开 schema 字段暴露，因为现有文档、查询命令和工作流里都没有它的稳定来源或获取流程。

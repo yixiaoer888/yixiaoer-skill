@@ -20,28 +20,11 @@ type Config struct {
 	WorkDir       string
 	ConfigPath    string
 	LocalClientID string
-	LinkedApp     LinkedAppState
 }
 
 type fileConfig struct {
-	APIKey        string                 `json:"apiKey"`
-	LocalClientID string                 `json:"localPublishClientId"`
-	LinkedApps    map[string]linkedAppKV `json:"linkedApps,omitempty"`
-}
-
-type LinkedAppState struct {
-	AppID       string `json:"appId"`
-	Connected   bool   `json:"connected"`
-	AccountID   string `json:"accountId,omitempty"`
-	AccountName string `json:"accountName,omitempty"`
-	UpdatedAt   string `json:"updatedAt,omitempty"`
-}
-
-type linkedAppKV struct {
-	Connected   bool   `json:"connected"`
-	AccountID   string `json:"accountId,omitempty"`
-	AccountName string `json:"accountName,omitempty"`
-	UpdatedAt   string `json:"updatedAt,omitempty"`
+	APIKey        string `json:"apiKey"`
+	LocalClientID string `json:"localPublishClientId"`
 }
 
 func Load() (Config, error) {
@@ -73,7 +56,6 @@ func Load() (Config, error) {
 		WorkDir:       cwd,
 		ConfigPath:    configPath,
 		LocalClientID: strings.TrimSpace(fileCfg.LocalClientID),
-		LinkedApp:     fileCfg.linkedAppState("yixiaoer"),
 	}, nil
 }
 
@@ -112,36 +94,6 @@ func SaveLocalClientID(clientID string) (string, error) {
 		return "", err
 	}
 	cfg.LocalClientID = strings.TrimSpace(clientID)
-	if err := writeFileConfig(configPath, cfg); err != nil {
-		return "", err
-	}
-	return configPath, nil
-}
-
-func SaveLinkedAppState(appID, accountID, accountName string, connected bool) (string, error) {
-	configPath, err := resolveConfigPath()
-	if err != nil {
-		return "", err
-	}
-	cfg, err := loadFileConfig(configPath)
-	if err != nil {
-		return "", err
-	}
-	if cfg.LinkedApps == nil {
-		cfg.LinkedApps = map[string]linkedAppKV{}
-	}
-	cfg.LinkedApps[strings.TrimSpace(appID)] = linkedAppKV{
-		Connected:   connected,
-		AccountID:   strings.TrimSpace(accountID),
-		AccountName: strings.TrimSpace(accountName),
-		UpdatedAt:   strings.TrimSpace(nowRFC3339()),
-	}
-	if !connected {
-		cfg.LinkedApps[strings.TrimSpace(appID)] = linkedAppKV{
-			Connected: false,
-			UpdatedAt: strings.TrimSpace(nowRFC3339()),
-		}
-	}
 	if err := writeFileConfig(configPath, cfg); err != nil {
 		return "", err
 	}
@@ -187,22 +139,6 @@ func loadFileConfig(path string) (fileConfig, error) {
 		return cfg, err
 	}
 	return cfg, nil
-}
-
-func (cfg fileConfig) linkedAppState(appID string) LinkedAppState {
-	state := LinkedAppState{AppID: appID}
-	if cfg.LinkedApps == nil {
-		return state
-	}
-	raw, ok := cfg.LinkedApps[appID]
-	if !ok {
-		return state
-	}
-	state.Connected = raw.Connected
-	state.AccountID = strings.TrimSpace(raw.AccountID)
-	state.AccountName = strings.TrimSpace(raw.AccountName)
-	state.UpdatedAt = strings.TrimSpace(raw.UpdatedAt)
-	return state
 }
 
 var nowRFC3339 = func() string {

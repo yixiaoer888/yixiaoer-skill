@@ -2,6 +2,7 @@ package accounts
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/client"
@@ -37,7 +38,31 @@ func FilterAccounts(accounts []map[string]interface{}, name string, status int) 
 		}
 		filtered = append(filtered, account)
 	}
+	sortAccounts(filtered)
 	return filtered
+}
+
+func sortAccounts(accounts []map[string]interface{}) {
+	sort.SliceStable(accounts, func(i, j int) bool {
+		left := accounts[i]
+		right := accounts[j]
+
+		leftStatus := client.AccountStatus(left)
+		rightStatus := client.AccountStatus(right)
+		if leftStatus != rightStatus {
+			return leftStatus == 1
+		}
+
+		leftName := strings.ToLower(AccountName(left))
+		rightName := strings.ToLower(AccountName(right))
+		if leftName != rightName {
+			return leftName < rightName
+		}
+
+		leftID := strings.ToLower(client.AccountID(left))
+		rightID := strings.ToLower(client.AccountID(right))
+		return leftID < rightID
+	})
 }
 
 func AccountName(account map[string]interface{}) string {

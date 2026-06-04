@@ -20,29 +20,13 @@ yxer config get
 如果当前环境尚未完成配置，再执行：
 
 ```bash
-yxer config init --api-key <apiKey> [--bind-app --account-id <id> | --account-name <name>]
+yxer config init --api-key <apiKey>
 ```
 
 规则：
 
 - `doctor` 失败时，先修环境，再继续业务流程
 - 不要在环境异常时继续组装 payload
-
-## linked-app
-
-如果宿主需要把蚁小二作为链接应用启用，统一使用：
-
-```bash
-yxer linked-app status
-yxer linked-app connect --account-id <id> --account-name <name>
-yxer linked-app disconnect
-yxer linked-app toggle
-```
-
-规则：
-
-- 先 `status`，再决定是否 `connect` / `toggle`
-- 涉及账号绑定时，不要猜账号，先查账号列表
 
 ## 云发布与本机发布
 

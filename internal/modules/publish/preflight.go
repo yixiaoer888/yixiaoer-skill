@@ -27,7 +27,7 @@ type TopicHTMLPolicy map[string]TopicHTMLFields
 var externalURLPattern = regexp.MustCompile(`(?i)^https?://`)
 var placeholderPattern = regexp.MustCompile(`^<[^<>]+>$`)
 
-const shipinghaoCoverMaxBytes = 512 * 1024
+const shipinhaoCoverMaxBytes = 512 * 1024
 
 func RequireStandardPayload(payload map[string]interface{}) error {
 	if payload == nil {
@@ -581,13 +581,13 @@ func firstNonEmptyString(values ...string) string {
 func requirePlatformConstraints(platforms []string, cover map[string]interface{}, formPath string, errors *[]string) {
 	for _, platform := range platforms {
 		switch strings.TrimSpace(platform) {
-		case "视频号", "微信视频号", "shipinghao":
-			requireShipinghaoCoverSize(cover, formPath, errors)
+		case "视频号", "微信视频号", "shipinhao":
+			requireShipinhaoCoverSize(cover, formPath, errors)
 		}
 	}
 }
 
-func requireShipinghaoCoverSize(cover map[string]interface{}, formPath string, errors *[]string) {
+func requireShipinhaoCoverSize(cover map[string]interface{}, formPath string, errors *[]string) {
 	if cover == nil {
 		return
 	}
@@ -595,7 +595,7 @@ func requireShipinghaoCoverSize(cover map[string]interface{}, formPath string, e
 	if !ok {
 		return
 	}
-	if size > shipinghaoCoverMaxBytes {
+	if size > shipinhaoCoverMaxBytes {
 		*errors = append(*errors, fmt.Sprintf("%s.cover.size: 视频号封面不能超过 512KB，当前为 %d bytes", formPath, size))
 	}
 }

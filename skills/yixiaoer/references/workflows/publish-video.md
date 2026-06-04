@@ -20,6 +20,7 @@ yxer schema get <platform> video
 - [`account-selection.md`](./account-selection.md)
 - [`local-vs-cloud.md`](./local-vs-cloud.md)
 - [`payload-sourcing.md`](./payload-sourcing.md)
+- 涉及话题/标签时：[`../topic-tags.md`](../topic-tags.md)
 
 ## 执行顺序
 
@@ -40,6 +41,7 @@ yxer schema get <platform> video
 - 视频只能有一个，封面必须单独上传
 - 用户未提供封面时，必须补问，不要自动截帧
 - 可选复杂对象必须通过查询命令取得完整对象后再填入
+- 话题/标签必须直接按 `../topic-tags.md` 的目标格式传入；不要依赖 CLI 从 `description` 自动改写
 - 发布前先看 `prepare` 和 `schema fields` 返回的字段；只有要确认完整骨架时再看 `schema get`
 - `payload.json` 必须使用统一标准结构：顶层 `publishArgs`，业务字段放在 `publishArgs.accountForms[].contentPublishForm`
 - 用户明确要求本机发布时，必须显式传 `--publish-channel local` 和 `--client-id`

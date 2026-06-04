@@ -108,8 +108,8 @@ func TestSchemaResolvesVideoAccountAliasesToCanonicalKeys(t *testing.T) {
 		path     string
 	}{
 		{platform: "快手", path: "schemas/platforms/kuaishou.video.schema.json"},
-		{platform: "视频号", path: "schemas/platforms/shipinghao.video.schema.json"},
-		{platform: "微信视频号", path: "schemas/platforms/shipinghao.video.schema.json"},
+		{platform: "视频号", path: "schemas/platforms/shipinhao.video.schema.json"},
+		{platform: "微信视频号", path: "schemas/platforms/shipinhao.video.schema.json"},
 	}
 
 	for _, tt := range tests {
@@ -125,31 +125,31 @@ func TestSchemaResolvesVideoAccountAliasesToCanonicalKeys(t *testing.T) {
 	}
 }
 
-func TestSchemaReturnsValidShipinghaoVideoSchema(t *testing.T) {
+func TestSchemaReturnsValidShipinhaoVideoSchema(t *testing.T) {
 	validator := NewValidator(filepath.Join("..", "..", "schemas"))
 	schemaDoc, err := validator.Schema("视频号", "video")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if schemaDoc.Title == "" {
-		t.Fatal("expected schema title for shipinghao video")
+		t.Fatal("expected schema title for shipinhao video")
 	}
 	if _, ok := schemaDoc.Properties["createType"]; !ok {
-		t.Fatalf("expected shipinghao video schema to expose createType, got %+v", schemaDoc.Properties)
+		t.Fatalf("expected shipinhao video schema to expose createType, got %+v", schemaDoc.Properties)
 	}
 	if _, ok := schemaDoc.Properties["pubType"]; !ok {
-		t.Fatalf("expected shipinghao video schema to expose pubType, got %+v", schemaDoc.Properties)
+		t.Fatalf("expected shipinhao video schema to expose pubType, got %+v", schemaDoc.Properties)
 	}
 }
 
-func TestSchemaResolvesShipinghaoImageTextWithoutLegacyAlias(t *testing.T) {
+func TestSchemaResolvesShipinhaoImageTextWithoutLegacyAlias(t *testing.T) {
 	validator := NewValidator(filepath.Join("..", "..", "schemas"))
 	schemaDoc, err := validator.Schema("视频号", "imageText")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasSuffix(filepath.ToSlash(schemaDoc.File), "schemas/platforms/shipinghao.imageText.schema.json") {
-		t.Fatalf("expected shipinghao imageText schema path, got %s", schemaDoc.File)
+	if !strings.HasSuffix(filepath.ToSlash(schemaDoc.File), "schemas/platforms/shipinhao.imageText.schema.json") {
+		t.Fatalf("expected shipinhao imageText schema path, got %s", schemaDoc.File)
 	}
 }
 

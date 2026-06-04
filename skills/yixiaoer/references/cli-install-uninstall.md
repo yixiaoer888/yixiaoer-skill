@@ -49,7 +49,7 @@ yxer doctor
 如需要同时把蚁小二作为链接应用启用：
 
 ```bash
-yxer config init --api-key <apiKey> --bind-app --account-name <账号名>
+yxer config init --api-key <apiKey>
 ```
 
 ## 4. Skill 安装

@@ -8,7 +8,7 @@ var chineseNames = map[string]string{
 	"xhs":              "小红书",
 	"xiaohongshu":      "小红书",
 	"xiaohongshushop":  "小红书商家号",
-	"shipinghao":       "视频号",
+	"shipinhao":        "视频号",
 	"weixin.account":   "微信公众号",
 	"bilibili":         "哔哩哔哩",
 	"baijiahao":        "百家号",

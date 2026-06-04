@@ -32,3 +32,25 @@ func TestFilterAccountsUsesPlatformAccountNameAndLoginStatus(t *testing.T) {
 		t.Fatalf("unexpected account name: %s", accountName(filtered[0]))
 	}
 }
+
+func TestFilterAccountsSortsOnlineAccountsFirst(t *testing.T) {
+	accounts := []map[string]interface{}{
+		{"platformAccountId": "acc_9", "platformAccountName": "吹牛不算牛y", "loginStatus": float64(2)},
+		{"platformAccountId": "acc_10", "platformAccountName": "Max8862", "loginStatus": float64(1)},
+		{"platformAccountId": "acc_2", "platformAccountName": "Alpha", "loginStatus": float64(1)},
+	}
+
+	filtered := filterAccounts(accounts, "", -1)
+	if len(filtered) != 3 {
+		t.Fatalf("expected three accounts, got %d", len(filtered))
+	}
+	if accountName(filtered[0]) != "Alpha" {
+		t.Fatalf("unexpected first account: %s", accountName(filtered[0]))
+	}
+	if accountName(filtered[1]) != "Max8862" {
+		t.Fatalf("unexpected second account: %s", accountName(filtered[1]))
+	}
+	if accountName(filtered[2]) != "吹牛不算牛y" {
+		t.Fatalf("unexpected third account: %s", accountName(filtered[2]))
+	}
+}
