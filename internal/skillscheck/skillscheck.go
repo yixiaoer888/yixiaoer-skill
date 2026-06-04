@@ -2,13 +2,14 @@ package skillscheck
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
 const stampFile = "skills.stamp"
@@ -205,7 +206,9 @@ func DetectSkillDir() (string, error) {
 			return dir, nil
 		}
 	}
-	return "", errors.New(`failed to locate "skills/yixiaoer"; set YIXIAOER_SKILL_DIR explicitly`)
+	return "", yxerrors.Usage(`failed to locate "skills/yixiaoer"`, nil).
+		WithCategory("skill_not_found").
+		WithHint(`请设置环境变量 YIXIAOER_SKILL_DIR，或在包含 skills/yixiaoer 的项目目录中运行命令。`)
 }
 
 func findSkillDirFrom(start string) (string, bool) {
@@ -298,7 +301,9 @@ func CheckSkillLinks(skillDir string) (LinkCheckReport, error) {
 	})
 	report.InvalidLinks = len(report.Issues)
 	if report.InvalidLinks > 0 {
-		return report, fmt.Errorf("skill link check found %d invalid links", report.InvalidLinks)
+		return report, yxerrors.Usage("skill link check found invalid links", report).
+			WithCategory("skill_validation").
+			WithHint("修复报告中的 Markdown 本地链接目标，确保引用文件存在。")
 	}
 	return report, nil
 }
@@ -319,7 +324,8 @@ func CheckSkillFormat(skillDir string) (FormatCheckReport, error) {
 			Message: err.Error(),
 		})
 		report.InvalidFields = len(report.Issues)
-		return report, fmt.Errorf("skill format check failed")
+		return report, yxerrors.Usage("skill format check failed", report).
+			WithCategory("skill_validation")
 	}
 
 	content := normalizeMarkdown(raw)
@@ -331,7 +337,8 @@ func CheckSkillFormat(skillDir string) (FormatCheckReport, error) {
 			Message: frontmatterErr.Error(),
 		})
 		report.InvalidFields = len(report.Issues)
-		return report, fmt.Errorf("skill format check failed")
+		return report, yxerrors.Usage("skill format check failed", report).
+			WithCategory("skill_validation")
 	}
 
 	for _, field := range requiredSkillFields {
@@ -358,7 +365,8 @@ func CheckSkillFormat(skillDir string) (FormatCheckReport, error) {
 
 	report.InvalidFields = len(report.Issues) - report.MissingSections
 	if len(report.Issues) > 0 {
-		return report, fmt.Errorf("skill format check failed")
+		return report, yxerrors.Usage("skill format check failed", report).
+			WithCategory("skill_validation")
 	}
 	return report, nil
 }
@@ -430,7 +438,8 @@ func CheckSkillStructure(skillDir string) (StructureCheckReport, error) {
 	}
 
 	if len(report.Issues) > 0 {
-		return report, fmt.Errorf("skill structure check failed")
+		return report, yxerrors.Usage("skill structure check failed", report).
+			WithCategory("skill_validation")
 	}
 	return report, nil
 }
@@ -463,7 +472,10 @@ func CheckSkillPackage(skillDir string) (PackageCheckReport, error) {
 	}
 
 	if !report.Valid {
-		return report, fmt.Errorf("skill package check failed")
+		return report, yxerrors.Usage("skill package check failed", report).
+			WithCategory("skill_validation").
+			WithHint("根据 report 中的 format、structure、links 结果修复 skill 包后再重试。").
+			WithNextCommand("yxer skill check")
 	}
 	return report, nil
 }

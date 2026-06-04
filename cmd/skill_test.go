@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
 func TestSkillMarkdownLinksExist(t *testing.T) {
@@ -60,6 +62,36 @@ func TestSkillCheckCommandSuccess(t *testing.T) {
 	}
 	if response.Data.Links.InvalidLinks != 0 {
 		t.Fatalf("InvalidLinks = %d, want 0", response.Data.Links.InvalidLinks)
+	}
+}
+
+func TestSkillCheckCommandReturnsStructuredError(t *testing.T) {
+	skillDir := filepath.Join(t.TempDir(), "skills", "yixiaoer")
+	if err := os.MkdirAll(skillDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("YIXIAOER_SKILL_DIR", skillDir)
+
+	err := runSkillCheck(testCobraCommand())
+	if err == nil {
+		t.Fatal("expected skill check error")
+	}
+
+	typed, ok := err.(*yxerrors.Error)
+	if !ok {
+		t.Fatalf("expected *yxerrors.Error, got %T", err)
+	}
+	if typed.Code != yxerrors.UsageErr {
+		t.Fatalf("unexpected error code: %s", typed.Code)
+	}
+	if typed.Category != "skill_validation" {
+		t.Fatalf("unexpected error category: %s", typed.Category)
+	}
+	if typed.NextCommand != "yxer skill check" {
+		t.Fatalf("unexpected next command: %s", typed.NextCommand)
+	}
+	if typed.Details == nil {
+		t.Fatal("expected structured report details on error")
 	}
 }
 

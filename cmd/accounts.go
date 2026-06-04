@@ -1,10 +1,7 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/client"
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/output"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 	accountsflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/accounts"
@@ -67,25 +64,7 @@ func runAccountsList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if wantJSON(cmd) {
-		return output.Success(cmd.OutOrStdout(), "accounts.list", filtered)
-	}
-	fmt.Fprintf(cmd.OutOrStdout(), "账号列表")
-	if platform != "" {
-		fmt.Fprintf(cmd.OutOrStdout(), " (%s)", platform)
-	}
-	fmt.Fprintln(cmd.OutOrStdout(), ":")
-	for i, account := range filtered {
-		icon := "offline"
-		if client.AccountStatus(account) == 1 {
-			icon = "online"
-		}
-		fmt.Fprintf(cmd.OutOrStdout(), "  %d. %s (%s) %s\n", i+1, accountName(account), client.AccountID(account), icon)
-	}
-	if len(filtered) == 0 {
-		fmt.Fprintln(cmd.OutOrStdout(), "  (无在线账号)")
-	}
-	return nil
+	return output.Success(cmd.OutOrStdout(), "accounts.list", filtered)
 }
 
 func filterAccounts(accounts []map[string]interface{}, name string, status int) []map[string]interface{} {

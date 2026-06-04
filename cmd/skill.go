@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"os/exec"
 	"path/filepath"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/output"
 	"github.com/yixiaoer/yixiaoer-skill/internal/skillscheck"
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
 func init() {
@@ -122,7 +122,16 @@ func runSkillCheck(cmd *cobra.Command) error {
 	}
 	report, checkErr := skillscheck.CheckSkillPackage(skillDir)
 	if checkErr != nil {
-		return fmt.Errorf("%w: valid=%t invalidChecks=%d", checkErr, report.Valid, report.InvalidChecks)
+		if typed, ok := checkErr.(*yxerrors.Error); ok {
+			if typed.Details == nil {
+				typed.Details = report
+			}
+			return typed
+		}
+		return yxerrors.Usage("skill package check failed", report).
+			WithCategory("skill_validation").
+			WithHint("运行 `yxer skill check` 查看结构化校验结果，并修复缺失的文档、字段或链接。").
+			WithNextCommand("yxer skill check")
 	}
 	return output.Success(cmd.OutOrStdout(), "skill.check", report)
 }
@@ -130,7 +139,11 @@ func runSkillCheck(cmd *cobra.Command) error {
 func syncSkill(cmd *cobra.Command, skillDir string, globalInstall bool) error {
 	npxPath, err := exec.LookPath("npx")
 	if err != nil {
-		return fmt.Errorf("npx not found in PATH; install Node.js and ensure npx is available")
+		return yxerrors.Usage("npx not found in PATH", map[string]interface{}{
+			"binary": "npx",
+		}).WithCategory("missing_dependency").
+			WithHint("请先安装 Node.js，并确保 `npx` 在 PATH 中可用。").
+			WithNextCommand("node --version")
 	}
 
 	args := []string{"-y", "skills", "add", skillDir, "-y"}
@@ -146,7 +159,11 @@ func syncSkill(cmd *cobra.Command, skillDir string, globalInstall bool) error {
 	execCmd.Stderr = cmd.ErrOrStderr()
 	if err := execCmd.Run(); err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
-			return fmt.Errorf("skills sync timed out after 2m")
+			return yxerrors.Remote("skills sync timed out after 2m", map[string]interface{}{
+				"timeout": "2m",
+			}).WithCategory("timeout").
+				WithRetryable(true).
+				WithHint("稍后重试；如果网络较慢，先单独运行 `npx -y skills add <skillDir> -y` 观察安装日志。")
 		}
 		return err
 	}
