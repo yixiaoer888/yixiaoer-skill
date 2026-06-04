@@ -1,6 +1,10 @@
 package cmd
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/spf13/cobra"
+)
 
 func TestFilterAccountsByNameAndStatus(t *testing.T) {
 	accounts := []map[string]interface{}{
@@ -52,5 +56,16 @@ func TestFilterAccountsSortsOnlineAccountsFirst(t *testing.T) {
 	}
 	if accountName(filtered[2]) != "吹牛不算牛y" {
 		t.Fatalf("unexpected third account: %s", accountName(filtered[2]))
+	}
+}
+
+func TestAccountsListSubcommandInheritsNameAndStatusFlags(t *testing.T) {
+	cmd := &cobra.Command{}
+	cmd.Flags().AddFlagSet(accountsListCmd.InheritedFlags())
+	if accountsListCmd.InheritedFlags().Lookup("name") == nil {
+		t.Fatal("expected accounts list to inherit --name flag")
+	}
+	if accountsListCmd.InheritedFlags().Lookup("status") == nil {
+		t.Fatal("expected accounts list to inherit --status flag")
 	}
 }

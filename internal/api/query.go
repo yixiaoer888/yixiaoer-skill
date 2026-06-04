@@ -87,10 +87,17 @@ func (c *Client) Prepare(platform, publishType string) (PrepareData, error) {
 		DefaultFormType: "task",
 		Workflow:        fmt.Sprintf("workflows/publish-%s.md", publishType),
 		DocsIndex:       fmt.Sprintf("skills/yixiaoer/references/platforms/%s/index.md", publishType),
-		PlatformDoc:     fmt.Sprintf("skills/yixiaoer/references/platforms/%s/%s.md", publishType, platform),
+		PlatformDoc:     fmt.Sprintf("skills/yixiaoer/references/platforms/%s/%s", publishType, platformDocFileName(platform, publishType)),
 		Schema:          fmt.Sprintf("schemas/platforms/%s.%s.schema.json", platform, schemaTypeName(publishType)),
 		RootSchema:      "schemas/publish.schema.json",
 	}, nil
+}
+
+func platformDocFileName(platform, publishType string) string {
+	if publishType == "imageText" && platform == "shipinhao" {
+		return "shipinhao.md"
+	}
+	return platform + ".md"
 }
 
 func (c *Client) queryData(endpoint string) (interface{}, error) {

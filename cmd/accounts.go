@@ -13,8 +13,8 @@ var accountsName string
 var accountsStatus int
 
 func init() {
-	accountsCmd.Flags().StringVar(&accountsName, "name", "", "filter by name")
-	accountsCmd.Flags().IntVar(&accountsStatus, "status", -1, "filter by status")
+	accountsCmd.PersistentFlags().StringVar(&accountsName, "name", "", "filter by name")
+	accountsCmd.PersistentFlags().IntVar(&accountsStatus, "status", -1, "filter by status")
 	accountsCmd.AddCommand(accountsListCmd)
 	rootCmd.AddCommand(accountsCmd)
 }

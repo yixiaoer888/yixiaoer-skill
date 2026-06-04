@@ -48,6 +48,23 @@ make build
 bin/yxer.exe
 ```
 
+### 设置为全局命令
+
+安装成功后，建议把 `yxer.exe` 所在目录加入系统 `PATH`，这样后续就可以在任意目录直接执行 `yxer`。
+
+Windows PowerShell 示例：
+
+```powershell
+$yxerBin = (Resolve-Path .\bin).Path
+[Environment]::SetEnvironmentVariable(
+  "Path",
+  $env:Path + ";" + $yxerBin,
+  "User"
+)
+```
+
+执行完成后，请重新打开一个新的终端窗口，再运行 `yxer --version` 验证全局命令是否生效。
+
 ### 验证安装
 
 ```bash

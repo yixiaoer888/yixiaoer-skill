@@ -139,6 +139,33 @@ func TestSchemaGetCommandExplainsDuplicatedCoverPlacementForImageText(t *testing
 	}
 }
 
+func TestSchemaGetCommandShipinhaoImageTextTemplateIncludesAccountCover(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	var out bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.SetOut(&out)
+
+	if err := schemaGetCmd.RunE(cmd, []string{"shipinhao", "imageText"}); err != nil {
+		t.Fatal(err)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	template := data["minimalTemplate"].(map[string]interface{})
+	form := template["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	if form["coverKey"] == nil {
+		t.Fatalf("expected shipinhao imageText minimalTemplate to include coverKey, got %#v", form)
+	}
+	cover, ok := form["cover"].(map[string]interface{})
+	if !ok || cover["key"] == nil {
+		t.Fatalf("expected shipinhao imageText minimalTemplate to include cover object, got %#v", form)
+	}
+}
+
 func TestSchemaGetCommandVerboseOutputsDebugViews(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)

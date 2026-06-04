@@ -544,6 +544,58 @@ func TestPublishDryRunAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
 	}
 }
 
+func TestPublishDryRunMarksPlatformDraftSeparatelyFromYixiaoerDraft(t *testing.T) {
+	withRepoRoot(t)
+	service := publishflow.NewService()
+	result, err := service.DryRun(publishflow.ExecuteInput{
+		PublishType:   "imageText",
+		PlatformInput: "shipinhao",
+		Payload: map[string]interface{}{
+			"action":      "publish",
+			"publishType": "imageText",
+			"platforms":   []interface{}{"视频号"},
+			"publishArgs": map[string]interface{}{
+				"accountForms": []interface{}{
+					map[string]interface{}{
+						"platformAccountId": "acc_001",
+						"coverKey":          "uploaded/cover.png",
+						"cover": map[string]interface{}{
+							"key":    "uploaded/cover.png",
+							"size":   float64(512),
+							"width":  float64(1080),
+							"height": float64(1440),
+							"format": "png",
+						},
+						"contentPublishForm": map[string]interface{}{
+							"formType": "task",
+							"pubType":  float64(0),
+							"title":    "标题",
+							"images": []interface{}{
+								map[string]interface{}{
+									"key":    "uploaded/cover.png",
+									"size":   float64(512),
+									"width":  float64(1080),
+									"height": float64(1440),
+									"format": "png",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.PlatformDraft {
+		t.Fatalf("expected platformDraft=true when pubType=0, got %#v", result)
+	}
+	if result.YixiaoerDraft {
+		t.Fatalf("expected yixiaoerDraft=false for platform draft publish, got %#v", result)
+	}
+}
+
 func TestPublishCommandUsesLocalFlagsLikeNodeExample(t *testing.T) {
 	withRepoRoot(t)
 	payloadPath := writePublishPayload(t, validPublishPayload())

@@ -9,6 +9,7 @@ import (
 	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/core/platform"
 	publishmod "github.com/yixiaoer/yixiaoer-skill/internal/modules/publish"
 	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
+	accountsflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/accounts"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
@@ -92,7 +93,11 @@ func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	}
 
 	apiClient := client.New(cfg)
-	if err := AssertAccountsOnline(apiClient, platforms, preflight.AccountIDs); err != nil {
+	accountsByID, err := ResolveTargetAccounts(apiClient, platforms, preflight.AccountIDs)
+	if err != nil {
+		return nil, err
+	}
+	if err := AssertCloudChannelReady(channel, platforms, accountsByID); err != nil {
 		return nil, err
 	}
 
@@ -201,11 +206,23 @@ func normalizePublishEnvelope(body, publishArgs map[string]interface{}, publishT
 		}
 	}
 	if _, ok := body["isDraft"]; !ok {
-		body["isDraft"] = false
+		body["isDraft"] = inferYixiaoerDraft(body)
 	}
 	if _, ok := body["isAppContent"]; !ok {
 		body["isAppContent"] = false
 	}
+}
+
+func inferYixiaoerDraft(body map[string]interface{}) bool {
+	if body == nil {
+		return false
+	}
+	if value, ok := body["isDraft"]; ok {
+		if draft, ok := value.(bool); ok {
+			return draft
+		}
+	}
+	return false
 }
 
 func inferOuterDesc(publishType string, publishArgs, contentPublishForm map[string]interface{}) string {
@@ -412,6 +429,11 @@ func SinglePlatform(value string) (string, error) {
 }
 
 func AssertAccountsOnline(apiClient *client.Client, platforms []string, accountIDs []string) error {
+	_, err := ResolveTargetAccounts(apiClient, platforms, accountIDs)
+	return err
+}
+
+func ResolveTargetAccounts(apiClient *client.Client, platforms []string, accountIDs []string) (map[string]map[string]interface{}, error) {
 	wanted := map[string]bool{}
 	for _, id := range accountIDs {
 		wanted[id] = true
@@ -420,7 +442,7 @@ func AssertAccountsOnline(apiClient *client.Client, platforms []string, accountI
 	for _, platform := range platforms {
 		accounts, err := apiClient.Accounts(platform)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		for _, account := range accounts {
 			id := client.AccountID(account)
@@ -441,9 +463,57 @@ func AssertAccountsOnline(apiClient *client.Client, platforms []string, accountI
 		}
 	}
 	if len(errors) > 0 {
-		return yxerrors.Usage("Account preflight failed", errors).
+		return nil, yxerrors.Usage("Account preflight failed", errors).
 			WithHint("请先运行账号查询，确认目标账号存在且状态为在线。").
 			WithNextCommand("yxer accounts <platform>")
 	}
-	return nil
+	return found, nil
+}
+
+func AssertCloudChannelReady(channel string, platforms []string, accountsByID map[string]map[string]interface{}) error {
+	if strings.TrimSpace(channel) != "cloud" {
+		return nil
+	}
+	if !requiresCloudProxy(platforms) {
+		return nil
+	}
+	var missing []string
+	for _, account := range accountsByID {
+		if !accountHasCloudProxy(account) {
+			missing = append(missing, accountsflow.AccountName(account))
+		}
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+	return yxerrors.Usage("Cloud publish preflight failed", []string{
+		"以下账号未设置代理，请先设置代理：" + strings.Join(missing, "、"),
+	}).
+		WithHint("当前账号云发布缺少代理配置，建议先配置代理，或改用本机发布。").
+		WithNextCommand("yxer publish <type> <platform> <payload.json> --publish-channel local --client-id <clientId>")
+}
+
+func requiresCloudProxy(platforms []string) bool {
+	for _, platform := range platforms {
+		switch platformutil.ChineseName(platform) {
+		case "视频号":
+			return true
+		}
+	}
+	return false
+}
+
+func accountHasCloudProxy(account map[string]interface{}) bool {
+	if account == nil {
+		return false
+	}
+	if proxyInfo, ok := account["proxyInfo"].(map[string]interface{}); ok && len(proxyInfo) > 0 {
+		return true
+	}
+	for _, key := range []string{"proxyId", "kuaidailiArea"} {
+		if value := strings.TrimSpace(fmt.Sprint(account[key])); value != "" && value != "<nil>" {
+			return true
+		}
+	}
+	return false
 }

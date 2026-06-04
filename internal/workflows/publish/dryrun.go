@@ -15,6 +15,8 @@ type DryRunResult struct {
 	PublishMode   string                 `json:"publishChannel"`
 	ClientID      string                 `json:"clientId,omitempty"`
 	AccountIDs    []string               `json:"accountIds,omitempty"`
+	PlatformDraft bool                   `json:"platformDraft"`
+	YixiaoerDraft bool                   `json:"yixiaoerDraft"`
 	SchemaChecked bool                   `json:"schemaChecked"`
 }
 
@@ -75,6 +77,23 @@ func (Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 		PublishMode:   channel,
 		ClientID:      clientID,
 		AccountIDs:    preflight.AccountIDs,
+		PlatformDraft: isPlatformDraftPublish(body),
+		YixiaoerDraft: inferYixiaoerDraft(body),
 		SchemaChecked: true,
 	}, nil
+}
+
+func isPlatformDraftPublish(body map[string]interface{}) bool {
+	publishArgs, _ := body["publishArgs"].(map[string]interface{})
+	accountForms, _ := publishArgs["accountForms"].([]interface{})
+	firstForm := firstObject(accountForms)
+	firstCPF := objectField(firstForm, "contentPublishForm")
+	switch value := firstCPF["pubType"].(type) {
+	case float64:
+		return int(value) == 0
+	case int:
+		return value == 0
+	default:
+		return false
+	}
 }

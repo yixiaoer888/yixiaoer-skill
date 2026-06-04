@@ -147,7 +147,7 @@ func runSchemaGet(cmd *cobra.Command, platform, publishType string) error {
 		// 标准结构说明（文本形式）
 		"standardStructure": map[string]interface{}{
 			"description": "所有平台统一使用的标准 payload 结构",
-			"envelope": []string{
+			"envelope": append([]string{
 				"action: 'publish' (固定值)",
 				"publishType: '" + publishType + "' (固定值)",
 				"platforms: ['" + platformutil.ChineseName(schemaDoc.Platform) + "'] (固定值)",
@@ -157,7 +157,7 @@ func runSchemaGet(cmd *cobra.Command, platform, publishType string) error {
 				"publishArgs.accountForms[].platformAccountId: 账号ID (必填)",
 				"publishArgs.accountForms[].cover / coverKey: 账号层资源字段；若 businessFields 也出现 cover / coverKey，需要同步填写",
 				"publishArgs.accountForms[].contentPublishForm: 业务字段 (必填，见 businessFields)",
-			},
+			}, platformSpecificEnvelopeNotes(schemaDoc)...),
 		},
 
 		// 最小可用模板
@@ -695,6 +695,10 @@ func getPlatformSpecificNotes(platform, publishType string) []string {
 		}
 
 	case "weixin", "shipinhao", "视频号", "微信视频号":
+		if publishType == "imageText" {
+			notes = append(notes, "视频号图文除了 contentPublishForm.images，还需要在 accountForms[] 层同时提供 cover 和 coverKey")
+			notes = append(notes, "平台草稿使用 contentPublishForm.pubType=0；这不同于蚁小二草稿 isDraft=true")
+		}
 		if publishType == "video" {
 			notes = append(notes, "视频号支持位置(location)和话题")
 		}
@@ -711,4 +715,13 @@ func getPlatformSpecificNotes(platform, publishType string) []string {
 	}
 
 	return notes
+}
+
+func platformSpecificEnvelopeNotes(doc schema.Document) []string {
+	if doc.Platform == "shipinhao" && doc.Type == "imageText" {
+		return []string{
+			"视频号图文额外要求 publishArgs.accountForms[].cover 和 coverKey；建议与首图保持一致",
+		}
+	}
+	return nil
 }

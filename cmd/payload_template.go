@@ -49,16 +49,28 @@ func buildMinimalPayloadTemplate(doc schema.Document) map[string]interface{} {
 		}
 	}
 
+	accountForm := map[string]interface{}{
+		"platformAccountId":  "<从 accounts list 获取>",
+		"contentPublishForm": requiredFields,
+	}
+	if requiresAccountLevelCover(doc) {
+		accountForm["cover"] = map[string]interface{}{
+			"key":    "<从 upload 获取>",
+			"size":   0,
+			"width":  0,
+			"height": 0,
+			"format": "<png|jpg|jpeg|webp>",
+		}
+		accountForm["coverKey"] = "<与 cover.key 一致>"
+	}
+
 	template := map[string]interface{}{
 		"action":      "publish",
 		"publishType": doc.Type,
 		"platforms":   []interface{}{platformutil.ChineseName(doc.Platform)},
 		"publishArgs": map[string]interface{}{
 			"accountForms": []interface{}{
-				map[string]interface{}{
-					"platformAccountId":  "<从 accounts list 获取>",
-					"contentPublishForm": requiredFields,
-				},
+				accountForm,
 			},
 		},
 	}
@@ -68,6 +80,10 @@ func buildMinimalPayloadTemplate(doc schema.Document) map[string]interface{} {
 	}
 
 	return template
+}
+
+func requiresAccountLevelCover(doc schema.Document) bool {
+	return doc.Platform == "shipinhao" && doc.Type == "imageText"
 }
 
 func articleContentTemplateExclusion(publishType string) []string {

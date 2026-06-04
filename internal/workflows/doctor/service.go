@@ -20,13 +20,25 @@ func (Service) Check() (map[string]interface{}, error) {
 		return nil, err
 	}
 	checks := map[string]interface{}{
-		"projectDir":    cfg.ProjectDir,
-		"workDir":       cfg.WorkDir,
-		"apiUrl":        cfg.APIURL,
-		"apiKeyPresent": cfg.APIKey != "",
-		"schemaDir":     cfg.SchemaDir,
-		"schemaDirOK":   PathExists(cfg.SchemaDir),
-		"workflowsOK":   PathExists(filepath.Join(cfg.ProjectDir, "workflows")),
+		"projectDir":           cfg.ProjectDir,
+		"workDir":              cfg.WorkDir,
+		"apiUrl":               cfg.APIURL,
+		"apiKeyPresent":        cfg.APIKey != "",
+		"schemaDir":            cfg.SchemaDir,
+		"schemaDirOK":          PathExists(cfg.SchemaDir),
+		"workflowsOK":          PathExists(filepath.Join(cfg.ProjectDir, "workflows")),
+		"localPublishClientId": cfg.LocalClientID,
+		"publishChannelReadiness": map[string]interface{}{
+			"cloud": map[string]interface{}{
+				"configured": cfg.APIKey != "",
+				"note":       "云发布是否需要平台代理，取决于目标平台账号配置；正式发布前建议结合 accounts/prepare 结果确认。",
+			},
+			"local": map[string]interface{}{
+				"configured": cfg.LocalClientID != "",
+				"clientId":   cfg.LocalClientID,
+				"note":       "本机发布需要可用 clientId，且蚁小二客户端在线。",
+			},
+		},
 	}
 	if cfg.APIKey == "" {
 		return nil, yxerrors.Auth("Missing apiKey configuration").

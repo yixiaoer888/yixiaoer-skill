@@ -39,7 +39,24 @@ bin\yxer.exe
 
 如果用户已经提供了现成的 `yxer.exe`，也可以跳过源码构建，直接把该可执行文件加入 `PATH` 后继续后续步骤。
 
-## 第 3 步 验证 CLI
+## 第 3 步 设置全局命令
+
+安装成功后，建议立即把 `yxer.exe` 所在目录加入用户级 `PATH`，这样后续可以在任意目录直接执行 `yxer`。
+
+在仓库根目录可执行：
+
+```powershell
+$yxerBin = (Resolve-Path .\bin).Path
+[Environment]::SetEnvironmentVariable(
+  "Path",
+  $env:Path + ";" + $yxerBin,
+  "User"
+)
+```
+
+执行完成后，重新打开一个新的终端窗口，使新的 `PATH` 生效。
+
+## 第 4 步 验证 CLI
 
 ```shell
 .\bin\yxer.exe --version
@@ -51,7 +68,7 @@ bin\yxer.exe
 yxer --version
 ```
 
-## 第 4 步 初始化配置
+## 第 5 步 初始化配置
 
 Agent 运行以下命令，并让用户提供蚁小二 `apiKey`。
 
@@ -65,7 +82,7 @@ Agent 运行以下命令，并让用户提供蚁小二 `apiKey`。
 .\bin\yxer.exe config init --api-key <apiKey> --bind-app --account-name <账号名>
 ```
 
-## 第 5 步 安装 CLI Skill
+## 第 6 步 安装 CLI Skill
 
 Agent 在仓库根目录执行以下命令安装 `yixiaoer` skill：
 
@@ -91,7 +108,7 @@ npx skills add ".\skills\yixiaoer" -g -y
 .\bin\yxer.exe skill sync --global
 ```
 
-## 第 6 步 验证安装结果
+## 第 7 步 验证安装结果
 
 ```shell
 .\bin\yxer.exe doctor
@@ -105,7 +122,7 @@ yxer doctor
 yxer skill show
 ```
 
-## 第 7 步 交给 AI Agent 使用
+## 第 8 步 交给 AI Agent 使用
 
 安装完成后，AI Agent 应按以下入口读取能力，而不是直接猜命令：
 

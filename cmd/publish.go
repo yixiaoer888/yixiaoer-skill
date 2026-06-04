@@ -69,6 +69,8 @@ var publishCmd = &cobra.Command{
 					"publishChannel": result.PublishMode,
 					"clientId":       result.ClientID,
 					"accountIds":     result.AccountIDs,
+					"platformDraft":  result.PlatformDraft,
+					"yixiaoerDraft":  result.YixiaoerDraft,
 					"schemaChecked":  result.SchemaChecked,
 				},
 			})
