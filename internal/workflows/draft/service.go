@@ -1,25 +1,22 @@
 package draft
 
 import (
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/client"
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/config"
+	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 )
 
-type Service struct{}
-
-func NewService() Service {
-	return Service{}
+type Service struct {
+	rt *app.Runtime
 }
 
-func (Service) Save(payload map[string]interface{}) (map[string]interface{}, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, err
-	}
+func NewService(rt *app.Runtime) Service {
+	return Service{rt: rt}
+}
+
+func (s Service) Save(payload map[string]interface{}) (map[string]interface{}, error) {
 	body := cloneMap(payload)
 	delete(body, "action")
 	body["isDraft"] = true
-	return client.New(cfg).SaveDraft(body)
+	return s.rt.Client.SaveDraft(body)
 }
 
 func cloneMap(src map[string]interface{}) map[string]interface{} {

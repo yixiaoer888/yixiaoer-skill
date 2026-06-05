@@ -5,11 +5,13 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/client"
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/config"
+	"github.com/yixiaoer/yixiaoer-skill/internal/api"
+	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 )
 
-type Service struct{}
+type Service struct {
+	rt *app.Runtime
+}
 
 type ListOptions struct {
 	Page int
@@ -17,21 +19,17 @@ type ListOptions struct {
 	All  bool
 }
 
-func NewService() Service {
-	return Service{}
+func NewService(rt *app.Runtime) Service {
+	return Service{rt: rt}
 }
 
 func (s Service) List(platform, name string, status int) ([]map[string]interface{}, error) {
 	return s.ListWithOptions(platform, name, status, ListOptions{})
 }
 
-func (Service) ListWithOptions(platform, name string, status int, opts ListOptions) ([]map[string]interface{}, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, err
-	}
-
-	apiClient := client.New(cfg)
+func (s Service) ListWithOptions(platform, name string, status int, opts ListOptions) ([]map[string]interface{}, error) {
+	apiClient := s.rt.Client
+	var err error
 	var accounts []map[string]interface{}
 	if opts.All {
 		accounts, err = apiClient.AccountsAll(platform, opts.Size)
@@ -50,7 +48,7 @@ func FilterAccounts(accounts []map[string]interface{}, name string, status int) 
 		if name != "" && !strings.Contains(AccountName(account), name) {
 			continue
 		}
-		if status >= 0 && client.AccountStatus(account) != status {
+		if status >= 0 && api.AccountStatus(account) != status {
 			continue
 		}
 		filtered = append(filtered, account)
@@ -64,8 +62,8 @@ func sortAccounts(accounts []map[string]interface{}) {
 		left := accounts[i]
 		right := accounts[j]
 
-		leftStatus := client.AccountStatus(left)
-		rightStatus := client.AccountStatus(right)
+		leftStatus := api.AccountStatus(left)
+		rightStatus := api.AccountStatus(right)
 		if leftStatus != rightStatus {
 			return leftStatus == 1
 		}
@@ -76,8 +74,8 @@ func sortAccounts(accounts []map[string]interface{}) {
 			return leftName < rightName
 		}
 
-		leftID := strings.ToLower(client.AccountID(left))
-		rightID := strings.ToLower(client.AccountID(right))
+		leftID := strings.ToLower(api.AccountID(left))
+		rightID := strings.ToLower(api.AccountID(right))
 		return leftID < rightID
 	})
 }

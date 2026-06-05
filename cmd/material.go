@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/output"
 	materialflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/material"
 )
@@ -50,7 +51,11 @@ var materialCreateCmd = &cobra.Command{
 				"request": materialflow.BuildMaterialBody(payload),
 			})
 		}
-		result, err := materialflow.NewService().Create(payload)
+		rt, err := app.Load()
+		if err != nil {
+			return err
+		}
+		result, err := materialflow.NewService(rt).Create(payload)
 		if err != nil {
 			return err
 		}
@@ -79,7 +84,11 @@ var materialAddCmd = &cobra.Command{
 				"thumb":   result.Thumb,
 			})
 		}
-		result, err := materialflow.NewService().Add(input)
+		rt, err := app.Load()
+		if err != nil {
+			return err
+		}
+		result, err := materialflow.NewService(rt).Add(input)
 		if err != nil {
 			return err
 		}

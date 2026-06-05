@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/output"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 	accountsflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/accounts"
@@ -56,7 +57,11 @@ func runAccountsList(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		platform = args[0]
 	}
-	filtered, err := accountsflow.NewService().ListWithOptions(platform, accountsName, accountsStatus, accountsflow.ListOptions{
+	rt, err := app.Load()
+	if err != nil {
+		return err
+	}
+	filtered, err := accountsflow.NewService(rt).ListWithOptions(platform, accountsName, accountsStatus, accountsflow.ListOptions{
 		Page: accountsPage,
 		Size: accountsSize,
 		All:  accountsAll,

@@ -77,3 +77,28 @@ func TestGoodsKeywordFlagUsesAliasStorage(t *testing.T) {
 		t.Fatalf("expected alias storage to capture keyword flag, got %q", goodsKeyword)
 	}
 }
+
+func TestQueryCommandExistsWithLocationsSubcommand(t *testing.T) {
+	found := false
+	for _, child := range rootCmd.Commands() {
+		if child.Name() != "query" {
+			continue
+		}
+		for _, grandchild := range child.Commands() {
+			if grandchild.Name() == "locations" {
+				found = true
+				break
+			}
+		}
+	}
+	if !found {
+		t.Fatal("expected query command to expose locations subcommand")
+	}
+}
+
+func TestLocationsCommandMarkedAsCompatibilityEntry(t *testing.T) {
+	cmd := newLocationsCmd()
+	if !strings.Contains(cmd.Short, "兼容入口") {
+		t.Fatalf("expected compatibility hint in short help, got %q", cmd.Short)
+	}
+}

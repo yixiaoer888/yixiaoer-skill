@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/yixiaoer/yixiaoer-skill/internal/config"
+	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/output"
 	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/core/platform"
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/schema"
@@ -26,11 +26,11 @@ var publishInitCmd = &cobra.Command{
 	Short: "生成可编辑的发布 payload 模板",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load()
+		rt, err := app.Load()
 		if err != nil {
 			return err
 		}
-		schemaDoc, err := schema.NewValidator(cfg.SchemaDir).Schema(args[0], args[1])
+		schemaDoc, err := schema.NewValidator(rt.Config.SchemaDir).Schema(args[0], args[1])
 		if err != nil {
 			return yxerrors.Usage("schema not found", map[string]interface{}{
 				"platform": args[0],

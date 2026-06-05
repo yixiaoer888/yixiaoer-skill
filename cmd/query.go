@@ -59,7 +59,7 @@ func init() {
 func newCategoriesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "categories <account_id>",
-		Short: "查询分类",
+		Short: "查询分类（兼容入口，推荐使用 yxer query categories）",
 		Long:  "查询分类。\n\n当前支持平台：百家号、爱奇艺、哔哩哔哩、企鹅号、网易号、一点号、知乎、蜂网、AcFun。",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -75,7 +75,7 @@ func newCategoriesCmd() *cobra.Command {
 func newLocationsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "locations <account_id>",
-		Short: "查询位置",
+		Short: "查询位置（兼容入口，推荐使用 yxer query locations）",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runQuery(cmd, "locations", func(service queryflow.Service) (interface{}, error) {
@@ -92,7 +92,7 @@ func newLocationsCmd() *cobra.Command {
 func newMusicCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "music <account_id>",
-		Short: "查询音乐",
+		Short: "查询音乐（兼容入口，推荐使用 yxer query music）",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runQuery(cmd, "music", func(service queryflow.Service) (interface{}, error) {
@@ -108,7 +108,7 @@ func newMusicCmd() *cobra.Command {
 func newGoodsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "goods <account_id>",
-		Short: "查询商品",
+		Short: "查询商品（兼容入口，推荐使用 yxer query goods）",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runQuery(cmd, "goods", func(service queryflow.Service) (interface{}, error) {
@@ -124,7 +124,7 @@ func newGoodsCmd() *cobra.Command {
 func newCollectionsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "collections <account_id>",
-		Short: "查询合集",
+		Short: "查询合集（兼容入口，推荐使用 yxer query collections）",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runQuery(cmd, "collections", func(service queryflow.Service) (interface{}, error) {
@@ -139,7 +139,7 @@ func newCollectionsCmd() *cobra.Command {
 func newChallengesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "challenges <account_id>",
-		Short: "查询话题/挑战",
+		Short: "查询话题/挑战（兼容入口，推荐使用 yxer query challenges）",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runQuery(cmd, "challenges", func(service queryflow.Service) (interface{}, error) {
@@ -156,7 +156,7 @@ func newChallengesCmd() *cobra.Command {
 func newRecordsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "records",
-		Short: "查询发布记录",
+		Short: "查询发布记录（兼容入口，推荐使用 yxer query records）",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runRecordsList(cmd)

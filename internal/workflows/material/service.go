@@ -4,12 +4,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/client"
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/config"
+	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
-type Service struct{}
+type Service struct {
+	rt *app.Runtime
+}
 
 type AddInput struct {
 	FilePath  string
@@ -17,15 +18,11 @@ type AddInput struct {
 	Type      string
 }
 
-func NewService() Service {
-	return Service{}
+func NewService(rt *app.Runtime) Service {
+	return Service{rt: rt}
 }
 
-func (Service) Create(payload map[string]interface{}) (map[string]interface{}, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, err
-	}
+func (s Service) Create(payload map[string]interface{}) (map[string]interface{}, error) {
 	body := BuildMaterialBody(payload)
 	for _, required := range []string{"filePath", "fileName", "width", "height", "type"} {
 		if _, ok := body[required]; !ok {
@@ -39,15 +36,11 @@ func (Service) Create(payload map[string]interface{}) (map[string]interface{}, e
 				WithHint("请提供已上传素材的完整登记字段，至少包含 filePath、fileName、width、height、type。")
 		}
 	}
-	return client.New(cfg).Material(body)
+	return s.rt.Client.Material(body)
 }
 
-func (Service) Add(input AddInput) (map[string]interface{}, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, err
-	}
-	apiClient := client.New(cfg)
+func (s Service) Add(input AddInput) (map[string]interface{}, error) {
+	apiClient := s.rt.Client
 	if strings.TrimSpace(input.FilePath) == "" {
 		return nil, yxerrors.Usage("material add requires file", nil).
 			WithHint("请传入 --file，本地路径或 URL 均可。")

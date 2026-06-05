@@ -21,10 +21,13 @@ type DryRunResult struct {
 
 func (s Service) DryRunEnvelope(input ExecuteInput) (EnvelopeResult, error) {
 	result, err := s.DryRun(input)
+	return s.wrapDryRunEnvelope(result, err)
+}
+
+func (s Service) wrapDryRunEnvelope(result DryRunResult, err error) (EnvelopeResult, error) {
 	if err != nil {
 		return EnvelopeResult{}, err
 	}
-
 	return EnvelopeResult{
 		Action: "publish.dry-run",
 		Data: map[string]interface{}{

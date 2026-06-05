@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/output"
 	draftflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/draft"
 )
@@ -37,7 +38,11 @@ var draftSaveCmd = &cobra.Command{
 				"request": draftflow.PreviewSave(payload),
 			})
 		}
-		result, err := draftflow.NewService().Save(payload)
+		rt, err := app.Load()
+		if err != nil {
+			return err
+		}
+		result, err := draftflow.NewService(rt).Save(payload)
 		if err != nil {
 			return err
 		}

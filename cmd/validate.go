@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/yixiaoer/yixiaoer-skill/internal/config"
+	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/output"
 	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/core/platform"
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/schema"
@@ -37,10 +37,11 @@ var validateCmd = &cobra.Command{
 		if err := detectSwappedPublishArgs(publishType, platform, "validate <platform> <type> <payload.json>"); err != nil {
 			return err
 		}
-		cfg, err := config.Load()
+		rt, err := app.Load()
 		if err != nil {
 			return err
 		}
+		cfg := rt.Config
 		payload, err := readPayload(payloadPath)
 		if err != nil {
 			return err

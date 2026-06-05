@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/output"
 	uploadflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/upload"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
@@ -44,7 +45,11 @@ var uploadCmd = &cobra.Command{
 				"request": result,
 			})
 		}
-		result, err := uploadflow.NewService().Upload(source, uploadBucket, uploadAutoMeta)
+		rt, err := app.Load()
+		if err != nil {
+			return err
+		}
+		result, err := uploadflow.NewService(rt).Upload(source, uploadBucket, uploadAutoMeta)
 		if err != nil {
 			return err
 		}

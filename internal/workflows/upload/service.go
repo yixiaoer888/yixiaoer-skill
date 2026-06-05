@@ -1,20 +1,18 @@
 package upload
 
 import (
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/client"
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/config"
+	"github.com/yixiaoer/yixiaoer-skill/internal/api"
+	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 )
 
-type Service struct{}
-
-func NewService() Service {
-	return Service{}
+type Service struct {
+	rt *app.Runtime
 }
 
-func (Service) Upload(pathOrURL, bucket string, autoMeta bool) (client.UploadResult, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return client.UploadResult{}, err
-	}
-	return client.New(cfg).Upload(pathOrURL, bucket, autoMeta)
+func NewService(rt *app.Runtime) Service {
+	return Service{rt: rt}
+}
+
+func (s Service) Upload(pathOrURL, bucket string, autoMeta bool) (api.UploadResult, error) {
+	return s.rt.Client.Upload(pathOrURL, bucket, autoMeta)
 }

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/yixiaoer/yixiaoer-skill/internal/config"
+	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/output"
 	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/core/platform"
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/schema"
@@ -55,11 +55,11 @@ var schemaCatalogCmd = &cobra.Command{
 	Short: "返回 schema 根目录、根 schema 和平台 schema 索引",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load()
+		rt, err := app.Load()
 		if err != nil {
 			return err
 		}
-		catalog, err := schema.NewValidator(cfg.SchemaDir).Catalog()
+		catalog, err := schema.NewValidator(rt.Config.SchemaDir).Catalog()
 		if err != nil {
 			return err
 		}
@@ -101,27 +101,27 @@ type fieldPlacementView struct {
 }
 
 func runSchemaList(cmd *cobra.Command) error {
-	cfg, err := config.Load()
+	rt, err := app.Load()
 	if err != nil {
 		return err
 	}
-	entries, err := schema.NewValidator(cfg.SchemaDir).List()
+	entries, err := schema.NewValidator(rt.Config.SchemaDir).List()
 	if err != nil {
 		return err
 	}
 	return output.Success(cmd.OutOrStdout(), "schema.list", map[string]interface{}{
-		"schemaDir": filepath.ToSlash(cfg.SchemaDir),
+		"schemaDir": filepath.ToSlash(rt.Config.SchemaDir),
 		"count":     len(entries),
 		"items":     entries,
 	})
 }
 
 func runSchemaGet(cmd *cobra.Command, platform, publishType string) error {
-	cfg, err := config.Load()
+	rt, err := app.Load()
 	if err != nil {
 		return err
 	}
-	schemaDoc, err := schema.NewValidator(cfg.SchemaDir).Schema(platform, publishType)
+	schemaDoc, err := schema.NewValidator(rt.Config.SchemaDir).Schema(platform, publishType)
 	if err != nil {
 		return yxerrors.Usage("schema not found", map[string]interface{}{
 			"platform": platform,
@@ -225,11 +225,11 @@ func fieldPlacementFor(doc schema.Document, key string) fieldPlacementView {
 }
 
 func runSchemaFields(cmd *cobra.Command, platform, publishType string) error {
-	cfg, err := config.Load()
+	rt, err := app.Load()
 	if err != nil {
 		return err
 	}
-	validator := schema.NewValidator(cfg.SchemaDir)
+	validator := schema.NewValidator(rt.Config.SchemaDir)
 	doc, err := validator.Schema(platform, publishType)
 	if err != nil {
 		return yxerrors.Usage("schema not found", map[string]interface{}{
