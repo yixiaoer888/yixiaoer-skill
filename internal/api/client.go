@@ -46,6 +46,10 @@ func (c *Client) Put(endpoint string, body interface{}, out interface{}) error {
 	return c.Do(http.MethodPut, endpoint, body, out)
 }
 
+func (c *Client) Patch(endpoint string, body interface{}, out interface{}) error {
+	return c.Do(http.MethodPatch, endpoint, body, out)
+}
+
 func (c *Client) Do(method, endpoint string, body interface{}, out interface{}) error {
 	if err := c.cfg.RequireAPIKey(); err != nil {
 		return err
@@ -214,6 +218,13 @@ func Query(endpoint string, params map[string]string) string {
 			values.Set(key, value)
 		}
 	}
+	if values.Encode() == "" {
+		return endpoint
+	}
+	return endpoint + "?" + values.Encode()
+}
+
+func QueryValues(endpoint string, values url.Values) string {
 	if values.Encode() == "" {
 		return endpoint
 	}

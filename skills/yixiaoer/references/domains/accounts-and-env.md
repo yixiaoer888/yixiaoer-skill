@@ -17,6 +17,11 @@ yxer config get
 yxer config init --api-key <apiKey>
 yxer config set-local-client-id <clientId>
 yxer accounts list [platform] [--name 关键词] [--status 1] [--page 1] [--size 20] [--all] [--json]
+yxer query account-overviews --platform P [--name 关键词] [--group 分组] [--login-status 1] [--member-id ID] [--page 1] [--size 10]
+yxer query content-overviews [--platform P] [--account-id ID] [--publish-user-id ID] [--type video|article|miniVideo|dynamic] [--title 关键词] [--publish-start-time 毫秒] [--publish-end-time 毫秒]
+yxer query proxies [--size 9999]
+yxer query proxy-areas
+yxer update-account <account_id> [--proxy-id ID] [--kuaidaili-area CODE] [--remark 文本] [--group ID] --dry-run
 yxer skill show
 yxer skill sync [--global]
 ```
@@ -27,5 +32,6 @@ yxer skill sync [--global]
 - `doctor` 失败时先修环境，不继续业务流程
 - 涉及本机发布前的 `clientId` 判断时，先查询现有配置和账号列表
 - `yxer accounts list` 默认查第 `1` 页、每页 `20` 条；传 `--page`、`--size` 可控制单页范围，传 `--all` 时才继续翻页
+- `yxer update-account` 是写操作，正式执行前必须先用同一参数执行 `--dry-run`
 - 命中多个账号时，结构化列出候选并让用户确认；只有一个可用账号时可自动选中并说明
 - 用户明确说“先不要发布，只查环境/账号”时，完成本域后直接停下，不擅自继续发布流程

@@ -16,21 +16,17 @@
 | 平台草稿发布 | 部分覆盖 | `yxer publish <type> <platform> <payload.json>` | `skills/yixiaoer/references/save-draft.md` |
 | 素材库登记 | 已覆盖 | `yxer material create <payload.json>` | `skills/yixiaoer/references/material-resource.md` |
 | 素材上传并登记一体化 | 已覆盖 | `yxer material add --file <文件路径或URL>` | `skills/yixiaoer/references/material-resource.md` |
-| 账号数据概览 | 未覆盖 | 建议新增：`yxer account-overviews ...` | `skills/yixiaoer/references/get-account-overviews.md` |
-| 作品数据概览 | 未覆盖 | 建议新增：`yxer content-overviews ...` | `skills/yixiaoer/references/get-content-overviews.md` |
-| 征文活动 | 未覆盖 | 建议新增：`yxer activities <account_id> ...` | `skills/yixiaoer/references/get-publish-activities.md` |
-| 小程序列表 | 未覆盖 | 建议新增：`yxer miniapps <account_id>` | `skills/yixiaoer/references/get-miniapps.md` |
-| 同步发布应用 | 未覆盖 | 建议新增：`yxer syncapps <account_id>` | `skills/yixiaoer/references/get-sync-apps.md` |
-| 热点列表 | 未覆盖 | 建议新增：`yxer hot-events <account_id> ...` | `skills/yixiaoer/references/get-hot-events.md` |
-| 群聊列表 | 未覆盖 | 建议新增：`yxer groups <account_id>` | `skills/yixiaoer/references/get-groups.md` |
-| 音乐分类 | 未覆盖 | 建议新增：`yxer music-categories <account_id>` | `skills/yixiaoer/references/get-music-categories.md` |
-| 游戏挂载 | 未覆盖 | 建议新增：`yxer games <account_id> ...` | `skills/yixiaoer/references/get-games.md` |
-| 代理管理 | 未覆盖 | 建议新增：`yxer proxies ...` / `yxer proxy-areas` / `yxer update-account ...` | `skills/yixiaoer/references/proxy-management.md` |
+| 账号数据概览 | 已覆盖 | `yxer query account-overviews --platform P [--name 关键词] [--group 分组] [--login-status 1] [--member-id ID]` | `skills/yixiaoer/references/get-account-overviews.md` |
+| 作品数据概览 | 已覆盖 | `yxer query content-overviews [--platform P] [--account-id ID] [--type video|article|miniVideo|dynamic]` | `skills/yixiaoer/references/get-content-overviews.md` |
+| 征文活动 | 已覆盖 | `yxer query activities <account_id> [--type video|article] [--category-id ID] [--query 关键词]` | `skills/yixiaoer/references/get-publish-activities.md` |
+| 小程序列表 | 已覆盖 | `yxer query miniapps <account_id> [--query 关键词]` | `skills/yixiaoer/references/get-miniapps.md` |
+| 同步发布应用 | 已覆盖 | `yxer query syncapps <account_id>` | `skills/yixiaoer/references/get-sync-apps.md` |
+| 热点列表 | 已覆盖 | `yxer query hot-events <account_id>` | `skills/yixiaoer/references/get-hot-events.md` |
+| 群聊列表 | 已覆盖 | `yxer query groups <account_id>` | `skills/yixiaoer/references/get-groups.md` |
+| 音乐分类 | 已覆盖 | `yxer query music-categories <account_id>` | `skills/yixiaoer/references/get-music-categories.md` |
+| 游戏挂载 | 已覆盖 | `yxer query games <account_id> [--query 关键词]` | `skills/yixiaoer/references/get-games.md` |
+| 代理管理 | 已覆盖 | `yxer query proxies` / `yxer query proxy-areas` / `yxer update-account <account_id> ... --dry-run` | `skills/yixiaoer/references/proxy-management.md` |
 
 ## 推荐迁移顺序
 
-1. `yxer miniapps` / `yxer syncapps`
-2. `yxer games` / `yxer hot-events` / `yxer groups`
-3. `yxer account-overviews` / `yxer content-overviews`
-4. `yxer activities`
-5. `yxer proxies` / `yxer proxy-areas` / `yxer update-account`
+当前遗留表中的 CLI 化项目均已覆盖；后续若旧 skill 文档新增能力，应继续按本表补充状态。

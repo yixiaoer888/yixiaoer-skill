@@ -48,11 +48,18 @@ yxer schema get <platform> <type>
 yxer upload --file <file_path>
 yxer upload --url <resource_url>
 yxer query categories <account_id> [--type video|article]
-yxer query locations <account_id> [--query 关键词]
-yxer query music <account_id> [--query 关键词]
-yxer query goods <account_id> [--query 关键词]
+yxer query locations <account_id> [--query 关键词] [--next-page TOKEN]
+yxer query music <account_id> [--query 关键词] [--category-id ID] [--category-name 名称] [--next-page TOKEN]
+yxer query music-categories <account_id>
+yxer query goods <account_id> [--query 关键词] [--next-page TOKEN]
 yxer query collections <account_id> [--type video|article]
-yxer query challenges <account_id> [--query 关键词] [--type video]
+yxer query miniapps <account_id> [--query 关键词]
+yxer query syncapps <account_id>
+yxer query games <account_id> [--query 关键词]
+yxer query hot-events <account_id> [--type video|article]
+yxer query groups <account_id>
+yxer query activities <account_id> [--type video|article] [--category-id ID] [--query 关键词]
+yxer query challenges <account_id> [--query 关键词] [--type video] [--next-page TOKEN]
 yxer validate <platform> <type> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>]
 yxer publish <type> <platform> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>] --dry-run
 yxer publish <type> <platform> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>]
@@ -63,3 +70,6 @@ yxer publish <type> <platform> <payload.json> [--publish-channel cloud|local] [-
 - 用户只说“帮我发”时，默认云发布；明确说“本机发布”“客户端发布”时切到本机通道。
 - 用户要“只生成 payload”时，仍要先走 `prepare` / `schema get` 和字段查询纪律。
 - 用户要填分类、位置、音乐、合集、话题、商品时，先查询，再回填完整对象。
+- 用户要挂载小程序或选择同步发布应用时，先执行 `yxer query miniapps` / `yxer query syncapps`，再把 CLI 返回对象完整回填到 payload。
+- 用户要挂载游戏、绑定热点或选择群聊时，先执行 `yxer query games` / `yxer query hot-events` / `yxer query groups`，再把 CLI 返回对象完整回填到 payload。
+- 用户要按音乐分类找配乐或参加平台活动时，先执行 `yxer query music-categories` / `yxer query activities`，再把 CLI 返回对象完整回填到 payload。

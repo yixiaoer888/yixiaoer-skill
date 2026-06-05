@@ -124,6 +124,9 @@ func schemaPlatformKeys(platformName, publishType string) []string {
 	normalized := strings.ToLower(trimmed)
 	canonicalKey := platformutil.CanonicalKey(platformName)
 	keys := []string{canonicalKey, normalized}
+	if canonicalKey == "xhs" {
+		keys = append(keys, "xiaohongshu")
+	}
 	if canonicalChineseName := platformutil.ChineseName(platformName); canonicalChineseName != "" {
 		keys = append(keys, canonicalChineseName, strings.ToLower(canonicalChineseName))
 	}

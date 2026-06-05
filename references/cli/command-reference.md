@@ -53,12 +53,26 @@ yxer material add --file <文件路径或URL> [--thumb <缩略图路径或URL>] 
 
 ```bash
 yxer query categories <account_id> [--type video|article]
-yxer query locations <account_id> [--query 关键词] [--type 0|1|2|3]
-yxer query music <account_id> [--query 关键词]
-yxer query goods <account_id> [--query 关键词]
+yxer query locations <account_id> [--query 关键词] [--type 0|1|2|3] [--next-page TOKEN]
+yxer query music <account_id> [--query 关键词] [--category-id ID] [--category-name 名称] [--next-page TOKEN]
+yxer query music-categories <account_id>
+yxer query goods <account_id> [--query 关键词] [--next-page TOKEN]
 yxer query collections <account_id> [--type video|article]
-yxer query challenges <account_id> [--query 关键词] [--type video]
+yxer query miniapps <account_id> [--query 关键词]
+yxer query syncapps <account_id>
+yxer query games <account_id> [--query 关键词]
+yxer query hot-events <account_id> [--type video|article]
+yxer query groups <account_id>
+yxer query activities <account_id> [--type video|article] [--category-id ID] [--query 关键词]
+yxer query challenges <account_id> [--query 关键词] [--type video] [--next-page TOKEN]
 yxer query records [--platform P] [--limit N] [--status S] [--json]
+yxer query details <task_set_id>
+yxer query account-overviews --platform P [--name 关键词] [--group 分组] [--login-status 1] [--member-id ID] [--page 1] [--size 10]
+yxer query content-overviews [--platform P] [--account-id ID] [--publish-user-id ID] [--type video|article|miniVideo|dynamic] [--title 关键词] [--publish-start-time 毫秒] [--publish-end-time 毫秒] [--page 1] [--size 10]
+yxer query proxies [--size 9999]
+yxer query proxy-areas
+yxer update-account <account_id> [--proxy-id ID] [--kuaidaili-area CODE] [--remark 文本] [--group ID] --dry-run
+yxer update-account <account_id> [--proxy-id ID] [--kuaidaili-area CODE] [--remark 文本] [--group ID]
 yxer prepare <platform> <type>
 yxer schema fields <platform> <type>
 yxer schema get <platform> <type>
