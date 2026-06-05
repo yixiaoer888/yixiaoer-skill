@@ -77,9 +77,9 @@ yxer upload --file .\cover.jpg
 按平台需要查询分类、位置、音乐、商品、合集或话题：
 
 ```bash
-yxer categories <account_id> --type video
-yxer locations <account_id> --query 上海
-yxer music <account_id> --query 热门
+yxer query categories <account_id> --type video
+yxer query locations <account_id> --query 上海
+yxer query music <account_id> --query 热门
 ```
 
 ### 步骤 6：填写 payload

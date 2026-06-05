@@ -36,7 +36,7 @@
 
 规则：
 
-- 必须来自 `yxer challenges`、`yxer categories` 或平台文档明确指定的查询命令返回结果
+- 必须来自 `yxer query challenges`、`yxer query categories` 或平台文档明确指定的查询命令返回结果
 - 必须保留完整 `raw`
 - 不要只传名称字符串
 
@@ -72,7 +72,7 @@
 
 规则：
 
-- 必须来自 `yxer challenges <account_id> ...`
+- 必须来自 `yxer query challenges <account_id> ...`
 - 必须透传完整对象
 - 不要把 `challenge` 和 `tags` / `topics` 混用
 
@@ -134,6 +134,6 @@
 
 1. 先查 schema：`yxer schema fields <platform> <type>`
 2. 再查平台文档确认字段类型
-3. 如需动态话题对象，先执行 `yxer challenges` / `yxer categories`
+3. 如需动态话题对象，先执行 `yxer query challenges` / `yxer query categories`
 4. 由 Agent 直接生成最终 payload
 5. 用 `yxer validate` 验证，而不是依赖 CLI 重写标签结构

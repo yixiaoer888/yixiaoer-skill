@@ -47,12 +47,12 @@ yxer prepare <platform> <type>
 yxer schema get <platform> <type>
 yxer upload --file <file_path>
 yxer upload --url <resource_url>
-yxer categories <account_id> [--type video|article]
-yxer locations <account_id> [--query 关键词]
-yxer music <account_id> [--query 关键词]
-yxer goods <account_id> [--query 关键词]
-yxer collections <account_id> [--type video|article]
-yxer challenges <account_id> [--query 关键词] [--type video]
+yxer query categories <account_id> [--type video|article]
+yxer query locations <account_id> [--query 关键词]
+yxer query music <account_id> [--query 关键词]
+yxer query goods <account_id> [--query 关键词]
+yxer query collections <account_id> [--type video|article]
+yxer query challenges <account_id> [--query 关键词] [--type video]
 yxer validate <platform> <type> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>]
 yxer publish <type> <platform> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>] --dry-run
 yxer publish <type> <platform> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>]

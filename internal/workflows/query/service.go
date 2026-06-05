@@ -1,76 +1,46 @@
 package query
 
 import (
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/client"
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/config"
+	"github.com/yixiaoer/yixiaoer-skill/internal/api"
+	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 )
 
-type Service struct{}
-
-func NewService() Service {
-	return Service{}
+type Service struct {
+	rt *app.Runtime
 }
 
-func (Service) Categories(accountID, publishType string) (interface{}, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, err
-	}
-	return client.New(cfg).Categories(accountID, publishType)
+func NewService(rt *app.Runtime) Service {
+	return Service{rt: rt}
 }
 
-func (Service) Locations(accountID, keyword, locationType string) (interface{}, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, err
-	}
-	return client.New(cfg).Locations(accountID, keyword, locationType)
+func (s Service) Categories(accountID, publishType string) (interface{}, error) {
+	return s.rt.Client.Categories(accountID, publishType)
 }
 
-func (Service) Music(accountID, keyword string) (interface{}, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, err
-	}
-	return client.New(cfg).Music(accountID, keyword)
+func (s Service) Locations(accountID, keyword, locationType string) (interface{}, error) {
+	return s.rt.Client.Locations(accountID, keyword, locationType)
 }
 
-func (Service) Goods(accountID, keyword string) (interface{}, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, err
-	}
-	return client.New(cfg).Goods(accountID, keyword)
+func (s Service) Music(accountID, keyword string) (interface{}, error) {
+	return s.rt.Client.Music(accountID, keyword)
 }
 
-func (Service) Collections(accountID, publishType string) (interface{}, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, err
-	}
-	return client.New(cfg).Collections(accountID, publishType)
+func (s Service) Goods(accountID, keyword string) (interface{}, error) {
+	return s.rt.Client.Goods(accountID, keyword)
 }
 
-func (Service) Challenges(accountID, keyword, publishType string) (interface{}, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, err
-	}
-	return client.New(cfg).Challenges(accountID, keyword, publishType)
+func (s Service) Collections(accountID, publishType string) (interface{}, error) {
+	return s.rt.Client.Collections(accountID, publishType)
 }
 
-func (Service) Records(platform, limit, status string) (interface{}, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, err
-	}
-	return client.New(cfg).Records(platform, limit, status)
+func (s Service) Challenges(accountID, keyword, publishType string) (interface{}, error) {
+	return s.rt.Client.Challenges(accountID, keyword, publishType)
 }
 
-func (Service) Prepare(platform, publishType string) (client.PrepareData, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return client.PrepareData{}, err
-	}
-	return client.New(cfg).Prepare(platform, publishType)
+func (s Service) Records(platform, limit, status string) (interface{}, error) {
+	return s.rt.Client.Records(platform, limit, status)
+}
+
+func (s Service) Prepare(platform, publishType string) (api.PrepareData, error) {
+	return s.rt.Client.Prepare(platform, publishType)
 }

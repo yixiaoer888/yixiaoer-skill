@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/output"
+	"github.com/yixiaoer/yixiaoer-skill/internal/output"
 	"github.com/yixiaoer/yixiaoer-skill/internal/skillscheck"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )

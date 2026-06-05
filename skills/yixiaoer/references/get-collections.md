@@ -5,7 +5,7 @@
 ## 调用指令 (Command)
 
 ```bash
-yxer collections ACCOUNT_ID --json
+yxer query collections ACCOUNT_ID --json
 ```
 
 ## 参数列表 (Payload Properties)
@@ -14,7 +14,7 @@ yxer collections ACCOUNT_ID --json
 | :--- | :--- | :--- | :--- |
 | `account_id` | `string` | **是** | 蚁小二账号 ID (32位十六进制) |
 
-返回一个 `Category` 数组。发布时必须直接使用 `yxer collections` 返回的完整对象作为 `collection` 参数传递给发布流程，不能只保留 ID、名称或 `raw` 的局部字段。
+返回一个 `Category` 数组。发布时必须直接使用 `yxer query collections` 返回的完整对象作为 `collection` 参数传递给发布流程，不能只保留 ID、名称或 `raw` 的局部字段。
 
 ```json
 [
@@ -28,7 +28,7 @@ yxer collections ACCOUNT_ID --json
 
 ## CLI / 后端逻辑
 
-- **CLI 命令**: `yxer collections <account_id> [--type video|article] [--json]`
+- **CLI 命令**: `yxer query collections <account_id> [--type video|article] [--json]`
 - **功能**: 封装蚁小二标准化合集查询接口 (`GET /platform-accounts/{platformAccountId}/collections`)。
 - **参数映射**: 将 `account_id` 映射为 URL 路径变量，将 `type` 映射为 `publishType` 查询参数。
 

@@ -5,7 +5,7 @@
 ## 1. 调用指令
 
 ```bash
-yxer goods YOUR_ACCOUNT_ID --query 可选搜索词 --json
+yxer query goods YOUR_ACCOUNT_ID --query 可选搜索词 --json
 ```
 
 ## 2. 请求参数
@@ -18,7 +18,7 @@ yxer goods YOUR_ACCOUNT_ID --query 可选搜索词 --json
 
 ## 3. 返回数据结构
 
-返回一个包含 `ShoppingCartItem` 对象的数组及分页信息。发布时必须使用 `yxer goods` 返回的完整对象，不能只保留 `data.yixiaoerId`、`data.yixiaoerName` 或局部字段。
+返回一个包含 `ShoppingCartItem` 对象的数组及分页信息。发布时必须使用 `yxer query goods` 返回的完整对象，不能只保留 `data.yixiaoerId`、`data.yixiaoerName` 或局部字段。
 
 ### ShoppingCartItem 结构说明
 | 字段名 | 类型 | 说明 |

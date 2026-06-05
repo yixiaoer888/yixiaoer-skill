@@ -25,12 +25,12 @@
 1. **身份锚定**：识别目标账号 `account_id`（通过 `accounts` action 获取）。
 2. **场景对齐**：根据发布内容决定 `type`。
 3. **参数装配**：构造 `action: "categories"` 负载。
-4. **指令执行**：调用 `yxer categories <account_id> [--type video|article] [--json]`。
+4. **指令执行**：调用 `yxer query categories <account_id> [--type video|article] [--json]`。
 5. **值注入**：将 CLI 返回的完整分类对象填入发布 Payload 的对应位置，不能只摘取 `id`、`name` 或局部 `raw` 字段。
 
 ## 返回数据说明 (Response Details)
 
-返回包含分类对象（`Category` 结构）的树形或扁平结构。发布时必须使用 `yxer categories` 返回的完整对象数据。
+返回包含分类对象（`Category` 结构）的树形或扁平结构。发布时必须使用 `yxer query categories` 返回的完整对象数据。
 - **Agent 手动铺平 (Flattening)**：若返回的数据包含嵌套的 `children` 数组，Agent **必须自行递归遍历**，以便在组装发布表单时能够获取任何层级的分类。
 - **层级路径组装 (Cascading Path)**：
   - 对于要求多级分类的平台 (如 Bilibili)，Agent 在组装表单时，不能只填入最终选中的子分类。
@@ -57,6 +57,6 @@
 ## 调用指令 (Command)
 
 ```bash
-yxer categories YOUR_ACCOUNT_ID --type video --json
+yxer query categories YOUR_ACCOUNT_ID --type video --json
 ```
 

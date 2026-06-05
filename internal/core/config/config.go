@@ -1,3 +1,8 @@
+// Package config is a temporary compatibility facade.
+//
+// Deprecated: new code should import
+// github.com/yixiaoer/yixiaoer-skill/internal/config directly.
+// This package remains only to avoid a large one-shot refactor.
 package config
 
 import base "github.com/yixiaoer/yixiaoer-skill/internal/config"

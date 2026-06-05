@@ -33,7 +33,7 @@ metadata:
   - 覆盖蚁小二草稿、平台草稿判断、素材上传、素材登记与“上传后立即发布”的切换路径。
 - 发布记录与失败排查
   - 入口：[`./references/domains/troubleshooting.md`](./references/domains/troubleshooting.md)
-  - 覆盖 `records list`、校验失败修复、本机/云发布错误分流与回退策略。
+  - 覆盖 `query records`、校验失败修复、本机/云发布错误分流与回退策略。
 - 安装、升级与分发
   - 入口：[`./references/domains/install-and-sync.md`](./references/domains/install-and-sync.md)
   - 覆盖 skill 安装、同步、升级和宿主侧接入说明。
@@ -66,5 +66,5 @@ yxer schema get <platform> <type>
 - BLOCKING REQUIREMENT: 正式发布前固定顺序是 `doctor -> accounts list -> prepare -> schema fields -> validate -> publish --dry-run -> publish`；只有需要 payload 骨架时再补 `schema get`。
 - `prepare`、`schema fields` / `schema get`、workflow、平台文档和 CLI 实际输出，是组装 payload 的唯一依据。
 - 图片、视频、封面等资源必须先上传，且只能复用 `yxer upload` 返回的真实字段。
-- `category`、`location`、`music`、`collection`、`challenge`、`goods` 等动态字段必须先查询，不能手写对象。
+- `category`、`location`、`music`、`collection`、`challenge`、`goods` 等动态字段必须先通过 `yxer query ...` 查询，不能手写对象。
 - CRITICAL: `validate`、`publish --dry-run`、正式 `publish` 必须使用同一套发布通道参数。

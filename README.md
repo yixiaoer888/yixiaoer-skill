@@ -264,14 +264,19 @@ yxer publish <type> <platform> <payload.json> [clientId] [--dry-run]
 ### 查询类能力
 
 ```bash
-yxer categories <account_id> [--type video|article]
-yxer locations <account_id> [--query 关键词]
-yxer music <account_id> [--query 关键词]
-yxer goods <account_id> [--query 关键词]
-yxer collections <account_id> [--type video|article]
-yxer challenges <account_id> [--query 关键词] [--type video]
-yxer records list [--platform P] [--limit N] [--status S] [--json]
+yxer query categories <account_id> [--type video|article]
+yxer query locations <account_id> [--query 关键词]
+yxer query music <account_id> [--query 关键词]
+yxer query goods <account_id> [--query 关键词]
+yxer query collections <account_id> [--type video|article]
+yxer query challenges <account_id> [--query 关键词] [--type video]
+yxer query records [--platform P] [--limit N] [--status S] [--json]
 ```
+
+说明：
+
+- 推荐优先使用 `yxer query ...` 作为统一查询入口
+- 旧的一层命令如 `yxer locations ...`、`yxer records list ...` 仍兼容，可逐步迁移
 
 ## 使用说明
 

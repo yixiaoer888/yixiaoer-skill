@@ -11,7 +11,7 @@
 ## 标准步骤
 
 1. 先确认问题属于哪一类：环境、账号、payload、资源、通道、平台返回错误
-2. 执行 `yxer records list [--platform P] [--limit N] [--status S] [--json]`
+2. 执行 `yxer query records [--platform P] [--limit N] [--status S] [--json]`
 3. 结合最近一次 `validate` / `publish` 输出定位错误阶段
 4. 回到对应 workflow：
    - 账号问题：[`account-selection.md`](./account-selection.md)
@@ -32,7 +32,7 @@
 ## 推荐命令
 
 ```bash
-yxer records list --platform 抖音 --limit 10 --json
+yxer query records --platform 抖音 --limit 10 --json
 yxer doctor
 yxer validate 抖音 video .\payload.json
 ```

@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/api"
 	"github.com/yixiaoer/yixiaoer-skill/internal/config"
 	publishflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/publish"
@@ -485,7 +486,7 @@ func TestPublishCommandAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
 
 func TestPublishDryRunAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
 	withRepoRoot(t)
-	service := publishflow.NewService()
+	service := publishflow.NewService(testRuntime(t))
 	result, err := service.DryRun(publishflow.ExecuteInput{
 		PublishType:   "video",
 		PlatformInput: "抖音",
@@ -546,7 +547,7 @@ func TestPublishDryRunAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
 
 func TestPublishDryRunMarksPlatformDraftSeparatelyFromYixiaoerDraft(t *testing.T) {
 	withRepoRoot(t)
-	service := publishflow.NewService()
+	service := publishflow.NewService(testRuntime(t))
 	result, err := service.DryRun(publishflow.ExecuteInput{
 		PublishType:   "imageText",
 		PlatformInput: "shipinhao",
@@ -1551,6 +1552,15 @@ func testCobraCommand() *cobra.Command {
 	cmd.SetOut(&bytes.Buffer{})
 	cmd.SetErr(&bytes.Buffer{})
 	return cmd
+}
+
+func testRuntime(t *testing.T) *app.Runtime {
+	t.Helper()
+	rt, err := app.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return rt
 }
 
 func withRepoRoot(t *testing.T) {

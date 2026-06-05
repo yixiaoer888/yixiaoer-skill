@@ -2,7 +2,8 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/output"
+	"github.com/yixiaoer/yixiaoer-skill/internal/app"
+	"github.com/yixiaoer/yixiaoer-skill/internal/output"
 	publishflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/publish"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
@@ -28,6 +29,10 @@ var publishCmd = &cobra.Command{
 	Long:  "仅支持 payload.json 模式。发布前请先通过 prepare / schema fields 获取表单字段和前置数据；需要完整骨架时再补 schema get，随后执行 validate 和 publish。",
 	Args:  cobra.RangeArgs(3, 4),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		rt, err := app.Load()
+		if err != nil {
+			return err
+		}
 		if err := detectSwappedPublishArgs(args[0], args[1], "publish <type> <platform> <payload.json>"); err != nil {
 			return err
 		}
@@ -55,30 +60,18 @@ var publishCmd = &cobra.Command{
 			FlagClientID:       publishClientID,
 			AutoFallbackLocal:  publishAutoFallbackLocal,
 		}
+		service := publishflow.NewService(rt)
 		if publishDryRun {
-			result, err := publishflow.NewService().DryRun(input)
+			result, err := service.DryRunEnvelope(input)
 			if err != nil {
 				return err
 			}
-			return output.Success(cmd.OutOrStdout(), "publish.dry-run", map[string]interface{}{
-				"dryRun":  true,
-				"request": result.PublishBody,
-				"meta": map[string]interface{}{
-					"platform":       result.Platform,
-					"publishType":    result.PublishType,
-					"publishChannel": result.PublishMode,
-					"clientId":       result.ClientID,
-					"accountIds":     result.AccountIDs,
-					"platformDraft":  result.PlatformDraft,
-					"yixiaoerDraft":  result.YixiaoerDraft,
-					"schemaChecked":  result.SchemaChecked,
-				},
-			})
+			return output.Success(cmd.OutOrStdout(), result.Action, result.Data)
 		}
-		result, err := publishflow.NewService().Execute(input)
+		result, err := service.ExecuteEnvelope(input)
 		if err != nil {
 			return err
 		}
-		return output.Success(cmd.OutOrStdout(), "publish", result)
+		return output.Success(cmd.OutOrStdout(), result.Action, result.Data)
 	},
 }

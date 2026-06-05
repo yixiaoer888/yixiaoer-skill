@@ -5,7 +5,7 @@
 ## 调用指令 (Command)
 
 ```bash
-yxer locations XXX --query 深圳 --type 1 --json
+yxer query locations XXX --query 深圳 --type 1 --json
 ```
 
 ## 参数列表 (Payload Properties)
@@ -19,7 +19,7 @@ yxer locations XXX --query 深圳 --type 1 --json
 
 ## 返回结果 (Response)
 
-返回一个包含地理位置对象的数组。发布时必须将 `yxer locations` 返回的整个对象作为 `location` 参数传递给发布流程，不能只摘取 `yixiaoerId`、`yixiaoerName` 或 `raw`。
+返回一个包含地理位置对象的数组。发布时必须将 `yxer query locations` 返回的整个对象作为 `location` 参数传递给发布流程，不能只摘取 `yixiaoerId`、`yixiaoerName` 或 `raw`。
 
 ```json
 [
@@ -42,7 +42,7 @@ yxer locations XXX --query 深圳 --type 1 --json
 
 ## CLI / 后端逻辑
 
-- **CLI 命令**: `yxer locations <account_id> [--query 关键词] [--type 0|1|2|3] [--json]`
+- **CLI 命令**: `yxer query locations <account_id> [--query 关键词] [--type 0|1|2|3] [--json]`
 - **功能**: 封装蚁小二标准地理位置查询接口 (`GET /platform-accounts/{platformAccountId}/location`)。
 - **参数映射**: 将 `account_id` 映射为路径变量，将 `keyWord`, `locationType`, `nextPage` 映射为查询参数。
 

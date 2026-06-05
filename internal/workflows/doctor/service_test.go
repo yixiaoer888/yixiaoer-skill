@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/config"
 )
 
@@ -17,7 +18,12 @@ func TestCheckIncludesPublishChannelReadiness(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	checks, err := NewService().Check()
+	rt, err := app.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	checks, err := NewService(rt).Check()
 	if err != nil {
 		t.Fatal(err)
 	}

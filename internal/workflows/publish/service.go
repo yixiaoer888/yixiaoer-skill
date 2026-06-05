@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/client"
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/config"
+	"github.com/yixiaoer/yixiaoer-skill/internal/api"
+	"github.com/yixiaoer/yixiaoer-skill/internal/app"
+	"github.com/yixiaoer/yixiaoer-skill/internal/config"
 	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/core/platform"
 	publishmod "github.com/yixiaoer/yixiaoer-skill/internal/modules/publish"
 	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
@@ -23,10 +24,12 @@ type ExecuteInput struct {
 	AutoFallbackLocal  bool
 }
 
-type Service struct{}
+type Service struct {
+	rt *app.Runtime
+}
 
-func NewService() Service {
-	return Service{}
+func NewService(rt *app.Runtime) Service {
+	return Service{rt: rt}
 }
 
 func topicHTMLPolicyForPlatforms(validator schema.Validator, platforms []string, publishType string) publishmod.TopicHTMLPolicy {
@@ -46,17 +49,14 @@ func topicHTMLPolicyForPlatforms(validator schema.Validator, platforms []string,
 	return policy
 }
 
-func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
+func (s Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	input.PublishType = publishmod.NormalizePublishType(input.PublishType)
 	platform, err := SinglePlatform(input.PlatformInput)
 	if err != nil {
 		return nil, err
 	}
 	platforms := []string{platform}
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, err
-	}
+	cfg := s.rt.Config
 	resolvedPayload := cloneMap(input.Payload)
 	channel, clientID, err := ResolvePublishMode(cfg, resolvedPayload, input.PositionalClientID, input.FlagChannel, input.FlagClientID)
 	if err != nil {
@@ -92,7 +92,7 @@ func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 			WithHint("请先完成资源上传、账号校验，并确保发布参数中不包含外部 URL。")
 	}
 
-	apiClient := client.New(cfg)
+	apiClient := s.rt.Client
 	accountsByID, err := ResolveTargetAccounts(apiClient, platforms, preflight.AccountIDs)
 	if err != nil {
 		return nil, err
@@ -120,6 +120,21 @@ func (Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	resolvedPayload["clientId"] = localClientID
 	body = BuildPublishBody(resolvedPayload, publishArgs, input.PublishType, platforms, localChannel, localClientID)
 	return apiClient.Publish(body)
+}
+
+func (s Service) ExecuteEnvelope(input ExecuteInput) (EnvelopeResult, error) {
+	result, err := s.Execute(input)
+	return s.wrapExecuteEnvelope(result, err)
+}
+
+func (s Service) wrapExecuteEnvelope(result map[string]interface{}, err error) (EnvelopeResult, error) {
+	if err != nil {
+		return EnvelopeResult{}, err
+	}
+	return EnvelopeResult{
+		Action: "publish",
+		Data:   result,
+	}, nil
 }
 
 func cloneMap(src map[string]interface{}) map[string]interface{} {
@@ -428,12 +443,12 @@ func SinglePlatform(value string) (string, error) {
 	return platforms[0], nil
 }
 
-func AssertAccountsOnline(apiClient *client.Client, platforms []string, accountIDs []string) error {
+func AssertAccountsOnline(apiClient *api.Client, platforms []string, accountIDs []string) error {
 	_, err := ResolveTargetAccounts(apiClient, platforms, accountIDs)
 	return err
 }
 
-func ResolveTargetAccounts(apiClient *client.Client, platforms []string, accountIDs []string) (map[string]map[string]interface{}, error) {
+func ResolveTargetAccounts(apiClient *api.Client, platforms []string, accountIDs []string) (map[string]map[string]interface{}, error) {
 	wanted := map[string]bool{}
 	for _, id := range accountIDs {
 		wanted[id] = true
@@ -445,7 +460,7 @@ func ResolveTargetAccounts(apiClient *client.Client, platforms []string, account
 			return nil, err
 		}
 		for _, account := range accounts {
-			id := client.AccountID(account)
+			id := api.AccountID(account)
 			if wanted[id] {
 				found[id] = account
 			}
@@ -458,7 +473,7 @@ func ResolveTargetAccounts(apiClient *client.Client, platforms []string, account
 			errors = append(errors, "account "+id+": not found in target platform account list")
 			continue
 		}
-		if status := client.AccountStatus(account); status != 1 {
+		if status := api.AccountStatus(account); status != 1 {
 			errors = append(errors, fmt.Sprintf("account %s: status=%d; publish requires status=1", id, status))
 		}
 	}

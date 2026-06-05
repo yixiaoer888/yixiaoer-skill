@@ -1,7 +1,6 @@
 package publish
 
 import (
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/config"
 	publishmod "github.com/yixiaoer/yixiaoer-skill/internal/modules/publish"
 	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
@@ -20,7 +19,32 @@ type DryRunResult struct {
 	SchemaChecked bool                   `json:"schemaChecked"`
 }
 
-func (Service) DryRun(input ExecuteInput) (DryRunResult, error) {
+func (s Service) DryRunEnvelope(input ExecuteInput) (EnvelopeResult, error) {
+	result, err := s.DryRun(input)
+	if err != nil {
+		return EnvelopeResult{}, err
+	}
+
+	return EnvelopeResult{
+		Action: "publish.dry-run",
+		Data: map[string]interface{}{
+			"dryRun":  true,
+			"request": result.PublishBody,
+			"meta": map[string]interface{}{
+				"platform":       result.Platform,
+				"publishType":    result.PublishType,
+				"publishChannel": result.PublishMode,
+				"clientId":       result.ClientID,
+				"accountIds":     result.AccountIDs,
+				"platformDraft":  result.PlatformDraft,
+				"yixiaoerDraft":  result.YixiaoerDraft,
+				"schemaChecked":  result.SchemaChecked,
+			},
+		},
+	}, nil
+}
+
+func (s Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 	input.PublishType = publishmod.NormalizePublishType(input.PublishType)
 	platform, err := SinglePlatform(input.PlatformInput)
 	if err != nil {
@@ -28,10 +52,7 @@ func (Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 	}
 	platforms := []string{platform}
 
-	cfg, err := config.Load()
-	if err != nil {
-		return DryRunResult{}, err
-	}
+	cfg := s.rt.Config
 	resolvedPayload := cloneMap(input.Payload)
 	channel, clientID, err := ResolvePublishMode(cfg, resolvedPayload, input.PositionalClientID, input.FlagChannel, input.FlagClientID)
 	if err != nil {

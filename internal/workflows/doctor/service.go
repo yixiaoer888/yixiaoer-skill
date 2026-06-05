@@ -4,21 +4,20 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/config"
+	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
-type Service struct{}
-
-func NewService() Service {
-	return Service{}
+type Service struct {
+	rt *app.Runtime
 }
 
-func (Service) Check() (map[string]interface{}, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, err
-	}
+func NewService(rt *app.Runtime) Service {
+	return Service{rt: rt}
+}
+
+func (s Service) Check() (map[string]interface{}, error) {
+	cfg := s.rt.Config
 	checks := map[string]interface{}{
 		"projectDir":           cfg.ProjectDir,
 		"workDir":              cfg.WorkDir,

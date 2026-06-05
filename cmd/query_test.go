@@ -57,3 +57,23 @@ func TestLocationsKeywordFlagUsesAliasStorage(t *testing.T) {
 		t.Fatalf("expected alias storage to capture keyword flag, got %q", locationsKeyword)
 	}
 }
+
+func TestGoodsKeywordFlagUsesAliasStorage(t *testing.T) {
+	cmd := &cobra.Command{Use: "goods"}
+	cmd.Flags().StringVar(&goodsQuery, "query", "", "search keyword")
+	cmd.Flags().StringVar(&goodsKeyword, "keyword", "", "search keyword (alias for --query)")
+	t.Cleanup(func() {
+		goodsQuery = ""
+		goodsKeyword = ""
+	})
+
+	if err := cmd.Flags().Parse([]string{"--keyword", "phone"}); err != nil {
+		t.Fatal(err)
+	}
+	if goodsQuery != "" {
+		t.Fatalf("expected primary query storage to remain empty, got %q", goodsQuery)
+	}
+	if goodsKeyword != "phone" {
+		t.Fatalf("expected alias storage to capture keyword flag, got %q", goodsKeyword)
+	}
+}

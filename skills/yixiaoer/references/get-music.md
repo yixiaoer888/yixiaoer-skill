@@ -27,7 +27,7 @@
 1. **参数前置**：必须先获取有效的 `account_id`（通过 `accounts` action）。
 2. **场景匹配**：判断是否指定了特定分类 (Category)。若指定，则优先注入 `categoryId`。
 3. **参数装配**：构造 `action: "music"` 及其余查询参数。
-4. **指令执行**：调用 `yxer music <account_id> [--query 关键词] [--json]`。
+4. **指令执行**：调用 `yxer query music <account_id> [--query 关键词] [--json]`。
 5. **素材交付**：将返回的 `MusicItem` 列表展示给用户，或直接提取 `raw` 字段用于发布 Payload。
 
 ## 返回结果 (Response)
@@ -58,7 +58,7 @@
 ## 调用指令 (Command)
 
 ```bash
-yxer music XXX --query 周杰伦 --json
+yxer query music XXX --query 周杰伦 --json
 ```
 
 ## 注意事项

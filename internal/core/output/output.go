@@ -1,3 +1,7 @@
+// Package output is a temporary compatibility facade.
+//
+// Deprecated: new code should import
+// github.com/yixiaoer/yixiaoer-skill/internal/output directly.
 package output
 
 import (

@@ -15,7 +15,7 @@
 ## 常用命令
 
 ```bash
-yxer records list [--platform P] [--limit N] [--status S] [--json]
+yxer query records [--platform P] [--limit N] [--status S] [--json]
 yxer validate <platform> <type> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>]
 yxer publish <type> <platform> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>] --dry-run
 yxer doctor

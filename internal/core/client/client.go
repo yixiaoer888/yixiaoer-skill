@@ -1,3 +1,8 @@
+// Package client is a temporary compatibility facade.
+//
+// Deprecated: new code should import
+// github.com/yixiaoer/yixiaoer-skill/internal/api directly,
+// or consume dependencies via internal/app.Runtime.
 package client
 
 import (

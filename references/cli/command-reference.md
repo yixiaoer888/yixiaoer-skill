@@ -52,17 +52,22 @@ yxer material add --file <文件路径或URL> [--thumb <缩略图路径或URL>] 
 ### 查询类能力
 
 ```bash
-yxer categories <account_id> [--type video|article]
-yxer locations <account_id> [--query 关键词] [--type 0|1|2|3]
-yxer music <account_id> [--query 关键词]
-yxer goods <account_id> [--query 关键词]
-yxer collections <account_id> [--type video|article]
-yxer challenges <account_id> [--query 关键词] [--type video]
-yxer records list [--platform P] [--limit N] [--status S] [--json]
+yxer query categories <account_id> [--type video|article]
+yxer query locations <account_id> [--query 关键词] [--type 0|1|2|3]
+yxer query music <account_id> [--query 关键词]
+yxer query goods <account_id> [--query 关键词]
+yxer query collections <account_id> [--type video|article]
+yxer query challenges <account_id> [--query 关键词] [--type video]
+yxer query records [--platform P] [--limit N] [--status S] [--json]
 yxer prepare <platform> <type>
 yxer schema fields <platform> <type>
 yxer schema get <platform> <type>
 ```
+
+兼容说明：
+
+- 推荐新入口：`yxer query ...`
+- 旧入口如 `yxer categories ...`、`yxer records list ...` 仍可用，但后续文档统一以 `query` 入口为准
 
 ## 基本约束
 

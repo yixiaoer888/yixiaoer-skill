@@ -2,7 +2,8 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/output"
+	"github.com/yixiaoer/yixiaoer-skill/internal/app"
+	"github.com/yixiaoer/yixiaoer-skill/internal/output"
 	"github.com/yixiaoer/yixiaoer-skill/internal/skillscheck"
 	doctorflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/doctor"
 )
@@ -15,7 +16,11 @@ var doctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "检查本地配置和目录",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		checks, err := doctorflow.NewService().Check()
+		rt, err := app.Load()
+		if err != nil {
+			return err
+		}
+		checks, err := doctorflow.NewService(rt).Check()
 		if err != nil {
 			return err
 		}

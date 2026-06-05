@@ -204,12 +204,12 @@ yxer publish <type> <platform> .\payload.json --publish-channel local --client-i
 
 | 字段 | 查询命令 | 返回必需字段 |
 | --- | --- | --- |
-| `location` | `yxer locations <account_id> [--query 关键词]` | 整个 `yxer locations` 返回对象 |
-| `music` | `yxer music <account_id> [--query 关键词]` | 整个 `yxer music` 返回对象 |
-| `collection` / `sub_collection` | `yxer collections <account_id> [--type video]` | 整个 `yxer collections` 返回对象 |
-| `challenge` | `yxer challenges <account_id> [--query 关键词]` | 整个 `yxer challenges` 返回对象 |
-| `category` | `yxer categories <account_id> [--type video\|article]` | 整个 `yxer categories` 返回对象 |
-| `goods` | `yxer goods <account_id> [--query 关键词]` | 整个 `yxer goods` 返回对象 |
+| `location` | `yxer query locations <account_id> [--query 关键词]` | 整个 `yxer query locations` 返回对象 |
+| `music` | `yxer query music <account_id> [--query 关键词]` | 整个 `yxer query music` 返回对象 |
+| `collection` / `sub_collection` | `yxer query collections <account_id> [--type video]` | 整个 `yxer query collections` 返回对象 |
+| `challenge` | `yxer query challenges <account_id> [--query 关键词]` | 整个 `yxer query challenges` 返回对象 |
+| `category` | `yxer query categories <account_id> [--type video\|article]` | 整个 `yxer query categories` 返回对象 |
+| `goods` | `yxer query goods <account_id> [--query 关键词]` | 整个 `yxer query goods` 返回对象 |
 
 查询后，将完整返回对象填入 payload 对应字段，不要只填 ID 或名称。
 前置查询对象一律不允许简化，包括 `location`、`goods`、`music`、`collection`、`challenge`、`category` 等；必须使用 CLI 查询返回的完整对象数据。

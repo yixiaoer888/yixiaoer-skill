@@ -9,5 +9,5 @@
 
 ## CLI 优先级
 
-- 如平台提供 `yxer challenges <account_id> [--query 关键词]`，优先使用该命令
+- 如平台提供 `yxer query challenges <account_id> [--query 关键词]`，优先使用该命令
 - 如平台文档明确要求活动对象，再按平台规则使用活动或热点数据
