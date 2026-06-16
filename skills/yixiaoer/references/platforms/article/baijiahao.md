@@ -43,7 +43,6 @@
     "accountForms": [
       {
         "platformAccountId": "acc_bjh_001",
-        "cover": { "key": "article_cover_key", "size": 102400, "width": 800, "height": 600 },
         "contentPublishForm": {
           "formType": "task",
           "title": "百家号文章标题",

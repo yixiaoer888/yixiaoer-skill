@@ -196,11 +196,13 @@ func TestValidateAcceptsStandardPublishRequestBusinessFields(t *testing.T) {
 				"height": float64(10),
 			},
 		},
-		"cover": map[string]interface{}{
-			"key":    "cover-key",
-			"size":   float64(100),
-			"width":  float64(10),
-			"height": float64(10),
+		"covers": []interface{}{
+			map[string]interface{}{
+				"key":    "cover-key",
+				"size":   float64(100),
+				"width":  float64(10),
+				"height": float64(10),
+			},
 		},
 		"coverKey": "cover-key",
 		"content":  "正文",
@@ -284,11 +286,13 @@ func TestValidateAcceptsBaijiahaoCategoryPathArray(t *testing.T) {
 		"formType": "task",
 		"title":    "百家号文章",
 		"content":  "<p>正文</p>",
-		"cover": map[string]interface{}{
-			"key":    "cover-key",
-			"size":   float64(100),
-			"width":  float64(10),
-			"height": float64(10),
+		"covers": []interface{}{
+			map[string]interface{}{
+				"key":    "cover-key",
+				"size":   float64(100),
+				"width":  float64(10),
+				"height": float64(10),
+			},
 		},
 		"category": []interface{}{
 			map[string]interface{}{
