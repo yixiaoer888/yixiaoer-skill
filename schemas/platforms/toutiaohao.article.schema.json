@@ -5,7 +5,7 @@
     "formType",
     "title",
     "content",
-    "cover"
+    "covers"
   ],
   "properties": {
     "formType": {
@@ -22,29 +22,34 @@
       "minLength": 1,
       "maxLength": 50000
     },
-    "cover": {
-      "type": "object",
-      "required": [
-        "key",
-        "size",
-        "width",
-        "height"
-      ],
-      "properties": {
-        "key": {
-          "type": "string"
-        },
-        "size": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "width": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "height": {
-          "type": "integer",
-          "minimum": 1
+    "covers": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 9,
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "size",
+          "width",
+          "height"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1
+          }
         }
       }
     },

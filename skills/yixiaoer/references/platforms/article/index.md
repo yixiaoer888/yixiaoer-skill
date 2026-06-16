@@ -66,8 +66,9 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `accountForms` | `Array` | **是** | 账号发布表单列表 (定义目标账号) | - |
 | `platformForms` | `Object` | 否 | **平台级表单**: 仅限 `微信公众号` 使用。按平台名称组织的共享配置字典 | - |
-| `cover` | `Object` | 否 | **标准请求体共享封面资源**。CLI 校验时会在缺失时复制到各 `accountForms[i].cover` | - |
-| `coverKey` | `string` | 否 | **标准请求体共享封面 Key**。CLI 校验时会在缺失时复制到各 `accountForms[i].coverKey` | - |
+| `covers` | `Array` | 否 | **标准请求体共享文章封面列表**。CLI 校验时会在缺失时复制到各 `accountForms[i].contentPublishForm.covers` | - |
+| `cover` | `Object` | 否 | 兼容旧输入。若未提供 `covers`，CLI 会把该单封面转换为 `covers[0]` | - |
+| `coverKey` | `string` | 否 | **标准请求体共享封面 Key**。CLI 校验时会在缺失时复制到各 `accountForms[i].coverKey`；文章发布最终仍要求账号项有 `coverKey` | - |
 | `content` | `string` | 否 | **标准请求体共享正文**。位置在 `publishArgs.content`，与 `accountForms` 同级；CLI 校验时会在缺失时复制到各 `accountForms[i].contentPublishForm.content` | - |
 
 > [!IMPORTANT]
@@ -78,7 +79,8 @@
 
 > [!TIP]
 > **CLI 输入兼容规则**:
-> - 推荐优先使用“标准请求体”形态，在 `publishArgs` 中声明共享的 `cover`、`coverKey`、`content`，这些字段都与 `accountForms` 同级。
+> - 推荐优先使用“标准请求体”形态，在 `publishArgs` 中声明共享的 `covers`、`coverKey`、`content`，这些字段都与 `accountForms` 同级。
+> - 文章封面统一使用 `covers` 数组；只有一张封面时也写成 `covers: [{...}]`。`cover` 仅作为旧 payload 兼容输入。
 > - 文章正文推荐直接填写 `publishArgs.content`，不要只在 `contentPublishForm.content` 中单独填写。
 > - CLI 当前仍按**单平台命令**执行：`yxer publish article <platform> <payload.json> [clientId]`。
 > - `yxer validate` 与 `yxer publish` 都接受完整标准请求体；在共享字段存在而账号项缺失时，CLI 会在校验阶段自动补齐到对应 `accountForms[]`。
@@ -88,9 +90,9 @@
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
 | `platformAccountId` | `string` | **是** | 蚁小二平台账号唯一 ID | - |
-| `cover` | `Object` | **是** | **ImageFormItem**: 主封面对象 (`key`, `width`, `height`, `size`) | - |
+| `covers` | `Array` | **是** | 文章封面列表 (`OldCover[]`)；统一放在 `contentPublishForm.covers` | - |
 | `contentPublishForm`| `Object` | 否 | **账号级透传配置**: 若未配置 `platformForms` 则从此读取；当 `publishArgs.content` 已提供时，CLI 会同步补齐到这里的 `content` | `{}` |
-| `coverKey` | `string` | 否 | 账号级封面 Key (通常与 `cover.key` 一致) | - |
+| `coverKey` | `string` | **是** | 账号级封面 Key，必须与 `contentPublishForm.covers[0].key` 一致 | - |
 | `mediaId` | `string` | 否 | 业务扩展字段，CLI 原样透传 | - |
 | `platformName` | `string` | 否 | 业务扩展字段，CLI 原样透传 | - |
 | `publishContentId` | `string` | 否 | 业务扩展字段，CLI 原样透传 | - |
@@ -102,15 +104,16 @@
   "action": "publish",
   "publishType": "article",
   "platforms": ["知乎"],
-  "coverKey": "article_cover_key",
   "desc": "文章发布任务",
   "publishArgs": {
-    "cover": {
-      "key": "article_cover_key",
-      "width": 900,
-      "height": 500,
-      "size": 150000
-    },
+    "covers": [
+      {
+        "key": "article_cover_key",
+        "width": 900,
+        "height": 500,
+        "size": 150000
+      }
+    ],
     "coverKey": "article_cover_key",
     "content": "<h1>演示文章标题</h1><p>这是一个演示文章的正文内容...</p>",
     "accountForms": [
@@ -119,9 +122,18 @@
         "mediaId": "media_001",
         "platformName": "知乎",
         "publishContentId": "publish_content_001",
+        "coverKey": "article_cover_key",
         "contentPublishForm": {
           "formType": "task",
-          "title": "演示文章标题"
+          "title": "演示文章标题",
+          "covers": [
+            {
+              "key": "article_cover_key",
+              "width": 900,
+              "height": 500,
+              "size": 150000
+            }
+          ]
         }
       }
     ]
