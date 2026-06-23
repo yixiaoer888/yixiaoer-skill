@@ -26,7 +26,7 @@ func (c *Client) AccountsAll(platform string, size int) ([]map[string]interface{
 			return nil, err
 		}
 		all = append(all, accounts...)
-		if !shouldFetchNextAccountsPage(meta) {
+		if !shouldFetchNextAccountsPage(meta, len(accounts), size) {
 			return all, nil
 		}
 	}
@@ -115,13 +115,10 @@ func extractAccountsPageMeta(data interface{}) accountsPageMeta {
 		return meta
 	}
 
-	meta.total = firstPositiveInt(typed, "total", "count")
+	meta.total = firstPositiveInt(typed, "totalSize")
 	meta.page = firstPositiveInt(typed, "page", "pageNum", "current", "currentPage")
 	meta.size = firstPositiveInt(typed, "size", "pageSize", "limit", "perPage")
-	if value, ok := firstBool(typed, "hasNext", "has_next", "nextPage"); ok {
-		meta.hasNext = &value
-	}
-	if pages := firstPositiveInt(typed, "pages", "totalPages", "pageCount"); pages > 0 {
+	if pages := firstPositiveInt(typed, "totalPage"); pages > 0 {
 		current := meta.page
 		if current == 0 {
 			current = 1
@@ -144,8 +141,11 @@ func extractAccountsPageMeta(data interface{}) accountsPageMeta {
 	return meta
 }
 
-func shouldFetchNextAccountsPage(meta accountsPageMeta) bool {
-	return meta.hasNext != nil && *meta.hasNext
+func shouldFetchNextAccountsPage(meta accountsPageMeta, _ int, _ int) bool {
+	if meta.hasNext != nil {
+		return *meta.hasNext
+	}
+	return false
 }
 
 func firstPositiveInt(data map[string]interface{}, keys ...string) int {
@@ -157,29 +157,6 @@ func firstPositiveInt(data map[string]interface{}, keys ...string) int {
 		}
 	}
 	return 0
-}
-
-func firstBool(data map[string]interface{}, keys ...string) (bool, bool) {
-	for _, key := range keys {
-		if value, ok := data[key]; ok {
-			switch typed := value.(type) {
-			case bool:
-				return typed, true
-			case float64:
-				return typed != 0, true
-			case int:
-				return typed != 0, true
-			case string:
-				switch typed {
-				case "true", "1":
-					return true, true
-				case "false", "0":
-					return false, true
-				}
-			}
-		}
-	}
-	return false, false
 }
 
 func positiveInt(value interface{}) int {

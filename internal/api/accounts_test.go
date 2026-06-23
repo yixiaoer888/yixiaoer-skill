@@ -51,7 +51,10 @@ func TestAccountsAcceptsNestedPaginatedResponse(t *testing.T) {
 				"data": []map[string]interface{}{
 					{"platformAccountId": "acc_1", "platformAccountName": "抖音账号", "loginStatus": 1},
 				},
-				"total": 1,
+				"page":      1,
+				"size":      20,
+				"totalPage": 1,
+				"totalSize": 1,
 			},
 		})
 	}))
@@ -155,9 +158,10 @@ func TestAccountsPageUsesExplicitPageAndSize(t *testing.T) {
 				"list": []map[string]interface{}{
 					{"platformAccountId": "acc_101", "platformAccountName": "账号101", "status": 1},
 				},
-				"page":  3,
-				"size":  50,
-				"total": 120,
+				"page":      3,
+				"size":      50,
+				"totalPage": 3,
+				"totalSize": 120,
 			},
 		})
 	}))
@@ -179,7 +183,7 @@ func TestAccountsPageUsesExplicitPageAndSize(t *testing.T) {
 	}
 }
 
-func TestAccountsDoesNotGuessNextPageWithoutPaginationMeta(t *testing.T) {
+func TestAccountsDoesNotFetchNextPageWithoutPaginationMeta(t *testing.T) {
 	requests := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests++
@@ -227,9 +231,10 @@ func TestAccountsStopsWhenPaginatedMetaReportsAllRowsFetched(t *testing.T) {
 						{"platformAccountId": "acc_1", "platformAccountName": "账号1", "status": 1},
 						{"platformAccountId": "acc_2", "platformAccountName": "账号2", "status": 1},
 					},
-					"page":  1,
-					"size":  2,
-					"total": 3,
+					"page":      1,
+					"size":      2,
+					"totalPage": 2,
+					"totalSize": 3,
 				},
 			})
 		case "2":
@@ -238,9 +243,10 @@ func TestAccountsStopsWhenPaginatedMetaReportsAllRowsFetched(t *testing.T) {
 					"data": []map[string]interface{}{
 						{"platformAccountId": "acc_3", "platformAccountName": "账号3", "status": 1},
 					},
-					"page":  2,
-					"size":  2,
-					"total": 3,
+					"page":      2,
+					"size":      2,
+					"totalPage": 2,
+					"totalSize": 3,
 				},
 			})
 		default:
@@ -262,7 +268,7 @@ func TestAccountsStopsWhenPaginatedMetaReportsAllRowsFetched(t *testing.T) {
 	}
 }
 
-func TestAccountsFetchesNextPageWhenHasNextIsTrue(t *testing.T) {
+func TestAccountsFetchesNextPageWhenTotalPageIndicatesMorePages(t *testing.T) {
 	requests := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests++
@@ -274,9 +280,10 @@ func TestAccountsFetchesNextPageWhenHasNextIsTrue(t *testing.T) {
 					"list": []map[string]interface{}{
 						{"platformAccountId": "acc_1", "platformAccountName": "账号1", "status": 1},
 					},
-					"page":    1,
-					"size":    20,
-					"hasNext": true,
+					"page":      1,
+					"size":      20,
+					"totalPage": 2,
+					"totalSize": 2,
 				},
 			})
 		case "2":
@@ -285,9 +292,10 @@ func TestAccountsFetchesNextPageWhenHasNextIsTrue(t *testing.T) {
 					"list": []map[string]interface{}{
 						{"platformAccountId": "acc_2", "platformAccountName": "账号2", "status": 1},
 					},
-					"page":    2,
-					"size":    20,
-					"hasNext": false,
+					"page":      2,
+					"size":      20,
+					"totalPage": 2,
+					"totalSize": 2,
 				},
 			})
 		default:

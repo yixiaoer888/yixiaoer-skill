@@ -53,6 +53,79 @@ func TestPublishCommandSuccessCallsTaskSetAPI(t *testing.T) {
 	}
 }
 
+func TestPublishCommandFindsTargetAccountOnSecondPageWithoutPaginationMeta(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, validPublishPayload())
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	accountRequests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			accountRequests++
+			switch r.URL.Query().Get("page") {
+			case "1":
+				items := make([]map[string]interface{}, 0, 20)
+				for i := 0; i < 20; i++ {
+					items = append(items, map[string]interface{}{
+						"platformAccountId": "acc_other_" + string(rune('a'+i)),
+						"name":              "账号",
+						"status":            1,
+					})
+				}
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"data": map[string]interface{}{
+						"list":      items,
+						"page":      1,
+						"size":      20,
+						"totalPage": 2,
+						"totalSize": 21,
+					},
+				})
+			case "2":
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"data": map[string]interface{}{
+						"list": []map[string]interface{}{
+							{"platformAccountId": "acc_001", "name": "目标账号", "status": 1},
+						},
+						"page":      2,
+						"size":      20,
+						"totalPage": 2,
+						"totalSize": 21,
+					},
+				})
+			default:
+				t.Fatalf("unexpected page query: %s", r.URL.Query().Get("page"))
+			}
+		case "/taskSets/v2":
+			publishCalls++
+			if err := json.NewDecoder(r.Body).Decode(&publishBody); err != nil {
+				t.Fatal(err)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{"taskSetId": "task_set_1"},
+			})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if accountRequests != 2 {
+		t.Fatalf("expected two account page requests, got %d", accountRequests)
+	}
+	if publishCalls != 1 {
+		t.Fatalf("expected one publish call, got %d", publishCalls)
+	}
+}
+
 func TestPublishCommandWithClientIDUsesLocalChannel(t *testing.T) {
 	withRepoRoot(t)
 	payloadPath := writePublishPayload(t, validPublishPayload())
