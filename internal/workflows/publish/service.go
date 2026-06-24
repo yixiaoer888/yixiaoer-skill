@@ -270,6 +270,23 @@ func stripArticleContentFromForms(body map[string]interface{}) {
 	if publishmod.NormalizePublishType(stringField(body, "publishType")) != "article" {
 		return
 	}
+	// 微信公众号 reads each article's body from the per-article form
+	// (contentPublishForm.content), not from the shared publishArgs.content, so the
+	// content must remain in the form for that platform.
+	switch ps := body["platforms"].(type) {
+	case []string:
+		for _, p := range ps {
+			if platformutil.CanonicalKey(p) == "weixin.account" {
+				return
+			}
+		}
+	case []interface{}:
+		for _, item := range ps {
+			if s, ok := item.(string); ok && platformutil.CanonicalKey(s) == "weixin.account" {
+				return
+			}
+		}
+	}
 	publishArgs, _ := body["publishArgs"].(map[string]interface{})
 	if publishArgs == nil {
 		return

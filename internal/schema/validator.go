@@ -109,7 +109,16 @@ func (v Validator) Fields(platform, publishType string) (map[string]PropertyView
 func (v Validator) readSchema(platform, publishType string) ([]byte, string, error) {
 	var lastErr error
 	for _, key := range schemaPlatformKeys(platform, publishType) {
-		schemaPath := filepath.Join(v.SchemaDir, "platforms", fmt.Sprintf("%s.%s.schema.json", key, TypeKey(publishType)))
+		// A canonical key that already encodes its form type (e.g. 微信公众号 → "weixin.account")
+		// maps directly to "<key>.schema.json" and serves every publishType (article/imageText)
+		// from that single account-form schema file. Other platforms use the standard
+		// "<key>.<publishType>.schema.json" naming.
+		var schemaPath string
+		if strings.Contains(key, ".") {
+			schemaPath = filepath.Join(v.SchemaDir, "platforms", key+".schema.json")
+		} else {
+			schemaPath = filepath.Join(v.SchemaDir, "platforms", fmt.Sprintf("%s.%s.schema.json", key, TypeKey(publishType)))
+		}
 		raw, err := os.ReadFile(schemaPath)
 		if err == nil {
 			return raw, schemaPath, nil

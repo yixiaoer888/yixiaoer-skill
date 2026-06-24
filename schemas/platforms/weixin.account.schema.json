@@ -89,6 +89,35 @@
         1
       ],
       "default": 1
+    },
+    "notifySubscribers": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "sex": {
+      "type": "number",
+      "enum": [
+        0,
+        1,
+        2
+      ],
+      "default": 0
+    },
+    "country": {
+      "type": "string"
+    },
+    "province": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "scheduledTime": {
+      "type": "number"
     }
   },
   "additionalProperties": false
