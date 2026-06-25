@@ -22,15 +22,38 @@ func TestCheckMissingStamp(t *testing.T) {
 	}
 }
 
+func TestSkillVersion(t *testing.T) {
+	skillDir := createValidSkillFixture(t)
+
+	version, err := SkillVersion(skillDir)
+	if err != nil {
+		t.Fatalf("SkillVersion returned error: %v", err)
+	}
+	if version != "3.1.0" {
+		t.Fatalf("SkillVersion = %q, want 3.1.0", version)
+	}
+}
+
+func TestSkillVersionMissing(t *testing.T) {
+	skillDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# missing frontmatter\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := SkillVersion(skillDir); err == nil {
+		t.Fatal("SkillVersion error = nil, want non-nil")
+	}
+}
+
 func TestWriteAndCheckStamp(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("YIXIAOER_CONFIG", filepath.Join(dir, "config.json"))
 
-	if err := WriteStamp("3.0.0"); err != nil {
+	if err := WriteStamp("3.1.0"); err != nil {
 		t.Fatalf("WriteStamp returned error: %v", err)
 	}
 
-	status, err := Check("3.0.0")
+	status, err := Check("3.1.0")
 	if err != nil {
 		t.Fatalf("Check returned error: %v", err)
 	}
@@ -57,7 +80,7 @@ func TestNoticeStale(t *testing.T) {
 		t.Fatalf("WriteFile returned error: %v", err)
 	}
 
-	notice, err := Notice("3.0.0", `C:\repo\skills\yixiaoer`)
+	notice, err := Notice("3.1.0", `C:\repo\skills\yixiaoer`)
 	if err != nil {
 		t.Fatalf("Notice returned error: %v", err)
 	}
@@ -66,6 +89,39 @@ func TestNoticeStale(t *testing.T) {
 	}
 	if got := notice["state"]; got != "stale" {
 		t.Fatalf("notice[state] = %v, want stale", got)
+	}
+	if got := notice["command"]; got != "yxer skill sync" {
+		t.Fatalf("notice[command] = %v, want yxer skill sync", got)
+	}
+	fallbacks, ok := notice["fallbackCommands"].([]string)
+	if !ok {
+		t.Fatalf("notice[fallbackCommands] type = %T, want []string", notice["fallbackCommands"])
+	}
+	if len(fallbacks) != 2 {
+		t.Fatalf("len(fallbackCommands) = %d, want 2", len(fallbacks))
+	}
+}
+
+func TestFindSkillDirFromPackagedLayout(t *testing.T) {
+	root := t.TempDir()
+	skillDir := filepath.Join(root, "skills", "yixiaoer")
+	distDir := filepath.Join(root, "dist")
+	if err := os.MkdirAll(skillDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(distDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# skill\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, ok := findSkillDirFrom(distDir)
+	if !ok {
+		t.Fatal("findSkillDirFrom(distDir) = not found, want found")
+	}
+	if got != skillDir {
+		t.Fatalf("findSkillDirFrom(distDir) = %q, want %q", got, skillDir)
 	}
 }
 

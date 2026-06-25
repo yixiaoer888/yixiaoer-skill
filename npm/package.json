@@ -1,0 +1,23 @@
+{
+  "name": "@yixiaoermail/cli",
+  "version": "0.0.0-dev",
+  "description": "Yixiaoer CLI packaged for npm global installation",
+  "bin": {
+    "yxer": "bin/yxer.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "skills",
+    "README.md"
+  ],
+  "keywords": [
+    "yixiaoer",
+    "yxer",
+    "cli"
+  ],
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18"
+  }
+}

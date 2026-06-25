@@ -60,6 +60,13 @@ yxer config init --api-key <apiKey>
 yxer skill show
 ```
 
+如果 CLI 通过 npm 成品包装好且技能文件随包分发，优先直接同步：
+
+```bash
+yxer skill sync
+yxer skill sync --global
+```
+
 本地安装：
 
 ```bash

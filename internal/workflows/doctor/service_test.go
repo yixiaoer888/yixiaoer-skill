@@ -1,6 +1,7 @@
 package doctor
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -9,6 +10,14 @@ import (
 )
 
 func TestCheckIncludesPublishChannelReadiness(t *testing.T) {
+	projectDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(projectDir, "schemas"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(projectDir, "workflows"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("YIXIAOER_PROJECT_DIR", projectDir)
 	configPath := filepath.Join(t.TempDir(), "yxer-config.json")
 	t.Setenv("YIXIAOER_CONFIG", configPath)
 	if _, err := config.SaveAPIKey("test-api-key"); err != nil {

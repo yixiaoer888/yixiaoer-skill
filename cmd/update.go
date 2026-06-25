@@ -30,15 +30,21 @@ func runUpdate(cmd *cobra.Command) error {
 	checkOnly, _ := cmd.Flags().GetBool("check")
 	globalInstall, _ := cmd.Flags().GetBool("global")
 
-	before, err := skillscheck.Check(rootCmd.Version)
+	skillVersion, err := skillscheck.SkillVersion(skillDir)
+	if err != nil {
+		return err
+	}
+
+	before, err := skillscheck.Check(skillVersion)
 	if err != nil {
 		return err
 	}
 
 	data := map[string]interface{}{
-		"cliVersion": rootCmd.Version,
-		"skillDir":   skillDir,
-		"before":     before,
+		"skillVersion": skillVersion,
+		"cliVersion":   rootCmd.Version,
+		"skillDir":     skillDir,
+		"before":       before,
 		"cliUpdate": map[string]interface{}{
 			"supported": false,
 			"message":   "当前仓库尚未提供自动下载新版 yxer 二进制的能力，请通过拉取仓库代码后重新 build 更新 CLI。",
@@ -58,7 +64,7 @@ func runUpdate(cmd *cobra.Command) error {
 		return err
 	}
 
-	after, err := skillscheck.Check(rootCmd.Version)
+	after, err := skillscheck.Check(skillVersion)
 	if err != nil {
 		return err
 	}

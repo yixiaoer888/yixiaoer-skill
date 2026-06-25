@@ -29,13 +29,17 @@ var doctorCmd = &cobra.Command{
 			return output.SuccessWithNotice(cmd.OutOrStdout(), "doctor", checks, map[string]interface{}{
 				"skills": map[string]interface{}{
 					"type":    "skills_path_unresolved",
-					"target":  rootCmd.Version,
+					"target":  "unknown",
 					"state":   "unknown",
 					"message": `未能自动定位 "skills/yixiaoer" 目录；如需检查或同步 skill，请设置 YIXIAOER_SKILL_DIR。`,
 				},
 			})
 		}
-		notice, err := skillscheck.Notice(rootCmd.Version, skillDir)
+		skillVersion, err := skillscheck.SkillVersion(skillDir)
+		if err != nil {
+			return err
+		}
+		notice, err := skillscheck.Notice(skillVersion, skillDir)
 		if err != nil {
 			return err
 		}

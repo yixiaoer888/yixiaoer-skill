@@ -160,6 +160,37 @@ yxer publish video 抖音 .\payload.json --publish-channel local --client-id <cl
 
 本项目采用“CLI 先安装，Skill 再安装”的方式，和飞书 CLI 的 skill 使用习惯保持一致。
 
+如果 CLI 是通过 npm 成品包安装的，推荐优先使用：
+
+```bash
+yxer skill sync
+yxer skill sync --global
+```
+
+npm 包会内置 `skills/yixiaoer`，`skill sync` 会直接使用本地随包分发的 skill 源文件，不依赖 GitHub 仓库地址。
+
+### 生成 npm 成品包
+
+如需产出可通过 `npm install -g` 安装的 CLI 成品包，可在仓库根目录执行：
+
+```powershell
+.\scripts\build-npm-package.ps1 -Version 0.1.0
+```
+
+该脚本会：
+
+- 先运行 `go test ./...`
+- 交叉编译 `windows/darwin/linux` 的 `amd64/arm64` 二进制
+- 生成 npm 发布包到 `out\npm\`
+
+生成完成后，可用下列命令验证 tarball：
+
+```powershell
+npm install -g .\out\npm\<generated-tarball>.tgz
+yxer --version
+yxer skill sync
+```
+
 ### 查看当前技能包位置
 
 ```bash
@@ -327,7 +358,7 @@ yxer query records [--platform P] [--limit N] [--status S] [--json]
 {
   "ok": true,
   "action": "doctor",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "data": {
     "configPath": "C:\\Users\\<user>\\AppData\\Roaming\\yxer\\config.json",
     "apiUrl": "https://www.yixiaoer.cn/api",
@@ -335,8 +366,8 @@ yxer query records [--platform P] [--limit N] [--status S] [--json]
   },
   "_notice": {
     "skills": {
-      "current": "3.0.0",
-      "target": "3.0.0"
+      "current": "3.1.0",
+      "target": "3.1.0"
     }
   }
 }
@@ -347,7 +378,7 @@ yxer query records [--platform P] [--limit N] [--status S] [--json]
 ```json
 {
   "ok": false,
-  "version": "3.0.0",
+  "version": "3.1.0",
   "error": {
     "type": "validation_error",
     "code": "YIXIAOER_USAGE_ERR",

@@ -13,8 +13,15 @@
 ## 推荐安装流程
 
 1. 安装或编译 `yxer` CLI。
-2. 运行 `yxer skill show`，拿到当前技能包目录。
-3. 用 skills 工具安装技能：
+2. 如果 CLI 来自 npm 成品包，优先直接执行：
+
+```bash
+yxer skill sync
+yxer skill sync --global
+```
+
+3. 如果需要手动查看技能包位置或走回退安装，再运行 `yxer skill show`，拿到当前技能包目录。
+4. 用 skills 工具安装技能：
 
 ```bash
 npx skills add "<repo>/skills/yixiaoer" -y

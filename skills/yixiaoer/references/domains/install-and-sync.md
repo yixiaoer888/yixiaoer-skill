@@ -22,12 +22,15 @@ yxer doctor
 ## 安装命令
 
 ```bash
+yxer skill sync
+yxer skill sync --global
 npx skills add "<repo>\\skills\\yixiaoer" -y
 npx skills add "<repo>\\skills\\yixiaoer" -g -y
 ```
 
 ## 规则
 
+- 如果 CLI 来自 npm 成品包，优先使用 `yxer skill sync`，让本地随包 skill 直接同步到宿主
 - `yxer --version` 升级后，应提示重新同步 skill
 - `SKILL.md` 或 `references/` 中影响 Agent 行为的文档更新后，应提示重新同步
 - `yxer doctor` 返回 `_notice.skills` 时，优先执行 `yxer skill sync`

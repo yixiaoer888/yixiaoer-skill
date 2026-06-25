@@ -5,3 +5,6 @@ bin/**
 .codex-tmp/**
 .agents/**
 .gomodcache/**
+out/**
+.npmrc-publish
+.npm-cache/**
