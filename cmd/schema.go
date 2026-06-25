@@ -198,6 +198,13 @@ func buildFieldPlacements(doc schema.Document) map[string]fieldPlacementView {
 }
 
 func fieldPlacementFor(doc schema.Document, key string) fieldPlacementView {
+	if isWeixinAccountArticleDoc(doc) {
+		return fieldPlacementView{
+			SchemaPath: "businessFields." + key,
+			InputPaths: []string{"publishArgs.platformForms.微信公众号." + key},
+			Note:       "微信公众号文章平台字段应填写在 publishArgs.platformForms[\"微信公众号\"] 下，不走 accountForms[].contentPublishForm。",
+		}
+	}
 	view := fieldPlacementView{
 		SchemaPath: "businessFields." + key,
 		InputPaths: []string{"publishArgs.accountForms[].contentPublishForm." + key},
@@ -357,6 +364,25 @@ func buildStandardPublishFieldView(doc schema.Document, businessFields map[strin
 			Type: "string",
 		}
 	}
+	if isWeixinAccountArticleDoc(doc) {
+		delete(publishArgsProperties, "content")
+		publishArgsProperties["platformForms"] = schema.PropertyView{
+			Type: "object",
+			Properties: map[string]schema.PropertyView{
+				"微信公众号": {
+					Type:       "object",
+					Required:   true,
+					Properties: doc.Properties,
+				},
+			},
+		}
+		accountFormItem := publishArgsProperties["accountForms"].Items
+		if accountFormItem != nil {
+			accountFormItem.Properties["contentPublishForm"] = schema.PropertyView{
+				Type: "object",
+			}
+		}
+	}
 	return map[string]schema.PropertyView{
 		"action": {
 			Type:     "string",
@@ -411,6 +437,14 @@ func buildStandardPublishFieldView(doc schema.Document, businessFields map[strin
 }
 
 func buildAccountFormSchema(doc schema.Document) schema.PropertyView {
+	contentPublishFormSchema := schema.PropertyView{
+		Type:       "object",
+		Required:   true,
+		Properties: contentPublishFormFieldsForEnvelope(doc),
+	}
+	if isWeixinAccountArticleDoc(doc) {
+		contentPublishFormSchema = schema.PropertyView{Type: "object"}
+	}
 	return schema.PropertyView{
 		Type:     "object",
 		Required: true,
@@ -435,9 +469,9 @@ func buildAccountFormSchema(doc schema.Document) schema.PropertyView {
 				Type: "string",
 			},
 			"contentPublishForm": {
-				Type:       "object",
-				Required:   true,
-				Properties: contentPublishFormFieldsForEnvelope(doc),
+				Type:       contentPublishFormSchema.Type,
+				Required:   contentPublishFormSchema.Required,
+				Properties: contentPublishFormSchema.Properties,
 			},
 		},
 	}
@@ -458,10 +492,17 @@ func buildContentPublishFormSchema(doc schema.Document) schema.Document {
 }
 
 func contentPublishFormFieldsForEnvelope(doc schema.Document) map[string]schema.PropertyView {
+	if isWeixinAccountArticleDoc(doc) {
+		return nil
+	}
 	if doc.Type != "article" {
 		return doc.Properties
 	}
 	return clonePropertyViewsWithoutKeys(doc.Properties, "content")
+}
+
+func isWeixinAccountArticleDoc(doc schema.Document) bool {
+	return doc.Type == "article" && platformutil.CanonicalKey(doc.Platform) == "weixin.account"
 }
 
 func requiredPropertyKeys(fields map[string]schema.PropertyView) []string {
@@ -710,7 +751,8 @@ func getPlatformSpecificNotes(platform, publishType string) []string {
 
 	case "weixin.account", "微信公众号":
 		if publishType == "article" {
-			notes = append(notes, "公众号文章支持富文本和多媒体，需要使用 content 字段传递文章内容")
+			notes = append(notes, "公众号文章使用 publishArgs.platformForms[\"微信公众号\"].articles[] 传递文章包，而不是通用 contentPublishForm")
+			notes = append(notes, "公众号文章必须单平台发布；accountForms 仅用于声明目标账号")
 		}
 	}
 

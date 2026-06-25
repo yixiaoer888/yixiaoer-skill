@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/api"
+	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
 	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
@@ -77,10 +78,16 @@ func PreflightWithTopicHTMLPolicy(publishType string, platforms []string, payloa
 	if len(platforms) == 0 {
 		result.Errors = append(result.Errors, "at least one target platform is required")
 	}
+	weixinAccountArticle := isWeixinAccountArticlePublish(platforms, publishType)
+	weixinPlatformForm := weixinAccountArticleForm(payload)
 	accountForms, ok := payload["accountForms"].([]interface{})
 	if !ok || len(accountForms) == 0 {
 		result.Errors = append(result.Errors, "payload.accountForms must be a non-empty array")
 		return result
+	}
+
+	if weixinAccountArticle {
+		preflightWeixinAccountArticle(payload, weixinPlatformForm, &result.Errors)
 	}
 
 	for i, item := range accountForms {
@@ -100,7 +107,7 @@ func PreflightWithTopicHTMLPolicy(publishType string, platforms []string, payloa
 			result.AccountIDs = append(result.AccountIDs, accountID)
 		}
 		cpf, _ := form["contentPublishForm"].(map[string]interface{})
-		if cpf == nil {
+		if cpf == nil && !weixinAccountArticle {
 			result.Errors = append(result.Errors, formPath+": missing contentPublishForm")
 		}
 
@@ -138,15 +145,22 @@ func PreflightWithTopicHTMLPolicy(publishType string, platforms []string, payloa
 			requireCoverKey(form, cpf, cover, formPath, &result.Errors)
 			requirePlatformImageTextConstraints(platforms, images, cover, formPath, &result.Errors)
 		case "article":
-			if stringField(payload, "content") == "" {
+			if !weixinAccountArticle && stringField(payload, "content") == "" {
 				result.Errors = append(result.Errors, "publishArgs.content: article publish requires content")
 			}
 			cover := objectField(form, "cover")
 			if cover == nil && cpf != nil {
 				cover = objectField(cpf, "cover")
 			}
-			requireUploadedResource(cover, formPath+".cover", &result.Errors)
-			requireCoverKey(form, cpf, cover, formPath, &result.Errors)
+			if weixinAccountArticle {
+				if cover != nil {
+					requireUploadedResource(cover, formPath+".cover", &result.Errors)
+					requireCoverKey(form, cpf, cover, formPath, &result.Errors)
+				}
+			} else {
+				requireUploadedResource(cover, formPath+".cover", &result.Errors)
+				requireCoverKey(form, cpf, cover, formPath, &result.Errors)
+			}
 		}
 
 		walk(form, func(value interface{}, path string) {
@@ -170,6 +184,65 @@ func PreflightWithTopicHTMLPolicy(publishType string, platforms []string, payloa
 		}
 	}
 	return result
+}
+
+func isWeixinAccountArticlePublish(platforms []string, publishType string) bool {
+	if NormalizePublishType(publishType) != "article" {
+		return false
+	}
+	for _, platform := range platforms {
+		if platformutil.CanonicalKey(platform) == "weixin.account" {
+			return true
+		}
+	}
+	return false
+}
+
+func weixinAccountArticleForm(publishArgs map[string]interface{}) map[string]interface{} {
+	if publishArgs == nil {
+		return nil
+	}
+	platformForms, _ := publishArgs["platformForms"].(map[string]interface{})
+	if platformForms == nil {
+		return nil
+	}
+	for _, key := range []string{"微信公众号", "weixin.account"} {
+		form, _ := platformForms[key].(map[string]interface{})
+		if form != nil {
+			return form
+		}
+	}
+	return nil
+}
+
+func preflightWeixinAccountArticle(payload, platformForm map[string]interface{}, errors *[]string) {
+	if platformForm == nil {
+		*errors = append(*errors, `publishArgs.platformForms["微信公众号"]: missing required platform form`)
+		return
+	}
+	articles, _ := platformForm["articles"].([]interface{})
+	if len(articles) == 0 {
+		*errors = append(*errors, `publishArgs.platformForms["微信公众号"].articles: must contain 1-8 articles`)
+		return
+	}
+	for i, item := range articles {
+		article, _ := item.(map[string]interface{})
+		if article == nil {
+			*errors = append(*errors, fmt.Sprintf(`publishArgs.platformForms["微信公众号"].articles[%d]: must be an object`, i))
+			continue
+		}
+		articlePath := fmt.Sprintf(`publishArgs.platformForms["微信公众号"].articles[%d]`, i)
+		if strings.TrimSpace(stringField(article, "title")) == "" {
+			*errors = append(*errors, articlePath+".title: missing required field")
+		}
+		if strings.TrimSpace(stringField(article, "content")) == "" {
+			*errors = append(*errors, articlePath+".content: missing required field")
+		}
+		requireUploadedResource(objectField(article, "cover"), articlePath+".cover", errors)
+		if categories, ok := article["categories"]; ok {
+			assertRawObject(categories, articlePath+".categories", errors)
+		}
+	}
 }
 
 func shouldIgnoreExternalURLPath(path string) bool {

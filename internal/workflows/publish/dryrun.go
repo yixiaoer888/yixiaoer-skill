@@ -109,6 +109,14 @@ func (s Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 
 func isPlatformDraftPublish(body map[string]interface{}) bool {
 	publishArgs, _ := body["publishArgs"].(map[string]interface{})
+	if platformForm := weixinAccountArticlePlatformForm(publishArgs); platformForm != nil {
+		switch value := platformForm["pubType"].(type) {
+		case float64:
+			return int(value) == 0
+		case int:
+			return value == 0
+		}
+	}
 	accountForms, _ := publishArgs["accountForms"].([]interface{})
 	firstForm := firstObject(accountForms)
 	firstCPF := objectField(firstForm, "contentPublishForm")

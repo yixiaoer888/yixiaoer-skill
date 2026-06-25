@@ -1,0 +1,148 @@
+{
+  "title": "微信公众号文章平台表单 (Weixin Account Article Platform Form)",
+  "type": "object",
+  "required": [
+    "articles",
+    "notifySubscribers",
+    "pubType"
+  ],
+  "properties": {
+    "articles": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "required": [
+          "title",
+          "content",
+          "cover",
+          "type"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authorName": {
+            "type": "string",
+            "maxLength": 8
+          },
+          "digest": {
+            "type": "string",
+            "maxLength": 129
+          },
+          "type": {
+            "type": "number",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "cover": {
+            "type": "object",
+            "required": [
+              "key",
+              "raw"
+            ],
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "pathOrUrl": {
+                "type": "string"
+              },
+              "raw": {
+                "type": "object"
+              }
+            }
+          },
+          "quickRepost": {
+            "type": "number",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "quickPrivateMessage": {
+            "type": "number",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "contentSourceUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "yixiaoerId",
+                "yixiaoerName",
+                "raw"
+              ],
+              "properties": {
+                "yixiaoerId": {
+                  "type": "string"
+                },
+                "yixiaoerName": {
+                  "type": "string"
+                },
+                "raw": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "notifySubscribers": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "pubType": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "scheduledTime": {
+      "type": "integer"
+    },
+    "sex": {
+      "type": "number",
+      "enum": [
+        0,
+        1,
+        2
+      ],
+      "default": 0
+    },
+    "country": {
+      "type": "string"
+    },
+    "province": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

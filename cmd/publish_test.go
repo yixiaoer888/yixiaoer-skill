@@ -1412,6 +1412,86 @@ func TestPublishCommandKeepsArticleContentOnlyUnderPublishArgs(t *testing.T) {
 	}
 }
 
+func TestPublishCommandSupportsWeixinAccountArticlePlatformForms(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":      "publish",
+		"publishType": "article",
+		"platforms":   []interface{}{"微信公众号"},
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_weixin_1",
+					"platformName":      "微信公众号",
+				},
+			},
+			"platformForms": map[string]interface{}{
+				"微信公众号": map[string]interface{}{
+					"articles": []interface{}{
+						map[string]interface{}{
+							"title":   "公众号文章标题",
+							"content": "<p>公众号文章正文</p>",
+							"digest":  "公众号摘要",
+							"type":    float64(1),
+							"cover": map[string]interface{}{
+								"key": "wx-cover-key",
+								"raw": map[string]interface{}{},
+							},
+						},
+					},
+					"notifySubscribers": float64(1),
+					"pubType":           float64(1),
+				},
+			},
+		},
+	})
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{
+					{"platformAccountId": "acc_weixin_1", "name": "公众号账号", "status": 1},
+				},
+			})
+		case "/taskSets/v2":
+			publishCalls++
+			if err := json.NewDecoder(r.Body).Decode(&publishBody); err != nil {
+				t.Fatal(err)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{"taskSetId": "task_set_weixin_article_1"},
+			})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"article", "微信公众号", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if publishCalls != 1 {
+		t.Fatalf("expected one publish call, got %d", publishCalls)
+	}
+	args := publishBody["publishArgs"].(map[string]interface{})
+	wxForm := args["platformForms"].(map[string]interface{})["微信公众号"].(map[string]interface{})
+	if wxForm["pubType"] != float64(1) {
+		t.Fatalf("expected weixin platform form to be forwarded, got %#v", wxForm)
+	}
+	if publishBody["coverKey"] != "wx-cover-key" {
+		t.Fatalf("expected top-level coverKey synthesized from weixin article cover, got %#v", publishBody["coverKey"])
+	}
+	if publishBody["desc"] != "公众号摘要" {
+		t.Fatalf("expected top-level desc synthesized from weixin article digest, got %#v", publishBody["desc"])
+	}
+}
+
 func imageTextPublishTestServer(t *testing.T, publishCalls *int, publishBody *map[string]interface{}) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

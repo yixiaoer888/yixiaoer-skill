@@ -9,7 +9,7 @@ import (
 
 func buildPayloadTemplate(doc schema.Document) map[string]interface{} {
 	contentProperties := doc.Properties
-	if doc.Type == "article" {
+	if doc.Type == "article" && !isWeixinAccountArticleDoc(doc) {
 		contentProperties = clonePropertyViewsWithoutKeys(doc.Properties, "content")
 	}
 	publishArgs := map[string]interface{}{
@@ -20,7 +20,11 @@ func buildPayloadTemplate(doc schema.Document) map[string]interface{} {
 			},
 		},
 	}
-	if doc.Type == "article" {
+	if isWeixinAccountArticleDoc(doc) {
+		publishArgs["platformForms"] = map[string]interface{}{
+			"微信公众号": buildTemplateObject(doc.Properties),
+		}
+	} else if doc.Type == "article" {
 		publishArgs["content"] = "<content>"
 	}
 	template := map[string]interface{}{
@@ -50,8 +54,12 @@ func buildMinimalPayloadTemplate(doc schema.Document) map[string]interface{} {
 	}
 
 	accountForm := map[string]interface{}{
-		"platformAccountId":  "<从 accounts list 获取>",
-		"contentPublishForm": requiredFields,
+		"platformAccountId": "<从 accounts list 获取>",
+	}
+	if isWeixinAccountArticleDoc(doc) {
+		accountForm["platformName"] = "微信公众号"
+	} else {
+		accountForm["contentPublishForm"] = requiredFields
 	}
 	if requiresAccountLevelCover(doc) {
 		accountForm["cover"] = map[string]interface{}{
@@ -74,7 +82,12 @@ func buildMinimalPayloadTemplate(doc schema.Document) map[string]interface{} {
 			},
 		},
 	}
-	if doc.Type == "article" {
+	if isWeixinAccountArticleDoc(doc) {
+		template["publishArgs"].(map[string]interface{})["platformForms"] = map[string]interface{}{
+			"微信公众号": requiredFields,
+		}
+		template["desc"] = "<任务描述>"
+	} else if doc.Type == "article" {
 		template["publishArgs"].(map[string]interface{})["content"] = "<从正文生成>"
 		template["desc"] = "<任务描述>"
 	}

@@ -195,12 +195,15 @@ func normalizePublishEnvelope(body, publishArgs map[string]interface{}, publishT
 	accountForms, _ := publishArgs["accountForms"].([]interface{})
 	firstForm := firstObject(accountForms)
 	firstCPF := objectField(firstForm, "contentPublishForm")
+	weixinPlatformForm := weixinAccountArticlePlatformForm(publishArgs)
+	firstWeixinArticle := firstWeixinAccountArticle(weixinPlatformForm)
 
 	if _, ok := body["cover"]; !ok {
 		if cover := firstNonNil(
 			publishArgs["cover"],
 			firstForm["cover"],
 			firstCPF["cover"],
+			firstWeixinArticle["cover"],
 		); cover != nil {
 			body["cover"] = cover
 		}
@@ -210,13 +213,15 @@ func normalizePublishEnvelope(body, publishArgs map[string]interface{}, publishT
 			stringField(publishArgs, "coverKey"),
 			stringField(firstForm, "coverKey"),
 			stringField(firstCPF, "coverKey"),
+			stringField(firstWeixinArticle, "coverKey"),
+			stringField(objectField(firstWeixinArticle, "cover"), "key"),
 			stringField(objectField(body, "cover"), "key"),
 		); coverKey != "" {
 			body["coverKey"] = coverKey
 		}
 	}
 	if stringField(body, "desc") == "" {
-		if desc := inferOuterDesc(publishType, publishArgs, firstCPF); desc != "" {
+		if desc := inferOuterDesc(publishType, publishArgs, firstCPF, firstWeixinArticle); desc != "" {
 			body["desc"] = desc
 		}
 	}
@@ -240,10 +245,13 @@ func inferYixiaoerDraft(body map[string]interface{}) bool {
 	return false
 }
 
-func inferOuterDesc(publishType string, publishArgs, contentPublishForm map[string]interface{}) string {
+func inferOuterDesc(publishType string, publishArgs, contentPublishForm, weixinArticle map[string]interface{}) string {
 	switch publishmod.NormalizePublishType(publishType) {
 	case "article":
 		return firstNonEmptyString(
+			stringField(weixinArticle, "digest"),
+			stringField(weixinArticle, "title"),
+			stringField(weixinArticle, "content"),
 			stringField(contentPublishForm, "desc"),
 			stringField(contentPublishForm, "title"),
 			stringField(publishArgs, "content"),
@@ -292,6 +300,36 @@ func firstObject(items []interface{}) map[string]interface{} {
 	for _, item := range items {
 		if obj, ok := item.(map[string]interface{}); ok {
 			return obj
+		}
+	}
+	return nil
+}
+
+func weixinAccountArticlePlatformForm(publishArgs map[string]interface{}) map[string]interface{} {
+	if publishArgs == nil {
+		return nil
+	}
+	platformForms, _ := publishArgs["platformForms"].(map[string]interface{})
+	if platformForms == nil {
+		return nil
+	}
+	for _, key := range []string{"微信公众号", "weixin.account"} {
+		form, _ := platformForms[key].(map[string]interface{})
+		if form != nil {
+			return form
+		}
+	}
+	return nil
+}
+
+func firstWeixinAccountArticle(platformForm map[string]interface{}) map[string]interface{} {
+	if platformForm == nil {
+		return nil
+	}
+	articles, _ := platformForm["articles"].([]interface{})
+	for _, item := range articles {
+		if article, ok := item.(map[string]interface{}); ok {
+			return article
 		}
 	}
 	return nil

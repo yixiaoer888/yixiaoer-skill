@@ -336,6 +336,42 @@ func TestValidateAcceptsArticleContentUnderPublishArgs(t *testing.T) {
 	}
 }
 
+func TestValidateAcceptsWeixinAccountArticlePlatformForms(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	payload := map[string]interface{}{
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_weixin_1",
+					"platformName":      "微信公众号",
+				},
+			},
+			"platformForms": map[string]interface{}{
+				"微信公众号": map[string]interface{}{
+					"articles": []interface{}{
+						map[string]interface{}{
+							"title":   "公众号文章标题",
+							"content": "<p>公众号文章正文</p>",
+							"type":    float64(1),
+							"cover": map[string]interface{}{
+								"key": "wx-cover-key",
+								"raw": map[string]interface{}{},
+							},
+						},
+					},
+					"notifySubscribers": float64(1),
+					"pubType":           float64(1),
+				},
+			},
+		},
+	}
+
+	result := validator.Validate("微信公众号", "article", payload)
+	if !result.Valid {
+		t.Fatalf("expected weixin account article payload to pass, got %v", result.Errors)
+	}
+}
+
 func TestValidateMissingSchemaFallsBackToBasicValidation(t *testing.T) {
 	validator := NewValidator(t.TempDir())
 	payload := map[string]interface{}{
