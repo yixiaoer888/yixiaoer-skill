@@ -35,6 +35,7 @@ var canonicalChineseNames = map[string]string{
 	"dewu":            "得物",
 	"jianshu":         "简书",
 	"meiyou":          "美柚",
+	"csdn":            "CSDN",
 }
 
 var aliasesToCanonicalKeys = map[string]string{
@@ -105,6 +106,8 @@ var aliasesToCanonicalKeys = map[string]string{
 	"简书":               "jianshu",
 	"meiyou":           "meiyou",
 	"美柚":               "meiyou",
+	"csdn":             "csdn",
+	"CSDN":             "csdn",
 }
 
 var chineseNames = map[string]string{
@@ -141,6 +144,7 @@ var chineseNames = map[string]string{
 	"dewu":             "得物",
 	"jianshu":          "简书",
 	"meiyou":           "美柚",
+	"csdn":             "CSDN",
 }
 
 func CanonicalKey(value string) string {
