@@ -47,11 +47,13 @@ func runUpdate(cmd *cobra.Command) error {
 		"before":       before,
 		"cliUpdate": map[string]interface{}{
 			"supported": false,
-			"message":   "当前仓库尚未提供自动下载新版 yxer 二进制的能力，请通过拉取仓库代码后重新 build 更新 CLI。",
+			"message":   "当前命令会检查 CLI/skill 状态并同步 skill；如果 CLI 通过 npm 安装，推荐使用 npm 全局更新到最新版本。",
 			"commands": []string{
-				"git pull",
-				"go build -o bin/yxer.exe .",
+				"npm install -g @yixiaoermail/cli@latest",
+				"yxer --version",
+				"yxer skill sync",
 			},
+			"changelog": "CHANGELOG.md",
 		},
 	}
 

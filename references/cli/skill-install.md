@@ -41,6 +41,22 @@ yxer update
 yxer update --check
 ```
 
+如果 CLI 是通过 npm 安装的，推荐优先使用下面的方式升级 CLI 本体，再同步 skill：
+
+```powershell
+npm install -g @yixiaoermail/cli@latest
+yxer --version
+yxer skill sync
+```
+
+如需全局 skill：
+
+```powershell
+yxer skill sync --global
+```
+
+本次版本更新内容统一查看仓库根目录的 `CHANGELOG.md`。
+
 ## 何时需要重新同步
 
 - `yxer --version` 升级后

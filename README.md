@@ -21,12 +21,36 @@
 
 运行时统一通过 `yxer` 执行，不再假设存在旧 Node 脚本入口。
 
-## 安装
+## 安装与快速开始
 
 ### 环境要求
 
 - Go `1.25.0` 或更高
 - Node.js 和 `npx`
+
+### 快速开始（npm 安装，推荐）
+
+如果你已经把 `yxer` 发布到了 npm，推荐优先使用全局安装：
+
+```powershell
+npm install -g @yixiaoermail/cli@latest
+yxer --version
+yxer skill sync
+```
+
+如需全局同步 skill：
+
+```powershell
+yxer skill sync --global
+```
+
+升级后建议再执行一次：
+
+```powershell
+yxer doctor
+```
+
+本次版本修改内容请查看 [CHANGELOG.md](CHANGELOG.md)。
 
 ### 从源码构建
 
@@ -155,6 +179,36 @@ yxer validate 抖音 video .\payload.json --publish-channel local --client-id <c
 yxer publish video 抖音 .\payload.json --publish-channel local --client-id <clientId> --dry-run
 yxer publish video 抖音 .\payload.json --publish-channel local --client-id <clientId>
 ```
+
+## 升级
+
+如果 CLI 是通过 npm 安装的，推荐按下面顺序升级：
+
+```powershell
+npm install -g @yixiaoermail/cli@latest
+yxer --version
+yxer skill sync
+```
+
+如需全局 skill：
+
+```powershell
+yxer skill sync --global
+```
+
+只检查当前状态而不执行同步，可运行：
+
+```bash
+yxer update --check
+```
+
+执行“检查状态 + 同步 skill + 查看升级指引”：
+
+```bash
+yxer update
+```
+
+本次版本更新内容统一记录在 [CHANGELOG.md](CHANGELOG.md)。
 
 ## AI Skill 安装
 
