@@ -14,6 +14,8 @@ $ProgressPreference = "SilentlyContinue"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $npmTemplateDir = Join-Path $repoRoot "npm"
 $skillSourceDir = Join-Path $repoRoot "skills\yixiaoer"
+$schemaSourceDir = Join-Path $repoRoot "schemas"
+$referencesSourceDir = Join-Path $repoRoot "references"
 $stagingRoot = Join-Path $repoRoot "out\npm-staging"
 $packageRoot = Join-Path $stagingRoot "package"
 $distDir = Join-Path $packageRoot "dist"
@@ -83,6 +85,12 @@ if (-not (Test-Path $npmTemplateDir)) {
 if (-not (Test-Path $skillSourceDir)) {
     throw "skill source directory not found: $skillSourceDir"
 }
+if (-not (Test-Path $schemaSourceDir)) {
+    throw "schema source directory not found: $schemaSourceDir"
+}
+if (-not (Test-Path $referencesSourceDir)) {
+    throw "references source directory not found: $referencesSourceDir"
+}
 
 $goVersion = Get-GoSkillVersion -Path $goVersionSourcePath
 $skillVersion = Get-SkillManifestVersion -Path $skillManifestPath
@@ -133,6 +141,8 @@ New-Item -ItemType Directory -Path $resolvedOutputDir -Force | Out-Null
 
 Copy-Item -Path (Join-Path $npmTemplateDir "*") -Destination $packageRoot -Recurse -Force
 Copy-Item -Path $skillSourceDir -Destination $packagedSkillRoot -Recurse -Force
+Copy-Item -Path $schemaSourceDir -Destination $packageRoot -Recurse -Force
+Copy-Item -Path $referencesSourceDir -Destination $packageRoot -Recurse -Force
 
 $targets = @(
     @{ GOOS = "windows"; GOARCH = "amd64"; Output = "yxer-windows-amd64.exe" },

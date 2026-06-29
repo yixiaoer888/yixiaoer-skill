@@ -25,7 +25,8 @@ func (s Service) Check() (map[string]interface{}, error) {
 		"apiKeyPresent":        cfg.APIKey != "",
 		"schemaDir":            cfg.SchemaDir,
 		"schemaDirOK":          PathExists(cfg.SchemaDir),
-		"workflowsOK":          PathExists(filepath.Join(cfg.ProjectDir, "workflows")),
+		"workflowsOK":          hasWorkflowDocs(cfg.ProjectDir),
+		"workflowDocsPath":     workflowDocsPath(cfg.ProjectDir),
 		"localPublishClientId": cfg.LocalClientID,
 		"publishChannelReadiness": map[string]interface{}{
 			"cloud": map[string]interface{}{
@@ -55,4 +56,16 @@ func (s Service) Check() (map[string]interface{}, error) {
 func PathExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
+}
+
+func hasWorkflowDocs(projectDir string) bool {
+	return PathExists(filepath.Join(projectDir, "workflows")) || PathExists(filepath.Join(projectDir, "references", "workflows"))
+}
+
+func workflowDocsPath(projectDir string) string {
+	workflowsDir := filepath.Join(projectDir, "workflows")
+	if PathExists(workflowsDir) {
+		return workflowsDir
+	}
+	return filepath.Join(projectDir, "references", "workflows")
 }

@@ -153,7 +153,7 @@ func resolveProjectDir(cwd, exeDir string) (string, error) {
 		}
 		if !isProjectDir(abs) {
 			return "", yxerrors.Usage("project directory not found", abs).
-				WithHint("请确认 YIXIAOER_PROJECT_DIR 指向项目根目录，且 schemas 和 workflows 目录存在。")
+				WithHint("请确认 YIXIAOER_PROJECT_DIR 指向项目根目录，且 schemas 与 workflows 或 references/workflows 目录存在。")
 		}
 		return abs, nil
 	}
@@ -190,7 +190,14 @@ func findProjectDirFrom(start string) (string, bool) {
 }
 
 func isProjectDir(path string) bool {
-	return isDir(filepath.Join(path, "schemas")) && isDir(filepath.Join(path, "workflows"))
+	if !isDir(filepath.Join(path, "schemas")) {
+		return false
+	}
+	return hasWorkflowDocs(path)
+}
+
+func hasWorkflowDocs(path string) bool {
+	return isDir(filepath.Join(path, "workflows")) || isDir(filepath.Join(path, "references", "workflows"))
 }
 
 func isDir(path string) bool {

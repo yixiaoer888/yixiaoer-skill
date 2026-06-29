@@ -51,6 +51,22 @@ func TestResolveProjectDirUsesWorkingDirectoryWhenNoProjectFound(t *testing.T) {
 	}
 }
 
+func TestResolveProjectDirAcceptsReferencesWorkflowsLayout(t *testing.T) {
+	root := t.TempDir()
+	mustMkdirAll(t, filepath.Join(root, "schemas"))
+	mustMkdirAll(t, filepath.Join(root, "references", "workflows"))
+	nested := filepath.Join(root, "cmd", "subdir")
+	mustMkdirAll(t, nested)
+
+	projectDir, err := resolveProjectDir(nested, "")
+	if err != nil {
+		t.Fatalf("resolveProjectDir returned error: %v", err)
+	}
+	if projectDir != root {
+		t.Fatalf("projectDir = %q, want %q", projectDir, root)
+	}
+}
+
 func TestResolveProjectDirRejectsInvalidOverride(t *testing.T) {
 	override := t.TempDir()
 	t.Setenv("YIXIAOER_PROJECT_DIR", override)
