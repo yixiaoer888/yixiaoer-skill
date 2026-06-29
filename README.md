@@ -228,7 +228,19 @@ npm 包会内置 `skills/yixiaoer`，`skill sync` 会直接使用本地随包分
 如需产出可通过 `npm install -g` 安装的 CLI 成品包，可在仓库根目录执行：
 
 ```powershell
-.\scripts\build-npm-package.ps1 -Version 0.1.0
+.\scripts\build-npm-package.ps1
+```
+
+默认会自动读取仓库内部版本，并校验以下版本源保持一致：
+
+- `internal/domain/response.go`
+- `skills/yixiaoer/SKILL.md`
+- `skills/yixiaoer/plugin.json`
+
+如需显式传版本号，也必须与内部版本一致：
+
+```powershell
+.\scripts\build-npm-package.ps1 -Version 3.1.1
 ```
 
 该脚本会：

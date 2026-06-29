@@ -1,5 +1,4 @@
 param(
-    [Parameter(Mandatory = $true)]
     [string]$Version,
 
     [string]$PackageName = "@yixiaoermail/cli",
@@ -22,6 +21,9 @@ $packagedSkillRoot = Join-Path $packageRoot "skills"
 $resolvedOutputDir = Join-Path $repoRoot $OutputDir
 $goCacheDir = Join-Path $repoRoot "out\go-build-cache"
 $npmCacheDir = Join-Path $repoRoot "out\npm-cache"
+$goVersionSourcePath = Join-Path $repoRoot "internal\domain\response.go"
+$skillManifestPath = Join-Path $repoRoot "skills\yixiaoer\SKILL.md"
+$pluginManifestPath = Join-Path $repoRoot "skills\yixiaoer\plugin.json"
 
 function Assert-LastExitCode {
     param(
@@ -33,12 +35,81 @@ function Assert-LastExitCode {
     }
 }
 
+function Get-GoSkillVersion {
+    param(
+        [string]$Path
+    )
+
+    $content = Get-Content -LiteralPath $Path -Raw
+    $match = [regex]::Match($content, 'const\s+SkillVersion\s*=\s*"([^"]+)"')
+    if (-not $match.Success) {
+        throw "SkillVersion constant not found: $Path"
+    }
+
+    return $match.Groups[1].Value.Trim()
+}
+
+function Get-SkillManifestVersion {
+    param(
+        [string]$Path
+    )
+
+    foreach ($line in Get-Content -LiteralPath $Path) {
+        $trimmed = $line.Trim()
+        if ($trimmed -like "version:*") {
+            return $trimmed.Substring("version:".Length).Trim().Trim('"').Trim("'")
+        }
+    }
+
+    throw "version field not found in skill manifest: $Path"
+}
+
+function Get-PluginManifestVersion {
+    param(
+        [string]$Path
+    )
+
+    $json = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
+    if (-not $json.version) {
+        throw "version field not found in plugin manifest: $Path"
+    }
+
+    return [string]$json.version
+}
+
 if (-not (Test-Path $npmTemplateDir)) {
     throw "npm template directory not found: $npmTemplateDir"
 }
 if (-not (Test-Path $skillSourceDir)) {
     throw "skill source directory not found: $skillSourceDir"
 }
+
+$goVersion = Get-GoSkillVersion -Path $goVersionSourcePath
+$skillVersion = Get-SkillManifestVersion -Path $skillManifestPath
+$pluginVersion = Get-PluginManifestVersion -Path $pluginManifestPath
+
+$detectedVersions = @(
+    @{ Name = "internal/domain/response.go"; Version = $goVersion },
+    @{ Name = "skills/yixiaoer/SKILL.md"; Version = $skillVersion },
+    @{ Name = "skills/yixiaoer/plugin.json"; Version = $pluginVersion }
+)
+
+$distinctVersions = $detectedVersions.Version | Sort-Object -Unique
+if ($distinctVersions.Count -ne 1) {
+    $details = ($detectedVersions | ForEach-Object { "$($_.Name)=$($_.Version)" }) -join ", "
+    throw "Version sources are inconsistent: $details"
+}
+
+$resolvedVersion = $goVersion
+if ($Version) {
+    if ($Version -ne $resolvedVersion) {
+        throw "Provided version '$Version' does not match internal version '$resolvedVersion'"
+    }
+} else {
+    $Version = $resolvedVersion
+}
+
+Write-Host "Using package version $Version"
 
 New-Item -ItemType Directory -Path $goCacheDir -Force | Out-Null
 New-Item -ItemType Directory -Path $npmCacheDir -Force | Out-Null
