@@ -412,7 +412,7 @@ yxer query records [--platform P] [--limit N] [--status S] [--json]
 {
   "ok": true,
   "action": "doctor",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "data": {
     "configPath": "C:\\Users\\<user>\\AppData\\Roaming\\yxer\\config.json",
     "apiUrl": "https://www.yixiaoer.cn/api",
@@ -420,8 +420,8 @@ yxer query records [--platform P] [--limit N] [--status S] [--json]
   },
   "_notice": {
     "skills": {
-      "current": "3.1.0",
-      "target": "3.1.0"
+      "current": "3.1.1",
+      "target": "3.1.1"
     }
   }
 }
@@ -432,7 +432,7 @@ yxer query records [--platform P] [--limit N] [--status S] [--json]
 ```json
 {
   "ok": false,
-  "version": "3.1.0",
+  "version": "3.1.1",
   "error": {
     "type": "validation_error",
     "code": "YIXIAOER_USAGE_ERR",

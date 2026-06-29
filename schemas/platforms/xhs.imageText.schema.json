@@ -77,6 +77,31 @@
         "raw"
       ]
     },
+    "music": {
+      "type": "object",
+      "required": [
+        "yixiaoerId",
+        "yixiaoerName",
+        "raw"
+      ],
+      "properties": {
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "number"
+        },
+        "playUrl": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
+      }
+    },
     "collection": {
       "type": "object",
       "required": [
@@ -84,6 +109,10 @@
         "yixiaoerName",
         "raw"
       ]
+    },
+    "scheduledTime": {
+      "type": "number",
+      "minimum": 0
     }
   },
   "additionalProperties": false

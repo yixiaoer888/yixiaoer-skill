@@ -118,6 +118,7 @@ func TestPreflightAcceptsArticleContentFromPublishArgs(t *testing.T) {
 	payload := standardPayload("article", []string{"知乎"}, map[string]interface{}{
 		"cover":    uploadedResourceWithKey("cover-key"),
 		"coverKey": "cover-key",
+		"covers":   []interface{}{uploadedResourceWithKey("cover-key")},
 		"content":  "文章正文",
 		"accountForms": []interface{}{
 			map[string]interface{}{
@@ -133,6 +134,10 @@ func TestPreflightAcceptsArticleContentFromPublishArgs(t *testing.T) {
 	result := Preflight("article", []string{"知乎"}, payload)
 	if len(result.Errors) > 0 {
 		t.Fatalf("expected article content normalization to pass, got %v", result.Errors)
+	}
+	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	if _, ok := cpf["covers"].([]interface{}); !ok {
+		t.Fatalf("expected publishArgs.covers to normalize into contentPublishForm.covers, got %+v", cpf)
 	}
 }
 
@@ -160,6 +165,101 @@ func TestPreflightAcceptsImageTextImagesInContentPublishForm(t *testing.T) {
 	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
 	if images, _ := form["images"].([]interface{}); len(images) != 1 {
 		t.Fatalf("expected contentPublishForm.images to normalize into account form, got %+v", form)
+	}
+}
+
+func TestPreflightAcceptsBaijiahaoImageTextDraftFields(t *testing.T) {
+	payload := standardPayload("imageText", []string{"百家号"}, map[string]interface{}{
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_bjh_1",
+				"cover":             uploadedResourceWithKey("cover-key"),
+				"coverKey":          "cover-key",
+				"contentPublishForm": map[string]interface{}{
+					"formType":      "task",
+					"title":         "百家号图文标题",
+					"description":   "<p>百家号图文内容</p>",
+					"pubType":       float64(0),
+					"declaration":   float64(0),
+					"scheduledTime": float64(1760000000000),
+					"images":        []interface{}{uploadedResourceWithKey("image-key")},
+				},
+			},
+		},
+	})
+
+	result := Preflight("imageText", []string{"百家号"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected baijiahao imageText preflight to pass, got %v", result.Errors)
+	}
+}
+
+func TestPreflightAcceptsSouhuhaoVideoFields(t *testing.T) {
+	payload := standardPayload("video", []string{"搜狐号"}, map[string]interface{}{
+		"video": uploadedResource(),
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_sh_1",
+				"cover":             uploadedResourceWithKey("cover-key"),
+				"coverKey":          "cover-key",
+				"contentPublishForm": map[string]interface{}{
+					"formType":    "task",
+					"title":       "搜狐号视频标题示例",
+					"description": "这是搜狐号视频描述内容。",
+					"tags":        []interface{}{"科技"},
+					"declaration": float64(2),
+					"pubType":     float64(1),
+					"category": []interface{}{
+						map[string]interface{}{
+							"id":   "1",
+							"text": "科技",
+							"raw":  map[string]interface{}{"id": "1"},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	result := Preflight("video", []string{"搜狐号"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected souhuhao video preflight to pass, got %v", result.Errors)
+	}
+}
+
+func TestPreflightAcceptsToutiaohaoArticleExtendedFields(t *testing.T) {
+	payload := standardPayload("article", []string{"头条号"}, map[string]interface{}{
+		"content": "<p>文章正文</p>",
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_tt_1",
+				"cover":             uploadedResourceWithKey("cover-key"),
+				"coverKey":          "cover-key",
+				"contentPublishForm": map[string]interface{}{
+					"formType":      "task",
+					"title":         "头条号文章标题",
+					"pubType":       float64(0),
+					"isFirst":       true,
+					"advertisement": float64(3),
+					"declaration":   float64(3),
+					"scheduledTime": float64(1760000000000),
+					"location": map[string]interface{}{
+						"yixiaoerId":   "loc_1",
+						"yixiaoerName": "上海",
+						"raw":          map[string]interface{}{"id": "loc_1"},
+					},
+				},
+			},
+		},
+	})
+
+	result := Preflight("article", []string{"头条号"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected toutiaohao article preflight to pass, got %v", result.Errors)
+	}
+	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	if cpf["scheduledTime"] != float64(1760000000) {
+		t.Fatalf("expected scheduledTime normalized to seconds, got %#v", cpf["scheduledTime"])
 	}
 }
 

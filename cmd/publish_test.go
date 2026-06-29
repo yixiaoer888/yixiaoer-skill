@@ -1492,6 +1492,251 @@ func TestPublishCommandSupportsWeixinAccountArticlePlatformForms(t *testing.T) {
 	}
 }
 
+func TestPublishCommandAcceptsBaijiahaoImageTextPayload(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "imageText",
+		"platforms":      []interface{}{"百家号"},
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_bjh_1",
+					"cover": map[string]interface{}{
+						"key":    "cover-key",
+						"size":   float64(512),
+						"width":  float64(1080),
+						"height": float64(1080),
+					},
+					"coverKey": "cover-key",
+					"contentPublishForm": map[string]interface{}{
+						"formType":    "task",
+						"title":       "百家号图文标题",
+						"description": "<p>百家号图文内容</p>",
+						"pubType":     float64(0),
+						"declaration": float64(0),
+						"scheduledTime": float64(1760000000000),
+						"images": []interface{}{
+							map[string]interface{}{
+								"key":    "image-key",
+								"size":   float64(512),
+								"width":  float64(1080),
+								"height": float64(1080),
+								"format": "jpg",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{
+					{"platformAccountId": "acc_bjh_1", "name": "百家号图文账号", "status": 1},
+				},
+			})
+		case "/taskSets/v2":
+			publishCalls++
+			if err := json.NewDecoder(r.Body).Decode(&publishBody); err != nil {
+				t.Fatal(err)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{"taskSetId": "task_set_bjh_image_text_1"},
+			})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"imageText", "百家号", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if publishCalls != 1 {
+		t.Fatalf("expected one publish call, got %d", publishCalls)
+	}
+	cpf := publishBody["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	if cpf["pubType"] != float64(0) || cpf["declaration"] != float64(0) {
+		t.Fatalf("expected baijiahao imageText fields to survive publish normalization, got %+v", cpf)
+	}
+	if cpf["scheduledTime"] != float64(1760000000) {
+		t.Fatalf("expected scheduledTime normalized to seconds, got %+v", cpf["scheduledTime"])
+	}
+}
+
+func TestPublishCommandAcceptsSouhuhaoVideoPayload(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "video",
+		"platforms":      []interface{}{"搜狐号"},
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"video": map[string]interface{}{
+				"key":    "video-key",
+				"size":   float64(1024),
+				"width":  float64(1080),
+				"height": float64(1920),
+			},
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_sh_1",
+					"cover": map[string]interface{}{
+						"key":    "cover-key",
+						"size":   float64(512),
+						"width":  float64(1080),
+						"height": float64(1080),
+					},
+					"coverKey": "cover-key",
+					"contentPublishForm": map[string]interface{}{
+						"formType":    "task",
+						"title":       "搜狐号视频标题示例",
+						"description": "这是搜狐号视频描述内容。",
+						"tags":        []interface{}{"科技"},
+						"declaration": float64(2),
+						"pubType":     float64(1),
+						"category": []interface{}{
+							map[string]interface{}{
+								"id":   "1",
+								"text": "科技",
+								"raw":  map[string]interface{}{"id": "1"},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{
+					{"platformAccountId": "acc_sh_1", "name": "搜狐号视频账号", "status": 1},
+				},
+			})
+		case "/taskSets/v2":
+			publishCalls++
+			if err := json.NewDecoder(r.Body).Decode(&publishBody); err != nil {
+				t.Fatal(err)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{"taskSetId": "task_set_souhuhao_video_1"},
+			})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"video", "搜狐号", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if publishCalls != 1 {
+		t.Fatalf("expected one publish call, got %d", publishCalls)
+	}
+	cpf := publishBody["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	if cpf["pubType"] != float64(1) || cpf["declaration"] != float64(2) {
+		t.Fatalf("expected souhuhao video fields to survive publish normalization, got %+v", cpf)
+	}
+}
+
+func TestPublishCommandAcceptsToutiaohaoArticleExtendedFields(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "article",
+		"platforms":      []interface{}{"头条号"},
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"content": "<p>文章正文</p>",
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_tt_1",
+					"cover": map[string]interface{}{
+						"key":    "cover-key",
+						"size":   float64(512),
+						"width":  float64(1080),
+						"height": float64(1080),
+					},
+					"coverKey": "cover-key",
+					"contentPublishForm": map[string]interface{}{
+						"formType":      "task",
+						"title":         "头条号文章标题",
+						"pubType":       float64(0),
+						"isFirst":       true,
+						"advertisement": float64(3),
+						"declaration":   float64(3),
+						"scheduledTime": float64(1760000000000),
+						"location": map[string]interface{}{
+							"yixiaoerId":   "loc_1",
+							"yixiaoerName": "上海",
+							"raw":          map[string]interface{}{"id": "loc_1"},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{
+					{"platformAccountId": "acc_tt_1", "name": "头条号文章账号", "status": 1},
+				},
+			})
+		case "/taskSets/v2":
+			publishCalls++
+			if err := json.NewDecoder(r.Body).Decode(&publishBody); err != nil {
+				t.Fatal(err)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{"taskSetId": "task_set_toutiaohao_article_1"},
+			})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	err := publishCmd.RunE(testCobraCommand(), []string{"article", "头条号", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if publishCalls != 1 {
+		t.Fatalf("expected one publish call, got %d", publishCalls)
+	}
+	cpf := publishBody["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	if cpf["advertisement"] != float64(3) || cpf["declaration"] != float64(3) || cpf["isFirst"] != true {
+		t.Fatalf("expected toutiaohao article fields to survive publish normalization, got %+v", cpf)
+	}
+	if cpf["scheduledTime"] != float64(1760000000) {
+		t.Fatalf("expected scheduledTime normalized to seconds, got %+v", cpf["scheduledTime"])
+	}
+}
+
 func imageTextPublishTestServer(t *testing.T, publishCalls *int, publishBody *map[string]interface{}) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

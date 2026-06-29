@@ -1,6 +1,6 @@
 ---
 name: yixiaoer
-version: 3.1.0
+version: 3.1.1
 description: "通过 yxer CLI 操作蚁小二多平台内容分发：账号查询、资源上传、发布前准备、payload 校验、云发布/本机发布、草稿保存、素材登记、发布记录排查与技能同步。"
 metadata:
   category: "productivity"

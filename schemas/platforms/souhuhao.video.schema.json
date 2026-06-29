@@ -1,0 +1,171 @@
+{
+  "title": "搜狐号视频发布表单 (SouHuHao Video)",
+  "type": "object",
+  "required": [
+    "formType",
+    "title",
+    "description",
+    "tags",
+    "category",
+    "declaration",
+    "pubType"
+  ],
+  "properties": {
+    "formType": {
+      "type": "string",
+      "const": "task"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 72
+    },
+    "description": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 200
+    },
+    "tags": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "category": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "text",
+          "raw"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "text",
+                "raw"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                },
+                "raw": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "raw": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "declaration": {
+      "type": "number",
+      "enum": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "default": 0
+    },
+    "pubType": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "scheduledTime": {
+      "type": "number",
+      "minimum": 0
+    },
+    "video": {
+      "type": "object",
+      "required": [
+        "key",
+        "size",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "duration": {
+          "type": "number",
+          "minimum": 1
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "mp4",
+            "mov",
+            "flv",
+            "avi"
+          ]
+        }
+      }
+    },
+    "cover": {
+      "type": "object",
+      "required": [
+        "key",
+        "size",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "width": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
+        }
+      }
+    },
+    "coverKey": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

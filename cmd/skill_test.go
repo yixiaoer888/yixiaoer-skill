@@ -149,7 +149,7 @@ func createSkillCheckFixture(t *testing.T) string {
 
 	skillContent := `---
 name: yixiaoer
-version: 3.1.0
+version: 3.1.1
 description: "通过 yxer CLI 操作蚁小二"
 metadata:
   requires:

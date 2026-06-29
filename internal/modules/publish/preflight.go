@@ -391,6 +391,7 @@ func NormalizeStandardPublishArgs(payload map[string]interface{}) {
 		if cpf == nil {
 			continue
 		}
+		copyIfMissing(cpf, payload, "covers")
 		copyIfMissing(form, cpf, "images")
 		copyIfMissing(form, cpf, "cover")
 		copyIfMissing(form, cpf, "coverKey")
@@ -399,9 +400,7 @@ func NormalizeStandardPublishArgs(payload map[string]interface{}) {
 
 func copyArticleContentIntoForms(payload map[string]interface{}) {
 	content := stringField(payload, "content")
-	if content == "" {
-		return
-	}
+	sharedCovers := articleCoversForPayload(payload)
 	accountForms, ok := payload["accountForms"].([]interface{})
 	if !ok || len(accountForms) == 0 {
 		return
@@ -415,8 +414,32 @@ func copyArticleContentIntoForms(payload map[string]interface{}) {
 		if cpf == nil {
 			continue
 		}
-		copyIfMissing(cpf, payload, "content")
+		if content != "" {
+			copyIfMissing(cpf, payload, "content")
+		}
+		if len(sharedCovers) > 0 {
+			if _, exists := cpf["covers"]; !exists {
+				cpf["covers"] = sharedCovers
+			}
+		} else if cover := objectField(form, "cover"); cover != nil {
+			if _, exists := cpf["covers"]; !exists {
+				cpf["covers"] = []interface{}{cover}
+			}
+		}
 	}
+}
+
+func articleCoversForPayload(payload map[string]interface{}) []interface{} {
+	if payload == nil {
+		return nil
+	}
+	if covers, ok := payload["covers"].([]interface{}); ok && len(covers) > 0 {
+		return covers
+	}
+	if cover := objectField(payload, "cover"); cover != nil {
+		return []interface{}{cover}
+	}
+	return nil
 }
 
 func NormalizePlatformSpecificFields(publishType string, platforms []string, payload map[string]interface{}) {
