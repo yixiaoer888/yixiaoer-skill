@@ -175,7 +175,7 @@ func TestPublishCommandMapsPlatformKeyToChineseForAPIRequests(t *testing.T) {
 	}
 }
 
-func TestPublishCommandConvertsScheduledTimeMillisecondsToSeconds(t *testing.T) {
+func TestPublishCommandPreservesScheduledTimeMilliseconds(t *testing.T) {
 	withRepoRoot(t)
 	payload := validPublishPayload()
 	cpf := payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
@@ -195,8 +195,8 @@ func TestPublishCommandConvertsScheduledTimeMillisecondsToSeconds(t *testing.T) 
 	}
 
 	got := publishBody["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})["scheduledTime"]
-	if got != float64(1760000000) {
-		t.Fatalf("expected scheduledTime seconds in publish body, got %#v", got)
+	if got != float64(1760000000000) {
+		t.Fatalf("expected scheduledTime milliseconds in publish body, got %#v", got)
 	}
 }
 
