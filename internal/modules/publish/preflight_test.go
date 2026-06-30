@@ -258,8 +258,8 @@ func TestPreflightAcceptsToutiaohaoArticleExtendedFields(t *testing.T) {
 		t.Fatalf("expected toutiaohao article preflight to pass, got %v", result.Errors)
 	}
 	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
-	if cpf["scheduledTime"] != float64(1760000000) {
-		t.Fatalf("expected scheduledTime normalized to seconds, got %#v", cpf["scheduledTime"])
+	if cpf["scheduledTime"] != float64(1760000000000) {
+		t.Fatalf("expected scheduledTime to remain in milliseconds, got %#v", cpf["scheduledTime"])
 	}
 }
 
@@ -532,17 +532,17 @@ func TestPreflightRejectsUnresolvedTemplatePlaceholders(t *testing.T) {
 	assertHasError(t, result.Errors, `accountForms[0].contentPublishForm.title: unresolved template placeholder "<title>"`)
 }
 
-func TestPreflightNormalizesScheduledTimeFromMilliseconds(t *testing.T) {
+func TestPreflightPreservesScheduledTimeMilliseconds(t *testing.T) {
 	payload := validVideoPayload()
 	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
 	cpf["scheduledTime"] = float64(1760000000000)
 
 	result := Preflight("video", []string{"抖音"}, payload)
 	if len(result.Errors) > 0 {
-		t.Fatalf("expected scheduledTime normalization to pass, got %v", result.Errors)
+		t.Fatalf("expected scheduledTime millisecond validation to pass, got %v", result.Errors)
 	}
-	if got := cpf["scheduledTime"]; got != float64(1760000000) {
-		t.Fatalf("expected scheduledTime to normalize to seconds, got %#v", got)
+	if got := cpf["scheduledTime"]; got != float64(1760000000000) {
+		t.Fatalf("expected scheduledTime to remain in milliseconds, got %#v", got)
 	}
 }
 

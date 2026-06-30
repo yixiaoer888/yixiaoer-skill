@@ -102,7 +102,7 @@ func TestPublishCommandMapsPlatformKeyToChineseForAPIRequests(t *testing.T) {
 	}
 }
 
-func TestPublishCommandConvertsScheduledTimeMillisecondsToSeconds(t *testing.T) {
+func TestPublishCommandPreservesScheduledTimeMilliseconds(t *testing.T) {
 	withRepoRoot(t)
 	payload := validPublishPayload()
 	cpf := payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
@@ -122,8 +122,8 @@ func TestPublishCommandConvertsScheduledTimeMillisecondsToSeconds(t *testing.T) 
 	}
 
 	got := publishBody["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})["scheduledTime"]
-	if got != float64(1760000000) {
-		t.Fatalf("expected scheduledTime seconds in publish body, got %#v", got)
+	if got != float64(1760000000000) {
+		t.Fatalf("expected scheduledTime milliseconds in publish body, got %#v", got)
 	}
 }
 
@@ -1569,8 +1569,8 @@ func TestPublishCommandAcceptsBaijiahaoImageTextPayload(t *testing.T) {
 	if cpf["pubType"] != float64(0) || cpf["declaration"] != float64(0) {
 		t.Fatalf("expected baijiahao imageText fields to survive publish normalization, got %+v", cpf)
 	}
-	if cpf["scheduledTime"] != float64(1760000000) {
-		t.Fatalf("expected scheduledTime normalized to seconds, got %+v", cpf["scheduledTime"])
+	if cpf["scheduledTime"] != float64(1760000000000) {
+		t.Fatalf("expected scheduledTime to remain in milliseconds, got %+v", cpf["scheduledTime"])
 	}
 }
 
@@ -1732,8 +1732,8 @@ func TestPublishCommandAcceptsToutiaohaoArticleExtendedFields(t *testing.T) {
 	if cpf["advertisement"] != float64(3) || cpf["declaration"] != float64(3) || cpf["isFirst"] != true {
 		t.Fatalf("expected toutiaohao article fields to survive publish normalization, got %+v", cpf)
 	}
-	if cpf["scheduledTime"] != float64(1760000000) {
-		t.Fatalf("expected scheduledTime normalized to seconds, got %+v", cpf["scheduledTime"])
+	if cpf["scheduledTime"] != float64(1760000000000) {
+		t.Fatalf("expected scheduledTime to remain in milliseconds, got %+v", cpf["scheduledTime"])
 	}
 }
 

@@ -913,7 +913,7 @@ func normalizeScheduledTimeInt64(value int64) (float64, string) {
 	if value < 1_000_000_000_000 || value > 9_999_999_999_999 {
 		return 0, "must be a 13-digit Unix timestamp in milliseconds"
 	}
-	return float64(value / 1000), ""
+	return float64(value), ""
 }
 
 func integerField(obj map[string]interface{}, key string) (int64, bool) {

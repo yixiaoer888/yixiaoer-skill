@@ -29,8 +29,8 @@ func TestSkillVersion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SkillVersion returned error: %v", err)
 	}
-	if version != "3.1.2" {
-		t.Fatalf("SkillVersion = %q, want 3.1.2", version)
+	if version != "3.1.3" {
+		t.Fatalf("SkillVersion = %q, want 3.1.3", version)
 	}
 }
 
@@ -49,11 +49,11 @@ func TestWriteAndCheckStamp(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("YIXIAOER_CONFIG", filepath.Join(dir, "config.json"))
 
-	if err := WriteStamp("3.1.2"); err != nil {
+	if err := WriteStamp("3.1.3"); err != nil {
 		t.Fatalf("WriteStamp returned error: %v", err)
 	}
 
-	status, err := Check("3.1.2")
+	status, err := Check("3.1.3")
 	if err != nil {
 		t.Fatalf("Check returned error: %v", err)
 	}
@@ -80,7 +80,7 @@ func TestNoticeStale(t *testing.T) {
 		t.Fatalf("WriteFile returned error: %v", err)
 	}
 
-	notice, err := Notice("3.1.2", `C:\repo\skills\yixiaoer`)
+	notice, err := Notice("3.1.3", `C:\repo\skills\yixiaoer`)
 	if err != nil {
 		t.Fatalf("Notice returned error: %v", err)
 	}
@@ -198,7 +198,7 @@ func TestCheckSkillFormatMissingCliHelp(t *testing.T) {
 	skillDir := createValidSkillFixture(t)
 	content := `---
 name: yixiaoer
-version: 3.1.2
+version: 3.1.3
 description: "skill"
 metadata:
   requires:
@@ -294,7 +294,7 @@ func createValidSkillFixture(t *testing.T) string {
 
 	skillContent := `---
 name: yixiaoer
-version: 3.1.2
+version: 3.1.3
 description: "通过 yxer CLI 操作蚁小二"
 metadata:
   requires:
