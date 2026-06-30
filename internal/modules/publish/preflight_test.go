@@ -441,8 +441,8 @@ func TestPreflightNormalizesScheduledTimeFromMilliseconds(t *testing.T) {
 	if len(result.Errors) > 0 {
 		t.Fatalf("expected scheduledTime normalization to pass, got %v", result.Errors)
 	}
-	if got := cpf["scheduledTime"]; got != float64(1760000000) {
-		t.Fatalf("expected scheduledTime to normalize to seconds, got %#v", got)
+	if got := cpf["scheduledTime"]; got != float64(1760000000000) {
+		t.Fatalf("expected scheduledTime to normalize to milliseconds, got %#v", got)
 	}
 }
 
