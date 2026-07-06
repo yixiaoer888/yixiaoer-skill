@@ -385,3 +385,58 @@ func TestActivitiesUsesExpectedEndpointAndFilters(t *testing.T) {
 		t.Fatalf("unexpected activity payload: %#v", first)
 	}
 }
+
+func TestPrepareCollectsOnlineAccountsAcrossPages(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			switch r.URL.Query().Get("page") {
+			case "1":
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"data": map[string]interface{}{
+						"list": []map[string]interface{}{
+							{"platformAccountId": "acc_1", "platformAccountName": "账号1", "status": 1},
+							{"platformAccountId": "acc_2", "platformAccountName": "账号2", "status": 0},
+						},
+						"page":      1,
+						"size":      20,
+						"totalPage": 2,
+						"totalSize": 3,
+					},
+				})
+			case "2":
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"data": map[string]interface{}{
+						"list": []map[string]interface{}{
+							{"platformAccountId": "acc_3", "platformAccountName": "账号3", "status": 1},
+						},
+						"page":      2,
+						"size":      20,
+						"totalPage": 2,
+						"totalSize": 3,
+					},
+				})
+			default:
+				t.Fatalf("unexpected page query: %s", r.URL.Query().Get("page"))
+			}
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.Prepare("小红书", "imageText")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Accounts) != 2 {
+		t.Fatalf("expected 2 online accounts after pagination, got %d", len(result.Accounts))
+	}
+	if got := AccountID(result.Accounts[0]); got != "acc_1" {
+		t.Fatalf("unexpected first account id: %s", got)
+	}
+	if got := AccountID(result.Accounts[1]); got != "acc_3" {
+		t.Fatalf("expected second-page online account to be preserved, got %s", got)
+	}
+}
