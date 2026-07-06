@@ -521,6 +521,29 @@ func TestPreflightRejectsArticleMissingContent(t *testing.T) {
 	assertHasError(t, result.Errors, "publishArgs.content: article publish requires content")
 }
 
+func TestPreflightAcceptsDoubanArticleWithoutCover(t *testing.T) {
+	payload := standardPayload("article", []string{"豆瓣"}, map[string]interface{}{
+		"content": "<p>豆瓣文章正文</p>",
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_001",
+				"contentPublishForm": map[string]interface{}{
+					"formType":   "task",
+					"title":      "豆瓣文章标题",
+					"content":    "<p>豆瓣文章正文</p>",
+					"createType": float64(1),
+					"pubType":    float64(1),
+				},
+			},
+		},
+	})
+
+	result := Preflight("article", []string{"豆瓣"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected douban article without cover to pass, got %v", result.Errors)
+	}
+}
+
 func TestPreflightRejectsUnresolvedTemplatePlaceholders(t *testing.T) {
 	payload := validVideoPayload()
 	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
