@@ -11,7 +11,6 @@ import (
 type PrepareData struct {
 	Platform        string                   `json:"platform"`
 	Type            string                   `json:"type"`
-	Accounts        []map[string]interface{} `json:"accounts"`
 	Categories      interface{}              `json:"categories"`
 	DefaultFormType string                   `json:"defaultFormType"`
 	Workflow        string                   `json:"workflow"`
@@ -206,7 +205,6 @@ func (c *Client) Prepare(platform, publishType string) (PrepareData, error) {
 	return PrepareData{
 		Platform:        platform,
 		Type:            publishType,
-		Accounts:        onlineAccounts,
 		Categories:      categories,
 		DefaultFormType: "task",
 		Workflow:        fmt.Sprintf("workflows/publish-%s.md", publishType),

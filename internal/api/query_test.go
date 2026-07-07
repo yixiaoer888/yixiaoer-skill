@@ -386,7 +386,7 @@ func TestActivitiesUsesExpectedEndpointAndFilters(t *testing.T) {
 	}
 }
 
-func TestPrepareCollectsOnlineAccountsAcrossPages(t *testing.T) {
+func TestPrepareUsesFirstOnlineAccountAcrossPagesForCategories(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/v2/platform/accounts":
@@ -419,6 +419,15 @@ func TestPrepareCollectsOnlineAccountsAcrossPages(t *testing.T) {
 			default:
 				t.Fatalf("unexpected page query: %s", r.URL.Query().Get("page"))
 			}
+		case "/platform-accounts/acc_1/categories":
+			if got := r.URL.Query().Get("publishType"); got != "video" {
+				t.Fatalf("unexpected publishType query: %s", got)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{
+					{"id": "cat_1", "name": "分类1"},
+				},
+			})
 		default:
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
@@ -426,17 +435,19 @@ func TestPrepareCollectsOnlineAccountsAcrossPages(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
-	result, err := client.Prepare("小红书", "imageText")
+	result, err := client.Prepare("小红书", "video")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(result.Accounts) != 2 {
-		t.Fatalf("expected 2 online accounts after pagination, got %d", len(result.Accounts))
+	items, ok := result.Categories.([]interface{})
+	if !ok {
+		t.Fatalf("expected categories list, got %#v", result.Categories)
 	}
-	if got := AccountID(result.Accounts[0]); got != "acc_1" {
-		t.Fatalf("unexpected first account id: %s", got)
+	if len(items) != 1 {
+		t.Fatalf("expected one category, got %d", len(items))
 	}
-	if got := AccountID(result.Accounts[1]); got != "acc_3" {
-		t.Fatalf("expected second-page online account to be preserved, got %s", got)
+	first := items[0].(map[string]interface{})
+	if first["id"] != "cat_1" {
+		t.Fatalf("unexpected category payload: %#v", first)
 	}
 }

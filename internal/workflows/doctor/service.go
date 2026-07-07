@@ -31,7 +31,7 @@ func (s Service) Check() (map[string]interface{}, error) {
 		"publishChannelReadiness": map[string]interface{}{
 			"cloud": map[string]interface{}{
 				"configured": cfg.APIKey != "",
-				"note":       "云发布是否需要平台代理，取决于目标平台账号配置；正式发布前建议结合 accounts/prepare 结果确认。",
+				"note":       "云发布是否需要平台代理，取决于目标平台账号配置；正式发布前建议先执行 accounts list 确认可用账号，再结合 prepare 结果确认前置数据。",
 			},
 			"local": map[string]interface{}{
 				"configured": cfg.LocalClientID != "",
