@@ -118,8 +118,8 @@ func TestRootCommandTreeExposesStableTopLevelGroups(t *testing.T) {
 			t.Fatalf("expected root command to expose %q", name)
 		}
 	}
-	if rootHasVisibleCommand("update-account") {
-		t.Fatal("expected update-account compatibility command to stay hidden from the visible command tree")
+	if rootHasCommand("update-account") {
+		t.Fatal("expected legacy update-account command to be removed")
 	}
 }
 
@@ -211,13 +211,4 @@ func visibleSubcommandNames(cmd *cobra.Command) []string {
 	}
 	sort.Strings(names)
 	return names
-}
-
-func rootHasVisibleCommand(name string) bool {
-	for _, child := range rootCmd.Commands() {
-		if child.Name() == name && !child.Hidden {
-			return true
-		}
-	}
-	return false
 }

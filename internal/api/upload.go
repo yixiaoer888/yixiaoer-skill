@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/media"
+	"github.com/yixiaoer/yixiaoer-skill/internal/media"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 

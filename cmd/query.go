@@ -12,7 +12,6 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(newUpdateAccountCompatCmd())
 	rootCmd.AddCommand(newQueryCmd())
 	rootCmd.AddCommand(newPrepareCmd())
 }

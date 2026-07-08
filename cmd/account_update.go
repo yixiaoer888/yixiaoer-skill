@@ -11,20 +11,11 @@ import (
 )
 
 func newAccountsUpdateCmd() *cobra.Command {
-	return newUpdateAccountCommand("update <account_id>", false)
-}
-
-func newUpdateAccountCompatCmd() *cobra.Command {
-	return newUpdateAccountCommand("update-account <account_id>", true)
-}
-
-func newUpdateAccountCommand(use string, hidden bool) *cobra.Command {
 	opts := updateAccountOptions{}
 	cmd := &cobra.Command{
-		Use:    use,
-		Short:  "更新账号代理或备注",
-		Hidden: hidden,
-		Args:   cobra.ExactArgs(1),
+		Use:   "update <account_id>",
+		Short: "更新账号代理或备注",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			body := opts.body()
 			if len(body) == 0 {

@@ -60,25 +60,23 @@ func TestFilterAccountsSortsOnlineAccountsFirst(t *testing.T) {
 	}
 }
 
-func TestAccountsListSubcommandInheritsNameAndStatusFlags(t *testing.T) {
+func TestAccountsListSubcommandHasListFlags(t *testing.T) {
 	accountsCmd := newAccountsCmd()
 	listCmd := findChildCommand(t, accountsCmd, "list")
-	cmd := &cobra.Command{}
-	cmd.Flags().AddFlagSet(listCmd.InheritedFlags())
-	if listCmd.InheritedFlags().Lookup("name") == nil {
-		t.Fatal("expected accounts list to inherit --name flag")
+	if listCmd.Flags().Lookup("name") == nil {
+		t.Fatal("expected accounts list to expose --name flag")
 	}
-	if listCmd.InheritedFlags().Lookup("status") == nil {
-		t.Fatal("expected accounts list to inherit --status flag")
+	if listCmd.Flags().Lookup("status") == nil {
+		t.Fatal("expected accounts list to expose --status flag")
 	}
-	if listCmd.InheritedFlags().Lookup("page") == nil {
-		t.Fatal("expected accounts list to inherit --page flag")
+	if listCmd.Flags().Lookup("page") == nil {
+		t.Fatal("expected accounts list to expose --page flag")
 	}
-	if listCmd.InheritedFlags().Lookup("size") == nil {
-		t.Fatal("expected accounts list to inherit --size flag")
+	if listCmd.Flags().Lookup("size") == nil {
+		t.Fatal("expected accounts list to expose --size flag")
 	}
-	if listCmd.InheritedFlags().Lookup("all") == nil {
-		t.Fatal("expected accounts list to inherit --all flag")
+	if listCmd.Flags().Lookup("all") == nil {
+		t.Fatal("expected accounts list to expose --all flag")
 	}
 }
 
@@ -115,6 +113,18 @@ func TestAccountsCommandExposesUpdateSubcommand(t *testing.T) {
 	updateCmd := findChildCommand(t, cmd, "update")
 	if updateCmd.Use != "update <account_id>" {
 		t.Fatalf("unexpected update command use: %q", updateCmd.Use)
+	}
+}
+
+func TestAccountsUpdateRejectsListFilterFlags(t *testing.T) {
+	cmd := newAccountsCmd()
+	cmd.SetArgs([]string{"update", "acc_1", "--proxy-id", "proxy_1", "--name", "ignored", "--dry-run"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected accounts update to reject list filter flags")
+	}
+	if !strings.Contains(err.Error(), "unknown flag: --name") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 

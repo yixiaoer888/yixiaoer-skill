@@ -8,9 +8,9 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/app"
-	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/core/platform"
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/schema"
 	"github.com/yixiaoer/yixiaoer-skill/internal/output"
+	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
+	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 

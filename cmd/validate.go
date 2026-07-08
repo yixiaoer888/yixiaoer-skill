@@ -9,10 +9,10 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/app"
-	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/core/platform"
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/schema"
 	publishmod "github.com/yixiaoer/yixiaoer-skill/internal/modules/publish"
 	"github.com/yixiaoer/yixiaoer-skill/internal/output"
+	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
+	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
 	publishflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/publish"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )

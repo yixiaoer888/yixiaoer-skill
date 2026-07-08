@@ -266,13 +266,3 @@ func TestUpdateAccountRejectsEmptyRequest(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
-
-func TestUpdateAccountCompatibilityCommandIsHidden(t *testing.T) {
-	cmd := newUpdateAccountCompatCmd()
-	if !cmd.Hidden {
-		t.Fatal("expected update-account compatibility command to be hidden")
-	}
-	if cmd.Name() != "update-account" {
-		t.Fatalf("unexpected compatibility command name: %s", cmd.Name())
-	}
-}

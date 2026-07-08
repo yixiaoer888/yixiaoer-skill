@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
@@ -139,10 +138,6 @@ func loadFileConfig(path string) (fileConfig, error) {
 		return cfg, err
 	}
 	return cfg, nil
-}
-
-var nowRFC3339 = func() string {
-	return time.Now().Format(time.RFC3339)
 }
 
 func resolveProjectDir(cwd, exeDir string) (string, error) {

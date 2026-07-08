@@ -50,7 +50,3 @@ func newDoctorCmd() *cobra.Command {
 		},
 	}
 }
-
-func pathExists(path string) bool {
-	return doctorflow.PathExists(path)
-}

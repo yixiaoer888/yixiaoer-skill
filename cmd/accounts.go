@@ -4,8 +4,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/output"
-	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 	accountsflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/accounts"
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
 func init() {
@@ -21,11 +21,7 @@ type accountsListOptions struct {
 }
 
 func newAccountsCmd() *cobra.Command {
-	opts := accountsListOptions{
-		Status: -1,
-		Page:   1,
-		Size:   20,
-	}
+	opts := defaultAccountsListOptions()
 	cmd := &cobra.Command{
 		Use:   "accounts [中文平台名]",
 		Short: "查询账号",
@@ -34,26 +30,41 @@ func newAccountsCmd() *cobra.Command {
 			return runAccountsListWithOptions(cmd, args, opts)
 		},
 	}
-	cmd.PersistentFlags().StringVar(&opts.Name, "name", "", "filter by name")
-	cmd.PersistentFlags().IntVar(&opts.Status, "status", -1, "filter by status")
-	cmd.PersistentFlags().IntVar(&opts.Page, "page", 1, "page number")
-	cmd.PersistentFlags().IntVar(&opts.Size, "size", 20, "page size")
-	cmd.PersistentFlags().BoolVar(&opts.All, "all", false, "fetch all pages when remote pagination metadata allows it")
-	cmd.AddCommand(newAccountsListCmd(&opts))
+	addAccountsListFlags(cmd, &opts)
+	cmd.AddCommand(newAccountsListCmd())
 	cmd.AddCommand(newAccountsUpdateCmd())
 	return cmd
 }
 
-func newAccountsListCmd(opts *accountsListOptions) *cobra.Command {
-	return &cobra.Command{
+func newAccountsListCmd() *cobra.Command {
+	opts := defaultAccountsListOptions()
+	cmd := &cobra.Command{
 		Use:     "list [中文平台名]",
 		Short:   "列出账号",
 		Aliases: []string{"ls"},
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runAccountsListWithOptions(cmd, args, *opts)
+			return runAccountsListWithOptions(cmd, args, opts)
 		},
 	}
+	addAccountsListFlags(cmd, &opts)
+	return cmd
+}
+
+func defaultAccountsListOptions() accountsListOptions {
+	return accountsListOptions{
+		Status: -1,
+		Page:   1,
+		Size:   20,
+	}
+}
+
+func addAccountsListFlags(cmd *cobra.Command, opts *accountsListOptions) {
+	cmd.Flags().StringVar(&opts.Name, "name", "", "filter by name")
+	cmd.Flags().IntVar(&opts.Status, "status", -1, "filter by status")
+	cmd.Flags().IntVar(&opts.Page, "page", 1, "page number")
+	cmd.Flags().IntVar(&opts.Size, "size", 20, "page size")
+	cmd.Flags().BoolVar(&opts.All, "all", false, "fetch all pages when remote pagination metadata allows it")
 }
 
 func runAccountsListWithOptions(cmd *cobra.Command, args []string, opts accountsListOptions) error {

@@ -3,8 +3,8 @@ package cmd
 import (
 	"sort"
 
-	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/core/platform"
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/schema"
+	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
+	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
 )
 
 func buildPayloadTemplate(doc schema.Document) map[string]interface{} {

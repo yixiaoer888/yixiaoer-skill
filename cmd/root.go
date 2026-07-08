@@ -46,19 +46,6 @@ func init() {
 	rootCmd.SilenceErrors = true
 }
 
-func wantJSON(cmd *cobra.Command) bool {
-	value, _ := cmd.Flags().GetBool("json")
-	if value {
-		return true
-	}
-	value, _ = cmd.Root().PersistentFlags().GetBool("json")
-	return value
-}
-
-func usageErr(format string, args ...interface{}) error {
-	return yxerrors.Usage(fmt.Sprintf(format, args...), nil)
-}
-
 func structuredCommandError(cmd *cobra.Command, err error) error {
 	var typed *yxerrors.Error
 	if errors.As(err, &typed) {

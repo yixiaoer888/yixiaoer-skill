@@ -354,10 +354,6 @@ func NormalizeStandardPayloadForSchemaValidation(publishType string, platforms [
 	return normalizeStandardPayloadInternal(publishType, platforms, payload, nil, false, true)
 }
 
-func normalizeStandardPayload(publishType string, platforms []string, payload map[string]interface{}, topicPolicy TopicHTMLPolicy, normalizeTopics bool) map[string]interface{} {
-	return normalizeStandardPayloadInternal(publishType, platforms, payload, topicPolicy, normalizeTopics, false)
-}
-
 func normalizeStandardPayloadInternal(publishType string, platforms []string, payload map[string]interface{}, topicPolicy TopicHTMLPolicy, normalizeTopics bool, copyArticleContentToForm bool) map[string]interface{} {
 	publishArgs := ExtractPublishArgs(payload)
 	if publishArgs == nil {
@@ -524,7 +520,7 @@ func TopicHTMLPolicyFromSchema(platform string, properties map[string]schema.Pro
 }
 
 func topicHTMLTargetField(platforms []string, topicPolicy TopicHTMLPolicy) string {
-	hasPolicy := topicPolicy != nil && len(topicPolicy) > 0
+	hasPolicy := len(topicPolicy) > 0
 	hasDescription := !hasPolicy
 	hasContent := false
 	for _, platform := range platforms {
