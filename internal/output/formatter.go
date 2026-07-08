@@ -2,7 +2,6 @@ package output
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/domain"
@@ -23,35 +22,24 @@ func SuccessWithNotice(w io.Writer, action string, data interface{}, notice inte
 	})
 }
 
-func Error(w io.Writer, err error, context string) {
-	errType := yxerrors.RemoteType
-	code := yxerrors.RemoteErr
-	message := fmt.Sprintf("Failed to %s", context)
-	var details interface{} = err.Error()
-	hint := "请依次检查: 1. 技能版本号是否一致; 2. 请求参数是否符合 DTO 规范; 3. 查阅 skills/yixiaoer/references/troubleshooting-guide.md。"
-	retryable := false
-	nextCommand := ""
-	category := errType
-
-	if typed, ok := err.(*yxerrors.Error); ok {
-		if typed.Type != "" {
-			errType = typed.Type
-		}
-		code = typed.Code
-		message = typed.Message
-		if typed.Details != nil {
-			details = typed.Details
-		}
-		if typed.Hint != "" {
-			hint = typed.Hint
-		} else if typed.Suggestion != "" {
-			hint = typed.Suggestion
-		}
-		retryable = typed.Retryable
-		nextCommand = typed.NextCommand
-		if typed.Category != "" {
-			category = typed.Category
-		}
+func Error(w io.Writer, err error, context string) int {
+	typed := yxerrors.Normalize(err, context)
+	if typed == nil {
+		return yxerrors.ExitOK
+	}
+	errType := typed.Type
+	code := typed.Code
+	message := typed.Message
+	details := typed.Details
+	hint := typed.Hint
+	if hint == "" {
+		hint = typed.Suggestion
+	}
+	retryable := typed.Retryable
+	nextCommand := typed.NextCommand
+	category := typed.Category
+	if category == "" {
+		category = errType
 	}
 
 	_ = writeJSON(w, domain.ErrorResponse{
@@ -68,6 +56,7 @@ func Error(w io.Writer, err error, context string) {
 			Details:     details,
 		},
 	})
+	return typed.ProcessExitCode()
 }
 
 func writeJSON(w io.Writer, value interface{}) error {

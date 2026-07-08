@@ -139,7 +139,7 @@ yxer publish video 抖音 payload.json
 
 ```bash
 # 1. 查询位置
-yxer locations <account_id> --query 北京
+yxer query locations <account_id> --query 北京
 
 # 2. 在 contentPublishForm 中添加
 {
@@ -155,7 +155,7 @@ yxer locations <account_id> --query 北京
 
 ```bash
 # 1. 查询音乐
-yxer music <account_id> --query 歌曲名
+yxer query music <account_id> --query 歌曲名
 
 # 2. 在 contentPublishForm 中添加
 {

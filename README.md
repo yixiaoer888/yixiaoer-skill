@@ -374,8 +374,7 @@ yxer query records [--platform P] [--limit N] [--status S] [--json]
 
 说明：
 
-- 推荐优先使用 `yxer query ...` 作为统一查询入口
-- 旧的一层命令如 `yxer locations ...`、`yxer records list ...` 仍兼容，可逐步迁移
+- 查询类能力统一使用 `yxer query ...` 入口，不再保留旧的一层查询命令。
 
 ## 使用说明
 

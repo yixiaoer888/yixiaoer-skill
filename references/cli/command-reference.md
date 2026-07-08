@@ -84,11 +84,11 @@ yxer schema fields <platform> <type>
 yxer schema get <platform> <type>
 ```
 
-兼容说明：
+入口说明：
 
 - 推荐分组入口：`yxer account-group {list|create|update|delete}`
-- 推荐新入口：`yxer query ...`
-- 旧入口如 `yxer categories ...`、`yxer records list ...` 仍可用，但后续文档统一以 `query` 或资源入口为准
+- 查询类能力统一使用：`yxer query ...`
+- 旧的一层查询入口（如 `yxer categories ...`、`yxer records list ...`）已移除。
 
 ## 基本约束
 

@@ -7,9 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/app"
-	"github.com/yixiaoer/yixiaoer-skill/internal/output"
 	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/core/platform"
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/schema"
+	"github.com/yixiaoer/yixiaoer-skill/internal/output"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
@@ -141,7 +141,7 @@ func runSchemaGet(cmd *cobra.Command, platform, publishType string) error {
 		"file":     filepath.ToSlash(schemaDoc.File),
 
 		// 只返回业务字段定义（最核心的部分）
-		"businessFields": schemaDoc.Properties,
+		"businessFields":  schemaDoc.Properties,
 		"fieldPlacements": buildFieldPlacements(schemaDoc),
 
 		// 标准结构说明（文本形式）
@@ -429,8 +429,8 @@ func buildStandardPublishFieldView(doc schema.Document, businessFields map[strin
 			Default: false,
 		},
 		"publishArgs": {
-			Type:     "object",
-			Required: true,
+			Type:       "object",
+			Required:   true,
 			Properties: publishArgsProperties,
 		},
 	}
@@ -689,17 +689,17 @@ func buildQueryCommandHints(complexFields []flatFieldView, platform string) map[
 // getQueryCommand 获取字段类型对应的查询命令
 func getQueryCommand(fieldType string) string {
 	commands := map[string]string{
-		"location":    "yxer locations <account_id> [--query 关键词]",
-		"music":       "yxer music <account_id> [--query 关键词]",
-		"challenge":   "yxer challenges <account_id> [--query 关键词] [--type video]",
-		"collection":  "yxer collections <account_id> [--type video|article]",
-		"category":    "yxer categories <account_id> [--type video|article]",
-		"goods":       "yxer goods <account_id> [--query 关键词]",
-		"mini_app":    "yxer miniapps <account_id> [--query 关键词]",
-		"hot_event":   "yxer hot-events <account_id> [--query 关键词]",
-		"game":        "yxer games <account_id> [--query 关键词]",
-		"friends":     "yxer friends <account_id>",
-		"group":       "yxer groups <account_id>",
+		"location":   "yxer query locations <account_id> [--query 关键词]",
+		"music":      "yxer query music <account_id> [--query 关键词]",
+		"challenge":  "yxer query challenges <account_id> [--query 关键词] [--type video]",
+		"collection": "yxer query collections <account_id> [--type video|article]",
+		"category":   "yxer query categories <account_id> [--type video|article]",
+		"goods":      "yxer query goods <account_id> [--query 关键词]",
+		"mini_app":   "yxer query miniapps <account_id> [--query 关键词]",
+		"hot_event":  "yxer query hot-events <account_id> [--query 关键词]",
+		"game":       "yxer query games <account_id> [--query 关键词]",
+		"friends":    "yxer query friends <account_id>",
+		"group":      "yxer query groups <account_id>",
 	}
 	if cmd, ok := commands[fieldType]; ok {
 		return cmd

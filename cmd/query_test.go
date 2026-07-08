@@ -158,10 +158,61 @@ func TestQueryCommandExistsWithLocationsSubcommand(t *testing.T) {
 	}
 }
 
-func TestLocationsCommandMarkedAsCompatibilityEntry(t *testing.T) {
-	cmd := newLocationsCmd()
-	if !strings.Contains(cmd.Short, "兼容入口") {
-		t.Fatalf("expected compatibility hint in short help, got %q", cmd.Short)
+func TestQueryCommandsUseCommandLocalFlagStorage(t *testing.T) {
+	locationsQuery = ""
+	locationsKeyword = ""
+	updateAccountProxyID = ""
+	updateAccountDryRun = false
+	t.Cleanup(func() {
+		locationsQuery = ""
+		locationsKeyword = ""
+		updateAccountProxyID = ""
+		updateAccountDryRun = false
+	})
+
+	locations := newLocationsCmd()
+	if err := locations.Flags().Parse([]string{"--query", "parks", "--keyword", "alias"}); err != nil {
+		t.Fatal(err)
+	}
+	if locationsQuery != "" || locationsKeyword != "" {
+		t.Fatalf("expected locations command to keep flag values local, globals query=%q keyword=%q", locationsQuery, locationsKeyword)
+	}
+
+	update := newUpdateAccountCmd()
+	if err := update.Flags().Parse([]string{"--proxy-id", "proxy_1", "--dry-run"}); err != nil {
+		t.Fatal(err)
+	}
+	if updateAccountProxyID != "" || updateAccountDryRun {
+		t.Fatalf("expected update-account command to keep flag values local, global proxy=%q dryRun=%v", updateAccountProxyID, updateAccountDryRun)
+	}
+}
+
+func TestRootDoesNotExposeQueryCompatibilityCommands(t *testing.T) {
+	removed := map[string]bool{
+		"categories":        true,
+		"locations":         true,
+		"music":             true,
+		"music-categories":  true,
+		"goods":             true,
+		"collections":       true,
+		"miniapps":          true,
+		"syncapps":          true,
+		"games":             true,
+		"hot-events":        true,
+		"groups":            true,
+		"activities":        true,
+		"challenges":        true,
+		"records":           true,
+		"details":           true,
+		"account-overviews": true,
+		"content-overviews": true,
+		"proxies":           true,
+		"proxy-areas":       true,
+	}
+	for _, child := range rootCmd.Commands() {
+		if removed[child.Name()] {
+			t.Fatalf("root should not expose query compatibility command %q", child.Name())
+		}
 	}
 }
 
@@ -246,62 +297,6 @@ func TestQueryCommandExistsWithMiniAppsAndSyncAppsSubcommands(t *testing.T) {
 	}
 	if !foundProxyAreas {
 		t.Fatal("expected query command to expose proxy-areas subcommand")
-	}
-}
-
-func TestMiniAppsCommandMarkedAsCompatibilityEntry(t *testing.T) {
-	cmd := newMiniAppsCmd()
-	if !strings.Contains(cmd.Short, "兼容入口") {
-		t.Fatalf("expected compatibility hint in short help, got %q", cmd.Short)
-	}
-}
-
-func TestSyncAppsCommandMarkedAsCompatibilityEntry(t *testing.T) {
-	cmd := newSyncAppsCmd()
-	if !strings.Contains(cmd.Short, "兼容入口") {
-		t.Fatalf("expected compatibility hint in short help, got %q", cmd.Short)
-	}
-}
-
-func TestGamesCommandMarkedAsCompatibilityEntry(t *testing.T) {
-	cmd := newGamesCmd()
-	if !strings.Contains(cmd.Short, "兼容入口") {
-		t.Fatalf("expected compatibility hint in short help, got %q", cmd.Short)
-	}
-}
-
-func TestHotEventsCommandMarkedAsCompatibilityEntry(t *testing.T) {
-	cmd := newHotEventsCmd()
-	if !strings.Contains(cmd.Short, "兼容入口") {
-		t.Fatalf("expected compatibility hint in short help, got %q", cmd.Short)
-	}
-}
-
-func TestGroupsCommandMarkedAsCompatibilityEntry(t *testing.T) {
-	cmd := newGroupsCmd()
-	if !strings.Contains(cmd.Short, "兼容入口") {
-		t.Fatalf("expected compatibility hint in short help, got %q", cmd.Short)
-	}
-}
-
-func TestActivitiesCommandMarkedAsCompatibilityEntry(t *testing.T) {
-	cmd := newActivitiesCmd()
-	if !strings.Contains(cmd.Short, "兼容入口") {
-		t.Fatalf("expected compatibility hint in short help, got %q", cmd.Short)
-	}
-}
-
-func TestMusicCategoriesCommandMarkedAsCompatibilityEntry(t *testing.T) {
-	cmd := newMusicCategoriesCmd()
-	if !strings.Contains(cmd.Short, "兼容入口") {
-		t.Fatalf("expected compatibility hint in short help, got %q", cmd.Short)
-	}
-}
-
-func TestDetailsCommandMarkedAsCompatibilityEntry(t *testing.T) {
-	cmd := newDetailsCmd()
-	if !strings.Contains(cmd.Short, "兼容入口") {
-		t.Fatalf("expected compatibility hint in short help, got %q", cmd.Short)
 	}
 }
 
