@@ -14,43 +14,53 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(skillCmd)
-	skillCmd.AddCommand(skillShowCmd)
-	skillCmd.AddCommand(skillCheckCmd)
-	skillCmd.AddCommand(skillSyncCmd)
-	skillSyncCmd.Flags().Bool("global", false, "install skill globally")
+	rootCmd.AddCommand(newSkillCmd())
 }
 
-var skillCmd = &cobra.Command{
-	Use:   "skill",
-	Short: "显示 AI agent 技能安装与同步信息",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return runSkillShow(cmd)
-	},
+func newSkillCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "skill",
+		Short: "显示 AI agent 技能安装与同步信息",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runSkillShow(cmd)
+		},
+	}
+	cmd.AddCommand(newSkillShowCmd())
+	cmd.AddCommand(newSkillCheckCmd())
+	cmd.AddCommand(newSkillSyncCmd())
+	return cmd
 }
 
-var skillShowCmd = &cobra.Command{
-	Use:   "show",
-	Short: "输出当前项目技能包位置和安装命令",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return runSkillShow(cmd)
-	},
+func newSkillShowCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "show",
+		Short: "输出当前项目技能包位置和安装命令",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runSkillShow(cmd)
+		},
+	}
 }
 
-var skillSyncCmd = &cobra.Command{
-	Use:   "sync",
-	Short: "安装或同步当前项目的 AI skill，并写入本地版本戳",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return runSkillSync(cmd)
-	},
+func newSkillSyncCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "sync",
+		Short: "安装或同步当前项目的 AI skill，并写入本地版本戳",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runSkillSync(cmd)
+		},
+	}
+	cmd.Flags().Bool("global", false, "install skill globally")
+	return cmd
 }
 
-var skillCheckCmd = &cobra.Command{
-	Use:   "check",
-	Short: "检查当前 skill 包的入口格式、文档结构和 Markdown 链接",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return runSkillCheck(cmd)
-	},
+func newSkillCheckCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "check",
+		Short: "检查当前 skill 包的入口格式、文档结构和 Markdown 链接",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runSkillCheck(cmd)
+		},
+	}
 }
 
 func runSkillShow(cmd *cobra.Command) error {

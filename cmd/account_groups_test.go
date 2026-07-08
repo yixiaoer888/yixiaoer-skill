@@ -62,11 +62,6 @@ func TestBuildCreateAccountGroupBodyRejectsEmptyName(t *testing.T) {
 }
 
 func TestCreateAccountGroupDryRunOutputsRequestBody(t *testing.T) {
-	createAccountGroupDryRun = false
-	t.Cleanup(func() {
-		createAccountGroupDryRun = false
-	})
-
 	var out bytes.Buffer
 	cmd := newAccountGroupCreateCmd()
 	cmd.SetOut(&out)
@@ -93,11 +88,6 @@ func TestCreateAccountGroupDryRunOutputsRequestBody(t *testing.T) {
 }
 
 func TestUpdateAccountGroupDryRunOutputsRequestBody(t *testing.T) {
-	updateAccountGroupDryRun = false
-	t.Cleanup(func() {
-		updateAccountGroupDryRun = false
-	})
-
 	var out bytes.Buffer
 	cmd := newAccountGroupUpdateCmd()
 	cmd.SetOut(&out)
@@ -134,11 +124,6 @@ func TestUpdateAccountGroupRejectsEmptyID(t *testing.T) {
 }
 
 func TestDeleteAccountGroupDryRunOutputsRequestBody(t *testing.T) {
-	deleteAccountGroupDryRun = false
-	t.Cleanup(func() {
-		deleteAccountGroupDryRun = false
-	})
-
 	var out bytes.Buffer
 	cmd := newAccountGroupDeleteCmd()
 	cmd.SetOut(&out)

@@ -51,7 +51,7 @@
 ### 参数定义 (Parameters)
 | 字段名 | 类型 | 是否必填 | 描述 |
 | :--- | :--- | :--- | :--- |
-| `action` | `string` | **是** | 固定值：`update-account` |
+| `action` | `string` | **是** | 固定值：`accounts.update` |
 | `account_id` | `string` | **是** | 平台的账号 ID |
 | `proxyId` | `string` | 否 | 团队代理 ID |
 | `kuaidailiArea` | `string` | 否 | 内置代理地区编码。直辖市取一级 `code`，普通城市取 `cities` 下的 `code`。 |
@@ -60,8 +60,9 @@
 
 ### 执行逻辑 (Logic Flow)
 1. **前置查询**：必须先获得目标 `account_id` 及代理 `id`/`code`。
-2. **更新执行**：调用 `action: "update-account"`，携带对应 ID 进行绑定。
-3. **验证反馈**：确认账号代理详情已变更。
+2. **预览请求**：先执行 `yxer accounts update <account_id> ... --dry-run`，检查返回的 `action: "accounts.update.dry-run"` 和 `data.request`。
+3. **更新执行**：确认无误后执行 `yxer accounts update <account_id> ...`，成功输出 `action: "accounts.update"`。
+4. **验证反馈**：确认账号代理详情已变更。
 
 ## 注意事项
 - 云发布环境下，未设置代理的账号可能会导致任务执行失败。

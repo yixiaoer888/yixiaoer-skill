@@ -3,8 +3,11 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"reflect"
+	"sort"
 	"testing"
 
+	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
@@ -66,4 +69,155 @@ func TestExecuteWithIOArgumentErrorIsValidationError(t *testing.T) {
 	if errorObj["nextCommand"] != "yxer publish --help" {
 		t.Fatalf("expected publish help next command, got %#v", errorObj)
 	}
+}
+
+func TestExecuteWithIOUnknownFlagWritesStructuredErrorToStderr(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	code := ExecuteWithIO([]string{"accounts", "list", "--definitely-unknown"}, &stdout, &stderr)
+	if code != yxerrors.ExitValidation {
+		t.Fatalf("expected validation exit code, got %d", code)
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("expected stdout to stay empty on error, got %q", stdout.String())
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(stderr.Bytes(), &response); err != nil {
+		t.Fatalf("stderr should contain JSON error envelope, got %q: %v", stderr.String(), err)
+	}
+	errorObj := response["error"].(map[string]interface{})
+	if errorObj["code"] != yxerrors.UsageErr {
+		t.Fatalf("expected usage error, got %#v", errorObj)
+	}
+	if errorObj["nextCommand"] != "yxer accounts list --help" {
+		t.Fatalf("expected accounts list help next command, got %#v", errorObj)
+	}
+}
+
+func TestRootCommandTreeExposesStableTopLevelGroups(t *testing.T) {
+	expected := []string{
+		"account-group",
+		"accounts",
+		"config",
+		"doctor",
+		"draft",
+		"material",
+		"prepare",
+		"publish",
+		"query",
+		"schema",
+		"skill",
+		"update",
+		"upload",
+		"validate",
+	}
+	for _, name := range expected {
+		if !rootHasCommand(name) {
+			t.Fatalf("expected root command to expose %q", name)
+		}
+	}
+	if rootHasVisibleCommand("update-account") {
+		t.Fatal("expected update-account compatibility command to stay hidden from the visible command tree")
+	}
+}
+
+func TestVisibleCommandTreeSnapshot(t *testing.T) {
+	expected := map[string][]string{
+		"yxer":          {"account-group", "accounts", "config", "doctor", "draft", "material", "prepare", "publish", "query", "schema", "skill", "update", "upload", "validate"},
+		"account-group": {"create", "delete", "list", "update"},
+		"accounts":      {"list", "update"},
+		"config":        {"get", "init", "set-api-key", "set-local-client-id"},
+		"draft":         {"save"},
+		"material":      {"add", "create"},
+		"publish":       {"init"},
+		"query": {
+			"account-overviews",
+			"activities",
+			"categories",
+			"challenges",
+			"collections",
+			"content-overviews",
+			"details",
+			"games",
+			"goods",
+			"groups",
+			"hot-events",
+			"locations",
+			"miniapps",
+			"music",
+			"music-categories",
+			"proxies",
+			"proxy-areas",
+			"records",
+			"syncapps",
+		},
+		"records": {"list"},
+		"schema":  {"catalog", "fields", "get", "list"},
+		"skill":   {"check", "show", "sync"},
+	}
+
+	actual := map[string][]string{
+		"yxer":          visibleSubcommandNames(rootCmd),
+		"account-group": visibleSubcommandNames(mustRootChild(t, "account-group")),
+		"accounts":      visibleSubcommandNames(mustRootChild(t, "accounts")),
+		"config":        visibleSubcommandNames(mustRootChild(t, "config")),
+		"draft":         visibleSubcommandNames(mustRootChild(t, "draft")),
+		"material":      visibleSubcommandNames(mustRootChild(t, "material")),
+		"publish":       visibleSubcommandNames(mustRootChild(t, "publish")),
+		"query":         visibleSubcommandNames(mustRootChild(t, "query")),
+		"records":       visibleSubcommandNames(mustChild(t, mustRootChild(t, "query"), "records")),
+		"schema":        visibleSubcommandNames(mustRootChild(t, "schema")),
+		"skill":         visibleSubcommandNames(mustRootChild(t, "skill")),
+	}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("visible command tree changed\nexpected: %#v\nactual:   %#v", expected, actual)
+	}
+}
+
+func rootHasCommand(name string) bool {
+	for _, child := range rootCmd.Commands() {
+		if child.Name() == name {
+			return true
+		}
+	}
+	return false
+}
+
+func mustRootChild(t *testing.T, name string) *cobra.Command {
+	t.Helper()
+	return mustChild(t, rootCmd, name)
+}
+
+func mustChild(t *testing.T, parent *cobra.Command, name string) *cobra.Command {
+	t.Helper()
+	for _, child := range parent.Commands() {
+		if child.Name() == name {
+			return child
+		}
+	}
+	t.Fatalf("expected %q to contain child %q", parent.CommandPath(), name)
+	return nil
+}
+
+func visibleSubcommandNames(cmd *cobra.Command) []string {
+	names := make([]string, 0, len(cmd.Commands()))
+	for _, child := range cmd.Commands() {
+		if child.Hidden || !child.IsAvailableCommand() || child.Name() == "help" || child.Name() == "completion" {
+			continue
+		}
+		names = append(names, child.Name())
+	}
+	sort.Strings(names)
+	return names
+}
+
+func rootHasVisibleCommand(name string) bool {
+	for _, child := range rootCmd.Commands() {
+		if child.Name() == name && !child.Hidden {
+			return true
+		}
+	}
+	return false
 }

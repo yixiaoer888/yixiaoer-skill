@@ -340,6 +340,7 @@ yxer config set-local-client-id <clientId>
 
 ```bash
 yxer accounts list [platform] [--name 关键词] [--status 1] [--json]
+yxer accounts update <account_id> [--proxy-id ID] [--kuaidaili-area CODE] [--remark 文本] [--group ID] [--dry-run]
 yxer upload --file <file_path> [--bucket cloud-publish|material-library] [--dry-run]
 yxer upload --url <resource_url> [--bucket cloud-publish|material-library] [--dry-run]
 ```
@@ -458,8 +459,8 @@ yxer query records [--platform P] [--limit N] [--status S] [--json]
 
 说明：
 
-- 默认输出更适合人读
-- 加 `--json` 后适合脚本和 AI agent 继续处理
+- stdout 始终输出 JSON 数据
+- stderr 只输出诊断、警告、提示和结构化错误
 - 成功输出使用 `ok/action/version/data`
 - 失败输出使用 `ok/version/error`
 

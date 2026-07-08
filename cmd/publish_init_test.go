@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/spf13/cobra"
 )
 
 func TestPublishInitCommandWritesTemplateFile(t *testing.T) {
@@ -15,16 +13,13 @@ func TestPublishInitCommandWritesTemplateFile(t *testing.T) {
 	withGoBuildCache(t)
 
 	outputPath := filepath.Join(t.TempDir(), "douyin-video-payload.json")
-	publishInitOutput = outputPath
-	t.Cleanup(func() {
-		publishInitOutput = ""
-	})
 
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newPublishInitCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"抖音", "video", "--output", outputPath})
 
-	if err := publishInitCmd.RunE(cmd, []string{"抖音", "video"}); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -57,16 +52,13 @@ func TestPublishInitCommandPlacesArticleContentUnderPublishArgs(t *testing.T) {
 	withGoBuildCache(t)
 
 	outputPath := filepath.Join(t.TempDir(), "zhihu-article-payload.json")
-	publishInitOutput = outputPath
-	t.Cleanup(func() {
-		publishInitOutput = ""
-	})
 
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newPublishInitCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"知乎", "article", "--output", outputPath})
 
-	if err := publishInitCmd.RunE(cmd, []string{"知乎", "article"}); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 

@@ -10,10 +10,6 @@ import (
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
-var createAccountGroupDryRun bool
-var updateAccountGroupDryRun bool
-var deleteAccountGroupDryRun bool
-
 func init() {
 	rootCmd.AddCommand(newAccountGroupCmd())
 }
@@ -35,6 +31,7 @@ func newAccountGroupCmd() *cobra.Command {
 }
 
 func newAccountGroupCreateCmd() *cobra.Command {
+	var dryRun bool
 	cmd := &cobra.Command{
 		Use:   "create <name>",
 		Short: "创建账号分组",
@@ -44,7 +41,7 @@ func newAccountGroupCreateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if createAccountGroupDryRun {
+			if dryRun {
 				return output.Success(cmd.OutOrStdout(), "account-group.create.dry-run", map[string]interface{}{
 					"dryRun":  true,
 					"request": body,
@@ -62,7 +59,7 @@ func newAccountGroupCreateCmd() *cobra.Command {
 			return output.Success(cmd.OutOrStdout(), "account-group.create", result)
 		},
 	}
-	cmd.Flags().BoolVar(&createAccountGroupDryRun, "dry-run", false, "preview create account group request without performing the write")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview create account group request without performing the write")
 	return cmd
 }
 
@@ -92,6 +89,7 @@ func buildCreateAccountGroupBody(name string) (map[string]interface{}, error) {
 }
 
 func newAccountGroupUpdateCmd() *cobra.Command {
+	var dryRun bool
 	cmd := &cobra.Command{
 		Use:   "update <group_id> <name>",
 		Short: "更新账号分组",
@@ -106,7 +104,7 @@ func newAccountGroupUpdateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if updateAccountGroupDryRun {
+			if dryRun {
 				return output.Success(cmd.OutOrStdout(), "account-group.update.dry-run", map[string]interface{}{
 					"dryRun":  true,
 					"groupId": groupID,
@@ -125,11 +123,12 @@ func newAccountGroupUpdateCmd() *cobra.Command {
 			return output.Success(cmd.OutOrStdout(), "account-group.update", result)
 		},
 	}
-	cmd.Flags().BoolVar(&updateAccountGroupDryRun, "dry-run", false, "preview update account group request without performing the write")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview update account group request without performing the write")
 	return cmd
 }
 
 func newAccountGroupDeleteCmd() *cobra.Command {
+	var dryRun bool
 	cmd := &cobra.Command{
 		Use:   "delete <group_id>",
 		Short: "删除账号分组",
@@ -140,7 +139,7 @@ func newAccountGroupDeleteCmd() *cobra.Command {
 				return yxerrors.Usage("account group id must not be empty", nil).
 					WithHint("请传入有效的分组 ID，例如 yxer account-group delete group_1 --dry-run。")
 			}
-			if deleteAccountGroupDryRun {
+			if dryRun {
 				return output.Success(cmd.OutOrStdout(), "account-group.delete.dry-run", map[string]interface{}{
 					"dryRun":  true,
 					"groupId": groupID,
@@ -158,6 +157,6 @@ func newAccountGroupDeleteCmd() *cobra.Command {
 			return output.Success(cmd.OutOrStdout(), "account-group.delete", result)
 		},
 	}
-	cmd.Flags().BoolVar(&deleteAccountGroupDryRun, "dry-run", false, "preview delete account group request without performing the write")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview delete account group request without performing the write")
 	return cmd
 }

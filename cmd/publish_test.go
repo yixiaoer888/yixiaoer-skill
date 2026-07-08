@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
-	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/api"
+	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/config"
 	publishflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/publish"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
@@ -29,7 +29,7 @@ func TestPublishCommandSuccessCallsTaskSetAPI(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +114,7 @@ func TestPublishCommandFindsTargetAccountOnSecondPage(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,12 +129,6 @@ func TestPublishCommandFindsTargetAccountOnSecondPage(t *testing.T) {
 func TestPublishCommandWithClientIDUsesLocalChannel(t *testing.T) {
 	withRepoRoot(t)
 	payloadPath := writePublishPayload(t, validPublishPayload())
-	publishChannelFlag = ""
-	publishClientID = ""
-	t.Cleanup(func() {
-		publishChannelFlag = ""
-		publishClientID = ""
-	})
 
 	var publishCalls int
 	var publishBody map[string]interface{}
@@ -143,7 +137,7 @@ func TestPublishCommandWithClientIDUsesLocalChannel(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath, "client_1"})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "抖音", payloadPath, "client_1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +160,7 @@ func TestPublishCommandMapsPlatformKeyToChineseForAPIRequests(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "douyin", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "douyin", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +183,7 @@ func TestPublishCommandPreservesScheduledTimeMilliseconds(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,7 +214,7 @@ func TestPublishCommandRejectsMultiPlatformArgument(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音,知乎", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "抖音,知乎", payloadPath})
 	if err == nil {
 		t.Fatal("expected multi-platform publish error")
 	}
@@ -254,7 +248,7 @@ func TestPublishCommandAcceptsFullPublishRequestPayload(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -336,7 +330,7 @@ func TestPublishCommandAcceptsStandardRequestPayloadShape(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -413,7 +407,7 @@ func TestPublishCommandAcceptsNodeStyleLocalStandardPayloadWithoutDuplicatedAcco
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -474,7 +468,7 @@ func TestPublishCommandAutoExtractsResourceMetadataFromLocalSourceFields(t *test
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"imageText", "抖音", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"imageText", "抖音", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -534,7 +528,7 @@ func TestPublishCommandAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -673,12 +667,6 @@ func TestPublishDryRunMarksPlatformDraftSeparatelyFromYixiaoerDraft(t *testing.T
 func TestPublishCommandUsesLocalFlagsLikeNodeExample(t *testing.T) {
 	withRepoRoot(t)
 	payloadPath := writePublishPayload(t, validPublishPayload())
-	publishChannelFlag = "local"
-	publishClientID = "flag_client_1"
-	t.Cleanup(func() {
-		publishChannelFlag = ""
-		publishClientID = ""
-	})
 
 	var publishCalls int
 	var publishBody map[string]interface{}
@@ -687,8 +675,11 @@ func TestPublishCommandUsesLocalFlagsLikeNodeExample(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
-	if err != nil {
+	cmd := newPublishCmd()
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&bytes.Buffer{})
+	cmd.SetArgs([]string{"video", "抖音", payloadPath, "--publish-channel", "local", "--client-id", "flag_client_1"})
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 	if publishBody["publishChannel"] != "local" || publishBody["clientId"] != "flag_client_1" {
@@ -706,12 +697,6 @@ func TestPublishCommandRejectsLocalWithoutClientID(t *testing.T) {
 		"platforms":      []interface{}{"抖音"},
 		"publishChannel": "local",
 		"publishArgs":    validPublishArgs(),
-	})
-	publishChannelFlag = ""
-	publishClientID = ""
-	t.Cleanup(func() {
-		publishChannelFlag = ""
-		publishClientID = ""
 	})
 
 	var accountCalls int
@@ -735,7 +720,7 @@ func TestPublishCommandRejectsLocalWithoutClientID(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err == nil {
 		t.Fatal("expected local publish to require clientId")
 	}
@@ -769,7 +754,7 @@ func TestPublishCommandUsesConfiguredLocalClientID(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -820,7 +805,7 @@ func TestPublishCommandReturnsStructuredFallbackErrorByDefault(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err == nil {
 		t.Fatal("expected structured fallback error")
 	}
@@ -853,10 +838,6 @@ func TestPublishCommandAutoFallbacksToLocalWhenFlagEnabled(t *testing.T) {
 		t.Fatal(err)
 	}
 	payloadPath := writePublishPayload(t, validPublishPayload())
-	publishAutoFallbackLocal = true
-	t.Cleanup(func() {
-		publishAutoFallbackLocal = false
-	})
 
 	var publishCalls int
 	var publishBodies []map[string]interface{}
@@ -891,8 +872,11 @@ func TestPublishCommandAutoFallbacksToLocalWhenFlagEnabled(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
-	if err != nil {
+	cmd := newPublishCmd()
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&bytes.Buffer{})
+	cmd.SetArgs([]string{"video", "抖音", payloadPath, "--auto-fallback-local"})
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 	if publishCalls != 2 {
@@ -929,7 +913,7 @@ func TestPublishCommandSchemaFailureDoesNotCallAPIs(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err == nil {
 		t.Fatal("expected schema validation error")
 	}
@@ -991,7 +975,7 @@ func TestPublishCommandRejectsKuaishouImageTextWithMoreThanFourTags(t *testing.T
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"imageText", "快手", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"imageText", "快手", payloadPath})
 	if err == nil {
 		t.Fatal("expected kuaishou imageText schema validation error")
 	}
@@ -1026,7 +1010,7 @@ func TestPublishCommandPreflightFailureDoesNotCallAPIs(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err == nil {
 		t.Fatal("expected preflight error")
 	}
@@ -1065,7 +1049,7 @@ func TestPublishCommandRejectsInvalidTopLevelCoverInFullPublishRequest(t *testin
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err == nil {
 		t.Fatal("expected top-level cover preflight error")
 	}
@@ -1085,7 +1069,7 @@ func TestPublishCommandOfflineAccountDoesNotPublish(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err == nil {
 		t.Fatal("expected offline account error")
 	}
@@ -1152,7 +1136,7 @@ func TestPublishCommandPreservesDistinctImageTextDescriptionAndContentFromPayloa
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"imageText", "小红书", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"imageText", "小红书", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1211,7 +1195,7 @@ func TestPublishCommandCopiesImageTextCoverFieldsFromContentPublishFormToAccount
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"imageText", "抖音", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"imageText", "抖音", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1281,7 +1265,7 @@ func TestPublishCommandNormalizesTopicHTMLIntoDescriptionAndContent(t *testing.T
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"imageText", "抖音", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"imageText", "抖音", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1321,7 +1305,7 @@ func TestPublishCommandNormalizesDouyinShoppingCartStructure(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "抖音", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1400,7 +1384,7 @@ func TestPublishCommandUsesImageTextPublishType(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"imageText", "小红书", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"imageText", "小红书", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1465,7 +1449,7 @@ func TestPublishCommandKeepsArticleContentOnlyUnderPublishArgs(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"article", "知乎", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"article", "知乎", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1545,7 +1529,7 @@ func TestPublishCommandSupportsWeixinAccountArticlePlatformForms(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"article", "微信公众号", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"article", "微信公众号", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1584,11 +1568,11 @@ func TestPublishCommandAcceptsBaijiahaoImageTextPayload(t *testing.T) {
 					},
 					"coverKey": "cover-key",
 					"contentPublishForm": map[string]interface{}{
-						"formType":    "task",
-						"title":       "百家号图文标题",
-						"description": "<p>百家号图文内容</p>",
-						"pubType":     float64(0),
-						"declaration": float64(0),
+						"formType":      "task",
+						"title":         "百家号图文标题",
+						"description":   "<p>百家号图文内容</p>",
+						"pubType":       float64(0),
+						"declaration":   float64(0),
 						"scheduledTime": float64(1760000000000),
 						"images": []interface{}{
 							map[string]interface{}{
@@ -1631,7 +1615,7 @@ func TestPublishCommandAcceptsBaijiahaoImageTextPayload(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"imageText", "百家号", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"imageText", "百家号", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1717,7 +1701,7 @@ func TestPublishCommandAcceptsSouhuhaoVideoPayload(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"video", "搜狐号", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "搜狐号", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1794,7 +1778,7 @@ func TestPublishCommandAcceptsToutiaohaoArticleExtendedFields(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	useTestAPIBaseURL(t, server.URL)
 
-	err := publishCmd.RunE(testCobraCommand(), []string{"article", "头条号", payloadPath})
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"article", "头条号", payloadPath})
 	if err != nil {
 		t.Fatal(err)
 	}

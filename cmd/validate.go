@@ -9,107 +9,115 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/app"
-	"github.com/yixiaoer/yixiaoer-skill/internal/output"
 	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/core/platform"
 	"github.com/yixiaoer/yixiaoer-skill/internal/core/schema"
 	publishmod "github.com/yixiaoer/yixiaoer-skill/internal/modules/publish"
+	"github.com/yixiaoer/yixiaoer-skill/internal/output"
 	publishflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/publish"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
 func init() {
-	validateCmd.Flags().StringVar(&validateChannelFlag, "publish-channel", "", `publish channel: "cloud" or "local"`)
-	validateCmd.Flags().StringVar(&validateClientID, "client-id", "", "client ID for local publish")
-	rootCmd.AddCommand(validateCmd)
+	rootCmd.AddCommand(newValidateCmd())
 }
 
-var (
-	validateChannelFlag string
-	validateClientID    string
-)
+type validateOptions struct {
+	Channel  string
+	ClientID string
+}
 
-var validateCmd = &cobra.Command{
-	Use:   "validate <中文平台名> <type> <payload.json>",
-	Short: "校验发布 Payload",
-	Args:  cobra.ExactArgs(3),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		platform, publishType, payloadPath := args[0], args[1], args[2]
-		if err := detectSwappedPublishArgs(publishType, platform, "validate <platform> <type> <payload.json>"); err != nil {
-			return err
-		}
-		rt, err := app.Load()
-		if err != nil {
-			return err
-		}
-		cfg := rt.Config
-		payload, err := readPayload(payloadPath)
-		if err != nil {
-			return err
-		}
-		publishType = publishmod.NormalizePublishType(publishType)
-		channel, clientID, err := publishflow.ResolvePublishMode(cfg, payload, "", validateChannelFlag, validateClientID)
-		if err != nil {
-			return err
-		}
-		// Mirror the publish pipeline exactly: resolve the publish mode onto the
-		// payload, canonicalize the platform name, and apply the shared
-		// normalization BEFORE schema validation so validate, dry-run, and publish
-		// all evaluate the identical normalized payload.
-		payload["publishChannel"] = channel
-		if clientID != "" {
-			payload["clientId"] = clientID
-		} else {
-			delete(payload, "clientId")
-		}
-		canonicalPlatform := platformutil.ChineseName(platform)
-		validator := schema.NewValidator(cfg.SchemaDir)
-		var topicPolicy publishmod.TopicHTMLPolicy
-		if schemaDoc, err := validator.Schema(platform, publishType); err == nil {
-			topicPolicy = publishmod.TopicHTMLPolicyFromSchema(canonicalPlatform, schemaDoc.Properties)
-		}
-		if payload["publishArgs"] != nil {
-			if err := publishmod.ResolveStandardPayloadResourceMetadata(payload); err != nil {
-				return err
-			}
-			publishmod.NormalizeStandardPayloadForSchemaValidation(publishType, []string{canonicalPlatform}, payload)
-		}
-		result := validator.Validate(platform, publishType, payload)
-		if !result.Valid {
-			// 增强错误提示
-			suggestions := analyzeValidationErrors(result.Errors, platform, publishType)
+func newValidateCmd() *cobra.Command {
+	opts := validateOptions{}
+	cmd := &cobra.Command{
+		Use:   "validate <中文平台名> <type> <payload.json>",
+		Short: "校验发布 Payload",
+		Args:  cobra.ExactArgs(3),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runValidate(cmd, args, opts)
+		},
+	}
+	cmd.Flags().StringVar(&opts.Channel, "publish-channel", "", `publish channel: "cloud" or "local"`)
+	cmd.Flags().StringVar(&opts.ClientID, "client-id", "", "client ID for local publish")
+	return cmd
+}
 
-			return yxerrors.Usage("Schema validation failed", map[string]interface{}{
-				"errors":      result.Errors,
-				"suggestions": suggestions,
-				"checklist": []string{
-					"✓ 已执行 yxer schema fields " + platform + " " + publishType + "?",
-					"✓ payload 顶层包含 publishArgs?",
-					"✓ 业务字段在 publishArgs.accountForms[].contentPublishForm?",
-					"✓ 资源已通过 yxer upload 上传并使用返回的完整对象?",
-					"✓ 复杂对象（location/music等）已通过查询命令获取?",
-				},
-			}).
-				WithHint("根据上方 suggestions 修正字段，或查看 checklist 确认流程是否正确。").
-				WithNextCommand(fmt.Sprintf("yxer schema fields %s %s", platform, publishType))
-		}
-		if err := requireStandardPublishPayload(payload, platform, publishType); err != nil {
+func runValidate(cmd *cobra.Command, args []string, opts validateOptions) error {
+	platform, publishType, payloadPath := args[0], args[1], args[2]
+	if err := detectSwappedPublishArgs(publishType, platform, "validate <platform> <type> <payload.json>"); err != nil {
+		return err
+	}
+	rt, err := app.Load()
+	if err != nil {
+		return err
+	}
+	cfg := rt.Config
+	payload, err := readPayload(payloadPath)
+	if err != nil {
+		return err
+	}
+	publishType = publishmod.NormalizePublishType(publishType)
+	channel, clientID, err := publishflow.ResolvePublishMode(cfg, payload, "", opts.Channel, opts.ClientID)
+	if err != nil {
+		return err
+	}
+	// Mirror the publish pipeline exactly: resolve the publish mode onto the
+	// payload, canonicalize the platform name, and apply the shared
+	// normalization BEFORE schema validation so validate, dry-run, and publish
+	// all evaluate the identical normalized payload.
+	payload["publishChannel"] = channel
+	if clientID != "" {
+		payload["clientId"] = clientID
+	} else {
+		delete(payload, "clientId")
+	}
+	canonicalPlatform := platformutil.ChineseName(platform)
+	validator := schema.NewValidator(cfg.SchemaDir)
+	var topicPolicy publishmod.TopicHTMLPolicy
+	if schemaDoc, err := validator.Schema(platform, publishType); err == nil {
+		topicPolicy = publishmod.TopicHTMLPolicyFromSchema(canonicalPlatform, schemaDoc.Properties)
+	}
+	if payload["publishArgs"] != nil {
+		if err := publishmod.ResolveStandardPayloadResourceMetadata(payload); err != nil {
 			return err
 		}
-		if _, hasAccountForms := payload["accountForms"]; hasAccountForms || payload["publishArgs"] != nil {
-			preflight := publishmod.PreflightWithTopicHTMLPolicy(publishType, []string{canonicalPlatform}, payload, topicPolicy)
-			if len(preflight.Errors) > 0 {
-				return yxerrors.Usage("Publish preflight failed", preflight.Errors).
-					WithHint("请先完成资源上传，并确保 payload 中引用的是上传后的 key，而不是外部 URL。").
-					WithNextCommand("yxer upload <file_path_or_url>")
-			}
+		publishmod.NormalizeStandardPayloadForSchemaValidation(publishType, []string{canonicalPlatform}, payload)
+	}
+	result := validator.Validate(platform, publishType, payload)
+	if !result.Valid {
+		// 增强错误提示
+		suggestions := analyzeValidationErrors(result.Errors, platform, publishType)
+
+		return yxerrors.Usage("Schema validation failed", map[string]interface{}{
+			"errors":      result.Errors,
+			"suggestions": suggestions,
+			"checklist": []string{
+				"✓ 已执行 yxer schema fields " + platform + " " + publishType + "?",
+				"✓ payload 顶层包含 publishArgs?",
+				"✓ 业务字段在 publishArgs.accountForms[].contentPublishForm?",
+				"✓ 资源已通过 yxer upload 上传并使用返回的完整对象?",
+				"✓ 复杂对象（location/music等）已通过查询命令获取?",
+			},
+		}).
+			WithHint("根据上方 suggestions 修正字段，或查看 checklist 确认流程是否正确。").
+			WithNextCommand(fmt.Sprintf("yxer schema fields %s %s", platform, publishType))
+	}
+	if err := requireStandardPublishPayload(payload, platform, publishType); err != nil {
+		return err
+	}
+	if _, hasAccountForms := payload["accountForms"]; hasAccountForms || payload["publishArgs"] != nil {
+		preflight := publishmod.PreflightWithTopicHTMLPolicy(publishType, []string{canonicalPlatform}, payload, topicPolicy)
+		if len(preflight.Errors) > 0 {
+			return yxerrors.Usage("Publish preflight failed", preflight.Errors).
+				WithHint("请先完成资源上传，并确保 payload 中引用的是上传后的 key，而不是外部 URL。").
+				WithNextCommand("yxer upload <file_path_or_url>")
 		}
-		return output.Success(cmd.OutOrStdout(), "validate", map[string]interface{}{
-			"platform": platform,
-			"type":     publishType,
-			"valid":    true,
-			"nextStep": fmt.Sprintf("yxer publish %s %s %s --dry-run", publishType, platform, payloadPath),
-		})
-	},
+	}
+	return output.Success(cmd.OutOrStdout(), "validate", map[string]interface{}{
+		"platform": platform,
+		"type":     publishType,
+		"valid":    true,
+		"nextStep": fmt.Sprintf("yxer publish %s %s %s --dry-run", publishType, platform, payloadPath),
+	})
 }
 
 func requireStandardPublishPayload(payload map[string]interface{}, platform, publishType string) error {

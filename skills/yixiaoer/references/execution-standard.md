@@ -14,9 +14,9 @@
 
 ## 2. 错误分类与标准码 (Standardized Error Codes)
 
-为了准确区分“Agent 使用错误”与“后端系统错误”，所有输出的错误 JSON 必须包含 `errorCode` 字段：
+为了准确区分“Agent 使用错误”与“后端系统错误”，所有错误 envelope 必须包含 `error.code` 字段：
 
-| 错误代码 (errorCode) | 分类 | 触发场景 |
+| 错误代码 (`error.code`) | 分类 | 触发场景 |
 | :--- | :--- | :--- |
 | `YIXIAOER_USAGE_ERR` | Agent 侧错误 | 参数缺失、JSON 格式错误、平台枚举值非法、资源未上传即发布。 |
 | `YIXIAOER_REMOTE_ERR` | 远端 API 错误 | 蚁小二后端返回 4xx/5xx、API Key 失效、配额超限。 |
@@ -67,9 +67,9 @@ Agent 在执行任务时必须遵循以下“分级检索”逻辑：
 ### 成功响应示例
 ```json
 {
-  "success": true,
+  "ok": true,
   "action": "publish",
-  "version": "1.6.2",
+  "version": "3.1.3",
   "data": {
     "task_set_id": "TS12345678"
   }
@@ -78,7 +78,7 @@ Agent 在执行任务时必须遵循以下“分级检索”逻辑：
 
 ## 6. 错误处理与自检流程 (Error Handling & Self-Diagnosis)
 
-当脚本执行失败并返回 `success: false` 时，Agent 或开发者**必须**按照以下顺序进行自检：
+当 CLI 执行失败并返回 `ok: false` 时，Agent 或开发者**必须**按照以下顺序进行自检：
 
 ### 第零步：优先匹配避坑指南 (Step 0: Check Troubleshooting Guide)
 - 在进行任何深度调试前，**必须首先查阅**：[🛡️ 蚁小二 Skill 避坑与故障排查手册](./troubleshooting-guide.md)。
@@ -107,9 +107,9 @@ Agent 在执行任务时必须遵循以下“分级检索”逻辑：
 - **资源上传专项排查**：在上传阶段如果出现 `SignatureDoesNotMatch` 错误，优先检查 `contentType` 定义是否与上传时的 Header **完全对齐**。Agent 在调用 `action: "upload-resource"` 时传入的 `contentType` 必须与后续 PUT 请求中的 `Content-Type` 字节级一致。
 - **发布通道与代理校验**：
     - 若执行发布任务返回“获取在线设备列表失败”或提示“客户端不在线”，原因为选择了 **本机发布 (publishChannel: 'local')** 但环境中未运行蚁小二客户端。建议保持客户端在线，或修改为 **云发布 (publishChannel: 'cloud')**。
-    - 若**云发布**返回“账号代理不存在”，原因为账号绑定的独立代理 (proxyId) 失效或该平台强制需要代理配置。Agent 应先检查账号的 `proxyId` 或 `kuaidailiArea` 是否设置，并提示用户通过 `update-account` 绑定新的代理。
+    - 若**云发布**返回“账号代理不存在”，原因为账号绑定的独立代理 (proxyId) 失效或该平台强制需要代理配置。Agent 应先检查账号的 `proxyId` 或 `kuaidailiArea` 是否设置，并提示用户通过 `yxer accounts update` 绑定新的代理。
 - **执行逻辑**：如果怀疑使用了缓存导致的异常，必须清理相关临时文件并严格按照最新技能定义的流程重新执行（如重新执行 `upload` 流程）。
-- **草稿处理逻辑 (Draft Selection)**：当涉及“草稿”时，Agent 必须通过语义判断用户是指 **“蚁小二内部草稿”** (action: save-draft) 还是 **“发布到平台草稿箱”** (action: publish + pubType: 0)。**若语义不明确，Agent 必须询问用户以确认，严禁在未明确用户意图时随意选取一种或默认执行。**
+- **草稿处理逻辑 (Draft Selection)**：当涉及“草稿”时，Agent 必须通过语义判断用户是指 **“蚁小二内部草稿”** (`yxer draft save`) 还是 **“发布到平台草稿箱”** (`yxer publish` + `pubType: 0`)。**若语义不明确，Agent 必须询问用户以确认，严禁在未明确用户意图时随意选取一种或默认执行。**
     - **平台草稿兼容性补丁**：若用户指定“发布到平台草稿箱”，Agent 遵循以下执行链：
         1. **pubType 优先**：若平台定义了 `pubType`，使用 `pubType: 0`。
         2. **visibleType 次之**：若无 `pubType` 但有 `visibleType` (或 `status`/`privacy`)，将其设为 **`1` (私密)**。对应的，`0` 表示公开。
@@ -137,7 +137,7 @@ Agent 在执行任务时必须遵循以下“分级检索”逻辑：
 | **任务卡在发布中/待发布** | 虽然 API 接收了请求，但表单内容不合规导致引擎挂起。 | **规则校验**：检查表单是否严格按照文档规则填入，特别是 `raw` 数据透传。 |
 | **发布失败：必填项缺失** | 忽略了平台要求的必填核心字段（如标题、分类）。 | **必填项自检**：检查文档中标记为“必填”的字段是否已全部填入。 |
 | **上传失败/签名不匹配** | `contentType` 在获取上传地址与执行 PUT 时不一致。 | **一致性校验**：必须确保 `action: "upload-resource"` 时传入的 `contentType` 与实际上传一致。 |
-| **云发布报错：账号代理不存在** | 账号绑定的独立代理 (`proxyId`) 已失效，或云发布环境未配置代理。 | **修复建议**：通过 `update-account` 为账号设置 `kuaidailiArea`（内置代理）或有效的 `proxyId`（独立代理）。 |
+| **云发布报错：账号代理不存在** | 账号绑定的独立代理 (`proxyId`) 已失效，或云发布环境未配置代理。 | **修复建议**：通过 `yxer accounts update` 为账号设置 `kuaidailiArea`（内置代理）或有效的 `proxyId`（独立代理）。 |
 
 ---
 

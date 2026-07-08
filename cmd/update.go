@@ -7,18 +7,21 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(updateCmd)
-	updateCmd.Flags().Bool("global", false, "install skill globally")
-	updateCmd.Flags().Bool("check", false, "only check update status without syncing skill")
+	rootCmd.AddCommand(newUpdateCmd())
 }
 
-var updateCmd = &cobra.Command{
-	Use:   "update",
-	Short: "检查当前 CLI/skill 状态，并同步 AI skill",
-	Args:  cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return runUpdate(cmd)
-	},
+func newUpdateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "update",
+		Short: "检查当前 CLI/skill 状态，并同步 AI skill",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runUpdate(cmd)
+		},
+	}
+	cmd.Flags().Bool("global", false, "install skill globally")
+	cmd.Flags().Bool("check", false, "only check update status without syncing skill")
+	return cmd
 }
 
 func runUpdate(cmd *cobra.Command) error {

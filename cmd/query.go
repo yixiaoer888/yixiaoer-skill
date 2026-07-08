@@ -11,93 +11,41 @@ import (
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
-var (
-	categoriesType               string
-	locationsQuery               string
-	locationsKeyword             string
-	locationsType                string
-	locationsNextPage            string
-	musicQuery                   string
-	musicKeyword                 string
-	musicCategoryID              string
-	musicCategoryName            string
-	musicNextPage                string
-	activitiesType               string
-	activitiesQuery              string
-	activitiesKeyword            string
-	activitiesCategoryID         string
-	goodsQuery                   string
-	goodsKeyword                 string
-	goodsNextPage                string
-	collectionsType              string
-	miniAppsQuery                string
-	miniAppsKeyword              string
-	gamesQuery                   string
-	gamesKeyword                 string
-	hotEventsType                string
-	challengesQuery              string
-	challengesKeyword            string
-	challengesType               string
-	challengesNextPage           string
-	recordsPlatform              string
-	recordsLimit                 string
-	recordsStatus                string
-	accountOverviewPlatform      string
-	accountOverviewName          string
-	accountOverviewGroup         string
-	accountOverviewLoginStatus   string
-	accountOverviewMemberIDs     []string
-	accountOverviewPage          int
-	accountOverviewSize          int
-	contentOverviewPlatform      string
-	contentOverviewAccountID     string
-	contentOverviewPublishUserID string
-	contentOverviewType          string
-	contentOverviewTitle         string
-	contentOverviewPublishStart  string
-	contentOverviewPublishEnd    string
-	contentOverviewPage          int
-	contentOverviewSize          int
-	proxiesSize                  string
-	updateAccountProxyID         string
-	updateAccountKuaidailiArea   string
-	updateAccountRemark          string
-	updateAccountGroups          []string
-	updateAccountDryRun          bool
-)
-
-var queryCmd = &cobra.Command{
-	Use:   "query",
-	Short: "查询发布前置资源和发布记录",
-	Args:  cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return cmd.Help()
-	},
+func init() {
+	rootCmd.AddCommand(newUpdateAccountCompatCmd())
+	rootCmd.AddCommand(newQueryCmd())
+	rootCmd.AddCommand(newPrepareCmd())
 }
 
-func init() {
-	rootCmd.AddCommand(newUpdateAccountCmd())
-	queryCmd.AddCommand(newCategoriesCmd())
-	queryCmd.AddCommand(newLocationsCmd())
-	queryCmd.AddCommand(newMusicCmd())
-	queryCmd.AddCommand(newMusicCategoriesCmd())
-	queryCmd.AddCommand(newGoodsCmd())
-	queryCmd.AddCommand(newCollectionsCmd())
-	queryCmd.AddCommand(newMiniAppsCmd())
-	queryCmd.AddCommand(newSyncAppsCmd())
-	queryCmd.AddCommand(newGamesCmd())
-	queryCmd.AddCommand(newHotEventsCmd())
-	queryCmd.AddCommand(newGroupsCmd())
-	queryCmd.AddCommand(newActivitiesCmd())
-	queryCmd.AddCommand(newChallengesCmd())
-	queryCmd.AddCommand(newRecordsCmd())
-	queryCmd.AddCommand(newDetailsCmd())
-	queryCmd.AddCommand(newAccountOverviewsCmd())
-	queryCmd.AddCommand(newContentOverviewsCmd())
-	queryCmd.AddCommand(newProxiesCmd())
-	queryCmd.AddCommand(newProxyAreasCmd())
-	rootCmd.AddCommand(queryCmd)
-	rootCmd.AddCommand(prepareCmd)
+func newQueryCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "query",
+		Short: "查询发布前置资源和发布记录",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return cmd.Help()
+		},
+	}
+	cmd.AddCommand(newCategoriesCmd())
+	cmd.AddCommand(newLocationsCmd())
+	cmd.AddCommand(newMusicCmd())
+	cmd.AddCommand(newMusicCategoriesCmd())
+	cmd.AddCommand(newGoodsCmd())
+	cmd.AddCommand(newCollectionsCmd())
+	cmd.AddCommand(newMiniAppsCmd())
+	cmd.AddCommand(newSyncAppsCmd())
+	cmd.AddCommand(newGamesCmd())
+	cmd.AddCommand(newHotEventsCmd())
+	cmd.AddCommand(newGroupsCmd())
+	cmd.AddCommand(newActivitiesCmd())
+	cmd.AddCommand(newChallengesCmd())
+	cmd.AddCommand(newRecordsCmd())
+	cmd.AddCommand(newDetailsCmd())
+	cmd.AddCommand(newAccountOverviewsCmd())
+	cmd.AddCommand(newContentOverviewsCmd())
+	cmd.AddCommand(newProxiesCmd())
+	cmd.AddCommand(newProxyAreasCmd())
+	return cmd
 }
 
 func newCategoriesCmd() *cobra.Command {
@@ -351,14 +299,6 @@ type recordsOptions struct {
 	Status   string
 }
 
-func runRecordsList(cmd *cobra.Command) error {
-	return runRecordsListWithOptions(cmd, recordsOptions{
-		Platform: recordsPlatform,
-		Limit:    recordsLimit,
-		Status:   recordsStatus,
-	})
-}
-
 func runRecordsListWithOptions(cmd *cobra.Command, opts recordsOptions) error {
 	if strings.TrimSpace(opts.Limit) == "" {
 		return yxerrors.Usage("records limit must not be empty", nil).
@@ -503,101 +443,6 @@ func newProxyAreasCmd() *cobra.Command {
 		},
 	}
 	return cmd
-}
-
-func newUpdateAccountCmd() *cobra.Command {
-	opts := updateAccountOptions{}
-	cmd := &cobra.Command{
-		Use:   "update-account <account_id>",
-		Short: "更新账号代理或备注",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			body := opts.body()
-			if len(body) == 0 {
-				return yxerrors.Usage("update account request must not be empty", nil).
-					WithHint("请至少传入 --proxy-id、--kuaidaili-area、--remark 或 --group。")
-			}
-			if opts.DryRun {
-				return output.Success(cmd.OutOrStdout(), "update-account.dry-run", map[string]interface{}{
-					"dryRun":  true,
-					"account": args[0],
-					"request": body,
-				})
-			}
-			rt, err := app.Load()
-			if err != nil {
-				return err
-			}
-			result, err := queryflow.NewService(rt).UpdateAccount(args[0], body)
-			if err != nil {
-				return err
-			}
-			return output.Success(cmd.OutOrStdout(), "update-account", result)
-		},
-	}
-	cmd.Flags().StringVar(&opts.ProxyID, "proxy-id", "", "team proxy id")
-	cmd.Flags().StringVar(&opts.KuaidailiArea, "kuaidaili-area", "", "built-in proxy area code")
-	cmd.Flags().StringVar(&opts.Remark, "remark", "", "account remark")
-	cmd.Flags().StringSliceVar(&opts.Groups, "group", nil, "group id; repeat or comma-separate for multiple")
-	cmd.Flags().BoolVar(&opts.DryRun, "dry-run", false, "preview update request without performing the write")
-	return cmd
-}
-
-func updateAccountBody() map[string]interface{} {
-	return updateAccountOptions{
-		ProxyID:       updateAccountProxyID,
-		KuaidailiArea: updateAccountKuaidailiArea,
-		Remark:        updateAccountRemark,
-		Groups:        updateAccountGroups,
-	}.body()
-}
-
-type updateAccountOptions struct {
-	ProxyID       string
-	KuaidailiArea string
-	Remark        string
-	Groups        []string
-	DryRun        bool
-}
-
-func (opts updateAccountOptions) body() map[string]interface{} {
-	body := map[string]interface{}{}
-	if strings.TrimSpace(opts.ProxyID) != "" {
-		body["proxyId"] = opts.ProxyID
-	}
-	if strings.TrimSpace(opts.KuaidailiArea) != "" {
-		body["kuaidailiArea"] = opts.KuaidailiArea
-	}
-	if strings.TrimSpace(opts.Remark) != "" {
-		body["remark"] = opts.Remark
-	}
-	if len(opts.Groups) > 0 {
-		groups := make([]string, 0, len(opts.Groups))
-		for _, group := range opts.Groups {
-			if strings.TrimSpace(group) != "" {
-				groups = append(groups, group)
-			}
-		}
-		if len(groups) > 0 {
-			body["groups"] = groups
-		}
-	}
-	return body
-}
-
-var prepareCmd = &cobra.Command{
-	Use:   "prepare <platform> <type>",
-	Short: "获取发布前置数据",
-	Args:  cobra.RangeArgs(1, 2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		publishType := "video"
-		if len(args) > 1 {
-			publishType = args[1]
-		}
-		return runQuery(cmd, "prepare", func(service queryflow.Service) (interface{}, error) {
-			return service.Prepare(args[0], publishType)
-		})
-	},
 }
 
 func runQuery(cmd *cobra.Command, action string, query func(queryflow.Service) (interface{}, error)) error {

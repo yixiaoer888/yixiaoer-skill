@@ -5,18 +5,16 @@ import (
 	"encoding/json"
 	"path/filepath"
 	"testing"
-
-	"github.com/spf13/cobra"
 )
 
 func TestSchemaListCommandOutputsAgentDiscoverableItems(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newSchemaListCmd()
 	cmd.SetOut(&out)
 
-	if err := schemaListCmd.RunE(cmd, nil); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -46,10 +44,11 @@ func TestSchemaGetCommandOutputsSchemaForChinesePlatformAlias(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newSchemaGetCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"抖音", "video"})
 
-	if err := schemaGetCmd.RunE(cmd, []string{"抖音", "video"}); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -105,10 +104,11 @@ func TestSchemaGetCommandExplainsDuplicatedCoverPlacementForImageText(t *testing
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newSchemaGetCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"抖音", "imageText"})
 
-	if err := schemaGetCmd.RunE(cmd, []string{"抖音", "imageText"}); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -143,10 +143,11 @@ func TestSchemaGetCommandShipinhaoImageTextTemplateIncludesAccountCover(t *testi
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newSchemaGetCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"shipinhao", "imageText"})
 
-	if err := schemaGetCmd.RunE(cmd, []string{"shipinhao", "imageText"}); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -170,18 +171,11 @@ func TestSchemaGetCommandVerboseOutputsDebugViews(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newSchemaGetCmd()
 	cmd.SetOut(&out)
-	cmd.Flags().Bool("verbose", false, "")
-	if err := cmd.Flags().Set("verbose", "true"); err != nil {
-		t.Fatal(err)
-	}
-	schemaGetVerbose = true
-	t.Cleanup(func() {
-		schemaGetVerbose = false
-	})
+	cmd.SetArgs([]string{"抖音", "video", "--verbose"})
 
-	if err := schemaGetCmd.RunE(cmd, []string{"抖音", "video"}); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -206,10 +200,10 @@ func TestSchemaCatalogCommandOutputsRootSchemasAndPlatforms(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newSchemaCatalogCmd()
 	cmd.SetOut(&out)
 
-	if err := schemaCatalogCmd.RunE(cmd, nil); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -232,10 +226,11 @@ func TestSchemaFieldsCommandOutputsFieldView(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newSchemaFieldsCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"抖音", "video"})
 
-	if err := schemaFieldsCmd.RunE(cmd, []string{"抖音", "video"}); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -285,10 +280,11 @@ func TestSchemaFieldsCommandPlacesArticleContentUnderPublishArgs(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newSchemaFieldsCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"知乎", "article"})
 
-	if err := schemaFieldsCmd.RunE(cmd, []string{"知乎", "article"}); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -320,10 +316,11 @@ func TestSchemaFieldsCommandUsesArticleDescFieldName(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newSchemaFieldsCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"抖音", "article"})
 
-	if err := schemaFieldsCmd.RunE(cmd, []string{"抖音", "article"}); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 

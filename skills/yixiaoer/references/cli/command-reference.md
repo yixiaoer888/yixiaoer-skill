@@ -29,7 +29,9 @@ yxer skill sync [--global]
 ### 账号与资源
 
 ```bash
-yxer accounts list [platform] [--name 关键词] [--status 1] [--json]
+yxer accounts list [platform] [--name 关键词] [--status 1] [--page 1] [--size 20] [--all] [--json]
+yxer accounts update <account_id> [--proxy-id ID] [--kuaidaili-area CODE] [--remark 文本] [--group ID] --dry-run
+yxer accounts update <account_id> [--proxy-id ID] [--kuaidaili-area CODE] [--remark 文本] [--group ID]
 yxer account-group list
 yxer account-group create <name> [--dry-run]
 yxer account-group update <group_id> <name> [--dry-run]
@@ -92,7 +94,7 @@ yxer schema get <platform> <type>
 - 本机发布校验时，推荐在 `validate` 阶段就显式传入 `--publish-channel local`；若未显式传入但 payload 中已写 `publishChannel=local`，CLI 也会尝试从默认配置读取 `clientId`
 - `yxer draft save` 只处理蚁小二内部草稿，不等同于平台草稿箱
 - `yxer material create` 只做素材登记，前提是资源已经通过 `yxer upload --bucket material-library` 上传
-- 推荐优先使用 `yxer material add --file ...`，由 CLI 自动完成上传和素材登记
+- `yxer material add --file ...` 会自动完成上传和素材登记
 - 查询类操作可以直接执行
 - 发布类操作必须遵守“查账号 -> prepare/schema -> 上传资源 -> 查询复杂对象 -> 填 payload -> validate -> publish”顺序
 - 所有请求字段都必须来自 schema、平台文档或 CLI 返回结果；严禁虚构字段、乱猜枚举、手写 `raw` 对象或编造资源元数据
@@ -203,8 +205,8 @@ yxer publish video 抖音 .\payload.json --publish-channel local --client-id <cl
 
 ## 输出约定
 
-- 默认输出适合人读
-- 加 `--json` 时输出结构化结果，适合 Agent 二次处理
+- stdout 始终输出 JSON 数据
+- stderr 只输出诊断、警告、提示和结构化错误
 - 成功输出格式：`ok/action/version/data`
 - 失败输出格式：`ok/version/error`
 - 错误通过统一错误 envelope 输出

@@ -5,22 +5,18 @@ import (
 	"encoding/json"
 	"path/filepath"
 	"testing"
-
-	"github.com/spf13/cobra"
 )
 
 func TestConfigInitSavesAPIKeyOnly(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "yxer-config.json")
 	t.Setenv("YIXIAOER_CONFIG", configPath)
 
-	configInitAPIKey = "test-api-key"
-	configInitLocalClientID = ""
-
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newConfigInitCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"--api-key", "test-api-key"})
 
-	if err := configInitCmd.RunE(cmd, nil); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -31,5 +27,17 @@ func TestConfigInitSavesAPIKeyOnly(t *testing.T) {
 	data := response["data"].(map[string]interface{})
 	if data["apiKeyPresent"] != true {
 		t.Fatalf("expected apiKeyPresent=true, got %#v", data["apiKeyPresent"])
+	}
+}
+
+func TestConfigInitKeepsFlagsCommandLocal(t *testing.T) {
+	first := newConfigInitCmd()
+	if err := first.Flags().Parse([]string{"--api-key", "first-key"}); err != nil {
+		t.Fatal(err)
+	}
+
+	second := newConfigInitCmd()
+	if second.Flag("api-key").Value.String() != "" {
+		t.Fatalf("expected fresh config init command to have empty api-key flag, got %q", second.Flag("api-key").Value.String())
 	}
 }
