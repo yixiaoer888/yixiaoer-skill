@@ -33,7 +33,7 @@
     "images": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 9,
+      "maxItems": 18,
       "items": {
         "type": "object",
         "required": [
