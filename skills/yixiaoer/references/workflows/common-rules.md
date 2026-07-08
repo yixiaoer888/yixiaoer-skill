@@ -14,7 +14,7 @@
 
 1. 读取 `../../SKILL.md`
 2. 读取当前文件
-3. 读取 `account-selection.md`、`local-vs-cloud.md`、`payload-sourcing.md`
+3. 读取 `data-accuracy.md`、`account-selection.md`、`local-vs-cloud.md`、`payload-sourcing.md`
 4. 如涉及话题/标签，读取 `../topic-tags.md`
 5. 读取对应类型 workflow
 6. 执行 `yxer doctor`
@@ -23,9 +23,11 @@
 9. 优先执行 `yxer schema fields <platform> <type>`；需要 payload 骨架时再执行 `yxer schema get <platform> <type>`
 10. 执行 `yxer upload`
 11. 执行动态字段查询命令
-12. 组装 payload
-13. 执行 `yxer validate`
-14. 执行 `yxer publish`
+12. 多候选或歧义数据按 `data-accuracy.md` 展示给用户确认
+13. 组装 payload
+14. 执行 `yxer validate`
+15. 执行 `yxer publish --dry-run`
+16. 用户授权后执行正式 `yxer publish`
 
 禁止行为：
 
@@ -33,6 +35,8 @@
 - 先执行 `publish`，失败后再补 `validate`
 - 从空白 JSON 文件开始猜字段、猜层级、猜顺序
 - 未读取 workflow 就按历史记忆填平台字段
+- 动态查询返回多个候选时，未让用户确认就直接选择第一项
+- 跳过 `publish --dry-run` 直接正式发布
 
 ## 发布前自检清单
 
@@ -40,6 +44,7 @@
 
 - `[ ]` 已读技能入口
 - `[ ]` 已读通用规则
+- `[ ]` 已读数据准确性工作流
 - `[ ]` 已读类型 workflow
 - `[ ]` 已完成环境检查
 - `[ ]` 已确认账号有效
@@ -47,8 +52,10 @@
 - `[ ]` 已拿到最新 `schema fields` 结果；如需骨架再补 `schema get`
 - `[ ]` 已完成上传，不存在外部 URL 直填
 - `[ ]` 已查询动态字段，不存在手写 `raw`
+- `[ ]` 多候选账号、分类、位置、音乐、商品、合集、活动等已由用户确认
 - `[ ]` 当前 payload 不含模板占位符
 - `[ ]` 当前 payload 已先通过 `validate`
+- `[ ]` 当前 payload 已先通过 `publish --dry-run`
 
 ## 数据真实性原则
 

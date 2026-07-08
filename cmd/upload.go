@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/app"
-	"github.com/yixiaoer/yixiaoer-skill/internal/output"
+	"github.com/yixiaoer/yixiaoer-skill/internal/cmdflow"
 	uploadflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/upload"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
@@ -45,29 +45,42 @@ func newUploadCmd() *cobra.Command {
 }
 
 func runUpload(cmd *cobra.Command, args []string, opts uploadOptions) error {
-	source, err := resolveUploadSource(args, opts)
-	if err != nil {
-		return err
-	}
-	if opts.DryRun {
-		result, err := uploadflow.Preview(source, opts.Bucket, opts.AutoMeta)
-		if err != nil {
-			return err
-		}
-		return output.Success(cmd.OutOrStdout(), "upload.dry-run", map[string]interface{}{
-			"dryRun":  true,
-			"request": result,
-		})
-	}
-	rt, err := app.Load()
-	if err != nil {
-		return err
-	}
-	result, err := uploadflow.NewService(rt).Upload(source, opts.Bucket, opts.AutoMeta)
-	if err != nil {
-		return err
-	}
-	return output.Success(cmd.OutOrStdout(), "upload", result)
+	var source string
+
+	return cmdflow.Run(cmd, opts.DryRun, cmdflow.Flow{
+		Validate: func() error {
+			resolved, err := resolveUploadSource(args, opts)
+			if err != nil {
+				return err
+			}
+			source = resolved
+			return nil
+		},
+		DryRun: func() (cmdflow.Result, error) {
+			result, err := uploadflow.Preview(source, opts.Bucket, opts.AutoMeta)
+			if err != nil {
+				return cmdflow.Result{}, err
+			}
+			return cmdflow.Result{
+				Action: "upload.dry-run",
+				Data: map[string]interface{}{
+					"dryRun":  true,
+					"request": result,
+				},
+			}, nil
+		},
+		Execute: func() (cmdflow.Result, error) {
+			rt, err := app.Load()
+			if err != nil {
+				return cmdflow.Result{}, err
+			}
+			result, err := uploadflow.NewService(rt).Upload(source, opts.Bucket, opts.AutoMeta)
+			if err != nil {
+				return cmdflow.Result{}, err
+			}
+			return cmdflow.Result{Action: "upload", Data: result}, nil
+		},
+	})
 }
 
 func resolveUploadSource(args []string, opts uploadOptions) (string, error) {

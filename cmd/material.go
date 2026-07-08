@@ -3,7 +3,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/app"
-	"github.com/yixiaoer/yixiaoer-skill/internal/output"
+	"github.com/yixiaoer/yixiaoer-skill/internal/cmdflow"
 	materialflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/material"
 )
 
@@ -39,25 +39,38 @@ func newMaterialCreateCmd() *cobra.Command {
 		Short: "将已上传资源登记到素材库",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			payload, err := readPayload(args[0])
-			if err != nil {
-				return err
-			}
-			if dryRun {
-				return output.Success(cmd.OutOrStdout(), "material.create.dry-run", map[string]interface{}{
-					"dryRun":  true,
-					"request": materialflow.BuildMaterialBody(payload),
-				})
-			}
-			rt, err := app.Load()
-			if err != nil {
-				return err
-			}
-			result, err := materialflow.NewService(rt).Create(payload)
-			if err != nil {
-				return err
-			}
-			return output.Success(cmd.OutOrStdout(), "material.create", result)
+			var payload map[string]interface{}
+
+			return cmdflow.Run(cmd, dryRun, cmdflow.Flow{
+				Validate: func() error {
+					loaded, err := readPayload(args[0])
+					if err != nil {
+						return err
+					}
+					payload = loaded
+					return nil
+				},
+				DryRun: func() (cmdflow.Result, error) {
+					return cmdflow.Result{
+						Action: "material.create.dry-run",
+						Data: map[string]interface{}{
+							"dryRun":  true,
+							"request": materialflow.BuildMaterialBody(payload),
+						},
+					}, nil
+				},
+				Execute: func() (cmdflow.Result, error) {
+					rt, err := app.Load()
+					if err != nil {
+						return cmdflow.Result{}, err
+					}
+					result, err := materialflow.NewService(rt).Create(payload)
+					if err != nil {
+						return cmdflow.Result{}, err
+					}
+					return cmdflow.Result{Action: "material.create", Data: result}, nil
+				},
+			})
 		},
 	}
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview material create request without performing the write")
@@ -70,32 +83,44 @@ func newMaterialAddCmd() *cobra.Command {
 		Use:   "add",
 		Short: "上传资源并登记到素材库",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			input := materialflow.AddInput{
-				FilePath:  opts.FilePath,
-				ThumbPath: opts.ThumbPath,
-				Type:      opts.Type,
-			}
-			if opts.DryRun {
-				result, err := materialflow.PreviewAdd(input)
-				if err != nil {
-					return err
-				}
-				return output.Success(cmd.OutOrStdout(), "material.add.dry-run", map[string]interface{}{
-					"dryRun":  true,
-					"request": result.Request,
-					"upload":  result.Upload,
-					"thumb":   result.Thumb,
-				})
-			}
-			rt, err := app.Load()
-			if err != nil {
-				return err
-			}
-			result, err := materialflow.NewService(rt).Add(input)
-			if err != nil {
-				return err
-			}
-			return output.Success(cmd.OutOrStdout(), "material.add", result)
+			var input materialflow.AddInput
+
+			return cmdflow.Run(cmd, opts.DryRun, cmdflow.Flow{
+				Validate: func() error {
+					input = materialflow.AddInput{
+						FilePath:  opts.FilePath,
+						ThumbPath: opts.ThumbPath,
+						Type:      opts.Type,
+					}
+					return nil
+				},
+				DryRun: func() (cmdflow.Result, error) {
+					result, err := materialflow.PreviewAdd(input)
+					if err != nil {
+						return cmdflow.Result{}, err
+					}
+					return cmdflow.Result{
+						Action: "material.add.dry-run",
+						Data: map[string]interface{}{
+							"dryRun":  true,
+							"request": result.Request,
+							"upload":  result.Upload,
+							"thumb":   result.Thumb,
+						},
+					}, nil
+				},
+				Execute: func() (cmdflow.Result, error) {
+					rt, err := app.Load()
+					if err != nil {
+						return cmdflow.Result{}, err
+					}
+					result, err := materialflow.NewService(rt).Add(input)
+					if err != nil {
+						return cmdflow.Result{}, err
+					}
+					return cmdflow.Result{Action: "material.add", Data: result}, nil
+				},
+			})
 		},
 	}
 	cmd.Flags().StringVar(&opts.FilePath, "file", "", "local file path or URL to upload and register")

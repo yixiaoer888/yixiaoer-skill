@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/app"
-	"github.com/yixiaoer/yixiaoer-skill/internal/output"
+	"github.com/yixiaoer/yixiaoer-skill/internal/cmdflow"
 	queryflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/query"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
@@ -17,27 +17,40 @@ func newAccountsUpdateCmd() *cobra.Command {
 		Short: "更新账号代理或备注",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			body := opts.body()
-			if len(body) == 0 {
-				return yxerrors.Usage("update account request must not be empty", nil).
-					WithHint("请至少传入 --proxy-id、--kuaidaili-area、--remark 或 --group。")
-			}
-			if opts.DryRun {
-				return output.Success(cmd.OutOrStdout(), "accounts.update.dry-run", map[string]interface{}{
-					"dryRun":  true,
-					"account": args[0],
-					"request": body,
-				})
-			}
-			rt, err := app.Load()
-			if err != nil {
-				return err
-			}
-			result, err := queryflow.NewService(rt).UpdateAccount(args[0], body)
-			if err != nil {
-				return err
-			}
-			return output.Success(cmd.OutOrStdout(), "accounts.update", result)
+			var body map[string]interface{}
+			accountID := strings.TrimSpace(args[0])
+
+			return cmdflow.Run(cmd, opts.DryRun, cmdflow.Flow{
+				Validate: func() error {
+					body = opts.body()
+					if len(body) == 0 {
+						return yxerrors.Usage("update account request must not be empty", nil).
+							WithHint("请至少传入 --proxy-id、--kuaidaili-area、--remark 或 --group。")
+					}
+					return nil
+				},
+				DryRun: func() (cmdflow.Result, error) {
+					return cmdflow.Result{
+						Action: "accounts.update.dry-run",
+						Data: map[string]interface{}{
+							"dryRun":  true,
+							"account": accountID,
+							"request": body,
+						},
+					}, nil
+				},
+				Execute: func() (cmdflow.Result, error) {
+					rt, err := app.Load()
+					if err != nil {
+						return cmdflow.Result{}, err
+					}
+					result, err := queryflow.NewService(rt).UpdateAccount(accountID, body)
+					if err != nil {
+						return cmdflow.Result{}, err
+					}
+					return cmdflow.Result{Action: "accounts.update", Data: result}, nil
+				},
+			})
 		},
 	}
 	cmd.Flags().StringVar(&opts.ProxyID, "proxy-id", "", "team proxy id")

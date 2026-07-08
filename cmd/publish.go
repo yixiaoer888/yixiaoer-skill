@@ -3,7 +3,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/app"
-	"github.com/yixiaoer/yixiaoer-skill/internal/output"
+	"github.com/yixiaoer/yixiaoer-skill/internal/cmdflow"
 	publishflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/publish"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
@@ -39,48 +39,58 @@ func newPublishCmd() *cobra.Command {
 }
 
 func runPublish(cmd *cobra.Command, args []string, opts publishOptions) error {
-	rt, err := app.Load()
-	if err != nil {
-		return err
-	}
-	if err := detectSwappedPublishArgs(args[0], args[1], "publish <type> <platform> <payload.json>"); err != nil {
-		return err
-	}
-	if !looksLikePayloadArg(args[2]) {
-		return yxerrors.Usage("publish requires a payload.json file", []string{
-			`Run "yxer prepare <platform> <type>" to inspect platform-specific form fields and preflight data.`,
-			`Run "yxer schema fields <platform> <type>" to inspect the compact field list before filling the JSON file.`,
-			`Run "yxer schema get <platform> <type>" only when you need the full payload skeleton.`,
-		}).WithHint("发布命令已移除内容 flags 模式，请先准备 payload.json，再执行 validate / publish。")
-	}
-	payload, err := readPayload(args[2])
-	if err != nil {
-		return err
-	}
-	positionalClientID := ""
-	if len(args) == 4 {
-		positionalClientID = args[3]
-	}
-	input := publishflow.ExecuteInput{
-		PublishType:        args[0],
-		PlatformInput:      args[1],
-		Payload:            payload,
-		PositionalClientID: positionalClientID,
-		FlagChannel:        opts.Channel,
-		FlagClientID:       opts.ClientID,
-		AutoFallbackLocal:  opts.AutoFallbackLocal,
-	}
-	service := publishflow.NewService(rt)
-	if opts.DryRun {
-		result, err := service.DryRunEnvelope(input)
-		if err != nil {
-			return err
-		}
-		return output.Success(cmd.OutOrStdout(), result.Action, result.Data)
-	}
-	result, err := service.ExecuteEnvelope(input)
-	if err != nil {
-		return err
-	}
-	return output.Success(cmd.OutOrStdout(), result.Action, result.Data)
+	var input publishflow.ExecuteInput
+	var service publishflow.Service
+
+	return cmdflow.Run(cmd, opts.DryRun, cmdflow.Flow{
+		Validate: func() error {
+			rt, err := app.Load()
+			if err != nil {
+				return err
+			}
+			if err := detectSwappedPublishArgs(args[0], args[1], "publish <type> <platform> <payload.json>"); err != nil {
+				return err
+			}
+			if !looksLikePayloadArg(args[2]) {
+				return yxerrors.Usage("publish requires a payload.json file", []string{
+					`Run "yxer prepare <platform> <type>" to inspect platform-specific form fields and preflight data.`,
+					`Run "yxer schema fields <platform> <type>" to inspect the compact field list before filling the JSON file.`,
+					`Run "yxer schema get <platform> <type>" only when you need the full payload skeleton.`,
+				}).WithHint("发布命令已移除内容 flags 模式，请先准备 payload.json，再执行 validate / publish。")
+			}
+			payload, err := readPayload(args[2])
+			if err != nil {
+				return err
+			}
+			positionalClientID := ""
+			if len(args) == 4 {
+				positionalClientID = args[3]
+			}
+			input = publishflow.ExecuteInput{
+				PublishType:        args[0],
+				PlatformInput:      args[1],
+				Payload:            payload,
+				PositionalClientID: positionalClientID,
+				FlagChannel:        opts.Channel,
+				FlagClientID:       opts.ClientID,
+				AutoFallbackLocal:  opts.AutoFallbackLocal,
+			}
+			service = publishflow.NewService(rt)
+			return nil
+		},
+		DryRun: func() (cmdflow.Result, error) {
+			result, err := service.DryRunEnvelope(input)
+			if err != nil {
+				return cmdflow.Result{}, err
+			}
+			return cmdflow.Result{Action: result.Action, Data: result.Data}, nil
+		},
+		Execute: func() (cmdflow.Result, error) {
+			result, err := service.ExecuteEnvelope(input)
+			if err != nil {
+				return cmdflow.Result{}, err
+			}
+			return cmdflow.Result{Action: result.Action, Data: result.Data}, nil
+		},
+	})
 }

@@ -1,6 +1,6 @@
 ---
 name: yixiaoer
-version: 3.1.3
+version: 3.1.4
 description: "通过 yxer CLI 操作蚁小二多平台内容分发：账号查询、资源上传、发布前准备、payload 校验、云发布/本机发布、草稿保存、素材登记、发布记录排查与技能同步。"
 metadata:
   category: "productivity"
@@ -63,6 +63,7 @@ yxer schema get <platform> <type>
 ## 全局规则
 
 - 发布、草稿、素材、排查都只允许通过 `yxer` CLI 执行。
+- 涉及写操作或 payload 修订时，必须遵守 [`./references/workflows/data-accuracy.md`](./references/workflows/data-accuracy.md)：先查询真实数据，再确认候选，最后 validate / dry-run / 写入。
 - BLOCKING REQUIREMENT: 正式发布前固定顺序是 `doctor -> accounts list -> prepare -> schema fields -> validate -> publish --dry-run -> publish`；只有需要 payload 骨架时再补 `schema get`。
 - `prepare`、`schema fields` / `schema get`、workflow、平台文档和 CLI 实际输出，是组装 payload 的唯一依据。
 - 图片、视频、封面等资源必须先上传，且只能复用 `yxer upload` 返回的真实字段。

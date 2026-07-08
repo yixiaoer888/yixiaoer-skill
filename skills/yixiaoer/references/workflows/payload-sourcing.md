@@ -11,6 +11,8 @@
 
 ## 字段来源优先级
 
+字段选择、候选确认和写入门禁必须同时遵守 [`data-accuracy.md`](./data-accuracy.md)。
+
 1. `yxer prepare <platform> <type>`：确认表单项、前置数据、账号能力
 2. 优先执行 `yxer schema fields <platform> <type>`：确认字段名、类型、必填项；需要完整层级骨架时再执行 `yxer schema get <platform> <type>`
 3. 查询命令：补充动态对象，如 `category`、`location`、`music`、`collection`、`challenge`、`goods`
@@ -68,3 +70,4 @@
 - 直接把平台表单字段写到顶层
 - 动态字段只填 ID 或名称、不填合法对象
 - 手工伪造上传资源元数据
+- 查询结果存在多个候选时，不经用户确认直接采用第一项

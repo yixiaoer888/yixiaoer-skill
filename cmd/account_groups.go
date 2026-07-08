@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/app"
-	"github.com/yixiaoer/yixiaoer-skill/internal/output"
+	"github.com/yixiaoer/yixiaoer-skill/internal/cmdflow"
 	queryflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/query"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
@@ -37,26 +37,38 @@ func newAccountGroupCreateCmd() *cobra.Command {
 		Short: "创建账号分组",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			body, err := buildCreateAccountGroupBody(args[0])
-			if err != nil {
-				return err
-			}
-			if dryRun {
-				return output.Success(cmd.OutOrStdout(), "account-group.create.dry-run", map[string]interface{}{
-					"dryRun":  true,
-					"request": body,
-				})
-			}
+			var body map[string]interface{}
 
-			rt, err := app.Load()
-			if err != nil {
-				return err
-			}
-			result, err := queryflow.NewService(rt).CreateAccountGroup(body)
-			if err != nil {
-				return err
-			}
-			return output.Success(cmd.OutOrStdout(), "account-group.create", result)
+			return cmdflow.Run(cmd, dryRun, cmdflow.Flow{
+				Validate: func() error {
+					built, err := buildCreateAccountGroupBody(args[0])
+					if err != nil {
+						return err
+					}
+					body = built
+					return nil
+				},
+				DryRun: func() (cmdflow.Result, error) {
+					return cmdflow.Result{
+						Action: "account-group.create.dry-run",
+						Data: map[string]interface{}{
+							"dryRun":  true,
+							"request": body,
+						},
+					}, nil
+				},
+				Execute: func() (cmdflow.Result, error) {
+					rt, err := app.Load()
+					if err != nil {
+						return cmdflow.Result{}, err
+					}
+					result, err := queryflow.NewService(rt).CreateAccountGroup(body)
+					if err != nil {
+						return cmdflow.Result{}, err
+					}
+					return cmdflow.Result{Action: "account-group.create", Data: result}, nil
+				},
+			})
 		},
 	}
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview create account group request without performing the write")
@@ -95,32 +107,45 @@ func newAccountGroupUpdateCmd() *cobra.Command {
 		Short: "更新账号分组",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			groupID := strings.TrimSpace(args[0])
-			if groupID == "" {
-				return yxerrors.Usage("account group id must not be empty", nil).
-					WithHint("请传入有效的分组 ID，例如 yxer account-group update group_1 核心账号组 --dry-run。")
-			}
-			body, err := buildCreateAccountGroupBody(args[1])
-			if err != nil {
-				return err
-			}
-			if dryRun {
-				return output.Success(cmd.OutOrStdout(), "account-group.update.dry-run", map[string]interface{}{
-					"dryRun":  true,
-					"groupId": groupID,
-					"request": body,
-				})
-			}
+			var groupID string
+			var body map[string]interface{}
 
-			rt, err := app.Load()
-			if err != nil {
-				return err
-			}
-			result, err := queryflow.NewService(rt).UpdateAccountGroup(groupID, body)
-			if err != nil {
-				return err
-			}
-			return output.Success(cmd.OutOrStdout(), "account-group.update", result)
+			return cmdflow.Run(cmd, dryRun, cmdflow.Flow{
+				Validate: func() error {
+					groupID = strings.TrimSpace(args[0])
+					if groupID == "" {
+						return yxerrors.Usage("account group id must not be empty", nil).
+							WithHint("请传入有效的分组 ID，例如 yxer account-group update group_1 核心账号组 --dry-run。")
+					}
+					built, err := buildCreateAccountGroupBody(args[1])
+					if err != nil {
+						return err
+					}
+					body = built
+					return nil
+				},
+				DryRun: func() (cmdflow.Result, error) {
+					return cmdflow.Result{
+						Action: "account-group.update.dry-run",
+						Data: map[string]interface{}{
+							"dryRun":  true,
+							"groupId": groupID,
+							"request": body,
+						},
+					}, nil
+				},
+				Execute: func() (cmdflow.Result, error) {
+					rt, err := app.Load()
+					if err != nil {
+						return cmdflow.Result{}, err
+					}
+					result, err := queryflow.NewService(rt).UpdateAccountGroup(groupID, body)
+					if err != nil {
+						return cmdflow.Result{}, err
+					}
+					return cmdflow.Result{Action: "account-group.update", Data: result}, nil
+				},
+			})
 		},
 	}
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview update account group request without performing the write")
@@ -134,27 +159,38 @@ func newAccountGroupDeleteCmd() *cobra.Command {
 		Short: "删除账号分组",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			groupID := strings.TrimSpace(args[0])
-			if groupID == "" {
-				return yxerrors.Usage("account group id must not be empty", nil).
-					WithHint("请传入有效的分组 ID，例如 yxer account-group delete group_1 --dry-run。")
-			}
-			if dryRun {
-				return output.Success(cmd.OutOrStdout(), "account-group.delete.dry-run", map[string]interface{}{
-					"dryRun":  true,
-					"groupId": groupID,
-				})
-			}
+			var groupID string
 
-			rt, err := app.Load()
-			if err != nil {
-				return err
-			}
-			result, err := queryflow.NewService(rt).DeleteAccountGroup(groupID)
-			if err != nil {
-				return err
-			}
-			return output.Success(cmd.OutOrStdout(), "account-group.delete", result)
+			return cmdflow.Run(cmd, dryRun, cmdflow.Flow{
+				Validate: func() error {
+					groupID = strings.TrimSpace(args[0])
+					if groupID == "" {
+						return yxerrors.Usage("account group id must not be empty", nil).
+							WithHint("请传入有效的分组 ID，例如 yxer account-group delete group_1 --dry-run。")
+					}
+					return nil
+				},
+				DryRun: func() (cmdflow.Result, error) {
+					return cmdflow.Result{
+						Action: "account-group.delete.dry-run",
+						Data: map[string]interface{}{
+							"dryRun":  true,
+							"groupId": groupID,
+						},
+					}, nil
+				},
+				Execute: func() (cmdflow.Result, error) {
+					rt, err := app.Load()
+					if err != nil {
+						return cmdflow.Result{}, err
+					}
+					result, err := queryflow.NewService(rt).DeleteAccountGroup(groupID)
+					if err != nil {
+						return cmdflow.Result{}, err
+					}
+					return cmdflow.Result{Action: "account-group.delete", Data: result}, nil
+				},
+			})
 		},
 	}
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview delete account group request without performing the write")
