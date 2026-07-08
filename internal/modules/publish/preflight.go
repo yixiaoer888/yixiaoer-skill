@@ -17,6 +17,14 @@ type PreflightResult struct {
 	Errors     []string
 }
 
+type NormalizationEvent struct {
+	Field        string `json:"field"`
+	Path         string `json:"path"`
+	Action       string `json:"action"`
+	Message      string `json:"message"`
+	QueryCommand string `json:"queryCommand,omitempty"`
+}
+
 type TopicHTMLFields struct {
 	HasTopics      bool
 	HasDescription bool
@@ -27,6 +35,7 @@ type TopicHTMLPolicy map[string]TopicHTMLFields
 
 var externalURLPattern = regexp.MustCompile(`(?i)^https?://`)
 var placeholderPattern = regexp.MustCompile(`^<[^<>]+>$`)
+var hashtagPattern = regexp.MustCompile(`#([^\s#<]+)`)
 
 const shipinhaoImageMaxBytes = 512 * 1024
 
@@ -60,6 +69,10 @@ func Preflight(publishType string, platforms []string, payload map[string]interf
 }
 
 func PreflightWithTopicHTMLPolicy(publishType string, platforms []string, payload map[string]interface{}, topicPolicy TopicHTMLPolicy) PreflightResult {
+	return PreflightWithTopicHTMLPolicyAndTrace(publishType, platforms, payload, topicPolicy, nil)
+}
+
+func PreflightWithTopicHTMLPolicyAndTrace(publishType string, platforms []string, payload map[string]interface{}, topicPolicy TopicHTMLPolicy, normalizations *[]NormalizationEvent) PreflightResult {
 	var result PreflightResult
 	publishType = NormalizePublishType(publishType)
 	if err := RequireStandardPayload(payload); err != nil {
@@ -69,7 +82,7 @@ func PreflightWithTopicHTMLPolicy(publishType string, platforms []string, payloa
 	resolveStandardPayloadResourceMetadata(payload, &result.Errors)
 	payload = ValidateAndExtractPublishArgs(publishType, platforms, payload, &result.Errors)
 	NormalizeStandardPublishArgs(payload, publishType, platforms)
-	NormalizePlatformSpecificFieldsWithTopicHTMLPolicy(publishType, platforms, payload, topicPolicy)
+	normalizePlatformSpecificFields(publishType, platforms, payload, topicPolicy, true, normalizations)
 	NormalizeScheduledTimes(payload, &result.Errors)
 	rejectTemplatePlaceholders(payload, &result.Errors)
 	if publishType != "video" && publishType != "imageText" && publishType != "article" {
@@ -264,6 +277,9 @@ func shouldIgnoreExternalURLPath(path string) bool {
 	if strings.Contains(path, ".shoppingCart[") && strings.HasSuffix(path, ".yixiaoerImageUrl") {
 		return true
 	}
+	if strings.HasSuffix(path, ".yixiaoerImageUrl") || strings.HasSuffix(path, ".yixiaoerImage") {
+		return true
+	}
 	return false
 }
 
@@ -341,20 +357,24 @@ func ValidateAndExtractPublishArgs(publishType string, platforms []string, paylo
 // dry-run, and publish all evaluate the identical normalized payload. It mutates
 // payload in place (pass a clone to preserve the original) and returns the
 // resolved publishArgs. platforms must use canonical Chinese platform names so
-// platform-specific rules (e.g. 抖音/小红书 topic HTML) trigger consistently.
+// shared rules (e.g. description topic HTML) trigger consistently.
 func NormalizeStandardPayload(publishType string, platforms []string, payload map[string]interface{}) map[string]interface{} {
 	return NormalizeStandardPayloadWithTopicHTMLPolicy(publishType, platforms, payload, nil)
 }
 
 func NormalizeStandardPayloadWithTopicHTMLPolicy(publishType string, platforms []string, payload map[string]interface{}, topicPolicy TopicHTMLPolicy) map[string]interface{} {
-	return normalizeStandardPayloadInternal(publishType, platforms, payload, topicPolicy, true, false)
+	return normalizeStandardPayloadInternal(publishType, platforms, payload, topicPolicy, true, false, nil)
 }
 
 func NormalizeStandardPayloadForSchemaValidation(publishType string, platforms []string, payload map[string]interface{}) map[string]interface{} {
-	return normalizeStandardPayloadInternal(publishType, platforms, payload, nil, false, true)
+	return NormalizeStandardPayloadForSchemaValidationWithTrace(publishType, platforms, payload, nil)
 }
 
-func normalizeStandardPayloadInternal(publishType string, platforms []string, payload map[string]interface{}, topicPolicy TopicHTMLPolicy, normalizeTopics bool, copyArticleContentToForm bool) map[string]interface{} {
+func NormalizeStandardPayloadForSchemaValidationWithTrace(publishType string, platforms []string, payload map[string]interface{}, normalizations *[]NormalizationEvent) map[string]interface{} {
+	return normalizeStandardPayloadInternal(publishType, platforms, payload, nil, false, true, normalizations)
+}
+
+func normalizeStandardPayloadInternal(publishType string, platforms []string, payload map[string]interface{}, topicPolicy TopicHTMLPolicy, normalizeTopics bool, copyArticleContentToForm bool, normalizations *[]NormalizationEvent) map[string]interface{} {
 	publishArgs := ExtractPublishArgs(payload)
 	if publishArgs == nil {
 		return nil
@@ -364,7 +384,7 @@ func normalizeStandardPayloadInternal(publishType string, platforms []string, pa
 		copyArticleContentIntoForms(publishArgs, platforms)
 	}
 	resolveStandardPayloadResourceMetadata(payload, nil)
-	normalizePlatformSpecificFields(publishType, platforms, publishArgs, topicPolicy, normalizeTopics)
+	normalizePlatformSpecificFields(publishType, platforms, publishArgs, topicPolicy, normalizeTopics, normalizations)
 	return publishArgs
 }
 
@@ -470,10 +490,10 @@ func NormalizePlatformSpecificFields(publishType string, platforms []string, pay
 }
 
 func NormalizePlatformSpecificFieldsWithTopicHTMLPolicy(publishType string, platforms []string, payload map[string]interface{}, topicPolicy TopicHTMLPolicy) {
-	normalizePlatformSpecificFields(publishType, platforms, payload, topicPolicy, true)
+	normalizePlatformSpecificFields(publishType, platforms, payload, topicPolicy, true, nil)
 }
 
-func normalizePlatformSpecificFields(publishType string, platforms []string, payload map[string]interface{}, topicPolicy TopicHTMLPolicy, normalizeTopics bool) {
+func normalizePlatformSpecificFields(publishType string, platforms []string, payload map[string]interface{}, topicPolicy TopicHTMLPolicy, normalizeTopics bool, normalizations *[]NormalizationEvent) {
 	accountForms, ok := payload["accountForms"].([]interface{})
 	if !ok || len(accountForms) == 0 {
 		return
@@ -482,15 +502,18 @@ func normalizePlatformSpecificFields(publishType string, platforms []string, pay
 	publishType = NormalizePublishType(publishType)
 	platformSet := map[string]bool{}
 	for _, platform := range platforms {
-		platformSet[strings.TrimSpace(platform)] = true
+		platform = strings.TrimSpace(platform)
+		platformSet[platform] = true
+		if canonical := platformutil.CanonicalKey(platform); canonical != "" {
+			platformSet[canonical] = true
+		}
 	}
 
-	content, _ := payload["content"].(string)
 	topicTarget := topicHTMLTargetField(platforms, topicPolicy)
 	if !normalizeTopics {
 		topicTarget = ""
 	}
-	for _, item := range accountForms {
+	for formIndex, item := range accountForms {
 		form, ok := item.(map[string]interface{})
 		if !ok {
 			continue
@@ -500,11 +523,16 @@ func normalizePlatformSpecificFields(publishType string, platforms []string, pay
 			continue
 		}
 
+		formPath := fmt.Sprintf("accountForms[%d].contentPublishForm", formIndex)
+		normalizeDynamicObjectFields(cpf, formPath, publishType, platformSet, normalizations)
 		if topicTarget != "" {
-			normalizeTopicHTML(payload, cpf, content, topicTarget)
+			normalizeTopicHTML(cpf, topicTarget, formPath, normalizations)
 		}
-		if publishType == "video" && platformSet["抖音"] {
-			normalizeDouyinShoppingCart(cpf)
+		if (publishType == "video" || publishType == "imageText") && isDouyinPlatformSet(platformSet) {
+			normalizeDouyinShoppingCart(cpf, formPath, normalizations)
+			normalizeDouyinGroupShopping(cpf, formPath, normalizations)
+		} else {
+			normalizeFlatShoppingCart(cpf, formPath, normalizations)
 		}
 	}
 }
@@ -522,59 +550,41 @@ func TopicHTMLPolicyFromSchema(platform string, properties map[string]schema.Pro
 func topicHTMLTargetField(platforms []string, topicPolicy TopicHTMLPolicy) string {
 	hasPolicy := len(topicPolicy) > 0
 	hasDescription := !hasPolicy
-	hasContent := false
 	for _, platform := range platforms {
 		fields, ok := topicPolicy[strings.TrimSpace(platform)]
 		if hasPolicy && !ok {
 			continue
 		}
-		if fields.HasTopics {
-			return ""
-		}
 		hasDescription = hasDescription || fields.HasDescription
-		hasContent = hasContent || fields.HasContent
 	}
 	if hasDescription {
 		return "description"
 	}
-	if hasContent {
-		return "content"
-	}
 	return ""
 }
 
-func normalizeTopicHTML(publishArgs, cpf map[string]interface{}, publishArgsContent, targetField string) {
-	if _, hasTopics := cpf["topics"]; hasTopics {
-		return
-	}
-	tags, ok := cpf["tags"].([]interface{})
-	if !ok || len(tags) == 0 {
-		return
-	}
+func normalizeTopicHTML(cpf map[string]interface{}, targetField, formPath string, normalizations *[]NormalizationEvent) {
 	description := strings.TrimSpace(stringField(cpf, "description"))
-	content := strings.TrimSpace(publishArgsContent)
-	if content == "" {
-		content = description
-	}
-	if description == "" && content == "" {
-		content = strings.TrimSpace(stringField(cpf, "content"))
-	}
-	if description == "" && content == "" {
+	if description == "" {
 		return
 	}
 
-	finalHTML := firstNonEmptyTopicHTML(description, content)
+	finalHTML := firstNonEmptyTopicHTML(description)
 	if finalHTML == "" {
-		baseText := firstNonEmptyString(content, description)
-		finalHTML = buildTopicHTML(baseText, tags)
+		finalHTML = buildTopicHTMLFromDescription(description)
 	}
 	if finalHTML == "" {
 		return
 	}
+	changed := cpf[targetField] != finalHTML
 	cpf[targetField] = finalHTML
-	publishArgs["content"] = finalHTML
-	if targetField != "content" {
-		cpf["content"] = finalHTML
+	if changed {
+		appendNormalization(normalizations, NormalizationEvent{
+			Field:   "description",
+			Path:    formPath + "." + targetField,
+			Action:  "description_topic_html",
+			Message: "Normalized description hashtags into platform topic HTML.",
+		})
 	}
 }
 
@@ -614,13 +624,357 @@ func buildTopicHTML(description string, tags []interface{}) string {
 	return "<p>" + descHTML + "</p><p>" + strings.Join(topicParts, "") + "</p>"
 }
 
-func normalizeDouyinShoppingCart(cpf map[string]interface{}) {
+func buildTopicHTMLFromDescription(description string) string {
+	description = strings.TrimSpace(description)
+	matches := hashtagPattern.FindAllStringSubmatch(description, -1)
+	if len(matches) == 0 {
+		return ""
+	}
+	var tags []interface{}
+	for _, match := range matches {
+		if len(match) > 1 && strings.TrimSpace(match[1]) != "" {
+			tags = append(tags, "#"+strings.TrimSpace(match[1]))
+		}
+	}
+	baseText := strings.TrimSpace(hashtagPattern.ReplaceAllString(description, ""))
+	baseText = strings.Join(strings.Fields(baseText), " ")
+	if len(tags) == 0 {
+		return ""
+	}
+	if strings.HasPrefix(strings.ToLower(baseText), "<p") {
+		topicOnly := buildTopicHTML("", tags)
+		if topicOnly == "" {
+			return ""
+		}
+		return baseText + topicOnly
+	}
+	return buildTopicHTML(baseText, tags)
+}
+
+func normalizeDynamicObjectFields(cpf map[string]interface{}, formPath, publishType string, platformSet map[string]bool, normalizations *[]NormalizationEvent) {
+	if cpf == nil {
+		return
+	}
+	for _, field := range []string{
+		"category", "location", "music", "collection", "collections", "sub_collection",
+		"challenge", "challenges", "mini_app", "miniapp", "miniapps", "sync_apps",
+		"game", "hot_event", "group", "groups", "activity",
+	} {
+		value, exists := cpf[field]
+		if !exists {
+			continue
+		}
+		fieldPath := fmt.Sprintf("%s.%s", formPath, field)
+		var normalized interface{}
+		var changed bool
+		switch {
+		case field == "location":
+			normalized, changed = normalizeLocationValue(value, fieldPath, publishType, platformSet, normalizations)
+		case field == "category":
+			normalized, changed = normalizePlatformDataValue(value, fieldPath, field, normalizations)
+		default:
+			normalized, changed = normalizeDynamicObjectValue(value, fieldPath, field, normalizations)
+		}
+		if changed {
+			cpf[field] = normalized
+		}
+	}
+}
+
+func isDouyinPlatformSet(platformSet map[string]bool) bool {
+	return platformSet["抖音"] || platformSet["douyin"]
+}
+
+func normalizeLocationValue(value interface{}, path, publishType string, platformSet map[string]bool, normalizations *[]NormalizationEvent) (interface{}, bool) {
+	if isDouyinPlatformSet(platformSet) {
+		return normalizeDouyinLocationValue(value, path, publishType, normalizations)
+	}
+	return normalizePlatformDataValue(value, path, "location", normalizations)
+}
+
+func normalizeDouyinLocationValue(value interface{}, path, publishType string, normalizations *[]NormalizationEvent) (interface{}, bool) {
+	obj, ok := value.(map[string]interface{})
+	if !ok || obj == nil {
+		return value, false
+	}
+	if data, _ := obj["data"].(map[string]interface{}); isDynamicQueryObject(data) {
+		changed := false
+		if _, exists := obj["isScp"]; !exists {
+			obj["isScp"] = inferDouyinLocationIsScp(data, publishType)
+			changed = true
+		}
+		if changed {
+			appendNormalization(normalizations, NormalizationEvent{
+				Field:        "location",
+				Path:         path,
+				Action:       "complete_frontend_shape",
+				Message:      `Completed Douyin frontend location shape with "isScp".`,
+				QueryCommand: dynamicObjectQueryCommand("location"),
+			})
+		}
+		return obj, changed
+	}
+	if isDynamicQueryObject(obj) {
+		normalized := map[string]interface{}{
+			"isScp": inferDouyinLocationIsScp(obj, publishType),
+			"data":  obj,
+		}
+		appendNormalization(normalizations, NormalizationEvent{
+			Field:        "location",
+			Path:         path,
+			Action:       "wrap_frontend_shape",
+			Message:      `Wrapped location query object into Douyin frontend location shape.`,
+			QueryCommand: dynamicObjectQueryCommand("location"),
+		})
+		return normalized, true
+	}
+	return value, false
+}
+
+func inferDouyinLocationIsScp(location map[string]interface{}, publishType string) bool {
+	if NormalizePublishType(publishType) != "imageText" {
+		return false
+	}
+	if n, ok := numericValue(location["cpsProductCount"]); ok {
+		return n > 0
+	}
+	if raw, _ := location["raw"].(map[string]interface{}); raw != nil {
+		if n, ok := numericValue(raw["cpsProductCount"]); ok {
+			return n > 0
+		}
+	}
+	return false
+}
+
+func numericValue(value interface{}) (float64, bool) {
+	switch typed := value.(type) {
+	case float64:
+		return typed, true
+	case int:
+		return float64(typed), true
+	case int64:
+		return float64(typed), true
+	default:
+		return 0, false
+	}
+}
+
+func normalizePlatformDataValue(value interface{}, path, field string, normalizations *[]NormalizationEvent) (interface{}, bool) {
+	if items, ok := value.([]interface{}); ok {
+		changed := false
+		for i, item := range items {
+			normalized, itemChanged := normalizePlatformDataValue(item, fmt.Sprintf("%s[%d]", path, i), field, normalizations)
+			if itemChanged {
+				items[i] = normalized
+				changed = true
+			}
+		}
+		return items, changed
+	}
+	obj, ok := value.(map[string]interface{})
+	if !ok || obj == nil {
+		return value, false
+	}
+	if isPlatformDataObject(obj) {
+		return value, false
+	}
+	if data, _ := obj["data"].(map[string]interface{}); data != nil {
+		if normalized, ok := dynamicQueryObjectToPlatformData(data); ok {
+			appendNormalization(normalizations, NormalizationEvent{
+				Field:        field,
+				Path:         path,
+				Action:       "unwrap_data_to_frontend_shape",
+				Message:      `Unwrapped query data into frontend id/text/raw shape.`,
+				QueryCommand: dynamicObjectQueryCommand(field),
+			})
+			return normalized, true
+		}
+	}
+	if normalized, ok := dynamicQueryObjectToPlatformData(obj); ok {
+		appendNormalization(normalizations, NormalizationEvent{
+			Field:        field,
+			Path:         path,
+			Action:       "map_frontend_shape",
+			Message:      `Mapped query object into frontend id/text/raw shape.`,
+			QueryCommand: dynamicObjectQueryCommand(field),
+		})
+		return normalized, true
+	}
+	return value, false
+}
+
+func isPlatformDataObject(obj map[string]interface{}) bool {
+	if obj == nil {
+		return false
+	}
+	raw, _ := obj["raw"].(map[string]interface{})
+	return stringField(obj, "id") != "" && stringField(obj, "text") != "" && raw != nil
+}
+
+func dynamicQueryObjectToPlatformData(obj map[string]interface{}) (map[string]interface{}, bool) {
+	if !isDynamicQueryObject(obj) {
+		return nil, false
+	}
+	id := firstNonEmptyString(stringField(obj, "id"), stringField(obj, "yixiaoerId"), stringField(obj, "value"))
+	text := firstNonEmptyString(stringField(obj, "text"), stringField(obj, "yixiaoerName"), stringField(obj, "name"), stringField(obj, "label"), stringField(obj, "title"))
+	if id == "" || text == "" {
+		return nil, false
+	}
+	normalized := map[string]interface{}{
+		"id":   id,
+		"text": text,
+		"raw":  obj,
+	}
+	if child, _ := obj["child"].([]interface{}); len(child) > 0 {
+		normalized["children"] = normalizePlatformDataChildren(child)
+	}
+	if children, _ := obj["children"].([]interface{}); len(children) > 0 {
+		normalized["children"] = normalizePlatformDataChildren(children)
+	}
+	return normalized, true
+}
+
+func normalizePlatformDataChildren(items []interface{}) []interface{} {
+	var result []interface{}
+	for _, item := range items {
+		obj, _ := item.(map[string]interface{})
+		if normalized, ok := dynamicQueryObjectToPlatformData(obj); ok {
+			result = append(result, normalized)
+		}
+	}
+	return result
+}
+
+func normalizeDynamicObjectValue(value interface{}, path, field string, normalizations *[]NormalizationEvent) (interface{}, bool) {
+	if items, ok := value.([]interface{}); ok {
+		changed := false
+		for i, item := range items {
+			normalized, itemChanged := normalizeDynamicObjectValue(item, fmt.Sprintf("%s[%d]", path, i), field, normalizations)
+			if itemChanged {
+				items[i] = normalized
+				changed = true
+			}
+		}
+		return items, changed
+	}
+	obj, ok := value.(map[string]interface{})
+	if !ok || obj == nil {
+		return value, false
+	}
+	if data, _ := obj["data"].(map[string]interface{}); isDynamicQueryObject(data) {
+		appendNormalization(normalizations, NormalizationEvent{
+			Field:        field,
+			Path:         path,
+			Action:       "unwrap_data",
+			Message:      `Unwrapped data envelope into the frontend form shape.`,
+			QueryCommand: dynamicObjectQueryCommand(field),
+		})
+		normalizeDynamicIdentityAliases(data)
+		return data, true
+	}
+	if normalizeDynamicIdentityAliases(obj) {
+		appendNormalization(normalizations, NormalizationEvent{
+			Field:        field,
+			Path:         path,
+			Action:       "map_identity_aliases",
+			Message:      `Mapped id/text aliases into query object identity fields.`,
+			QueryCommand: dynamicObjectQueryCommand(field),
+		})
+		return obj, true
+	}
+	return value, false
+}
+
+func isDynamicQueryObject(obj map[string]interface{}) bool {
+	if obj == nil {
+		return false
+	}
+	raw, _ := obj["raw"].(map[string]interface{})
+	if raw == nil {
+		return false
+	}
+	return obj["yixiaoerId"] != nil || obj["yixiaoerName"] != nil || obj["id"] != nil || obj["name"] != nil || obj["text"] != nil
+}
+
+func normalizeDynamicIdentityAliases(obj map[string]interface{}) bool {
+	if !isDynamicQueryObject(obj) {
+		return false
+	}
+	changed := false
+	if empty(obj["yixiaoerId"]) {
+		if id := firstNonEmptyString(stringField(obj, "id"), stringField(obj, "value")); id != "" {
+			obj["yixiaoerId"] = id
+			changed = true
+		}
+	}
+	if empty(obj["yixiaoerName"]) {
+		if name := firstNonEmptyString(stringField(obj, "text"), stringField(obj, "name"), stringField(obj, "label"), stringField(obj, "title")); name != "" {
+			obj["yixiaoerName"] = name
+			changed = true
+		}
+	}
+	return changed
+}
+
+func dynamicObjectQueryCommand(field string) string {
+	switch field {
+	case "location":
+		return "yxer query locations <account_id> [--query 关键词] --json"
+	case "music":
+		return "yxer query music <account_id> [--query 关键词] --json"
+	case "category":
+		return "yxer query categories <account_id> [--type video|article] --json"
+	case "collection", "collections", "sub_collection":
+		return "yxer query collections <account_id> [--type video|article] --json"
+	case "challenge", "challenges":
+		return "yxer query challenges <account_id> [--query 关键词] [--type video] --json"
+	case "mini_app", "miniapp", "miniapps":
+		return "yxer query miniapps <account_id> [--query 关键词] --json"
+	case "sync_apps":
+		return "yxer query syncapps <account_id> --json"
+	case "game":
+		return "yxer query games <account_id> [--query 关键词] --json"
+	case "hot_event":
+		return "yxer query hot-events <account_id> [--type video|article] --json"
+	case "group", "groups":
+		return "yxer query groups <account_id> --json"
+	case "activity":
+		return "yxer query activities <account_id> [--type video|article] [--query 关键词] --json"
+	case "shopping_cart", "shoppingCart":
+		return "yxer query goods <account_id> [--query 关键词] --json"
+	default:
+		return ""
+	}
+}
+
+func normalizeFlatShoppingCart(cpf map[string]interface{}, formPath string, normalizations *[]NormalizationEvent) {
+	if cpf == nil {
+		return
+	}
+	value, exists := cpf["shopping_cart"]
+	if !exists {
+		return
+	}
+	normalized, changed := normalizeDynamicObjectValue(value, formPath+".shopping_cart", "shopping_cart", normalizations)
+	if changed {
+		cpf["shopping_cart"] = normalized
+	}
+}
+
+func normalizeDouyinShoppingCart(cpf map[string]interface{}, formPath string, normalizations *[]NormalizationEvent) {
 	if cpf == nil {
 		return
 	}
 	if value, ok := cpf["shoppingCart"]; ok {
 		if _, exists := cpf["shopping_cart"]; !exists {
 			cpf["shopping_cart"] = value
+			appendNormalization(normalizations, NormalizationEvent{
+				Field:        "shopping_cart",
+				Path:         formPath + ".shoppingCart",
+				Action:       "rename_field",
+				Message:      `Renamed legacy "shoppingCart" to "shopping_cart".`,
+				QueryCommand: "yxer query goods <account_id> [--query 关键词]",
+			})
 		}
 		delete(cpf, "shoppingCart")
 	}
@@ -628,33 +982,216 @@ func normalizeDouyinShoppingCart(cpf map[string]interface{}) {
 	if !ok {
 		return
 	}
-	for _, item := range items {
+	for itemIndex, item := range items {
 		cart, ok := item.(map[string]interface{})
 		if !ok {
 			continue
 		}
+		itemPath := fmt.Sprintf("%s.shopping_cart[%d]", formPath, itemIndex)
 		if cart["data"] == nil {
-			data := map[string]interface{}{}
-			for _, key := range []string{"yixiaoerId", "yixiaoerName", "raw"} {
-				if value, exists := cart[key]; exists {
-					data[key] = value
-					delete(cart, key)
+			if isDynamicQueryObject(cart) {
+				data := cloneObjectExcluding(cart, "sale_title", "images", "data")
+				saleTitle := firstNonEmptyString(stringField(cart, "sale_title"), stringField(data, "yixiaoerName"), "点击购买")
+				images := interfaceSliceField(cart, "images")
+				if len(images) == 0 {
+					images = extractShoppingCartImagesFromGoods(data)
+				}
+				clearObject(cart)
+				cart["sale_title"] = truncateRunes(saleTitle, 10)
+				if len(images) > 0 {
+					cart["images"] = images
+					appendNormalization(normalizations, NormalizationEvent{
+						Field:        "shopping_cart",
+						Path:         itemPath + ".images",
+						Action:       "derive_images",
+						Message:      "Derived top-level shopping_cart images from goods raw data.",
+						QueryCommand: "yxer query goods <account_id> [--query 关键词]",
+					})
+				}
+				cart["data"] = data
+				appendNormalization(normalizations, NormalizationEvent{
+					Field:        "shopping_cart",
+					Path:         itemPath,
+					Action:       "wrap_data",
+					Message:      `Wrapped complete goods query object into "data".`,
+					QueryCommand: "yxer query goods <account_id> [--query 关键词]",
+				})
+			} else {
+				data := map[string]interface{}{}
+				for _, key := range []string{"yixiaoerId", "yixiaoerName", "raw"} {
+					if value, exists := cart[key]; exists {
+						data[key] = value
+						delete(cart, key)
+					}
+				}
+				if len(data) > 0 {
+					cart["data"] = data
+					appendNormalization(normalizations, NormalizationEvent{
+						Field:        "shopping_cart",
+						Path:         itemPath,
+						Action:       "wrap_data",
+						Message:      `Moved flat yixiaoerId/yixiaoerName/raw into "data".`,
+						QueryCommand: "yxer query goods <account_id> [--query 关键词]",
+					})
 				}
 			}
-			if len(data) > 0 {
-				cart["data"] = data
+		}
+		if empty(cart["sale_title"]) {
+			if data, _ := cart["data"].(map[string]interface{}); data != nil {
+				cart["sale_title"] = truncateRunes(firstNonEmptyString(stringField(data, "yixiaoerName"), "点击购买"), 10)
+				appendNormalization(normalizations, NormalizationEvent{
+					Field:        "shopping_cart",
+					Path:         itemPath + ".sale_title",
+					Action:       "derive_sale_title",
+					Message:      "Derived shopping_cart sale_title from goods data.",
+					QueryCommand: "yxer query goods <account_id> [--query 关键词]",
+				})
 			}
 		}
 		if cart["images"] == nil {
 			if data, _ := cart["data"].(map[string]interface{}); data != nil {
-				if raw, _ := data["raw"].(map[string]interface{}); raw != nil {
-					if images := extractShoppingCartImages(raw); len(images) > 0 {
-						cart["images"] = images
-					}
+				if images := extractShoppingCartImagesFromGoods(data); len(images) > 0 {
+					cart["images"] = images
+					appendNormalization(normalizations, NormalizationEvent{
+						Field:        "shopping_cart",
+						Path:         itemPath + ".images",
+						Action:       "derive_images",
+						Message:      "Derived top-level shopping_cart images from goods raw data.",
+						QueryCommand: "yxer query goods <account_id> [--query 关键词]",
+					})
 				}
 			}
 		}
 	}
+}
+
+func normalizeDouyinGroupShopping(cpf map[string]interface{}, formPath string, normalizations *[]NormalizationEvent) {
+	if cpf == nil {
+		return
+	}
+	if value, ok := cpf["groupShopping"]; ok {
+		if _, exists := cpf["group_shopping"]; !exists {
+			cpf["group_shopping"] = value
+			appendNormalization(normalizations, NormalizationEvent{
+				Field:        "group_shopping",
+				Path:         formPath + ".groupShopping",
+				Action:       "rename_field",
+				Message:      `Renamed legacy "groupShopping" to frontend "group_shopping".`,
+				QueryCommand: "yxer query goods <account_id> [--query 关键词]",
+			})
+		}
+		delete(cpf, "groupShopping")
+	}
+	group, _ := cpf["group_shopping"].(map[string]interface{})
+	if group == nil {
+		return
+	}
+	groupPath := formPath + ".group_shopping"
+	if data, _ := group["data"].(map[string]interface{}); data != nil {
+		changed := false
+		if empty(group["sale_title"]) {
+			group["sale_title"] = truncateRunes(firstNonEmptyString(stringField(data, "yixiaoerName"), "点击购买"), 10)
+			changed = true
+		}
+		if _, exists := group["brand_switch_value"]; !exists {
+			group["brand_switch_value"] = float64(0)
+			changed = true
+		}
+		if changed {
+			appendNormalization(normalizations, NormalizationEvent{
+				Field:        "group_shopping",
+				Path:         groupPath,
+				Action:       "complete_frontend_shape",
+				Message:      "Completed Douyin frontend group_shopping fields from goods data.",
+				QueryCommand: "yxer query goods <account_id> [--query 关键词]",
+			})
+		}
+		return
+	}
+	if isDynamicQueryObject(group) {
+		data := cloneObjectExcluding(group, "sale_title", "brand_switch_value", "data")
+		saleTitle := truncateRunes(firstNonEmptyString(stringField(group, "sale_title"), stringField(data, "yixiaoerName"), "点击购买"), 10)
+		brandSwitch := group["brand_switch_value"]
+		if brandSwitch == nil {
+			brandSwitch = float64(0)
+		}
+		clearObject(group)
+		group["brand_switch_value"] = brandSwitch
+		group["sale_title"] = saleTitle
+		group["data"] = data
+		appendNormalization(normalizations, NormalizationEvent{
+			Field:        "group_shopping",
+			Path:         groupPath,
+			Action:       "wrap_frontend_shape",
+			Message:      `Wrapped goods query object into Douyin frontend group_shopping shape.`,
+			QueryCommand: "yxer query goods <account_id> [--query 关键词]",
+		})
+	}
+}
+
+func appendNormalization(normalizations *[]NormalizationEvent, event NormalizationEvent) {
+	if normalizations == nil {
+		return
+	}
+	*normalizations = append(*normalizations, event)
+}
+
+func cloneObjectExcluding(obj map[string]interface{}, excluded ...string) map[string]interface{} {
+	if obj == nil {
+		return nil
+	}
+	exclude := map[string]bool{}
+	for _, key := range excluded {
+		exclude[key] = true
+	}
+	cloned := map[string]interface{}{}
+	for key, value := range obj {
+		if !exclude[key] {
+			cloned[key] = value
+		}
+	}
+	return cloned
+}
+
+func clearObject(obj map[string]interface{}) {
+	for key := range obj {
+		delete(obj, key)
+	}
+}
+
+func interfaceSliceField(obj map[string]interface{}, key string) []interface{} {
+	items, _ := obj[key].([]interface{})
+	return items
+}
+
+func truncateRunes(value string, max int) string {
+	value = strings.TrimSpace(value)
+	if max <= 0 {
+		return value
+	}
+	runes := []rune(value)
+	if len(runes) <= max {
+		return value
+	}
+	return string(runes[:max])
+}
+
+func extractShoppingCartImagesFromGoods(goods map[string]interface{}) []interface{} {
+	if goods == nil {
+		return nil
+	}
+	if raw, _ := goods["raw"].(map[string]interface{}); raw != nil {
+		if images := extractShoppingCartImages(raw); len(images) > 0 {
+			return images
+		}
+	}
+	if images := extractShoppingCartImages(goods); len(images) > 0 {
+		return images
+	}
+	if imageURL := strings.TrimSpace(stringField(goods, "yixiaoerImageUrl")); imageURL != "" {
+		return []interface{}{imageURL}
+	}
+	return nil
 }
 
 func extractShoppingCartImages(raw map[string]interface{}) []interface{} {
@@ -808,7 +1345,30 @@ func assertRawObject(value interface{}, pathLabel string, errors *[]string) {
 	hasIdentity := obj["yixiaoerId"] != nil || obj["yixiaoerName"] != nil || obj["id"] != nil || obj["name"] != nil
 	raw, rawOK := obj["raw"].(map[string]interface{})
 	if hasIdentity && (!rawOK || raw == nil) {
-		*errors = append(*errors, pathLabel+`: dynamic platform object must include complete "raw" data from a yxer query command`)
+		*errors = append(*errors, pathLabel+dynamicRawErrorSuffix(pathLabel))
+	}
+}
+
+func dynamicRawErrorSuffix(pathLabel string) string {
+	field, command := dynamicObjectRepairCommand(pathLabel)
+	if command == "" {
+		return `: dynamic platform object must include complete "raw" data from a yxer query command`
+	}
+	return fmt.Sprintf(`: dynamic platform object must include complete "raw" data from a yxer query command; %s must be copied from %s`, field, command)
+}
+
+func dynamicObjectRepairCommand(pathLabel string) (string, string) {
+	switch {
+	case strings.Contains(pathLabel, "shopping_cart") || strings.Contains(pathLabel, "group_shopping") || strings.Contains(pathLabel, "shoppingCart") || strings.Contains(pathLabel, "groupShopping"):
+		return "shopping cart goods", "yxer query goods <account_id> [--query 关键词] --json"
+	case strings.Contains(pathLabel, "location"):
+		return "location", "yxer query locations <account_id> [--query 关键词] --json"
+	case strings.Contains(pathLabel, "music"):
+		return "music", "yxer query music <account_id> [--query 关键词] --json"
+	case strings.Contains(pathLabel, "challenge") || strings.Contains(pathLabel, "topics"):
+		return "topic/challenge", "yxer query challenges <account_id> [--query 关键词] [--type video] --json"
+	default:
+		return "", ""
 	}
 }
 

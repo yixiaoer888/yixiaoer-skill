@@ -15,7 +15,31 @@ func analyzeValidationErrors(errors []string, platform, publishType string) []ma
 		}
 
 		// 分析错误类型并给出建议
-		if strings.Contains(err, "publishArgs") && strings.Contains(err, "required") {
+		if strings.Contains(err, "shopping_cart") || strings.Contains(err, "group_shopping") || strings.Contains(err, "shoppingCart") || strings.Contains(err, "groupShopping") {
+			suggestion["reason"] = "购物车商品结构或来源不正确"
+			suggestion["fix"] = "使用 dynamicFieldExamples 中的前端表单结构，并从 yxer query goods 返回结果复制完整商品对象；抖音购物车必须包含 sale_title、images、data.raw，团购使用 group_shopping"
+			suggestion["reference"] = "yxer query goods <account_id> [--query 关键词] --json"
+			suggestion["exampleField"] = "dynamicFieldExamples.shopping_cart"
+
+		} else if strings.Contains(err, "location") && strings.Contains(err, "raw") {
+			suggestion["reason"] = "位置对象缺少完整 raw"
+			suggestion["fix"] = "通过位置查询命令获取完整对象，并按 schema 前端表单结构回填；抖音位置是 {isScp,data}，其他位置通常是 {id,text,raw}"
+			suggestion["reference"] = "yxer query locations <account_id> [--query 关键词] --json"
+			suggestion["exampleField"] = "dynamicFieldExamples.location"
+
+		} else if strings.Contains(err, "music") && strings.Contains(err, "raw") {
+			suggestion["reason"] = "音乐对象缺少完整 raw"
+			suggestion["fix"] = "通过音乐查询命令获取完整对象，保留 playUrl/url/duration/raw 等返回字段"
+			suggestion["reference"] = "yxer query music <account_id> [--query 关键词] --json"
+			suggestion["exampleField"] = "dynamicFieldExamples.music"
+
+		} else if strings.Contains(err, "tags") || strings.Contains(err, "topic") || strings.Contains(err, "challenge") {
+			suggestion["reason"] = "话题标签字段结构不符合平台要求"
+			suggestion["fix"] = "普通 tags 使用字符串数组；challenge/topics 等动态对象必须从查询命令复制完整 raw"
+			suggestion["reference"] = fmt.Sprintf("yxer schema fields %s %s", platform, publishType)
+			suggestion["exampleField"] = "dynamicFieldExamples.tags"
+
+		} else if strings.Contains(err, "publishArgs") && strings.Contains(err, "required") {
 			suggestion["reason"] = "payload 结构不符合标准"
 			suggestion["fix"] = "确保顶层有 publishArgs 字段"
 			suggestion["reference"] = fmt.Sprintf("yxer schema get %s %s", platform, publishType)

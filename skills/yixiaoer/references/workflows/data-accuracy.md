@@ -9,6 +9,7 @@
 - 写接口只接收已解析、已校验、有来源的数据。
 - 自然语言只能用于触发查询、筛选候选和生成用户可确认的业务文案，不能直接作为动态对象写入 payload。
 - `yxer` CLI 输出是唯一事实来源；字段名、枚举、账号、资源 key、分类、位置、音乐、商品、合集、活动等动态数据不得手写。
+- CLI stdout 外层 `data` 只是机器可读结果容器；Agent 取得其中候选后，必须按目标 schema / `dynamicFieldExamples` 装配成发布字段结构，再请求接口。
 - 只要候选结果不唯一，且下一步会产生写入、副作用或发布，必须先展示候选并等待用户明确选择。
 - `validate`、`publish --dry-run`、正式 `publish` 必须使用同一份 payload 和同一套发布通道参数。
 
@@ -23,11 +24,12 @@
 5. 执行 `yxer schema fields <platform> <type>`，确认字段名、类型、必填项；需要骨架时再执行 `yxer schema get`。
 6. 对资源执行 `yxer upload`，只使用上传结果中的 key、size、width、height、duration、format 等字段。
 7. 对动态字段执行对应 `yxer query ...` 命令，保留 CLI 返回对象，不自行精简为 ID 或名称。
-8. 如果账号、动态对象、时间、发布通道或其他关键选项存在多个候选，先展示候选并等待用户确认。
-9. 组装或修订 payload，只写入前面步骤已经确认的数据。
-10. 执行 `yxer validate <platform> <type> <payload.json>`。
-11. 执行 `yxer publish <type> <platform> <payload.json> --dry-run`。
-12. 用户已授权正式发布时，才执行不带 `--dry-run` 的 `yxer publish`。
+8. 从 CLI 输出 `data` 中选中候选后，按 schema / `dynamicFieldExamples` 转成目标字段结构；不要把查询响应 envelope 或候选对象直接当成完整发布请求。
+9. 如果账号、动态对象、时间、发布通道或其他关键选项存在多个候选，先展示候选并等待用户确认。
+10. 组装或修订 payload，只写入前面步骤已经确认的数据。
+11. 执行 `yxer validate <platform> <type> <payload.json>`。
+12. 执行 `yxer publish <type> <platform> <payload.json> --dry-run`。
+13. 用户已授权正式发布时，才执行不带 `--dry-run` 的 `yxer publish`。
 
 ## 候选确认规则
 

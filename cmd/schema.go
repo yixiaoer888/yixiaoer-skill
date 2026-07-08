@@ -174,6 +174,9 @@ func runSchemaGet(cmd *cobra.Command, platform, publishType string, verbose bool
 		// 最小可用模板
 		"minimalTemplate": buildMinimalPayloadTemplate(schemaDoc),
 
+		// 动态字段公共示例（仅包含当前 schema 暴露的字段）
+		"dynamicFieldExamples": buildDynamicFieldExamples(schemaDoc),
+
 		// 使用指引
 		"guidance": []string{
 			"1. 优先使用 'yxer schema fields' 查看紧凑字段列表",
@@ -292,6 +295,9 @@ func runSchemaFields(cmd *cobra.Command, platform, publishType string) error {
 
 		// 复杂字段的查询命令提示
 		"queryCommands": buildQueryCommandHints(grouped.Complex, platform),
+
+		// 动态字段公共示例（仅包含当前 schema 暴露的字段）
+		"dynamicFieldExamples": buildDynamicFieldExamples(doc),
 
 		// 平台特定说明
 		"platformNotes": getPlatformSpecificNotes(platform, publishType),
@@ -641,7 +647,7 @@ func isStandardTopLevelField(path string) bool {
 func isComplexField(path string) bool {
 	complexPatterns := []string{
 		"location", "music", "challenge", "collection", "sub_collection",
-		"category", "goods", "shopping_cart", "groupShopping",
+		"category", "goods", "shopping_cart", "group_shopping", "groupShopping",
 		"mini_app", "hot_event", "game", "sync_apps",
 		"cooperation_info", "friends", "group",
 	}
@@ -673,7 +679,7 @@ func buildQueryCommandHints(complexFields []flatFieldView, platform string) map[
 			fieldType = "collection"
 		} else if strings.Contains(path, "category") {
 			fieldType = "category"
-		} else if strings.Contains(path, "goods") || strings.Contains(path, "shopping_cart") || strings.Contains(path, "groupShopping") {
+		} else if strings.Contains(path, "goods") || strings.Contains(path, "shopping_cart") || strings.Contains(path, "group_shopping") || strings.Contains(path, "groupShopping") {
 			fieldType = "goods"
 		} else if strings.Contains(path, "mini_app") {
 			fieldType = "mini_app"

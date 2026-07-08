@@ -63,7 +63,7 @@
 - 严禁自行猜测字段名、层级、枚举、默认值、示例值、`raw` 对象内容或资源元数据。
 - 文档未定义、schema 未声明、CLI 未返回的字段，不得写入 payload。
 - 动态字段和复杂对象必须先查询后填写；查不到时继续查询或向用户确认，不能凭经验编造。
-- 话题/标签字段必须按 `../topic-tags.md` 的最终格式直接写入 payload，不要依赖 CLI 修复 `description` / `content` 中的标签结构。
+- 话题/标签字段必须按 `../topic-tags.md` 的最终格式直接写入 payload。CLI 只兜底归一化 `description` 中的普通 `#话题`，不处理 `content`，也不改变 `tags` / `topics` / `challenge` 字段结构。
 
 ---
 

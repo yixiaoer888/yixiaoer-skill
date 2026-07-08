@@ -276,6 +276,39 @@ func TestSchemaFieldsCommandOutputsFieldView(t *testing.T) {
 	}
 }
 
+func TestSchemaFieldsCommandOutputsDynamicFieldExamples(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	var out bytes.Buffer
+	cmd := newSchemaFieldsCmd()
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"抖音", "video"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	examples := data["dynamicFieldExamples"].(map[string]interface{})
+	for _, key := range []string{"shopping_cart", "location", "music", "tags"} {
+		if _, ok := examples[key]; !ok {
+			t.Fatalf("expected dynamicFieldExamples.%s, got %#v", key, examples)
+		}
+	}
+	cart := examples["shopping_cart"].(map[string]interface{})
+	cartValue := cart["value"].([]interface{})[0].(map[string]interface{})
+	if cartValue["data"] == nil || cartValue["images"] == nil {
+		t.Fatalf("expected douyin shopping_cart example to use nested data/images, got %#v", cart)
+	}
+	if cart["queryCommand"] != "yxer query goods <account_id> [--query 关键词] --json" {
+		t.Fatalf("expected goods query command in shopping cart example, got %#v", cart)
+	}
+}
+
 func TestSchemaFieldsCommandPlacesArticleContentUnderPublishArgs(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)

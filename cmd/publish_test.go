@@ -14,6 +14,7 @@ import (
 	"github.com/yixiaoer/yixiaoer-skill/internal/api"
 	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/config"
+	publishmod "github.com/yixiaoer/yixiaoer-skill/internal/modules/publish"
 	publishflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/publish"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
@@ -1210,7 +1211,7 @@ func TestPublishCommandCopiesImageTextCoverFieldsFromContentPublishFormToAccount
 	}
 }
 
-func TestPublishCommandNormalizesTopicHTMLIntoDescriptionAndContent(t *testing.T) {
+func TestPublishCommandNormalizesDescriptionTopics(t *testing.T) {
 	withRepoRoot(t)
 	payloadPath := writePublishPayload(t, map[string]interface{}{
 		"action":         "publish",
@@ -1241,8 +1242,7 @@ func TestPublishCommandNormalizesTopicHTMLIntoDescriptionAndContent(t *testing.T
 					"contentPublishForm": map[string]interface{}{
 						"formType":    "task",
 						"title":       "夏日穿搭",
-						"description": "今日穿搭分享",
-						"tags":        []interface{}{"穿搭", "#夏日"},
+						"description": "今日穿搭分享 #穿搭 #夏日",
 						"images": []interface{}{
 							map[string]interface{}{
 								"key":    "uploaded/cover.png",
@@ -1276,8 +1276,8 @@ func TestPublishCommandNormalizesTopicHTMLIntoDescriptionAndContent(t *testing.T
 	if cpf["description"] != expected {
 		t.Fatalf("expected contentPublishForm.description topic HTML, got %+v", cpf["description"])
 	}
-	if args["content"] != expected {
-		t.Fatalf("expected publishArgs.content topic HTML, got %+v", args["content"])
+	if _, exists := args["content"]; exists {
+		t.Fatalf("did not expect description topic rule to synthesize publishArgs.content, got %+v", args["content"])
 	}
 }
 
@@ -1327,6 +1327,47 @@ func TestPublishCommandNormalizesDouyinShoppingCartStructure(t *testing.T) {
 	if data["yixiaoerId"] != "goods_001" || data["yixiaoerName"] != "测试商品" {
 		t.Fatalf("expected nested data object, got %+v", item)
 	}
+}
+
+func TestPublishDryRunReportsDynamicFieldNormalizations(t *testing.T) {
+	withRepoRoot(t)
+	payload := validPublishPayload()
+	cpf := payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	cpf["shoppingCart"] = []interface{}{
+		map[string]interface{}{
+			"sale_title":   "点击购买",
+			"yixiaoerId":   "goods_001",
+			"yixiaoerName": "测试商品",
+			"raw": map[string]interface{}{
+				"gid":        "goods_001",
+				"goods_imgs": []interface{}{"https://example.invalid/goods.png"},
+			},
+		},
+	}
+
+	service := publishflow.NewService(testRuntime(t))
+	result, err := service.DryRun(publishflow.ExecuteInput{
+		PublishType:   "video",
+		PlatformInput: "抖音",
+		Payload:       payload,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, action := range []string{"rename_field", "wrap_data", "derive_images"} {
+		if !hasNormalizationAction(result.Normalizations, action) {
+			t.Fatalf("expected dry-run normalization action %q, got %+v", action, result.Normalizations)
+		}
+	}
+}
+
+func hasNormalizationAction(events []publishmod.NormalizationEvent, action string) bool {
+	for _, event := range events {
+		if event.Action == action {
+			return true
+		}
+	}
+	return false
 }
 
 func TestPublishCommandUsesImageTextPublishType(t *testing.T) {

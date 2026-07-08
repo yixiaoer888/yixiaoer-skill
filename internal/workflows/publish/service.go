@@ -82,7 +82,7 @@ func (s Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 		result := validator.Validate(platform, input.PublishType, resolvedPayload)
 		if !result.Valid {
 			return nil, yxerrors.Usage("Schema validation failed", result.Errors).
-				WithHint("请根据对应平台 schema 修正 payload 字段后重试。").
+				WithHint(schemaValidationHint(result.Errors)).
 				WithNextCommand(fmt.Sprintf("yxer validate %s %s <payload.json>", platform, input.PublishType))
 		}
 	}

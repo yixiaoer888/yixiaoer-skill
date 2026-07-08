@@ -109,21 +109,22 @@
     "location": {
       "type": "object",
       "required": [
-        "yixiaoerId",
-        "yixiaoerName",
+        "id",
+        "text",
         "raw"
       ],
       "properties": {
-        "yixiaoerId": {
+        "id": {
           "type": "string"
         },
-        "yixiaoerName": {
+        "text": {
           "type": "string"
         },
         "raw": {
           "type": "object"
         }
-      }
+      },
+      "additionalProperties": true
     },
     "scheduledTime": {
       "type": "number",

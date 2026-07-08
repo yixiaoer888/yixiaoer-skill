@@ -72,10 +72,22 @@
     "location": {
       "type": "object",
       "required": [
-        "yixiaoerId",
-        "yixiaoerName",
+        "id",
+        "text",
         "raw"
-      ]
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
     },
     "music": {
       "type": "object",

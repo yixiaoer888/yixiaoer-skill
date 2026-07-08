@@ -307,7 +307,7 @@ func TestResolveStandardPayloadResourceMetadataFillsImageDimensionsFromLocalSour
 	}
 }
 
-func TestNormalizeTopicHTMLForVideoWithoutTopicsField(t *testing.T) {
+func TestNormalizeTopicHTMLForVideoDescriptionHashtags(t *testing.T) {
 	payload := standardPayload("video", []string{"抖音"}, map[string]interface{}{
 		"accountForms": []interface{}{
 			map[string]interface{}{
@@ -315,7 +315,7 @@ func TestNormalizeTopicHTMLForVideoWithoutTopicsField(t *testing.T) {
 				"contentPublishForm": map[string]interface{}{
 					"formType":    "task",
 					"title":       "视频",
-					"description": "今日穿搭分享",
+					"description": "今日穿搭分享 #穿搭 #夏日",
 					"tags":        []interface{}{"穿搭", "#夏日"},
 				},
 			},
@@ -331,15 +331,12 @@ func TestNormalizeTopicHTMLForVideoWithoutTopicsField(t *testing.T) {
 	if cpf["description"] != expected {
 		t.Fatalf("expected video description topic HTML, got %#v", cpf["description"])
 	}
-	if publishArgsOf(payload)["content"] != expected {
-		t.Fatalf("expected publishArgs.content topic HTML, got %#v", publishArgsOf(payload)["content"])
-	}
-	if cpf["content"] != expected {
-		t.Fatalf("expected contentPublishForm.content topic HTML, got %#v", cpf["content"])
+	if publishArgsOf(payload)["content"] != nil || cpf["content"] != nil {
+		t.Fatalf("expected description topic rule not to synthesize content, got cpf=%+v publishArgs=%+v", cpf, publishArgsOf(payload))
 	}
 }
 
-func TestNormalizeTopicHTMLSkipsPlatformsWithoutDescriptionField(t *testing.T) {
+func TestNormalizeTopicHTMLSkipsArticleContent(t *testing.T) {
 	payload := standardPayload("article", []string{"CSDN"}, map[string]interface{}{
 		"accountForms": []interface{}{
 			map[string]interface{}{
@@ -347,7 +344,7 @@ func TestNormalizeTopicHTMLSkipsPlatformsWithoutDescriptionField(t *testing.T) {
 				"contentPublishForm": map[string]interface{}{
 					"formType": "task",
 					"title":    "文章",
-					"content":  "今日穿搭分享",
+					"content":  "今日穿搭分享 #穿搭 #夏日",
 					"tags":     []interface{}{"穿搭", "#夏日"},
 				},
 			},
@@ -359,19 +356,43 @@ func TestNormalizeTopicHTMLSkipsPlatformsWithoutDescriptionField(t *testing.T) {
 	})
 
 	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
-	expected := `<p>今日穿搭分享</p><p><topic text="穿搭">#穿搭</topic><topic text="夏日">#夏日</topic></p>`
-	if cpf["content"] != expected {
-		t.Fatalf("expected content topic HTML when description is unsupported, got %#v", cpf["content"])
-	}
-	if publishArgsOf(payload)["content"] != expected {
-		t.Fatalf("expected publishArgs.content topic HTML, got %#v", publishArgsOf(payload)["content"])
+	if cpf["content"] != "今日穿搭分享 #穿搭 #夏日" {
+		t.Fatalf("expected article content to remain unchanged, got %#v", cpf["content"])
 	}
 	if _, exists := cpf["description"]; exists {
 		t.Fatalf("expected description to remain absent when description is unsupported, got %+v", cpf)
 	}
 }
 
-func TestNormalizeTopicHTMLSkipsSchemasWithTopicsField(t *testing.T) {
+func TestNormalizeTopicHTMLForAnyPlatformDescriptionHashtags(t *testing.T) {
+	payload := standardPayload("imageText", []string{"百家号"}, map[string]interface{}{
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_001",
+				"contentPublishForm": map[string]interface{}{
+					"formType":    "task",
+					"title":       "图文",
+					"description": "今日穿搭分享 #穿搭 #夏日",
+				},
+			},
+		},
+	})
+
+	NormalizeStandardPayloadWithTopicHTMLPolicy("imageText", []string{"百家号"}, payload, TopicHTMLPolicy{
+		"百家号": TopicHTMLFields{HasDescription: true},
+	})
+
+	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	expected := `<p>今日穿搭分享</p><p><topic text="穿搭">#穿搭</topic><topic text="夏日">#夏日</topic></p>`
+	if cpf["description"] != expected {
+		t.Fatalf("expected imageText description topic HTML, got %#v", cpf["description"])
+	}
+	if publishArgsOf(payload)["content"] != nil || cpf["content"] != nil {
+		t.Fatalf("expected description topic rule not to synthesize content, got cpf=%+v publishArgs=%+v", cpf, publishArgsOf(payload))
+	}
+}
+
+func TestNormalizeTopicHTMLKeepsTopicFieldsIndependent(t *testing.T) {
 	payload := standardPayload("article", []string{"知乎"}, map[string]interface{}{
 		"accountForms": []interface{}{
 			map[string]interface{}{
@@ -379,7 +400,7 @@ func TestNormalizeTopicHTMLSkipsSchemasWithTopicsField(t *testing.T) {
 				"contentPublishForm": map[string]interface{}{
 					"formType":    "task",
 					"title":       "文章",
-					"description": "今日穿搭分享",
+					"description": "今日穿搭分享 #穿搭",
 					"tags":        []interface{}{"穿搭"},
 				},
 			},
@@ -391,11 +412,12 @@ func TestNormalizeTopicHTMLSkipsSchemasWithTopicsField(t *testing.T) {
 	})
 
 	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
-	if cpf["description"] != "今日穿搭分享" {
-		t.Fatalf("expected description to remain unchanged for topics-capable schema, got %#v", cpf["description"])
+	expected := `<p>今日穿搭分享</p><p><topic text="穿搭">#穿搭</topic></p>`
+	if cpf["description"] != expected {
+		t.Fatalf("expected description topic HTML while leaving topic fields independent, got %#v", cpf["description"])
 	}
 	if cpf["content"] != nil || publishArgsOf(payload)["content"] != nil {
-		t.Fatalf("expected topics-capable schema not to synthesize content fields, got cpf=%+v publishArgs=%+v", cpf, publishArgsOf(payload))
+		t.Fatalf("expected description topic rule not to synthesize content, got cpf=%+v publishArgs=%+v", cpf, publishArgsOf(payload))
 	}
 }
 
@@ -655,6 +677,204 @@ func TestPreflightNormalizesLegacyDouyinShoppingCartShape(t *testing.T) {
 	}
 }
 
+func TestPreflightNormalizesDouyinShoppingCartFromCompleteGoodsObject(t *testing.T) {
+	payload := validVideoPayload()
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	form["contentPublishForm"].(map[string]interface{})["shopping_cart"] = []interface{}{
+		map[string]interface{}{
+			"yixiaoerId":       "goods_001",
+			"yixiaoerName":     "超长测试商品标题",
+			"yixiaoerImageUrl": "https://example.invalid/fallback.png",
+			"price":            float64(19900),
+			"raw": map[string]interface{}{
+				"gid":        "goods_001",
+				"goods_imgs": []interface{}{"https://example.invalid/goods.png"},
+			},
+		},
+	}
+
+	result := Preflight("video", []string{"抖音"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected complete goods object to normalize, got %v", result.Errors)
+	}
+
+	cpf := form["contentPublishForm"].(map[string]interface{})
+	item := cpf["shopping_cart"].([]interface{})[0].(map[string]interface{})
+	if item["sale_title"] != "超长测试商品标题" {
+		t.Fatalf("expected sale_title to derive from goods name within limit, got %+v", item)
+	}
+	if len(item["images"].([]interface{})) != 1 {
+		t.Fatalf("expected images to be derived from goods raw, got %+v", item)
+	}
+	data := item["data"].(map[string]interface{})
+	if data["price"] != float64(19900) || data["yixiaoerId"] != "goods_001" {
+		t.Fatalf("expected whole goods object to move under data, got %+v", item)
+	}
+	if _, exists := item["raw"]; exists {
+		t.Fatalf("expected raw to live under data, got %+v", item)
+	}
+}
+
+func TestNormalizeDynamicObjectsFollowsFrontendLocationAndMusicShapes(t *testing.T) {
+	payload := validVideoPayload()
+	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	cpf["location"] = map[string]interface{}{
+		"isScp": false,
+		"data": map[string]interface{}{
+			"yixiaoerId":   "loc_001",
+			"yixiaoerName": "上海",
+			"raw":          map[string]interface{}{"id": "loc_001"},
+		},
+	}
+	cpf["music"] = map[string]interface{}{
+		"data": map[string]interface{}{
+			"yixiaoerId":   "music_001",
+			"yixiaoerName": "背景音乐",
+			"duration":     float64(30),
+			"playUrl":      "https://example.invalid/music.mp3",
+			"raw":          map[string]interface{}{"id": "music_001"},
+		},
+	}
+
+	var events []NormalizationEvent
+	NormalizeStandardPayloadForSchemaValidationWithTrace("video", []string{"抖音"}, payload, &events)
+
+	location := cpf["location"].(map[string]interface{})
+	if location["isScp"] != false {
+		t.Fatalf("expected Douyin frontend location isScp=false, got %+v", location)
+	}
+	locationData := location["data"].(map[string]interface{})
+	if locationData["yixiaoerId"] != "loc_001" || locationData["raw"] == nil {
+		t.Fatalf("expected Douyin frontend location data to stay wrapped, got %+v", location)
+	}
+	music := cpf["music"].(map[string]interface{})
+	if music["yixiaoerId"] != "music_001" || music["playUrl"] == nil || music["raw"] == nil {
+		t.Fatalf("expected frontend music query object to unwrap unchanged, got %+v", music)
+	}
+	if !hasNormalizationEvent(events, "unwrap_data") {
+		t.Fatalf("expected dynamic unwrap normalization events, got %+v", events)
+	}
+}
+
+func TestNormalizeLocationMapsFrontendAliasShape(t *testing.T) {
+	payload := validVideoPayload()
+	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	cpf["location"] = map[string]interface{}{
+		"id":   "loc_001",
+		"text": "上海",
+		"raw":  map[string]interface{}{"id": "loc_001"},
+	}
+
+	var events []NormalizationEvent
+	NormalizeStandardPayloadForSchemaValidationWithTrace("video", []string{"快手"}, payload, &events)
+
+	location := cpf["location"].(map[string]interface{})
+	if location["id"] != "loc_001" || location["text"] != "上海" || location["raw"] == nil {
+		t.Fatalf("expected frontend id/text location to stay in frontend schema, got %+v", location)
+	}
+	if hasNormalizationEvent(events, "map_identity_aliases") {
+		t.Fatalf("did not expect already-frontend location shape to be remapped, got %+v", events)
+	}
+}
+
+func TestNormalizeLocationMapsQueryObjectToFrontendShape(t *testing.T) {
+	payload := validVideoPayload()
+	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	cpf["location"] = map[string]interface{}{
+		"yixiaoerId":   "loc_001",
+		"yixiaoerName": "上海",
+		"raw":          map[string]interface{}{"id": "loc_001"},
+	}
+
+	var events []NormalizationEvent
+	NormalizeStandardPayloadForSchemaValidationWithTrace("video", []string{"快手"}, payload, &events)
+
+	location := cpf["location"].(map[string]interface{})
+	if location["id"] != "loc_001" || location["text"] != "上海" {
+		t.Fatalf("expected query location to map to frontend id/text/raw shape, got %+v", location)
+	}
+	if !hasNormalizationEvent(events, "map_frontend_shape") {
+		t.Fatalf("expected location alias normalization event, got %+v", events)
+	}
+}
+
+func TestNormalizeSupportedQueryFieldsFromDataEnvelope(t *testing.T) {
+	payload := validVideoPayload()
+	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	queryObject := func(id, name string) map[string]interface{} {
+		return map[string]interface{}{
+			"data": map[string]interface{}{
+				"id":   id,
+				"text": name,
+				"raw":  map[string]interface{}{"id": id},
+			},
+		}
+	}
+	cpf["category"] = queryObject("cat_001", "分类")
+	cpf["collection"] = queryObject("col_001", "合集")
+	cpf["sub_collection"] = queryObject("sub_001", "子合集")
+	cpf["challenge"] = queryObject("cha_001", "挑战")
+	cpf["mini_app"] = queryObject("mini_001", "小程序")
+	cpf["sync_apps"] = []interface{}{queryObject("sync_001", "同步应用")}
+	cpf["game"] = queryObject("game_001", "游戏")
+	cpf["hot_event"] = queryObject("hot_001", "热点")
+	cpf["group"] = queryObject("group_001", "群聊")
+	cpf["activity"] = queryObject("act_001", "活动")
+
+	var events []NormalizationEvent
+	NormalizeStandardPayloadForSchemaValidationWithTrace("video", []string{"抖音"}, payload, &events)
+
+	category := cpf["category"].(map[string]interface{})
+	if category["id"] != "cat_001" || category["text"] != "分类" || category["raw"] == nil {
+		t.Fatalf("expected category query envelope to unwrap into frontend id/text/raw object, got %+v", category)
+	}
+	for _, field := range []string{"collection", "sub_collection", "challenge", "mini_app", "game", "hot_event", "group", "activity"} {
+		obj := cpf[field].(map[string]interface{})
+		if obj["yixiaoerId"] == nil || obj["yixiaoerName"] == nil || obj["raw"] == nil {
+			t.Fatalf("expected %s query envelope to unwrap into dynamic object, got %+v", field, obj)
+		}
+		if _, exists := obj["data"]; exists {
+			t.Fatalf("expected %s data envelope to be removed, got %+v", field, obj)
+		}
+	}
+	syncApp := cpf["sync_apps"].([]interface{})[0].(map[string]interface{})
+	if syncApp["yixiaoerId"] != "sync_001" || syncApp["yixiaoerName"] != "同步应用" {
+		t.Fatalf("expected sync_apps item to unwrap, got %+v", syncApp)
+	}
+	if !hasNormalizationEvent(events, "unwrap_data") {
+		t.Fatalf("expected unwrap_data normalization events, got %+v", events)
+	}
+}
+
+func TestPreflightNormalizesFlatShoppingCartDataEnvelopeForNonDouyin(t *testing.T) {
+	payload := validVideoPayload()
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	form["contentPublishForm"].(map[string]interface{})["shopping_cart"] = []interface{}{
+		map[string]interface{}{
+			"data": map[string]interface{}{
+				"yixiaoerId":       "goods_001",
+				"yixiaoerName":     "测试商品",
+				"yixiaoerImageUrl": "https://example.invalid/goods.png",
+				"price":            float64(19900),
+				"raw":              map[string]interface{}{"id": "goods_001"},
+			},
+		},
+	}
+
+	result := Preflight("video", []string{"小红书"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected flat shopping_cart data envelope to normalize, got %v", result.Errors)
+	}
+
+	item := form["contentPublishForm"].(map[string]interface{})["shopping_cart"].([]interface{})[0].(map[string]interface{})
+	if item["yixiaoerId"] != "goods_001" || item["raw"] == nil {
+		t.Fatalf("expected non-douyin shopping_cart to stay flat, got %+v", item)
+	}
+	if _, exists := item["data"]; exists {
+		t.Fatalf("expected non-douyin shopping_cart data envelope to be removed, got %+v", item)
+	}
+}
+
 func TestPreflightRejectsXiaohongshuShoppingCartMissingRaw(t *testing.T) {
 	payload := validVideoPayload()
 	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
@@ -667,6 +887,24 @@ func TestPreflightRejectsXiaohongshuShoppingCartMissingRaw(t *testing.T) {
 
 	result := Preflight("video", []string{"小红书"}, payload)
 	assertHasError(t, result.Errors, "accountForms[0].contentPublishForm.shopping_cart[0]: dynamic platform object must include complete \"raw\" data")
+	assertHasError(t, result.Errors, "yxer query goods <account_id> [--query 关键词] --json")
+}
+
+func TestPreflightDynamicObjectRawErrorsIncludeRepairCommands(t *testing.T) {
+	payload := validVideoPayload()
+	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	cpf["location"] = map[string]interface{}{
+		"yixiaoerId":   "loc_001",
+		"yixiaoerName": "测试位置",
+	}
+	cpf["music"] = map[string]interface{}{
+		"yixiaoerId":   "music_001",
+		"yixiaoerName": "测试音乐",
+	}
+
+	result := Preflight("video", []string{"抖音"}, payload)
+	assertHasError(t, result.Errors, "yxer query locations <account_id> [--query 关键词] --json")
+	assertHasError(t, result.Errors, "yxer query music <account_id> [--query 关键词] --json")
 }
 
 func validVideoPayload() map[string]interface{} {
@@ -720,6 +958,15 @@ func uploadedResourceWithKey(key string) map[string]interface{} {
 		"width":  float64(1080),
 		"height": float64(1920),
 	}
+}
+
+func hasNormalizationEvent(events []NormalizationEvent, action string) bool {
+	for _, event := range events {
+		if event.Action == action {
+			return true
+		}
+	}
+	return false
 }
 
 func assertHasError(t *testing.T, errors []string, want string) {

@@ -49,6 +49,13 @@
 - `publishArgs.accountForms[].contentPublishForm`：平台业务字段
 - `publishArgs.content`：文章正文主入口
 
+## 查询 `data` 处理规则
+
+- `yxer query ...` 的 stdout 外层 `data` 是 CLI 结果容器，只能作为字段来源，不能把整个响应 envelope 原样塞进发布 payload。
+- 从查询结果选中候选后，必须按 `yxer schema fields <platform> <type>` / `dynamicFieldExamples` 显示的目标字段结构重新装配。
+- 若目标字段要求嵌套 `data`，例如抖音视频 `shopping_cart[]`，应把商品完整对象放入该字段要求的内层 `data`，并补齐 schema 要求的外层字段，如 `sale_title`、`images`。
+- 写入接口前必须重新执行 `yxer validate` 和 `yxer publish --dry-run`，以 dry-run 输出的 `request` 为最终请求结构依据。
+
 ## 哪些字段不能猜
 
 - 任意 schema 未声明字段

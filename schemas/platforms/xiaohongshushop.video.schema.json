@@ -37,7 +37,8 @@
         "raw": {
           "type": "object"
         }
-      }
+      },
+      "additionalProperties": true
     },
     "shoppingCart": {
       "type": "array",
