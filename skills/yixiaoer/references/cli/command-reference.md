@@ -30,6 +30,10 @@ yxer skill sync [--global]
 
 ```bash
 yxer accounts list [platform] [--name 关键词] [--status 1] [--json]
+yxer account-group list
+yxer account-group create <name> [--dry-run]
+yxer account-group update <group_id> <name> [--dry-run]
+yxer account-group delete <group_id> [--dry-run]
 yxer upload --file <file_path> [--bucket cloud-publish|material-library] [--dry-run]
 yxer upload --url <resource_url> [--bucket cloud-publish|material-library] [--dry-run]
 ```
@@ -66,8 +70,9 @@ yxer schema get <platform> <type>
 
 兼容说明：
 
+- 推荐分组入口：`yxer account-group {list|create|update|delete}`
 - 推荐新入口：`yxer query ...`
-- 旧入口如 `yxer categories ...`、`yxer records list ...` 仍可用，但后续文档统一以 `query` 入口为准
+- 旧入口如 `yxer categories ...`、`yxer records list ...` 仍可用，但后续文档统一以 `query` 或资源入口为准
 
 ## 基本约束
 

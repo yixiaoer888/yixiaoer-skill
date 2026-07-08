@@ -349,6 +349,126 @@ func TestGroupsUsesExpectedEndpoint(t *testing.T) {
 	}
 }
 
+func TestAccountGroupsUsesExpectedEndpoint(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/groups" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": []map[string]interface{}{
+				{"id": "grp_1", "name": "核心账号组"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.AccountGroups()
+	if err != nil {
+		t.Fatal(err)
+	}
+	items := result.([]interface{})
+	if len(items) != 1 {
+		t.Fatalf("expected one account group, got %d", len(items))
+	}
+	first := items[0].(map[string]interface{})
+	if first["name"] != "核心账号组" {
+		t.Fatalf("unexpected account group payload: %#v", first)
+	}
+}
+
+func TestCreateAccountGroupUsesExpectedEndpointAndBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("unexpected method: %s", r.Method)
+		}
+		if r.URL.Path != "/groups" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		if body["name"] != "核心账号组" {
+			t.Fatalf("unexpected body: %#v", body)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": map[string]interface{}{
+				"id":   "grp_1",
+				"name": "核心账号组",
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.CreateAccountGroup(map[string]interface{}{"name": "核心账号组"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := result.(map[string]interface{})
+	if data["id"] != "grp_1" || data["name"] != "核心账号组" {
+		t.Fatalf("unexpected create account group result: %#v", data)
+	}
+}
+
+func TestUpdateAccountGroupUsesExpectedEndpointAndBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPatch {
+			t.Fatalf("unexpected method: %s", r.Method)
+		}
+		if r.URL.Path != "/groups/grp_1" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		if body["name"] != "新版核心账号组" {
+			t.Fatalf("unexpected body: %#v", body)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": map[string]interface{}{
+				"id":   "grp_1",
+				"name": "新版核心账号组",
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.UpdateAccountGroup("grp_1", map[string]interface{}{"name": "新版核心账号组"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := result.(map[string]interface{})
+	if data["id"] != "grp_1" || data["name"] != "新版核心账号组" {
+		t.Fatalf("unexpected update account group result: %#v", data)
+	}
+}
+
+func TestDeleteAccountGroupUsesExpectedEndpoint(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("unexpected method: %s", r.Method)
+		}
+		if r.URL.Path != "/groups/grp_1" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.DeleteAccountGroup("grp_1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result != nil {
+		t.Fatalf("expected nil delete result for empty response, got %#v", result)
+	}
+}
+
 func TestActivitiesUsesExpectedEndpointAndFilters(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/platform-accounts/acc_1/activities" {

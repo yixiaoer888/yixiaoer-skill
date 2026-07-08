@@ -50,6 +50,10 @@ func (c *Client) Patch(endpoint string, body interface{}, out interface{}) error
 	return c.Do(http.MethodPatch, endpoint, body, out)
 }
 
+func (c *Client) Delete(endpoint string, out interface{}) error {
+	return c.Do(http.MethodDelete, endpoint, nil, out)
+}
+
 func (c *Client) Do(method, endpoint string, body interface{}, out interface{}) error {
 	if err := c.cfg.RequireAPIKey(); err != nil {
 		return err

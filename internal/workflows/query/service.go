@@ -57,6 +57,22 @@ func (s Service) Groups(accountID string) (interface{}, error) {
 	return s.rt.Client.Groups(accountID)
 }
 
+func (s Service) AccountGroups() (interface{}, error) {
+	return s.rt.Client.AccountGroups()
+}
+
+func (s Service) CreateAccountGroup(body map[string]interface{}) (interface{}, error) {
+	return s.rt.Client.CreateAccountGroup(body)
+}
+
+func (s Service) UpdateAccountGroup(groupID string, body map[string]interface{}) (interface{}, error) {
+	return s.rt.Client.UpdateAccountGroup(groupID, body)
+}
+
+func (s Service) DeleteAccountGroup(groupID string) (interface{}, error) {
+	return s.rt.Client.DeleteAccountGroup(groupID)
+}
+
 func (s Service) Activities(accountID, publishType, categoryID, keyword string) (interface{}, error) {
 	return s.rt.Client.Activities(accountID, publishType, categoryID, keyword)
 }

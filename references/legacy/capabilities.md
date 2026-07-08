@@ -23,6 +23,10 @@
 | 同步发布应用 | 已覆盖 | `yxer query syncapps <account_id>` | `skills/yixiaoer/references/get-sync-apps.md` |
 | 热点列表 | 已覆盖 | `yxer query hot-events <account_id>` | `skills/yixiaoer/references/get-hot-events.md` |
 | 群聊列表 | 已覆盖 | `yxer query groups <account_id>` | `skills/yixiaoer/references/get-groups.md` |
+| 账号分组列表 | 已覆盖 | `yxer account-group list` | `skills/yixiaoer/references/get-account-groups.md` |
+| 创建账号分组 | 已覆盖 | `yxer account-group create <name> [--dry-run]` | `skills/yixiaoer/references/create-account-group.md` |
+| 更新账号分组 | 已覆盖 | `yxer account-group update <group_id> <name> [--dry-run]` | `skills/yixiaoer/references/update-account-group.md` |
+| 删除账号分组 | 已覆盖 | `yxer account-group delete <group_id> [--dry-run]` | `skills/yixiaoer/references/delete-account-group.md` |
 | 音乐分类 | 已覆盖 | `yxer query music-categories <account_id>` | `skills/yixiaoer/references/get-music-categories.md` |
 | 游戏挂载 | 已覆盖 | `yxer query games <account_id> [--query 关键词]` | `skills/yixiaoer/references/get-games.md` |
 | 代理管理 | 已覆盖 | `yxer query proxies` / `yxer query proxy-areas` / `yxer update-account <account_id> ... --dry-run` | `skills/yixiaoer/references/proxy-management.md` |

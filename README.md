@@ -19,6 +19,8 @@
 - `skills/yixiaoer/references/domains/` 放任务分域入口。
 - `references/` 放命令参考、工作流和平台差异说明。
 
+命令树设计标准与演进建议见 [references/cli/command-design.md](references/cli/command-design.md)。
+
 运行时统一通过 `yxer` 执行，不再假设存在旧 Node 脚本入口。
 
 ## 安装与快速开始
