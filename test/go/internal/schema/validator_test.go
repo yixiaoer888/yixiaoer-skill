@@ -644,7 +644,7 @@ func TestValidateMissingSchemaFallsBackToBasicValidation(t *testing.T) {
 
 func readTestPayload(t *testing.T, name string) map[string]interface{} {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join("..", "..", "tests", "fixtures", "payloads", name))
+	raw, err := os.ReadFile(filepath.Join("..", "..", "test", "fixtures", "payloads", name))
 	if err != nil {
 		t.Fatal(err)
 	}

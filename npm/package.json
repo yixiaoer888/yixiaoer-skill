@@ -7,7 +7,7 @@
   },
   "scripts": {
     "postinstall": "node bin/postinstall.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test ../test/npm/*.test.js"
   },
   "files": [
     "bin",

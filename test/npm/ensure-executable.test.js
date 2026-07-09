@@ -4,8 +4,8 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
-const { ensureExecutable, shouldEnsureExecutable } = require("../bin/ensure-executable");
-const { getBinaryFilename, resolveBinaryPath } = require("../bin/resolve-binary");
+const { ensureExecutable, shouldEnsureExecutable } = require("../../npm/bin/ensure-executable");
+const { getBinaryFilename, resolveBinaryPath } = require("../../npm/bin/resolve-binary");
 
 test("shouldEnsureExecutable skips windows only", () => {
   assert.equal(shouldEnsureExecutable("win32"), false);

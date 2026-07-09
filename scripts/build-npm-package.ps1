@@ -26,6 +26,7 @@ $npmCacheDir = Join-Path $repoRoot "out\npm-cache"
 $goVersionSourcePath = Join-Path $repoRoot "internal\domain\response.go"
 $skillManifestPath = Join-Path $repoRoot "skills\yixiaoer\SKILL.md"
 $pluginManifestPath = Join-Path $repoRoot "skills\yixiaoer\plugin.json"
+$checkScriptPath = Join-Path $repoRoot "scripts\run-checks.ps1"
 
 function Assert-LastExitCode {
     param(
@@ -125,9 +126,9 @@ $env:GOCACHE = $goCacheDir
 $env:npm_config_cache = $npmCacheDir
 
 if (-not $SkipTests) {
-    Write-Host "Running go test ./..."
-    go test ./...
-    Assert-LastExitCode "go test ./..."
+    Write-Host "Running go tests"
+    & $checkScriptPath -GoOnly
+    Assert-LastExitCode "scripts/run-checks.ps1 -GoOnly"
 }
 
 if (Test-Path $stagingRoot) {
