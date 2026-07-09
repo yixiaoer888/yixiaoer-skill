@@ -437,6 +437,15 @@ func TestPreflightRejectsImageTextMissingImageKey(t *testing.T) {
 	assertHasError(t, result.Errors, `accountForms[0].images[0]: missing uploaded resource field "key"`)
 }
 
+func TestPreflightRejectsVideoMissingDuration(t *testing.T) {
+	payload := validVideoPayload()
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	delete(form["video"].(map[string]interface{}), "duration")
+
+	result := Preflight("video", []string{"抖音"}, payload)
+	assertHasError(t, result.Errors, `accountForms[0].video: missing uploaded video field "duration"`)
+}
+
 func TestPreflightRejectsShipinhaoImageTextImageOver512KB(t *testing.T) {
 	payload := standardPayload("imageText", []string{"视频号"}, map[string]interface{}{
 		"accountForms": []interface{}{
@@ -953,10 +962,11 @@ func uploadedResource() map[string]interface{} {
 
 func uploadedResourceWithKey(key string) map[string]interface{} {
 	return map[string]interface{}{
-		"key":    key,
-		"size":   float64(1024),
-		"width":  float64(1080),
-		"height": float64(1920),
+		"key":      key,
+		"size":     float64(1024),
+		"width":    float64(1080),
+		"height":   float64(1920),
+		"duration": float64(30),
 	}
 }
 

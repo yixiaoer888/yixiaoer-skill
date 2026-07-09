@@ -224,6 +224,18 @@ func fieldPlacementFor(doc schema.Document, key string) fieldPlacementView {
 		InputPaths: []string{"publishArgs.accountForms[].contentPublishForm." + key},
 	}
 	switch key {
+	case "video":
+		view.InputPaths = []string{
+			"publishArgs.accountForms[].video",
+			"publishArgs.accountForms[].contentPublishForm.video",
+		}
+		view.Note = "视频资源运行时从 accountForms[] 层读取；请使用 yxer upload 返回的完整对象，并保留 duration。"
+	case "images":
+		view.InputPaths = []string{
+			"publishArgs.accountForms[].images",
+			"publishArgs.accountForms[].contentPublishForm.images",
+		}
+		view.Note = "图文图片运行时从 accountForms[] 层读取；CLI 会从 contentPublishForm.images 归一化，但推荐直接填写 accountForms[].images。"
 	case "cover":
 		view.InputPaths = []string{
 			"publishArgs.accountForms[].cover",
@@ -329,6 +341,7 @@ func buildStandardPublishSchema(doc schema.Document) schema.Document {
 func buildStandardPublishFieldView(doc schema.Document, businessFields map[string]schema.PropertyView) map[string]schema.PropertyView {
 	platformName := platformutil.ChineseName(doc.Platform)
 	contentPublishFields := contentPublishFormFieldsForEnvelope(doc)
+	accountResourceFields := accountResourceFieldViews(doc)
 	publishArgsProperties := map[string]schema.PropertyView{
 		"cover": {
 			Type: "object",
@@ -351,16 +364,32 @@ func buildStandardPublishFieldView(doc schema.Document, businessFields map[strin
 						Type: "string",
 					},
 					"video": {
-						Type: "object",
+						Type:       "object",
+						Required:   accountResourceFields["video"].Required,
+						Properties: resourceFieldProperties(true),
 					},
 					"images": {
-						Type: "array",
+						Type:     "array",
+						Required: accountResourceFields["images"].Required,
+						MinItems: accountResourceFields["images"].MinItems,
+						Items: &schema.PropertyView{
+							Type:       "object",
+							Properties: resourceFieldProperties(false),
+						},
 					},
 					"cover": {
-						Type: "object",
+						Type:       "object",
+						Required:   accountResourceFields["cover"].Required,
+						Properties: resourceFieldProperties(false),
 					},
 					"coverKey": {
-						Type: "string",
+						Type:     "string",
+						Required: accountResourceFields["coverKey"].Required,
+					},
+					"horizontalCover": {
+						Type:       "object",
+						Required:   accountResourceFields["horizontalCover"].Required,
+						Properties: resourceFieldProperties(false),
 					},
 					"contentPublishForm": {
 						Type:       "object",
@@ -513,9 +542,41 @@ func contentPublishFormFieldsForEnvelope(doc schema.Document) map[string]schema.
 		return nil
 	}
 	if doc.Type != "article" {
-		return doc.Properties
+		return clonePropertyViewsWithoutKeys(doc.Properties, accountLevelResourceKeys(doc.Type)...)
 	}
 	return clonePropertyViewsWithoutKeys(doc.Properties, "content")
+}
+
+func accountResourceFieldViews(doc schema.Document) map[string]schema.PropertyView {
+	fields := map[string]schema.PropertyView{}
+	if doc.Type == "video" {
+		fields["video"] = schema.PropertyView{Required: true}
+		fields["cover"] = schema.PropertyView{Required: true}
+		fields["coverKey"] = schema.PropertyView{Required: true}
+		if _, ok := doc.Properties["horizontalCover"]; ok {
+			fields["horizontalCover"] = schema.PropertyView{Required: true}
+		}
+	}
+	if doc.Type == "imageText" {
+		fields["images"] = schema.PropertyView{Required: true, MinItems: intPtr(1)}
+		fields["cover"] = schema.PropertyView{Required: true}
+		fields["coverKey"] = schema.PropertyView{Required: true}
+	}
+	return fields
+}
+
+func resourceFieldProperties(includeDuration bool) map[string]schema.PropertyView {
+	props := map[string]schema.PropertyView{
+		"key":    {Type: "string", Required: true},
+		"size":   {Type: "integer"},
+		"width":  {Type: "integer"},
+		"height": {Type: "integer"},
+		"format": {Type: "string"},
+	}
+	if includeDuration {
+		props["duration"] = schema.PropertyView{Type: "number", Required: true}
+	}
+	return props
 }
 
 func isWeixinAccountArticleDoc(doc schema.Document) bool {

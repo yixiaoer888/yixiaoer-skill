@@ -41,9 +41,19 @@ func TestPublishInitCommandWritesTemplateFile(t *testing.T) {
 	if form["platformAccountId"] != "<platformAccountId>" {
 		t.Fatalf("expected placeholder platformAccountId, got %#v", form["platformAccountId"])
 	}
+	video := form["video"].(map[string]interface{})
+	if video["duration"] == nil {
+		t.Fatalf("expected video resource placeholder with duration, got %#v", video)
+	}
+	if form["cover"] == nil || form["coverKey"] == nil {
+		t.Fatalf("expected account-level cover and coverKey placeholders, got %#v", form)
+	}
 	cpf := form["contentPublishForm"].(map[string]interface{})
 	if cpf["formType"] == nil || cpf["title"] == nil {
 		t.Fatalf("expected required schema fields in template, got %#v", cpf)
+	}
+	if _, exists := cpf["video"]; exists {
+		t.Fatalf("did not expect video resource under contentPublishForm template, got %#v", cpf)
 	}
 }
 

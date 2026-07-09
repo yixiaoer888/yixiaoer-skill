@@ -31,7 +31,7 @@ func newUploadCmd() *cobra.Command {
 		Use:   "upload [file_path_or_url]",
 		Short: "上传资源",
 		Long:  "上传本地文件或 URL 资源。\n默认上传到 cloud-publish；素材库资源使用 --bucket material-library。\n可通过位置参数、--file 或 --url 指定唯一资源来源。",
-		Args:  cobra.MaximumNArgs(1),
+		Args:  cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runUpload(cmd, args, opts)
 		},
@@ -85,7 +85,15 @@ func runUpload(cmd *cobra.Command, args []string, opts uploadOptions) error {
 
 func resolveUploadSource(args []string, opts uploadOptions) (string, error) {
 	sources := make([]string, 0, 3)
-	if len(args) > 0 && strings.TrimSpace(args[0]) != "" {
+	if len(args) > 1 {
+		return "", yxerrors.Usage("upload accepts exactly one file path or URL", map[string]interface{}{
+			"received": args,
+			"usage":    "yxer upload <file_path_or_url>",
+		}).
+			WithHint(`上传命令只接收一个资源路径或 URL，不接收资源类型子命令；请使用 "yxer upload <file_path_or_url>"。`).
+			WithNextCommand("yxer upload <file_path_or_url>")
+	}
+	if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
 		sources = append(sources, strings.TrimSpace(args[0]))
 	}
 	if strings.TrimSpace(opts.File) != "" {

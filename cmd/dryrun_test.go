@@ -3,12 +3,16 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"image"
 	"image/color"
 	"image/png"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
 func TestUploadDryRunPreviewUsesExplicitFileFlag(t *testing.T) {
@@ -39,6 +43,23 @@ func TestUploadFlagDefaultEnablesAutoMeta(t *testing.T) {
 	cmd := newUploadCmd()
 	if cmd.Flag("auto-meta").DefValue != "true" {
 		t.Fatalf("expected upload --auto-meta default to be true, got %q", cmd.Flag("auto-meta").DefValue)
+	}
+}
+
+func TestUploadRejectsResourceTypeSubcommand(t *testing.T) {
+	_, err := resolveUploadSource([]string{"video", "demo.mp4"}, uploadOptions{})
+	if err == nil {
+		t.Fatal("expected upload source error")
+	}
+	if !strings.Contains(err.Error(), "upload accepts exactly one file path or URL") {
+		t.Fatalf("expected hint to mention incorrect upload form, got %v", err)
+	}
+	var typed *yxerrors.Error
+	if !errors.As(err, &typed) {
+		t.Fatalf("expected structured yxerror, got %T", err)
+	}
+	if strings.Contains(typed.Hint, "upload video") {
+		t.Fatalf("expected generic upload hint, got %q", typed.Hint)
 	}
 }
 

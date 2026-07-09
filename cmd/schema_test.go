@@ -254,6 +254,7 @@ func TestSchemaFieldsCommandOutputsFieldView(t *testing.T) {
 		t.Fatalf("expected required root field first in flatFields, got %#v", first)
 	}
 	foundTitle := false
+	foundVideo := false
 	for _, entry := range flatFields {
 		item := entry.(map[string]interface{})
 		if item["path"] == "publishArgs.accountForms[].contentPublishForm.title" {
@@ -261,11 +262,19 @@ func TestSchemaFieldsCommandOutputsFieldView(t *testing.T) {
 			if item["type"] != "string" || item["required"] != true {
 				t.Fatalf("expected title in flatFields to be required string, got %#v", item)
 			}
-			break
+		}
+		if item["path"] == "publishArgs.accountForms[].video" {
+			foundVideo = true
+			if item["required"] != true {
+				t.Fatalf("expected account-level video to be required, got %#v", item)
+			}
 		}
 	}
 	if !foundTitle {
 		t.Fatal("expected contentPublishForm.title in flatFields")
+	}
+	if !foundVideo {
+		t.Fatal("expected account-level video in flatFields")
 	}
 	fields := data["fields"].(map[string]interface{})
 	publishArgs := fields["publishArgs"].(map[string]interface{})

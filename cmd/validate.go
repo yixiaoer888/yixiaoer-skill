@@ -114,6 +114,15 @@ func runValidate(cmd *cobra.Command, args []string, opts validateOptions) error 
 				WithHint("请先完成资源上传，并确保 payload 中引用的是上传后的 key，而不是外部 URL。").
 				WithNextCommand("yxer upload <file_path_or_url>")
 		}
+		if channel == "cloud" && cfg.APIKey != "" && len(preflight.AccountIDs) > 0 {
+			accountsByID, err := publishflow.ResolveTargetAccounts(rt.Client, []string{canonicalPlatform}, preflight.AccountIDs)
+			if err != nil {
+				return err
+			}
+			if err := publishflow.AssertCloudChannelReady(channel, []string{canonicalPlatform}, accountsByID); err != nil {
+				return err
+			}
+		}
 	}
 	return output.Success(cmd.OutOrStdout(), "validate", map[string]interface{}{
 		"platform": platform,

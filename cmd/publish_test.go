@@ -373,10 +373,11 @@ func TestPublishCommandAcceptsNodeStyleLocalStandardPayloadWithoutDuplicatedAcco
 		"clientId":       "local-client",
 		"publishArgs": map[string]interface{}{
 			"video": map[string]interface{}{
-				"key":    "video_oss_key",
-				"width":  float64(1080),
-				"height": float64(1920),
-				"size":   float64(52428800),
+				"key":      "video_oss_key",
+				"width":    float64(1080),
+				"height":   float64(1920),
+				"size":     float64(52428800),
+				"duration": float64(30),
 			},
 			"cover": map[string]interface{}{
 				"key":    "video_cover_key",
@@ -564,10 +565,11 @@ func TestPublishCommandRejectsInstagramVideoKeyWithChineseCharacters(t *testing.
 				map[string]interface{}{
 					"platformAccountId": "acc_instagram_1",
 					"video": map[string]interface{}{
-						"key":    "yfb/test/t-68db/飞书20250424-172618.mp4",
-						"size":   float64(1024),
-						"width":  float64(1080),
-						"height": float64(1920),
+						"key":      "yfb/test/t-68db/飞书20250424-172618.mp4",
+						"size":     float64(1024),
+						"width":    float64(1080),
+						"height":   float64(1920),
+						"duration": float64(30),
 					},
 					"cover": map[string]interface{}{
 						"key":    "cover-key",
@@ -1752,10 +1754,11 @@ func TestPublishCommandAcceptsSouhuhaoVideoPayload(t *testing.T) {
 		"publishChannel": "cloud",
 		"publishArgs": map[string]interface{}{
 			"video": map[string]interface{}{
-				"key":    "video-key",
-				"size":   float64(1024),
-				"width":  float64(1080),
-				"height": float64(1920),
+				"key":      "video-key",
+				"size":     float64(1024),
+				"width":    float64(1080),
+				"height":   float64(1920),
+				"duration": float64(30),
 			},
 			"accountForms": []interface{}{
 				map[string]interface{}{
@@ -1989,10 +1992,11 @@ func validPublishArgs() map[string]interface{} {
 			map[string]interface{}{
 				"platformAccountId": "acc_001",
 				"video": map[string]interface{}{
-					"key":    "video-key",
-					"size":   float64(1024),
-					"width":  float64(1080),
-					"height": float64(1920),
+					"key":      "video-key",
+					"size":     float64(1024),
+					"width":    float64(1080),
+					"height":   float64(1920),
+					"duration": float64(30),
 				},
 				"cover": map[string]interface{}{
 					"key":    "cover-key",

@@ -130,7 +130,7 @@ func PreflightWithTopicHTMLPolicyAndTrace(publishType string, platforms []string
 			if video == nil && cpf != nil {
 				video = objectField(cpf, "video")
 			}
-			requireUploadedResource(video, formPath+".video", &result.Errors)
+			requireUploadedVideoResource(video, formPath+".video", &result.Errors)
 			cover := objectField(form, "cover")
 			if cover == nil && cpf != nil {
 				cover = objectField(cpf, "cover")
@@ -1310,6 +1310,17 @@ func requireUploadedResource(resource map[string]interface{}, pathLabel string, 
 	}, "$")
 }
 
+func requireUploadedVideoResource(resource map[string]interface{}, pathLabel string, errors *[]string) {
+	requireUploadedResource(resource, pathLabel, errors)
+	if resource == nil {
+		return
+	}
+	duration, ok := numericField(resource, "duration")
+	if !ok || duration <= 0 {
+		*errors = append(*errors, fmt.Sprintf("%s: missing uploaded video field %q; run \"yxer upload <file_path_or_url>\" with --auto-meta enabled and keep the returned duration", pathLabel, "duration"))
+	}
+}
+
 func requireCoverKey(form, cpf map[string]interface{}, cover map[string]interface{}, formPath string, errors *[]string) {
 	coverKey := stringField(form, "coverKey")
 	if coverKey == "" && cpf != nil {
@@ -1637,5 +1648,25 @@ func numericFieldMissingOrZero(resource map[string]interface{}, key string) bool
 		return typed == 0
 	default:
 		return empty(value)
+	}
+}
+
+func numericField(resource map[string]interface{}, key string) (float64, bool) {
+	if resource == nil {
+		return 0, false
+	}
+	value, exists := resource[key]
+	if !exists || value == nil {
+		return 0, false
+	}
+	switch typed := value.(type) {
+	case float64:
+		return typed, true
+	case int:
+		return float64(typed), true
+	case int64:
+		return float64(typed), true
+	default:
+		return 0, false
 	}
 }
