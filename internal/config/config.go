@@ -9,7 +9,7 @@ import (
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
-const DefaultAPIURL = "https://www.yixiaoer.cn/api"
+const DefaultAPIURL = "https://www-test.yixiaoer.cn/api"
 
 type Config struct {
 	APIKey        string
