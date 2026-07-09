@@ -67,8 +67,8 @@ func TestPublishCommandFindsTargetAccountOnSecondPage(t *testing.T) {
 			accountRequests++
 			switch r.URL.Query().Get("page") {
 			case "1":
-				items := make([]map[string]interface{}, 0, 20)
-				for i := 0; i < 20; i++ {
+				items := make([]map[string]interface{}, 0, 50)
+				for i := 0; i < 50; i++ {
 					items = append(items, map[string]interface{}{
 						"platformAccountId": "acc_other_" + string(rune('a'+i)),
 						"name":              "账号",
@@ -79,9 +79,9 @@ func TestPublishCommandFindsTargetAccountOnSecondPage(t *testing.T) {
 					"data": map[string]interface{}{
 						"list":      items,
 						"page":      1,
-						"size":      20,
+						"size":      50,
 						"totalPage": 2,
-						"totalSize": 21,
+						"totalSize": 51,
 					},
 				})
 			case "2":
@@ -91,9 +91,9 @@ func TestPublishCommandFindsTargetAccountOnSecondPage(t *testing.T) {
 							{"platformAccountId": "acc_001", "name": "目标账号", "status": 1},
 						},
 						"page":      2,
-						"size":      20,
+						"size":      50,
 						"totalPage": 2,
-						"totalSize": 21,
+						"totalSize": 51,
 					},
 				})
 			default:

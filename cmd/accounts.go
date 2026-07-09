@@ -55,7 +55,7 @@ func defaultAccountsListOptions() accountsListOptions {
 	return accountsListOptions{
 		Status: -1,
 		Page:   1,
-		Size:   20,
+		Size:   50,
 	}
 }
 
@@ -63,7 +63,7 @@ func addAccountsListFlags(cmd *cobra.Command, opts *accountsListOptions) {
 	cmd.Flags().StringVar(&opts.Name, "name", "", "filter by name")
 	cmd.Flags().IntVar(&opts.Status, "status", -1, "filter by status")
 	cmd.Flags().IntVar(&opts.Page, "page", 1, "page number")
-	cmd.Flags().IntVar(&opts.Size, "size", 20, "page size")
+	cmd.Flags().IntVar(&opts.Size, "size", 50, "page size")
 	cmd.Flags().BoolVar(&opts.All, "all", false, "fetch all pages when remote pagination metadata allows it")
 }
 

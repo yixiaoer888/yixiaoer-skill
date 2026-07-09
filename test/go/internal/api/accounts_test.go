@@ -52,7 +52,7 @@ func TestAccountsAcceptsNestedPaginatedResponse(t *testing.T) {
 					{"platformAccountId": "acc_1", "platformAccountName": "抖音账号", "loginStatus": 1},
 				},
 				"page":      1,
-				"size":      20,
+				"size":      50,
 				"totalPage": 1,
 				"totalSize": 1,
 			},
@@ -190,7 +190,7 @@ func TestAccountsDoesNotGuessNextPageWithoutPaginationMeta(t *testing.T) {
 		if got := r.URL.Query().Get("platform"); got != "抖音" {
 			t.Fatalf("unexpected platform query: %s", got)
 		}
-		if got := r.URL.Query().Get("size"); got != "20" {
+		if got := r.URL.Query().Get("size"); got != "50" {
 			t.Fatalf("unexpected size query: %s", got)
 		}
 		if page := r.URL.Query().Get("page"); page != "1" {
@@ -281,7 +281,7 @@ func TestAccountsFetchesNextPageWhenTotalPageIndicatesMorePages(t *testing.T) {
 						{"platformAccountId": "acc_1", "platformAccountName": "账号1", "status": 1},
 					},
 					"page":      1,
-					"size":      20,
+					"size":      50,
 					"totalPage": 2,
 					"totalSize": 2,
 				},
@@ -293,7 +293,7 @@ func TestAccountsFetchesNextPageWhenTotalPageIndicatesMorePages(t *testing.T) {
 						{"platformAccountId": "acc_2", "platformAccountName": "账号2", "status": 1},
 					},
 					"page":      2,
-					"size":      20,
+					"size":      50,
 					"totalPage": 2,
 					"totalSize": 2,
 				},
