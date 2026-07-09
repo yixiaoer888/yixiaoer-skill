@@ -62,5 +62,6 @@ func Error(w io.Writer, err error, context string) int {
 func writeJSON(w io.Writer, value interface{}) error {
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
+	encoder.SetEscapeHTML(false)
 	return encoder.Encode(value)
 }

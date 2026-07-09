@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
@@ -59,5 +60,26 @@ func TestErrorNormalizesBareErrorAsInternal(t *testing.T) {
 	}
 	if errorObj["details"] != "boom" {
 		t.Fatalf("unexpected details: %#v", errorObj)
+	}
+}
+
+func TestSuccessDoesNotEscapeAngleBrackets(t *testing.T) {
+	var out bytes.Buffer
+
+	err := Success(&out, "schema.get", map[string]interface{}{
+		"queryCommands": map[string]string{
+			"location": "yxer query locations <account_id> [--query 关键词]",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := out.String()
+	if strings.Contains(got, "\\u003c") || strings.Contains(got, "\\u003e") {
+		t.Fatalf("expected angle brackets to remain literal, got %q", got)
+	}
+	if !strings.Contains(got, "<account_id>") {
+		t.Fatalf("expected literal placeholder in output, got %q", got)
 	}
 }

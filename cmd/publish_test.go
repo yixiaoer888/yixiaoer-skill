@@ -127,7 +127,7 @@ func TestPublishCommandFindsTargetAccountOnSecondPage(t *testing.T) {
 	}
 }
 
-func TestPublishCommandWithClientIDUsesLocalChannel(t *testing.T) {
+func TestPublishCommandRejectsPositionalClientIDWithoutLocalChannel(t *testing.T) {
 	withRepoRoot(t)
 	payloadPath := writePublishPayload(t, validPublishPayload())
 
@@ -139,14 +139,14 @@ func TestPublishCommandWithClientIDUsesLocalChannel(t *testing.T) {
 	useTestAPIBaseURL(t, server.URL)
 
 	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "抖音", payloadPath, "client_1"})
-	if err != nil {
-		t.Fatal(err)
+	if err == nil {
+		t.Fatal("expected positional clientId to require explicit local channel")
 	}
-	if publishCalls != 1 {
-		t.Fatalf("expected one publish call, got %d", publishCalls)
+	if !strings.Contains(err.Error(), "positional clientId requires local publish channel") {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if publishBody["publishChannel"] != "local" || publishBody["clientId"] != "client_1" {
-		t.Fatalf("expected local publish metadata in publish body, got %+v", publishBody)
+	if publishCalls != 0 {
+		t.Fatalf("expected no publish call, got %d", publishCalls)
 	}
 }
 
@@ -610,6 +610,12 @@ func TestPublishDryRunAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
 	}
 	if result.PublishMode != "cloud" {
 		t.Fatalf("expected dry-run publish mode metadata to stay cloud, got %q", result.PublishMode)
+	}
+	if result.InferredFields["desc"].SourcePath != "publishArgs.accountForms[0].contentPublishForm.description" {
+		t.Fatalf("expected dry-run inferred desc source, got %+v", result.InferredFields)
+	}
+	if result.InferredFields["coverKey"].SourcePath != "publishArgs.coverKey" {
+		t.Fatalf("expected dry-run inferred coverKey source, got %+v", result.InferredFields)
 	}
 }
 

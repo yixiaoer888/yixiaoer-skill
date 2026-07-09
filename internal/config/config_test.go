@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -74,6 +75,45 @@ func TestResolveProjectDirRejectsInvalidOverride(t *testing.T) {
 	_, err := resolveProjectDir(t.TempDir(), "")
 	if err == nil {
 		t.Fatal("expected error for invalid override")
+	}
+}
+
+func TestWriteFileConfigUsesPrivatePermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows does not expose POSIX file modes consistently")
+	}
+	configPath := filepath.Join(t.TempDir(), "config.json")
+
+	if err := writeFileConfig(configPath, fileConfig{APIKey: "test-key"}); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := info.Mode().Perm(); got != 0o600 {
+		t.Fatalf("config mode = %o, want 600", got)
+	}
+}
+
+func TestLoadFileConfigTightensExistingPermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows does not expose POSIX file modes consistently")
+	}
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	if err := os.WriteFile(configPath, []byte(`{"apiKey":"test-key"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := loadFileConfig(configPath); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := info.Mode().Perm(); got != 0o600 {
+		t.Fatalf("config mode = %o, want 600", got)
 	}
 }
 

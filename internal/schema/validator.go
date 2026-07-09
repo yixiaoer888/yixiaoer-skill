@@ -47,6 +47,24 @@ func (v Validator) Validate(platform, publishType string, payload map[string]int
 	return Result{Valid: len(errors) == 0, Errors: errors}
 }
 
+func (v Validator) ValidateStrict(platform, publishType string, payload map[string]interface{}) (Result, error) {
+	raw, _, err := v.readSchema(platform, publishType)
+	if err != nil {
+		return Result{}, err
+	}
+	var schema map[string]interface{}
+	if err := json.Unmarshal(stripBOM(raw), &schema); err != nil {
+		return Result{}, err
+	}
+	sanitizeSchemaDocument(schema)
+	targets := validationTargets(platform, publishType, payload)
+	var errors []string
+	for _, target := range targets {
+		errors = append(errors, validateValue(schema, target.Value, "/", target.Prefix)...)
+	}
+	return Result{Valid: len(errors) == 0, Errors: errors}, nil
+}
+
 func (v Validator) Schema(platform, publishType string) (Document, error) {
 	raw, path, err := v.readSchema(platform, publishType)
 	if err != nil {

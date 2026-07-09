@@ -1,0 +1,72 @@
+{
+  "title": "TikTok Video Publish Form",
+  "type": "object",
+  "required": [
+    "formType",
+    "description"
+  ],
+  "properties": {
+    "formType": {
+      "type": "string",
+      "const": "task"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2200
+    },
+    "visible": {
+      "type": "string",
+      "enum": [
+        "public",
+        "private",
+        "friends"
+      ],
+      "default": "public"
+    },
+    "comment": {
+      "type": "boolean",
+      "default": true
+    },
+    "stitch": {
+      "type": "boolean",
+      "default": true
+    },
+    "duet": {
+      "type": "boolean",
+      "default": true
+    },
+    "aigc": {
+      "type": "boolean",
+      "default": false
+    },
+    "business": {
+      "type": "boolean",
+      "default": false
+    },
+    "yourOwn": {
+      "type": "boolean",
+      "default": false
+    },
+    "collaborative": {
+      "type": "boolean",
+      "default": false
+    },
+    "fps": {
+      "type": "number",
+      "minimum": 0,
+      "default": 10
+    },
+    "thumbnail": {
+      "description": "Frontend cover picker state; CLI publish should also provide accountForms[].cover and coverKey after upload."
+    },
+    "videoKey": {
+      "description": "Frontend upload state; CLI publish should provide accountForms[].video.key after upload."
+    },
+    "isAdVideo": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "additionalProperties": false
+}

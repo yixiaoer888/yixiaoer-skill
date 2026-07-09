@@ -96,6 +96,52 @@ func TestExecuteWithIOUnknownFlagWritesStructuredErrorToStderr(t *testing.T) {
 	}
 }
 
+func TestExecuteWithIOHelpWritesStructuredJSONToStdout(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	code := ExecuteWithIO([]string{"config", "--help"}, &stdout, &stderr)
+	if code != yxerrors.ExitOK {
+		t.Fatalf("expected ok exit code, got %d", code)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected stderr to stay empty, got %q", stderr.String())
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(stdout.Bytes(), &response); err != nil {
+		t.Fatalf("stdout should contain JSON help envelope, got %q: %v", stdout.String(), err)
+	}
+	if response["action"] != "help" {
+		t.Fatalf("expected help action, got %#v", response["action"])
+	}
+	data := response["data"].(map[string]interface{})
+	if data["commandPath"] != "yxer config" {
+		t.Fatalf("unexpected help command path: %#v", data["commandPath"])
+	}
+}
+
+func TestExecuteWithIOVersionWritesStructuredJSONToStdout(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	code := ExecuteWithIO([]string{"--version"}, &stdout, &stderr)
+	if code != yxerrors.ExitOK {
+		t.Fatalf("expected ok exit code, got %d", code)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected stderr to stay empty, got %q", stderr.String())
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(stdout.Bytes(), &response); err != nil {
+		t.Fatalf("stdout should contain JSON version envelope, got %q: %v", stdout.String(), err)
+	}
+	if response["action"] != "version" || response["ok"] != true {
+		t.Fatalf("unexpected version response: %#v", response)
+	}
+}
+
 func TestRootCommandTreeExposesStableTopLevelGroups(t *testing.T) {
 	expected := []string{
 		"account-group",

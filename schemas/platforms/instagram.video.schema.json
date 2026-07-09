@@ -1,0 +1,28 @@
+{
+  "title": "Instagram Video Publish Form",
+  "type": "object",
+  "required": [
+    "formType"
+  ],
+  "properties": {
+    "formType": {
+      "type": "string",
+      "const": "task"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2200
+    },
+    "thumbnail": {
+      "description": "Frontend cover picker state; CLI publish should also provide accountForms[].cover and coverKey after upload."
+    },
+    "share_to_feed": {
+      "type": "boolean",
+      "default": false
+    },
+    "videoKey": {
+      "description": "Frontend upload state; CLI publish should provide accountForms[].video.key after upload."
+    }
+  },
+  "additionalProperties": false
+}

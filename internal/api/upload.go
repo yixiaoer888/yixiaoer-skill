@@ -10,10 +10,15 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/media"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
+
+const maxRemoteUploadDownloadSize int64 = 5 * 1024 * 1024 * 1024
+
+var uploadHTTPClient = &http.Client{Timeout: 30 * time.Second}
 
 type UploadResult struct {
 	Key         string  `json:"key"`
@@ -77,7 +82,7 @@ func (c *Client) Upload(pathOrURL, bucket string, autoMeta bool) (UploadResult, 
 		return UploadResult{}, err
 	}
 	req.Header.Set("Content-Type", result.ContentType)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := uploadHTTPClient.Do(req)
 	if err != nil {
 		return UploadResult{}, err
 	}
@@ -157,7 +162,7 @@ func DetectContentType(pathOrURL string) string {
 
 func readUploadContent(pathOrURL string) ([]byte, string, int64, error) {
 	if strings.HasPrefix(pathOrURL, "http://") || strings.HasPrefix(pathOrURL, "https://") {
-		resp, err := http.Get(pathOrURL)
+		resp, err := uploadHTTPClient.Get(pathOrURL)
 		if err != nil {
 			return nil, "", 0, err
 		}
@@ -168,9 +173,22 @@ func readUploadContent(pathOrURL string) ([]byte, string, int64, error) {
 				"url":        pathOrURL,
 			}).WithCategory("remote_download")
 		}
-		raw, err := io.ReadAll(resp.Body)
+		if resp.ContentLength > maxRemoteUploadDownloadSize {
+			return nil, "", 0, yxerrors.Usage("remote file exceeds size limit", map[string]interface{}{
+				"limitBytes":   maxRemoteUploadDownloadSize,
+				"contentBytes": resp.ContentLength,
+				"url":          pathOrURL,
+			}).WithHint("请改用更小的素材文件，或先下载到本地压缩后再上传。")
+		}
+		raw, err := io.ReadAll(io.LimitReader(resp.Body, maxRemoteUploadDownloadSize+1))
 		if err != nil {
 			return nil, "", 0, err
+		}
+		if int64(len(raw)) > maxRemoteUploadDownloadSize {
+			return nil, "", 0, yxerrors.Usage("remote file exceeds size limit", map[string]interface{}{
+				"limitBytes": maxRemoteUploadDownloadSize,
+				"url":        pathOrURL,
+			}).WithHint("请改用更小的素材文件，或先下载到本地压缩后再上传。")
 		}
 		parsed, _ := url.Parse(pathOrURL)
 		fileName := filepath.Base(parsed.Path)

@@ -1,6 +1,10 @@
 package publish
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
+)
 
 func TestExecuteEnvelopeWrapsPublishResult(t *testing.T) {
 	result := map[string]interface{}{"taskSetId": "task_set_1"}
@@ -48,5 +52,24 @@ func TestDryRunEnvelopeWrapsDryRunResult(t *testing.T) {
 	}
 	if meta["platform"] != "抖音" || meta["publishType"] != "video" {
 		t.Fatalf("unexpected dry-run meta: %+v", meta)
+	}
+	if meta["remoteChecks"] != false {
+		t.Fatalf("expected remoteChecks=false for local dry-run, got %#v", meta["remoteChecks"])
+	}
+	if fields, ok := meta["inferredFields"].(map[string]InferredField); !ok || len(fields) != 0 {
+		t.Fatalf("expected stable empty inferredFields object, got %#v", meta["inferredFields"])
+	}
+}
+
+func TestShouldOfferLocalPublishRetryUsesRemoteErrorCode(t *testing.T) {
+	err := yxerrors.Remote("remote publish failed", map[string]interface{}{
+		"code": "PROXY_NOT_CONFIGURED",
+	})
+
+	if !shouldOfferLocalPublishRetry(err, "cloud") {
+		t.Fatal("expected proxy code to offer local publish retry")
+	}
+	if shouldOfferLocalPublishRetry(err, "local") {
+		t.Fatal("did not expect local channel to offer local retry")
 	}
 }

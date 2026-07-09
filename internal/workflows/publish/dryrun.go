@@ -17,7 +17,9 @@ type DryRunResult struct {
 	PlatformDraft  bool                            `json:"platformDraft"`
 	YixiaoerDraft  bool                            `json:"yixiaoerDraft"`
 	SchemaChecked  bool                            `json:"schemaChecked"`
+	RemoteChecks   bool                            `json:"remoteChecks"`
 	Normalizations []publishmod.NormalizationEvent `json:"normalizations,omitempty"`
+	InferredFields map[string]InferredField        `json:"inferredFields,omitempty"`
 }
 
 func (s Service) DryRunEnvelope(input ExecuteInput) (EnvelopeResult, error) {
@@ -43,7 +45,9 @@ func (s Service) wrapDryRunEnvelope(result DryRunResult, err error) (EnvelopeRes
 				"platformDraft":  result.PlatformDraft,
 				"yixiaoerDraft":  result.YixiaoerDraft,
 				"schemaChecked":  result.SchemaChecked,
+				"remoteChecks":   result.RemoteChecks,
 				"normalizations": normalizationsForMeta(result.Normalizations),
+				"inferredFields": inferredFieldsForMeta(result.InferredFields),
 			},
 		},
 	}, nil
@@ -54,6 +58,13 @@ func normalizationsForMeta(events []publishmod.NormalizationEvent) []publishmod.
 		return []publishmod.NormalizationEvent{}
 	}
 	return events
+}
+
+func inferredFieldsForMeta(fields map[string]InferredField) map[string]InferredField {
+	if fields == nil {
+		return map[string]InferredField{}
+	}
+	return fields
 }
 
 func (s Service) DryRun(input ExecuteInput) (DryRunResult, error) {
@@ -88,7 +99,10 @@ func (s Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 	publishArgs := publishmod.NormalizeStandardPayloadForSchemaValidationWithTrace(input.PublishType, platforms, resolvedPayload, &normalizations)
 
 	for _, platform := range platforms {
-		result := validator.Validate(platform, input.PublishType, resolvedPayload)
+		result, err := validator.ValidateStrict(platform, input.PublishType, resolvedPayload)
+		if err != nil {
+			return DryRunResult{}, schemaUnavailableError(platform, input.PublishType, cfg.SchemaDir, err)
+		}
 		if !result.Valid {
 			return DryRunResult{}, yxerrors.Usage("Schema validation failed", result.Errors).
 				WithHint(schemaValidationHint(result.Errors)).
@@ -101,7 +115,7 @@ func (s Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 			WithHint("请先完成资源上传、账号校验，并确保发布参数中不包含外部 URL。")
 	}
 
-	body := BuildPublishBody(resolvedPayload, publishArgs, input.PublishType, platforms, channel, clientID)
+	body, inferredFields := BuildPublishBodyWithInferred(resolvedPayload, publishArgs, input.PublishType, platforms, channel, clientID)
 
 	return DryRunResult{
 		Platform:       platform,
@@ -114,7 +128,9 @@ func (s Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 		PlatformDraft:  isPlatformDraftPublish(body),
 		YixiaoerDraft:  inferYixiaoerDraft(body),
 		SchemaChecked:  true,
+		RemoteChecks:   false,
 		Normalizations: normalizations,
+		InferredFields: inferredFields,
 	}, nil
 }
 

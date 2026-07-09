@@ -82,7 +82,10 @@ func runValidate(cmd *cobra.Command, args []string, opts validateOptions) error 
 		}
 		publishmod.NormalizeStandardPayloadForSchemaValidation(publishType, []string{canonicalPlatform}, payload)
 	}
-	result := validator.Validate(platform, publishType, payload)
+	result, err := validator.ValidateStrict(platform, publishType, payload)
+	if err != nil {
+		return publishflow.SchemaUnavailableForCommand(platform, publishType, cfg.SchemaDir, err)
+	}
 	if !result.Valid {
 		// 增强错误提示
 		suggestions := analyzeValidationErrors(result.Errors, platform, publishType)

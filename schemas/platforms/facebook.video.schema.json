@@ -1,0 +1,28 @@
+{
+  "title": "Facebook Video Publish Form",
+  "type": "object",
+  "required": [
+    "formType"
+  ],
+  "properties": {
+    "formType": {
+      "type": "string",
+      "const": "task"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 128
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2048
+    },
+    "thumbnail": {
+      "description": "Frontend cover picker state; CLI publish should also provide accountForms[].cover and coverKey after upload."
+    },
+    "videoKey": {
+      "description": "Frontend upload state; CLI publish should provide accountForms[].video.key after upload."
+    }
+  },
+  "additionalProperties": false
+}

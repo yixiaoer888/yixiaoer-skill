@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/yixiaoer/yixiaoer-skill/internal/domain"
 	"github.com/yixiaoer/yixiaoer-skill/internal/output"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
@@ -39,11 +40,31 @@ func ExecuteWithIO(args []string, stdout, stderr io.Writer) int {
 }
 
 func init() {
-	rootCmd.SetVersionTemplate("yxer {{.Version}}\n")
+	rootCmd.SetVersionTemplate(`{"ok":true,"action":"version","version":"{{.Version}}","data":{"version":"{{.Version}}"}}` + "\n")
+	rootCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+		_ = output.Success(cmd.OutOrStdout(), "help", commandHelpData(cmd))
+	})
 	rootCmd.PersistentFlags().Bool("json", false, "output JSON")
 	rootCmd.PersistentFlags().Bool("debug", false, "show debug logs")
 	rootCmd.SilenceUsage = true
 	rootCmd.SilenceErrors = true
+}
+
+func commandHelpData(cmd *cobra.Command) map[string]interface{} {
+	if cmd == nil {
+		cmd = rootCmd
+	}
+	data := map[string]interface{}{
+		"commandPath": cmd.CommandPath(),
+		"use":         cmd.UseLine(),
+		"short":       cmd.Short,
+		"subcommands": availableSubcommandNames(cmd),
+		"flags":       visibleFlagNames(cmd),
+	}
+	if cmd.Long != "" {
+		data["long"] = cmd.Long
+	}
+	return data
 }
 
 func structuredCommandError(cmd *cobra.Command, err error) error {
@@ -128,6 +149,33 @@ func availableSubcommandNames(cmd *cobra.Command) []string {
 		}
 		names = append(names, name)
 	}
+	sort.Strings(names)
+	return names
+}
+
+func visibleFlagNames(cmd *cobra.Command) []string {
+	if cmd == nil {
+		return nil
+	}
+	seen := map[string]bool{}
+	var names []string
+	addFlag := func(name string) {
+		if strings.TrimSpace(name) == "" || seen[name] {
+			return
+		}
+		seen[name] = true
+		names = append(names, name)
+	}
+	cmd.NonInheritedFlags().VisitAll(func(flag *pflag.Flag) {
+		if !flag.Hidden {
+			addFlag(flag.Name)
+		}
+	})
+	cmd.InheritedFlags().VisitAll(func(flag *pflag.Flag) {
+		if !flag.Hidden {
+			addFlag(flag.Name)
+		}
+	})
 	sort.Strings(names)
 	return names
 }

@@ -309,6 +309,78 @@ func TestSchemaFieldsCommandOutputsDynamicFieldExamples(t *testing.T) {
 	}
 }
 
+func TestSchemaGetCommandSupportsOverseasVideoPlatforms(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+
+	cases := []struct {
+		name          string
+		platform      string
+		wantKey       string
+		requiredField string
+		enumField     string
+	}{
+		{
+			name:          "tiktok",
+			platform:      "TikTok",
+			wantKey:       "tiktok/video",
+			requiredField: "description",
+			enumField:     "visible",
+		},
+		{
+			name:          "youtube",
+			platform:      "YouTube",
+			wantKey:       "youtube/video",
+			requiredField: "title",
+			enumField:     "category",
+		},
+		{
+			name:      "facebook",
+			platform:  "Facebook",
+			wantKey:   "facebook/video",
+			enumField: "formType",
+		},
+		{
+			name:      "instagram",
+			platform:  "Instagram",
+			wantKey:   "instagram/video",
+			enumField: "share_to_feed",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var out bytes.Buffer
+			cmd := newSchemaGetCmd()
+			cmd.SetOut(&out)
+			cmd.SetArgs([]string{tc.platform, "video"})
+
+			if err := cmd.Execute(); err != nil {
+				t.Fatal(err)
+			}
+
+			var response map[string]interface{}
+			if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+				t.Fatal(err)
+			}
+			data := response["data"].(map[string]interface{})
+			if data["key"] != tc.wantKey {
+				t.Fatalf("unexpected schema key: %#v", data["key"])
+			}
+			businessFields := data["businessFields"].(map[string]interface{})
+			if tc.requiredField != "" {
+				field := businessFields[tc.requiredField].(map[string]interface{})
+				if field["required"] != true {
+					t.Fatalf("expected %s to be required, got %#v", tc.requiredField, field)
+				}
+			}
+			if _, ok := businessFields[tc.enumField]; !ok {
+				t.Fatalf("expected overseas field %s in businessFields, got %#v", tc.enumField, businessFields)
+			}
+		})
+	}
+}
+
 func TestSchemaFieldsCommandPlacesArticleContentUnderPublishArgs(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)

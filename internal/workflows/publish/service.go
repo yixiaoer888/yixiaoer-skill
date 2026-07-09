@@ -1,6 +1,7 @@
 package publish
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -26,6 +27,11 @@ type ExecuteInput struct {
 
 type Service struct {
 	rt *app.Runtime
+}
+
+type InferredField struct {
+	Value      interface{} `json:"value"`
+	SourcePath string      `json:"sourcePath"`
 }
 
 func NewService(rt *app.Runtime) Service {
@@ -79,7 +85,10 @@ func (s Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	publishArgs := publishmod.NormalizeStandardPayloadForSchemaValidation(input.PublishType, platforms, resolvedPayload)
 
 	for _, platform := range platforms {
-		result := validator.Validate(platform, input.PublishType, resolvedPayload)
+		result, err := validator.ValidateStrict(platform, input.PublishType, resolvedPayload)
+		if err != nil {
+			return nil, schemaUnavailableError(platform, input.PublishType, cfg.SchemaDir, err)
+		}
 		if !result.Valid {
 			return nil, yxerrors.Usage("Schema validation failed", result.Errors).
 				WithHint(schemaValidationHint(result.Errors)).
@@ -137,6 +146,20 @@ func (s Service) wrapExecuteEnvelope(result map[string]interface{}, err error) (
 	}, nil
 }
 
+func schemaUnavailableError(platform, publishType, schemaDir string, err error) error {
+	return yxerrors.Usage("Schema file is required for publish validation", map[string]interface{}{
+		"platform":    platform,
+		"publishType": publishType,
+		"schemaDir":   schemaDir,
+		"cause":       err.Error(),
+	}).WithHint("请确认 YIXIAOER_PROJECT_DIR 指向包含 schemas/platforms 的项目根目录，且目标平台和类型的 schema 文件存在。").
+		WithNextCommand("yxer schema list")
+}
+
+func SchemaUnavailableForCommand(platform, publishType, schemaDir string, err error) error {
+	return schemaUnavailableError(platform, publishType, schemaDir, err)
+}
+
 func cloneMap(src map[string]interface{}) map[string]interface{} {
 	if src == nil {
 		return map[string]interface{}{}
@@ -149,6 +172,11 @@ func cloneMap(src map[string]interface{}) map[string]interface{} {
 }
 
 func BuildPublishBody(payload, publishArgs map[string]interface{}, publishType string, platforms []string, channel, clientID string) map[string]interface{} {
+	body, _ := BuildPublishBodyWithInferred(payload, publishArgs, publishType, platforms, channel, clientID)
+	return body
+}
+
+func BuildPublishBodyWithInferred(payload, publishArgs map[string]interface{}, publishType string, platforms []string, channel, clientID string) (map[string]interface{}, map[string]InferredField) {
 	body := map[string]interface{}{
 		"publishType":    publishType,
 		"platforms":      platforms,
@@ -169,8 +197,8 @@ func BuildPublishBody(payload, publishArgs map[string]interface{}, publishType s
 	body["platforms"] = platforms
 	applyPublishMode(body, channel, clientID)
 	stripArticleContentFromForms(body)
-	normalizePublishEnvelope(body, publishArgs, publishType)
-	return body
+	inferred := normalizePublishEnvelope(body, publishArgs, publishType)
+	return body, inferred
 }
 
 func applyPublishMode(body map[string]interface{}, channel, clientID string) {
@@ -185,9 +213,10 @@ func applyPublishMode(body map[string]interface{}, channel, clientID string) {
 	delete(body, "clientId")
 }
 
-func normalizePublishEnvelope(body, publishArgs map[string]interface{}, publishType string) {
+func normalizePublishEnvelope(body, publishArgs map[string]interface{}, publishType string) map[string]InferredField {
+	inferred := map[string]InferredField{}
 	if body == nil {
-		return
+		return inferred
 	}
 	if publishArgs == nil {
 		publishArgs = map[string]interface{}{}
@@ -199,38 +228,46 @@ func normalizePublishEnvelope(body, publishArgs map[string]interface{}, publishT
 	firstWeixinArticle := firstWeixinAccountArticle(weixinPlatformForm)
 
 	if _, ok := body["cover"]; !ok {
-		if cover := firstNonNil(
-			publishArgs["cover"],
-			firstForm["cover"],
-			firstCPF["cover"],
-			firstWeixinArticle["cover"],
-		); cover != nil {
-			body["cover"] = cover
+		candidates := []fieldCandidate{
+			{value: publishArgs["cover"], sourcePath: "publishArgs.cover"},
+			{value: firstForm["cover"], sourcePath: "publishArgs.accountForms[0].cover"},
+			{value: firstCPF["cover"], sourcePath: "publishArgs.accountForms[0].contentPublishForm.cover"},
+			{value: firstWeixinArticle["cover"], sourcePath: "publishArgs.platformForms[微信公众号].articles[0].cover"},
+		}
+		if cover, ok := firstNonNilCandidate(candidates); ok {
+			body["cover"] = cover.value
+			inferred["cover"] = InferredField{Value: cover.value, SourcePath: cover.sourcePath}
 		}
 	}
 	if stringField(body, "coverKey") == "" {
-		if coverKey := firstNonEmptyString(
-			stringField(publishArgs, "coverKey"),
-			stringField(firstForm, "coverKey"),
-			stringField(firstCPF, "coverKey"),
-			stringField(firstWeixinArticle, "coverKey"),
-			stringField(objectField(firstWeixinArticle, "cover"), "key"),
-			stringField(objectField(body, "cover"), "key"),
-		); coverKey != "" {
-			body["coverKey"] = coverKey
+		candidates := []fieldCandidate{
+			{value: stringField(publishArgs, "coverKey"), sourcePath: "publishArgs.coverKey"},
+			{value: stringField(firstForm, "coverKey"), sourcePath: "publishArgs.accountForms[0].coverKey"},
+			{value: stringField(firstCPF, "coverKey"), sourcePath: "publishArgs.accountForms[0].contentPublishForm.coverKey"},
+			{value: stringField(firstWeixinArticle, "coverKey"), sourcePath: "publishArgs.platformForms[微信公众号].articles[0].coverKey"},
+			{value: stringField(objectField(firstWeixinArticle, "cover"), "key"), sourcePath: "publishArgs.platformForms[微信公众号].articles[0].cover.key"},
+			{value: stringField(objectField(body, "cover"), "key"), sourcePath: "cover.key"},
+		}
+		if coverKey, ok := firstNonEmptyStringCandidate(candidates); ok {
+			body["coverKey"] = coverKey.value
+			inferred["coverKey"] = InferredField{Value: coverKey.value, SourcePath: coverKey.sourcePath}
 		}
 	}
 	if stringField(body, "desc") == "" {
-		if desc := inferOuterDesc(publishType, publishArgs, firstCPF, firstWeixinArticle); desc != "" {
-			body["desc"] = desc
+		if desc, ok := inferOuterDesc(publishType, publishArgs, firstCPF, firstWeixinArticle); ok {
+			body["desc"] = desc.value
+			inferred["desc"] = InferredField{Value: desc.value, SourcePath: desc.sourcePath}
 		}
 	}
 	if _, ok := body["isDraft"]; !ok {
 		body["isDraft"] = inferYixiaoerDraft(body)
+		inferred["isDraft"] = InferredField{Value: body["isDraft"], SourcePath: "default"}
 	}
 	if _, ok := body["isAppContent"]; !ok {
 		body["isAppContent"] = false
+		inferred["isAppContent"] = InferredField{Value: false, SourcePath: "default"}
 	}
+	return inferred
 }
 
 func inferYixiaoerDraft(body map[string]interface{}) bool {
@@ -245,32 +282,32 @@ func inferYixiaoerDraft(body map[string]interface{}) bool {
 	return false
 }
 
-func inferOuterDesc(publishType string, publishArgs, contentPublishForm, weixinArticle map[string]interface{}) string {
+func inferOuterDesc(publishType string, publishArgs, contentPublishForm, weixinArticle map[string]interface{}) (fieldCandidate, bool) {
 	switch publishmod.NormalizePublishType(publishType) {
 	case "article":
-		return firstNonEmptyString(
-			stringField(weixinArticle, "digest"),
-			stringField(weixinArticle, "title"),
-			stringField(weixinArticle, "content"),
-			stringField(contentPublishForm, "desc"),
-			stringField(contentPublishForm, "title"),
-			stringField(publishArgs, "content"),
-			stringField(contentPublishForm, "content"),
-		)
+		return firstNonEmptyStringCandidate([]fieldCandidate{
+			{value: stringField(weixinArticle, "digest"), sourcePath: "publishArgs.platformForms[微信公众号].articles[0].digest"},
+			{value: stringField(weixinArticle, "title"), sourcePath: "publishArgs.platformForms[微信公众号].articles[0].title"},
+			{value: stringField(weixinArticle, "content"), sourcePath: "publishArgs.platformForms[微信公众号].articles[0].content"},
+			{value: stringField(contentPublishForm, "desc"), sourcePath: "publishArgs.accountForms[0].contentPublishForm.desc"},
+			{value: stringField(contentPublishForm, "title"), sourcePath: "publishArgs.accountForms[0].contentPublishForm.title"},
+			{value: stringField(publishArgs, "content"), sourcePath: "publishArgs.content"},
+			{value: stringField(contentPublishForm, "content"), sourcePath: "publishArgs.accountForms[0].contentPublishForm.content"},
+		})
 	case "video", "imageText":
-		return firstNonEmptyString(
-			stringField(contentPublishForm, "description"),
-			stringField(contentPublishForm, "title"),
-			stringField(publishArgs, "content"),
-			stringField(contentPublishForm, "content"),
-		)
+		return firstNonEmptyStringCandidate([]fieldCandidate{
+			{value: stringField(contentPublishForm, "description"), sourcePath: "publishArgs.accountForms[0].contentPublishForm.description"},
+			{value: stringField(contentPublishForm, "title"), sourcePath: "publishArgs.accountForms[0].contentPublishForm.title"},
+			{value: stringField(publishArgs, "content"), sourcePath: "publishArgs.content"},
+			{value: stringField(contentPublishForm, "content"), sourcePath: "publishArgs.accountForms[0].contentPublishForm.content"},
+		})
 	default:
-		return firstNonEmptyString(
-			stringField(contentPublishForm, "description"),
-			stringField(contentPublishForm, "title"),
-			stringField(publishArgs, "content"),
-			stringField(contentPublishForm, "content"),
-		)
+		return firstNonEmptyStringCandidate([]fieldCandidate{
+			{value: stringField(contentPublishForm, "description"), sourcePath: "publishArgs.accountForms[0].contentPublishForm.description"},
+			{value: stringField(contentPublishForm, "title"), sourcePath: "publishArgs.accountForms[0].contentPublishForm.title"},
+			{value: stringField(publishArgs, "content"), sourcePath: "publishArgs.content"},
+			{value: stringField(contentPublishForm, "content"), sourcePath: "publishArgs.accountForms[0].contentPublishForm.content"},
+		})
 	}
 }
 
@@ -367,6 +404,31 @@ func firstNonNil(values ...interface{}) interface{} {
 	return nil
 }
 
+type fieldCandidate struct {
+	value      interface{}
+	sourcePath string
+}
+
+func firstNonNilCandidate(values []fieldCandidate) (fieldCandidate, bool) {
+	for _, value := range values {
+		if value.value != nil {
+			return value, true
+		}
+	}
+	return fieldCandidate{}, false
+}
+
+func firstNonEmptyStringCandidate(values []fieldCandidate) (fieldCandidate, bool) {
+	for _, value := range values {
+		text := strings.TrimSpace(fmt.Sprint(value.value))
+		if text != "" && text != "<nil>" {
+			value.value = text
+			return value, true
+		}
+	}
+	return fieldCandidate{}, false
+}
+
 func firstNonEmptyString(values ...string) string {
 	for _, value := range values {
 		value = strings.TrimSpace(value)
@@ -394,13 +456,23 @@ func payloadWithPublishMode(payload map[string]interface{}, channel, clientID st
 func ResolvePublishMode(cfg config.Config, payload map[string]interface{}, positionalClientID, flagChannel, flagClientID string) (string, string, error) {
 	channel := "cloud"
 	clientID := ""
+	payloadChannel := ""
 	if value, ok := payload["publishChannel"]; ok {
-		channel = strings.TrimSpace(fmt.Sprint(value))
+		payloadChannel = strings.TrimSpace(fmt.Sprint(value))
+		channel = payloadChannel
 	}
 	if value, ok := payload["clientId"]; ok {
 		clientID = strings.TrimSpace(fmt.Sprint(value))
 	}
 	if strings.TrimSpace(positionalClientID) != "" {
+		if strings.TrimSpace(flagChannel) != "local" && payloadChannel != "local" {
+			return "", "", yxerrors.Usage("positional clientId requires local publish channel", []string{
+				`The fourth positional clientId is deprecated and no longer switches publishChannel implicitly.`,
+				`Use flags: yxer publish video <platform> payload.json --publish-channel local --client-id <clientId>`,
+			}).
+				WithHint("请显式传入 --publish-channel local --client-id <clientId>，避免误把云发布切成本机发布。").
+				WithNextCommand("yxer publish video <platform> payload.json --publish-channel local --client-id <clientId>")
+		}
 		channel = "local"
 		clientID = strings.TrimSpace(positionalClientID)
 	}
@@ -443,8 +515,25 @@ func shouldOfferLocalPublishRetry(err error, channel string) bool {
 	if err == nil {
 		return false
 	}
+	var typed *yxerrors.Error
+	if errors.As(err, &typed) {
+		if strings.EqualFold(remoteErrorCode(typed), "PROXY_NOT_CONFIGURED") {
+			return true
+		}
+	}
 	message := err.Error()
 	return strings.Contains(message, "账号代理不存在") || strings.Contains(strings.ToLower(message), "proxy")
+}
+
+func remoteErrorCode(err *yxerrors.Error) string {
+	if err == nil {
+		return ""
+	}
+	details, _ := err.Details.(map[string]interface{})
+	if details == nil {
+		return ""
+	}
+	return strings.TrimSpace(fmt.Sprint(details["code"]))
 }
 
 func buildLocalFallbackError(platform, publishType, clientID string, cause error) error {

@@ -98,7 +98,10 @@ func (c *Client) Do(method, endpoint string, body interface{}, out interface{}) 
 	if len(raw) == 0 {
 		return nil
 	}
-	return json.Unmarshal(raw, out)
+	if err := json.Unmarshal(raw, out); err != nil {
+		return invalidJSONResponseError(err, raw)
+	}
+	return nil
 }
 
 // remoteErrorFromBody builds a remote error from a non-2xx response, preferring
@@ -120,6 +123,22 @@ func remoteErrorFromBody(status int, raw []byte) error {
 		details["body"] = body
 	}
 	return yxerrors.Remote(message, details)
+}
+
+func invalidJSONResponseError(err error, raw []byte) error {
+	return yxerrors.Remote("API response was not valid JSON", map[string]interface{}{
+		"cause": err.Error(),
+		"body":  truncateBody(raw, 2048),
+	}).WithHint("远端接口返回了非预期 JSON，请稍后重试；若持续出现，请保留 details.body 排查网关响应。").
+		WithRetryable(true)
+}
+
+func truncateBody(raw []byte, limit int) string {
+	body := strings.TrimSpace(string(raw))
+	if limit <= 0 || len(body) <= limit {
+		return body
+	}
+	return body[:limit] + "...(truncated)"
 }
 
 // assertBusinessOK rejects 2xx responses whose envelope carries a non-zero

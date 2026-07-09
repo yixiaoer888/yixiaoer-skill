@@ -99,8 +99,12 @@ func SaveLocalClientID(clientID string) (string, error) {
 	return configPath, nil
 }
 
+func PreviewConfigPath() (string, error) {
+	return resolveConfigPath()
+}
+
 func writeFileConfig(configPath string, cfg fileConfig) error {
-	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o700); err != nil {
 		return err
 	}
 	raw, err := json.MarshalIndent(cfg, "", "  ")
@@ -108,7 +112,7 @@ func writeFileConfig(configPath string, cfg fileConfig) error {
 		return err
 	}
 	raw = append(raw, '\n')
-	if err := os.WriteFile(configPath, raw, 0o644); err != nil {
+	if err := os.WriteFile(configPath, raw, 0o600); err != nil {
 		return err
 	}
 	return nil
@@ -134,6 +138,7 @@ func loadFileConfig(path string) (fileConfig, error) {
 		}
 		return cfg, err
 	}
+	_ = os.Chmod(path, 0o600)
 	if err := json.Unmarshal(raw, &cfg); err != nil {
 		return cfg, err
 	}

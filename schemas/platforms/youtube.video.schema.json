@@ -1,0 +1,92 @@
+{
+  "title": "Youtube Video Publish Form",
+  "type": "object",
+  "required": [
+    "formType",
+    "title"
+  ],
+  "properties": {
+    "formType": {
+      "type": "string",
+      "const": "task"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 5000
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "thumbnail": {
+      "description": "Frontend cover picker state; CLI publish should also provide accountForms[].cover and coverKey after upload."
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "1",
+        "2",
+        "10",
+        "15",
+        "17",
+        "19",
+        "20",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29"
+      ],
+      "default": "22"
+    },
+    "license": {
+      "type": "string",
+      "enum": [
+        "youtube",
+        "creativeCommon"
+      ],
+      "default": "youtube"
+    },
+    "embeddable": {
+      "type": "boolean",
+      "default": true
+    },
+    "madeForKids": {
+      "type": "boolean",
+      "default": false
+    },
+    "visible": {
+      "type": "string",
+      "enum": [
+        "public",
+        "unlisted",
+        "private"
+      ],
+      "default": "public"
+    },
+    "containsSyntheticMedia": {
+      "type": "boolean",
+      "default": false
+    },
+    "fps": {
+      "type": "number",
+      "minimum": 0,
+      "default": 10
+    },
+    "videoKey": {
+      "description": "Frontend upload state; CLI publish should provide accountForms[].video.key after upload."
+    }
+  },
+  "additionalProperties": false
+}

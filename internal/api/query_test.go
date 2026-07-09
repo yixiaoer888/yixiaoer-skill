@@ -2,11 +2,13 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/config"
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
 func TestPlatformDocFileNameUsesShipinhaoAliasForImageText(t *testing.T) {
@@ -15,6 +17,27 @@ func TestPlatformDocFileNameUsesShipinhaoAliasForImageText(t *testing.T) {
 	}
 	if got := platformDocFileName("douyin", "imageText"); got != "douyin.md" {
 		t.Fatalf("expected default platform doc file, got %q", got)
+	}
+}
+
+func TestClientWrapsInvalidJSONResponseAsRemoteError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("<html>not json</html>"))
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	var out map[string]interface{}
+	err := client.Get("/broken", &out)
+	if err == nil {
+		t.Fatal("expected invalid JSON response error")
+	}
+	var typed *yxerrors.Error
+	if !errors.As(err, &typed) {
+		t.Fatalf("expected structured yx error, got %T", err)
+	}
+	if typed.Type != yxerrors.RemoteType || !typed.Retryable {
+		t.Fatalf("unexpected structured error: %#v", typed)
 	}
 }
 

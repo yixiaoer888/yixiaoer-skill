@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"image"
 	"image/color"
 	"image/png"
@@ -13,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/config"
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
 func TestUploadLocalImage(t *testing.T) {
@@ -122,6 +124,31 @@ func TestUploadURLImage(t *testing.T) {
 	}
 	if result.Width != 4 || result.Height != 5 {
 		t.Fatalf("unexpected dimensions: %dx%d", result.Width, result.Height)
+	}
+}
+
+func TestInspectUploadRejectsOversizedRemoteFile(t *testing.T) {
+	var sourceRead bool
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sourceRead = true
+		w.Header().Set("Content-Length", "5368709121")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	_, _, err := InspectUpload(server.URL+"/huge.bin", false)
+	if err == nil {
+		t.Fatal("expected oversized remote file error")
+	}
+	var typed *yxerrors.Error
+	if !errors.As(err, &typed) {
+		t.Fatalf("expected structured error, got %T: %v", err, err)
+	}
+	if typed.Code != yxerrors.UsageErr {
+		t.Fatalf("expected usage error, got %+v", typed)
+	}
+	if !sourceRead {
+		t.Fatal("expected source handler to be called")
 	}
 }
 

@@ -14,6 +14,7 @@ func init() {
 type configInitOptions struct {
 	APIKey        string
 	LocalClientID string
+	DryRun        bool
 }
 
 func newConfigCmd() *cobra.Command {
@@ -62,6 +63,18 @@ func newConfigInitCmd() *cobra.Command {
 				return yxerrors.Usage("apiKey must not be empty", nil).
 					WithHint("请传入 --api-key 完成 yxer CLI 初始化。")
 			}
+			if opts.DryRun {
+				configPath, err := config.PreviewConfigPath()
+				if err != nil {
+					return err
+				}
+				return output.Success(cmd.OutOrStdout(), "config.init.dry-run", map[string]interface{}{
+					"dryRun":               true,
+					"configPath":           configPath,
+					"apiKeyPresent":        true,
+					"localPublishClientId": opts.LocalClientID,
+				})
+			}
 			configPath, err := config.SaveAPIKey(opts.APIKey)
 			if err != nil {
 				return err
@@ -87,11 +100,13 @@ func newConfigInitCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&opts.APIKey, "api-key", "", "api key for yxer cli init")
 	cmd.Flags().StringVar(&opts.LocalClientID, "local-client-id", "", "default local publish client id")
+	cmd.Flags().BoolVar(&opts.DryRun, "dry-run", false, "preview config init without writing the file")
 	return cmd
 }
 
 func newConfigSetLocalClientIDCmd() *cobra.Command {
-	return &cobra.Command{
+	var dryRun bool
+	cmd := &cobra.Command{
 		Use:   "set-local-client-id <clientId>",
 		Short: "设置本机发布默认 clientId",
 		Args:  cobra.ExactArgs(1),
@@ -99,6 +114,17 @@ func newConfigSetLocalClientIDCmd() *cobra.Command {
 			if args[0] == "" {
 				return yxerrors.Usage("clientId must not be empty", nil).
 					WithHint("请传入有效的本机发布 clientId。")
+			}
+			if dryRun {
+				configPath, err := config.PreviewConfigPath()
+				if err != nil {
+					return err
+				}
+				return output.Success(cmd.OutOrStdout(), "config.set-local-client-id.dry-run", map[string]interface{}{
+					"dryRun":               true,
+					"configPath":           configPath,
+					"localPublishClientId": args[0],
+				})
 			}
 			configPath, err := config.SaveLocalClientID(args[0])
 			if err != nil {
@@ -110,10 +136,13 @@ func newConfigSetLocalClientIDCmd() *cobra.Command {
 			})
 		},
 	}
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview local client id config without writing the file")
+	return cmd
 }
 
 func newConfigSetAPIKeyCmd() *cobra.Command {
-	return &cobra.Command{
+	var dryRun bool
+	cmd := &cobra.Command{
 		Use:   "set-api-key <apiKey>",
 		Short: "设置 CLI 默认 apiKey",
 		Args:  cobra.ExactArgs(1),
@@ -121,6 +150,17 @@ func newConfigSetAPIKeyCmd() *cobra.Command {
 			if args[0] == "" {
 				return yxerrors.Usage("apiKey must not be empty", nil).
 					WithHint("请传入有效的 apiKey。")
+			}
+			if dryRun {
+				configPath, err := config.PreviewConfigPath()
+				if err != nil {
+					return err
+				}
+				return output.Success(cmd.OutOrStdout(), "config.set-api-key.dry-run", map[string]interface{}{
+					"dryRun":        true,
+					"configPath":    configPath,
+					"apiKeyPresent": true,
+				})
 			}
 			configPath, err := config.SaveAPIKey(args[0])
 			if err != nil {
@@ -132,4 +172,6 @@ func newConfigSetAPIKeyCmd() *cobra.Command {
 			})
 		},
 	}
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview api key config without writing the file")
+	return cmd
 }
