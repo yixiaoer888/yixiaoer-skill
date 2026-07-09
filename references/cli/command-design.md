@@ -156,7 +156,7 @@ yxer <command> ... --dry-run
 
 例如：
 
-- body 构造：`buildCreateAccountGroupBody`
+- body 构造：`buildAccountGroupBody`
 - 读操作包装：`runQuery`
 
 后续还可以继续抽象：

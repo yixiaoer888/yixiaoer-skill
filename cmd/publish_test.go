@@ -552,6 +552,71 @@ func TestPublishCommandAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
 	}
 }
 
+func TestPublishCommandRejectsInstagramVideoKeyWithChineseCharacters(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "video",
+		"platforms":      []interface{}{"Instagram"},
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_instagram_1",
+					"video": map[string]interface{}{
+						"key":    "yfb/test/t-68db/飞书20250424-172618.mp4",
+						"size":   float64(1024),
+						"width":  float64(1080),
+						"height": float64(1920),
+					},
+					"cover": map[string]interface{}{
+						"key":    "cover-key",
+						"size":   float64(512),
+						"width":  float64(1080),
+						"height": float64(1920),
+					},
+					"coverKey": "cover-key",
+					"contentPublishForm": map[string]interface{}{
+						"formType":    "task",
+						"description": "instagram reel",
+					},
+				},
+			},
+		},
+	})
+
+	var publishCalls int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{
+					{"platformAccountId": "acc_instagram_1", "name": "Instagram账号", "status": 1},
+				},
+			})
+		case "/taskSets/v2":
+			publishCalls++
+			t.Fatal("publish API should not be called when instagram media key contains Chinese characters")
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "Instagram", payloadPath})
+	if err == nil {
+		t.Fatal("expected instagram media key validation error")
+	}
+	if !strings.Contains(err.Error(), "ASCII-only uploaded video key") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if publishCalls != 0 {
+		t.Fatalf("expected no publish call, got %d", publishCalls)
+	}
+}
+
 func TestPublishDryRunAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
 	withRepoRoot(t)
 	service := publishflow.NewService(testRuntime(t))

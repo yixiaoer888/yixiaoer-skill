@@ -86,6 +86,28 @@ func (c *Client) Groups(accountID string) (interface{}, error) {
 	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/group-chats", accountID), nil))
 }
 
+type MembersOptions struct {
+	Page     int
+	Size     int
+	Statuses []string
+	KeyWords string
+	Role     string
+}
+
+func (c *Client) Members(opts MembersOptions) (interface{}, error) {
+	values := url.Values{}
+	setIfPositive(values, "page", opts.Page)
+	setIfPositive(values, "size", opts.Size)
+	setIfNotEmpty(values, "keyWords", opts.KeyWords)
+	setIfNotEmpty(values, "role", opts.Role)
+	for _, status := range opts.Statuses {
+		if status != "" {
+			values.Add("statuses", status)
+		}
+	}
+	return c.queryData(QueryValues("/members", values))
+}
+
 func (c *Client) AccountGroups() (interface{}, error) {
 	return c.queryData(Query("/groups", nil))
 }

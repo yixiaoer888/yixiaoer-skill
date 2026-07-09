@@ -47,6 +47,10 @@ func TestGamesKeywordFlagUsesAliasStorage(t *testing.T) {
 	assertKeywordFlagUsesAliasStorage(t, "games", "消消乐")
 }
 
+func TestMembersKeywordFlagUsesAliasStorage(t *testing.T) {
+	assertKeywordFlagUsesAliasStorage(t, "members", "张三")
+}
+
 func TestActivitiesKeywordFlagUsesAliasStorage(t *testing.T) {
 	assertKeywordFlagUsesAliasStorage(t, "activities", "创作")
 }
@@ -139,6 +143,7 @@ func TestQueryCommandExistsWithMiniAppsAndSyncAppsSubcommands(t *testing.T) {
 	foundGames := false
 	foundHotEvents := false
 	foundGroups := false
+	foundMembers := false
 	foundActivities := false
 	foundMusicCategories := false
 	foundDetails := false
@@ -162,6 +167,8 @@ func TestQueryCommandExistsWithMiniAppsAndSyncAppsSubcommands(t *testing.T) {
 				foundHotEvents = true
 			case "groups":
 				foundGroups = true
+			case "members":
+				foundMembers = true
 			case "activities":
 				foundActivities = true
 			case "music-categories":
@@ -193,6 +200,9 @@ func TestQueryCommandExistsWithMiniAppsAndSyncAppsSubcommands(t *testing.T) {
 	}
 	if !foundGroups {
 		t.Fatal("expected query command to expose groups subcommand")
+	}
+	if !foundMembers {
+		t.Fatal("expected query command to expose members subcommand")
 	}
 	if !foundActivities {
 		t.Fatal("expected query command to expose activities subcommand")

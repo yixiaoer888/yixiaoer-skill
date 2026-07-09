@@ -116,6 +116,9 @@ func (s Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 	}
 
 	body, inferredFields := BuildPublishBodyWithInferred(resolvedPayload, publishArgs, input.PublishType, platforms, channel, clientID)
+	if err := validateInstagramMediaKeys(platform, input.PublishType, body); err != nil {
+		return DryRunResult{}, err
+	}
 
 	return DryRunResult{
 		Platform:       platform,

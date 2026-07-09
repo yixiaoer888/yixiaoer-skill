@@ -11,6 +11,35 @@ import (
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
+func TestClientAddsSetAPIKeyHintForUnauthorizedResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"message": "账号登录失效",
+			"code":    "UNAUTHORIZED",
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "expired-key", APIURL: server.URL})
+	var out map[string]interface{}
+	err := client.Get("/accounts", &out)
+	if err == nil {
+		t.Fatal("expected unauthorized error")
+	}
+
+	var typed *yxerrors.Error
+	if !errors.As(err, &typed) {
+		t.Fatalf("expected structured yx error, got %T", err)
+	}
+	if typed.Hint == "" {
+		t.Fatalf("expected unauthorized error to include api key hint: %#v", typed)
+	}
+	if typed.NextCommand != "yxer config set-api-key <apiKey>" {
+		t.Fatalf("unexpected next command: %#v", typed.NextCommand)
+	}
+}
+
 func TestPlatformDocFileNameUsesShipinhaoAliasForImageText(t *testing.T) {
 	if got := platformDocFileName("shipinhao", "imageText"); got != "shipinhao.md" {
 		t.Fatalf("expected shipinhao imageText doc file, got %q", got)
@@ -369,6 +398,55 @@ func TestGroupsUsesExpectedEndpoint(t *testing.T) {
 	first := items[0].(map[string]interface{})
 	if first["yixiaoerName"] != "品牌交流群" {
 		t.Fatalf("unexpected group payload: %#v", first)
+	}
+}
+
+func TestMembersUsesExpectedEndpointAndFilters(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/members" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if got := r.URL.Query().Get("page"); got != "2" {
+			t.Fatalf("unexpected page query: %s", got)
+		}
+		if got := r.URL.Query().Get("size"); got != "20" {
+			t.Fatalf("unexpected size query: %s", got)
+		}
+		if got := r.URL.Query()["statuses"]; len(got) != 2 || got[0] != "joined" || got[1] != "pending" {
+			t.Fatalf("unexpected statuses query: %#v", got)
+		}
+		if got := r.URL.Query().Get("keyWords"); got != "张三" {
+			t.Fatalf("unexpected keyWords query: %s", got)
+		}
+		if got := r.URL.Query().Get("role"); got != "member" {
+			t.Fatalf("unexpected role query: %s", got)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": []map[string]interface{}{
+				{"id": "member_1", "name": "张三"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.Members(MembersOptions{
+		Page:     2,
+		Size:     20,
+		Statuses: []string{"joined", "pending"},
+		KeyWords: "张三",
+		Role:     "member",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	items := result.([]interface{})
+	if len(items) != 1 {
+		t.Fatalf("expected one member, got %d", len(items))
+	}
+	first := items[0].(map[string]interface{})
+	if first["name"] != "张三" {
+		t.Fatalf("unexpected member payload: %#v", first)
 	}
 }
 

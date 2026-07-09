@@ -73,3 +73,19 @@ func TestShouldOfferLocalPublishRetryUsesRemoteErrorCode(t *testing.T) {
 		t.Fatal("did not expect local channel to offer local retry")
 	}
 }
+
+func TestMapInstagramMediaFetchErrorAddsRepairHint(t *testing.T) {
+	source := yxerrors.Remote("The media could not be fetched from the provided URI. Video download failed with: HTTP error code 400. Bad Request", nil)
+
+	got := mapInstagramMediaFetchError("Instagram", "video", source)
+	if got == nil {
+		t.Fatal("expected mapped instagram media fetch error")
+	}
+	typed := got.(*yxerrors.Error)
+	if typed.Category != "instagram_media_fetch" {
+		t.Fatalf("expected instagram_media_fetch category, got %+v", typed)
+	}
+	if typed.Hint == "" || typed.NextCommand == "" {
+		t.Fatalf("expected hint and next command, got %+v", typed)
+	}
+}

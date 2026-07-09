@@ -51,8 +51,8 @@ func TestAccountGroupListCommandUsesStructuredAction(t *testing.T) {
 	}
 }
 
-func TestBuildCreateAccountGroupBodyRejectsEmptyName(t *testing.T) {
-	_, err := buildCreateAccountGroupBody("   ")
+func TestBuildAccountGroupBodyRejectsEmptyName(t *testing.T) {
+	_, err := buildAccountGroupBody("   ", accountGroupUpdateOptions{})
 	if err == nil {
 		t.Fatal("expected empty account group name error")
 	}
@@ -87,11 +87,34 @@ func TestCreateAccountGroupDryRunOutputsRequestBody(t *testing.T) {
 	}
 }
 
+func TestCreateAccountGroupDryRunSupportsVisibleScopeAndUsers(t *testing.T) {
+	var out bytes.Buffer
+	cmd := newAccountGroupCreateCmd()
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"核心账号组", "--visible-scope", "specific", "--visible-user", "user_1", "--visible-user", "user_2", "--dry-run"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	request := response["data"].(map[string]interface{})["request"].(map[string]interface{})
+	if request["visibleScope"] != "specific" {
+		t.Fatalf("unexpected visibleScope: %#v", request)
+	}
+	users := request["visibleUsers"].([]interface{})
+	if len(users) != 2 || users[0] != "user_1" || users[1] != "user_2" {
+		t.Fatalf("unexpected visibleUsers: %#v", users)
+	}
+}
+
 func TestUpdateAccountGroupDryRunOutputsRequestBody(t *testing.T) {
 	var out bytes.Buffer
 	cmd := newAccountGroupUpdateCmd()
 	cmd.SetOut(&out)
-	cmd.SetArgs([]string{"grp_1", "新版核心账号组", "--dry-run"})
+	cmd.SetArgs([]string{"grp_1", "新版核心账号组", "--visible-scope", "specific", "--visible-user", "user_1", "--visible-user", "user_2", "--dry-run"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
@@ -111,6 +134,13 @@ func TestUpdateAccountGroupDryRunOutputsRequestBody(t *testing.T) {
 	if request["name"] != "新版核心账号组" {
 		t.Fatalf("unexpected request body: %#v", request)
 	}
+	if request["visibleScope"] != "specific" {
+		t.Fatalf("unexpected visibleScope: %#v", request)
+	}
+	users := request["visibleUsers"].([]interface{})
+	if len(users) != 2 || users[0] != "user_1" || users[1] != "user_2" {
+		t.Fatalf("unexpected visibleUsers: %#v", users)
+	}
 }
 
 func TestUpdateAccountGroupRejectsEmptyID(t *testing.T) {
@@ -120,6 +150,45 @@ func TestUpdateAccountGroupRejectsEmptyID(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "account group id must not be empty") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestBuildAccountGroupBodyRejectsInvalidVisibleScope(t *testing.T) {
+	_, err := buildAccountGroupBody("新版核心账号组", accountGroupUpdateOptions{
+		VisibleScope: "private",
+	})
+	if err == nil {
+		t.Fatal("expected invalid visible scope error")
+	}
+	if !strings.Contains(err.Error(), "account group visible scope must be all or specific") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestBuildAccountGroupBodyRejectsMissingVisibleUsersForSpecificScope(t *testing.T) {
+	_, err := buildAccountGroupBody("新版核心账号组", accountGroupUpdateOptions{
+		VisibleScope: "specific",
+	})
+	if err == nil {
+		t.Fatal("expected missing visibleUsers error")
+	}
+	if !strings.Contains(err.Error(), "account group visibleUsers must not be empty") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestBuildAccountGroupBodySupportsAllScopeWithoutUsers(t *testing.T) {
+	body, err := buildAccountGroupBody("新版核心账号组", accountGroupUpdateOptions{
+		VisibleScope: "all",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if body["visibleScope"] != "all" {
+		t.Fatalf("unexpected body: %#v", body)
+	}
+	if _, ok := body["visibleUsers"]; ok {
+		t.Fatalf("did not expect visibleUsers for all scope: %#v", body)
 	}
 }
 

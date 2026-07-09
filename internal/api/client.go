@@ -122,7 +122,12 @@ func remoteErrorFromBody(status int, raw []byte) error {
 	if body := strings.TrimSpace(string(raw)); body != "" {
 		details["body"] = body
 	}
-	return yxerrors.Remote(message, details)
+	typed := yxerrors.Remote(message, details)
+	if shouldHintSetAPIKey(status, message, code) {
+		typed.WithHint("请求返回 401，可能是 apiKey 缺失、无效或已过期；请重新设置 apiKey 后再重试。").
+			WithNextCommand("yxer config set-api-key <apiKey>")
+	}
+	return typed
 }
 
 func invalidJSONResponseError(err error, raw []byte) error {
@@ -210,6 +215,28 @@ func stringifyEnvelopeValue(value interface{}) string {
 		}
 		return text
 	}
+}
+
+func shouldHintSetAPIKey(status int, message, code string) bool {
+	if status == http.StatusUnauthorized {
+		return true
+	}
+	joined := strings.ToLower(strings.TrimSpace(message + " " + code))
+	fragments := []string{
+		"unauthorized",
+		"api key",
+		"apikey",
+		"token expired",
+		"token invalid",
+		"登录失效",
+		"鉴权失败",
+	}
+	for _, fragment := range fragments {
+		if strings.Contains(joined, fragment) {
+			return true
+		}
+	}
+	return false
 }
 
 func baseURL(cfg config.Config) string {

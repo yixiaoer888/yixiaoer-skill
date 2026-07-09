@@ -2,6 +2,8 @@ package api
 
 import (
 	"bytes"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"mime"
@@ -54,7 +56,7 @@ func (c *Client) Upload(pathOrURL, bucket string, autoMeta bool) (UploadResult, 
 	}
 
 	params := map[string]string{
-		"fileKey":     fileName,
+		"fileKey":     uploadObjectName(fileName),
 		"contentType": result.ContentType,
 	}
 	if result.Size > 0 {
@@ -96,6 +98,62 @@ func (c *Client) Upload(pathOrURL, bucket string, autoMeta bool) (UploadResult, 
 	result.Key = key
 	result.Bucket = bucket
 	return result, nil
+}
+
+func uploadObjectName(fileName string) string {
+	fileName = strings.TrimSpace(fileName)
+	if fileName == "" {
+		return "file"
+	}
+	ext := strings.ToLower(filepath.Ext(fileName))
+	base := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+	safeBase := asciiSafeFileStem(base)
+	if safeBase == "" {
+		safeBase = "file"
+	}
+	if ext == "" {
+		return safeBase
+	}
+	return safeBase + ext
+}
+
+func asciiSafeFileStem(name string) string {
+	var builder strings.Builder
+	lastUnderscore := false
+	hasNonASCII := false
+	for _, r := range name {
+		switch {
+		case r > 127:
+			hasNonASCII = true
+			if !lastUnderscore && builder.Len() > 0 {
+				builder.WriteByte('_')
+				lastUnderscore = true
+			}
+		case (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9'):
+			builder.WriteRune(r)
+			lastUnderscore = false
+		case r == '-' || r == '_':
+			if !lastUnderscore && builder.Len() > 0 {
+				builder.WriteRune(r)
+				lastUnderscore = true
+			}
+		default:
+			if !lastUnderscore && builder.Len() > 0 {
+				builder.WriteByte('_')
+				lastUnderscore = true
+			}
+		}
+	}
+	safe := strings.Trim(builder.String(), "_-")
+	if hasNonASCII {
+		sum := sha1.Sum([]byte(name))
+		suffix := hex.EncodeToString(sum[:])[:8]
+		if safe == "" {
+			return "file_" + suffix
+		}
+		return safe + "_" + suffix
+	}
+	return safe
 }
 
 func probeVideoMetadata(pathOrURL string, raw []byte, fileName string) (media.VideoMetadata, error) {

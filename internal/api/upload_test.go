@@ -127,6 +127,54 @@ func TestUploadURLImage(t *testing.T) {
 	}
 }
 
+func TestUploadLocalFileUsesASCIISafeObjectName(t *testing.T) {
+	imageBytes := testPNG(t, 3, 2)
+	tmpDir := t.TempDir()
+	imagePath := filepath.Join(tmpDir, "飞书20250424-172618.png")
+	if err := os.WriteFile(imagePath, imageBytes, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var requestedFileKey string
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/storages/cloud-publish/upload-url":
+			requestedFileKey = r.URL.Query().Get("fileKey")
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"serviceUrl": server.URL + "/oss/video.png",
+					"key":        "uploaded/video.png",
+				},
+			})
+		case "/oss/video.png":
+			w.WriteHeader(http.StatusOK)
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	if _, err := client.Upload(imagePath, "", false); err != nil {
+		t.Fatal(err)
+	}
+	if requestedFileKey == "" {
+		t.Fatal("expected upload-url request to include fileKey")
+	}
+	if requestedFileKey == "飞书20250424-172618.png" {
+		t.Fatalf("expected fileKey to be normalized, got %q", requestedFileKey)
+	}
+	for _, r := range requestedFileKey {
+		if r > 127 {
+			t.Fatalf("expected ASCII-only fileKey, got %q", requestedFileKey)
+		}
+	}
+	if filepath.Ext(requestedFileKey) != ".png" {
+		t.Fatalf("expected normalized fileKey to preserve extension, got %q", requestedFileKey)
+	}
+}
+
 func TestInspectUploadRejectsOversizedRemoteFile(t *testing.T) {
 	var sourceRead bool
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

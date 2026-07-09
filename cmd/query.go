@@ -36,6 +36,7 @@ func newQueryCmd() *cobra.Command {
 	cmd.AddCommand(newGamesCmd())
 	cmd.AddCommand(newHotEventsCmd())
 	cmd.AddCommand(newGroupsCmd())
+	cmd.AddCommand(newMembersCmd())
 	cmd.AddCommand(newActivitiesCmd())
 	cmd.AddCommand(newChallengesCmd())
 	cmd.AddCommand(newRecordsCmd())
@@ -227,6 +228,43 @@ func newGroupsCmd() *cobra.Command {
 		},
 	}
 	return cmd
+}
+
+func newMembersCmd() *cobra.Command {
+	opts := membersOptions{}
+	cmd := &cobra.Command{
+		Use:   "members",
+		Short: "查询成员列表",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			input := api.MembersOptions{
+				Page:     opts.Page,
+				Size:     opts.Size,
+				Statuses: opts.Statuses,
+				KeyWords: resolveQueryAlias(opts.Query, opts.Keyword),
+				Role:     opts.Role,
+			}
+			return runQuery(cmd, "members", func(service queryflow.Service) (interface{}, error) {
+				return service.Members(input)
+			})
+		},
+	}
+	cmd.Flags().IntVar(&opts.Page, "page", 1, "page number")
+	cmd.Flags().IntVar(&opts.Size, "size", 10, "page size")
+	cmd.Flags().StringSliceVar(&opts.Statuses, "status", nil, "member status; repeat or comma-separate for multiple")
+	cmd.Flags().StringVar(&opts.Query, "query", "", "member name or phone keyword")
+	cmd.Flags().StringVar(&opts.Keyword, "keyword", "", "member name or phone keyword (alias for --query)")
+	cmd.Flags().StringVar(&opts.Role, "role", "", "member role: master, admin, member")
+	return cmd
+}
+
+type membersOptions struct {
+	Page     int
+	Size     int
+	Statuses []string
+	Query    string
+	Keyword  string
+	Role     string
 }
 
 func newActivitiesCmd() *cobra.Command {

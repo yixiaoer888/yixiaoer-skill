@@ -35,8 +35,8 @@ yxer accounts list [platform] [--name 关键词] [--status 1] [--page 1] [--size
 yxer accounts update <account_id> [--proxy-id ID] [--kuaidaili-area CODE] [--remark 文本] [--group ID] --dry-run
 yxer accounts update <account_id> [--proxy-id ID] [--kuaidaili-area CODE] [--remark 文本] [--group ID]
 yxer account-group list
-yxer account-group create <name> [--dry-run]
-yxer account-group update <group_id> <name> [--dry-run]
+yxer account-group create <name> [--visible-scope all|specific] [--visible-user USER_ID]... [--dry-run]
+yxer account-group update <group_id> <name> [--visible-scope all|specific] [--visible-user USER_ID]... [--dry-run]
 yxer account-group delete <group_id> [--dry-run]
 yxer upload --file <file_path> [--bucket cloud-publish|material-library] [--dry-run]
 yxer upload --url <resource_url> [--bucket cloud-publish|material-library] [--dry-run]
@@ -71,6 +71,7 @@ yxer query syncapps <account_id>
 yxer query games <account_id> [--query 关键词]
 yxer query hot-events <account_id> [--type video|article]
 yxer query groups <account_id>
+yxer query members [--page 1] [--size 10] [--status notJoined|pending|joined] [--query 关键词] [--role master|admin|member]
 yxer query activities <account_id> [--type video|article] [--category-id ID] [--query 关键词]
 yxer query challenges <account_id> [--query 关键词] [--type video] [--next-page TOKEN]
 yxer query records [--platform P] [--limit N] [--status S] [--json]

@@ -3,7 +3,9 @@ package publish
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/api"
 	"github.com/yixiaoer/yixiaoer-skill/internal/app"
@@ -111,9 +113,15 @@ func (s Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	}
 
 	body := BuildPublishBody(resolvedPayload, publishArgs, input.PublishType, platforms, channel, clientID)
+	if err := validateInstagramMediaKeys(platform, input.PublishType, body); err != nil {
+		return nil, err
+	}
 	result, err := apiClient.Publish(body)
 	if err == nil {
 		return result, nil
+	}
+	if mapped := mapInstagramMediaFetchError(platform, input.PublishType, err); mapped != nil {
+		return nil, mapped
 	}
 	if !shouldOfferLocalPublishRetry(err, channel) {
 		return nil, err
@@ -633,6 +641,69 @@ func AssertCloudChannelReady(channel string, platforms []string, accountsByID ma
 	}).
 		WithHint("当前账号云发布缺少代理配置，建议先配置代理，或改用本机发布。").
 		WithNextCommand("yxer publish <type> <platform> <payload.json> --publish-channel local --client-id <clientId>")
+}
+
+func validateInstagramMediaKeys(platform, publishType string, body map[string]interface{}) error {
+	if platformutil.ChineseName(platform) != "Instagram" || publishmod.NormalizePublishType(publishType) != "video" {
+		return nil
+	}
+	accountForms, _ := objectField(body, "publishArgs")["accountForms"].([]interface{})
+	for index, item := range accountForms {
+		form, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		video := objectField(form, "video")
+		key := stringField(video, "key")
+		if key == "" || isASCIIString(key) {
+			continue
+		}
+		return yxerrors.Usage("Instagram publish requires an ASCII-only uploaded video key", map[string]interface{}{
+			"path":  fmt.Sprintf("publishArgs.accountForms[%d].video.key", index),
+			"value": key,
+		}).WithCategory("instagram_media_key").
+			WithHint("Instagram/Meta 拉取视频时会对带中文字符的媒体 URL 返回 HTTP 400。请重新上传视频，确保原文件名使用英文、数字、连字符或下划线。").
+			WithNextCommand("yxer upload --file <ascii_video_name>.mp4")
+	}
+	return nil
+}
+
+func mapInstagramMediaFetchError(platform, publishType string, err error) error {
+	if platformutil.ChineseName(platform) != "Instagram" || publishmod.NormalizePublishType(publishType) != "video" || err == nil {
+		return nil
+	}
+	message := strings.ToLower(err.Error())
+	if !strings.Contains(message, "media could not be fetched") && !strings.Contains(message, "video download failed") {
+		return nil
+	}
+	var typed *yxerrors.Error
+	if errors.As(err, &typed) {
+		return typed.WithCategory("instagram_media_fetch").
+			WithHint("Instagram/Meta 在创建发布容器时无法拉取视频。若资源 URL 或 key 中包含中文字符，请将原视频改成英文文件名后重新执行 yxer upload，再更新 payload 中的 video.key。").
+			WithNextCommand("yxer upload --file <ascii_video_name>.mp4")
+	}
+	return yxerrors.Remote("Instagram could not fetch the uploaded video media", err.Error()).
+		WithCategory("instagram_media_fetch").
+		WithHint("Instagram/Meta 在创建发布容器时无法拉取视频。若资源 URL 或 key 中包含中文字符，请将原视频改成英文文件名后重新执行 yxer upload，再更新 payload 中的 video.key。").
+		WithNextCommand("yxer upload --file <ascii_video_name>.mp4")
+}
+
+func isASCIIString(value string) bool {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return true
+	}
+	if decoded, err := url.PathUnescape(value); err == nil {
+		value = decoded
+	}
+	for len(value) > 0 {
+		r, size := utf8.DecodeRuneInString(value)
+		if r > 127 {
+			return false
+		}
+		value = value[size:]
+	}
+	return true
 }
 
 func requiresCloudProxy(platforms []string) bool {

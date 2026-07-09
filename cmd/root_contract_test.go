@@ -191,6 +191,7 @@ func TestVisibleCommandTreeSnapshot(t *testing.T) {
 			"groups",
 			"hot-events",
 			"locations",
+			"members",
 			"miniapps",
 			"music",
 			"music-categories",

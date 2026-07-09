@@ -10,6 +10,11 @@ import (
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
+const (
+	accountGroupVisibleScopeAll      = "all"
+	accountGroupVisibleScopeSpecific = "specific"
+)
+
 func init() {
 	rootCmd.AddCommand(newAccountGroupCmd())
 }
@@ -32,6 +37,7 @@ func newAccountGroupCmd() *cobra.Command {
 
 func newAccountGroupCreateCmd() *cobra.Command {
 	var dryRun bool
+	var opts accountGroupUpdateOptions
 	cmd := &cobra.Command{
 		Use:   "create <name>",
 		Short: "创建账号分组",
@@ -41,7 +47,7 @@ func newAccountGroupCreateCmd() *cobra.Command {
 
 			return cmdflow.Run(cmd, dryRun, cmdflow.Flow{
 				Validate: func() error {
-					built, err := buildCreateAccountGroupBody(args[0])
+					built, err := buildAccountGroupBody(args[0], opts)
 					if err != nil {
 						return err
 					}
@@ -72,6 +78,8 @@ func newAccountGroupCreateCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview create account group request without performing the write")
+	cmd.Flags().StringVar(&opts.VisibleScope, "visible-scope", "", "visible scope: all or specific")
+	cmd.Flags().StringSliceVar(&opts.VisibleUsers, "visible-user", nil, "visible user id; repeat or comma-separate for multiple when visible-scope is specific")
 	return cmd
 }
 
@@ -89,19 +97,55 @@ func newAccountGroupListCmd() *cobra.Command {
 	}
 }
 
-func buildCreateAccountGroupBody(name string) (map[string]interface{}, error) {
+func buildAccountGroupBody(name string, opts accountGroupUpdateOptions) (map[string]interface{}, error) {
 	trimmed := strings.TrimSpace(name)
 	if trimmed == "" {
 		return nil, yxerrors.Usage("account group name must not be empty", nil).
 			WithHint("请传入非空分组名称，例如 yxer account-group create 核心账号组 --dry-run。")
 	}
-	return map[string]interface{}{
+	body := map[string]interface{}{
 		"name": trimmed,
-	}, nil
+	}
+
+	scope := strings.ToLower(strings.TrimSpace(opts.VisibleScope))
+	if scope == "" {
+		return body, nil
+	}
+	if scope != accountGroupVisibleScopeAll && scope != accountGroupVisibleScopeSpecific {
+		return nil, yxerrors.Usage("account group visible scope must be all or specific", map[string]interface{}{
+			"visibleScope": opts.VisibleScope,
+		}).WithHint("请传入 --visible-scope all 或 --visible-scope specific。")
+	}
+
+	body["visibleScope"] = scope
+	if scope == accountGroupVisibleScopeAll {
+		return body, nil
+	}
+
+	users := make([]string, 0, len(opts.VisibleUsers))
+	for _, user := range opts.VisibleUsers {
+		trimmed := strings.TrimSpace(user)
+		if trimmed != "" {
+			users = append(users, trimmed)
+		}
+	}
+	if len(users) == 0 {
+		return nil, yxerrors.Usage("account group visibleUsers must not be empty when visibleScope is specific", map[string]interface{}{
+			"visibleScope": scope,
+		}).WithHint("当使用 --visible-scope specific 时，请至少传入一个 --visible-user <userId>。")
+	}
+	body["visibleUsers"] = users
+	return body, nil
+}
+
+type accountGroupUpdateOptions struct {
+	VisibleScope string
+	VisibleUsers []string
 }
 
 func newAccountGroupUpdateCmd() *cobra.Command {
 	var dryRun bool
+	var opts accountGroupUpdateOptions
 	cmd := &cobra.Command{
 		Use:   "update <group_id> <name>",
 		Short: "更新账号分组",
@@ -117,7 +161,7 @@ func newAccountGroupUpdateCmd() *cobra.Command {
 						return yxerrors.Usage("account group id must not be empty", nil).
 							WithHint("请传入有效的分组 ID，例如 yxer account-group update group_1 核心账号组 --dry-run。")
 					}
-					built, err := buildCreateAccountGroupBody(args[1])
+					built, err := buildAccountGroupBody(args[1], opts)
 					if err != nil {
 						return err
 					}
@@ -149,6 +193,8 @@ func newAccountGroupUpdateCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview update account group request without performing the write")
+	cmd.Flags().StringVar(&opts.VisibleScope, "visible-scope", "", "visible scope: all or specific")
+	cmd.Flags().StringSliceVar(&opts.VisibleUsers, "visible-user", nil, "visible user id; repeat or comma-separate for multiple when visible-scope is specific")
 	return cmd
 }
 
