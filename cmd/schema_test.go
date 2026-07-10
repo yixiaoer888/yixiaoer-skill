@@ -5,18 +5,16 @@ import (
 	"encoding/json"
 	"path/filepath"
 	"testing"
-
-	"github.com/spf13/cobra"
 )
 
 func TestSchemaListCommandOutputsAgentDiscoverableItems(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newSchemaListCmd()
 	cmd.SetOut(&out)
 
-	if err := schemaListCmd.RunE(cmd, nil); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -46,10 +44,11 @@ func TestSchemaGetCommandOutputsSchemaForChinesePlatformAlias(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newSchemaGetCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"抖音", "video"})
 
-	if err := schemaGetCmd.RunE(cmd, []string{"抖音", "video"}); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -105,10 +104,11 @@ func TestSchemaGetCommandExplainsDuplicatedCoverPlacementForImageText(t *testing
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newSchemaGetCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"抖音", "imageText"})
 
-	if err := schemaGetCmd.RunE(cmd, []string{"抖音", "imageText"}); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -143,10 +143,11 @@ func TestSchemaGetCommandShipinhaoImageTextTemplateIncludesAccountCover(t *testi
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newSchemaGetCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"shipinhao", "imageText"})
 
-	if err := schemaGetCmd.RunE(cmd, []string{"shipinhao", "imageText"}); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -170,18 +171,11 @@ func TestSchemaGetCommandVerboseOutputsDebugViews(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newSchemaGetCmd()
 	cmd.SetOut(&out)
-	cmd.Flags().Bool("verbose", false, "")
-	if err := cmd.Flags().Set("verbose", "true"); err != nil {
-		t.Fatal(err)
-	}
-	schemaGetVerbose = true
-	t.Cleanup(func() {
-		schemaGetVerbose = false
-	})
+	cmd.SetArgs([]string{"抖音", "video", "--verbose"})
 
-	if err := schemaGetCmd.RunE(cmd, []string{"抖音", "video"}); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -206,10 +200,10 @@ func TestSchemaCatalogCommandOutputsRootSchemasAndPlatforms(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newSchemaCatalogCmd()
 	cmd.SetOut(&out)
 
-	if err := schemaCatalogCmd.RunE(cmd, nil); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -232,10 +226,11 @@ func TestSchemaFieldsCommandOutputsFieldView(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newSchemaFieldsCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"抖音", "video"})
 
-	if err := schemaFieldsCmd.RunE(cmd, []string{"抖音", "video"}); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -259,6 +254,7 @@ func TestSchemaFieldsCommandOutputsFieldView(t *testing.T) {
 		t.Fatalf("expected required root field first in flatFields, got %#v", first)
 	}
 	foundTitle := false
+	foundVideo := false
 	for _, entry := range flatFields {
 		item := entry.(map[string]interface{})
 		if item["path"] == "publishArgs.accountForms[].contentPublishForm.title" {
@@ -266,11 +262,19 @@ func TestSchemaFieldsCommandOutputsFieldView(t *testing.T) {
 			if item["type"] != "string" || item["required"] != true {
 				t.Fatalf("expected title in flatFields to be required string, got %#v", item)
 			}
-			break
+		}
+		if item["path"] == "publishArgs.accountForms[].video" {
+			foundVideo = true
+			if item["required"] != true {
+				t.Fatalf("expected account-level video to be required, got %#v", item)
+			}
 		}
 	}
 	if !foundTitle {
 		t.Fatal("expected contentPublishForm.title in flatFields")
+	}
+	if !foundVideo {
+		t.Fatal("expected account-level video in flatFields")
 	}
 	fields := data["fields"].(map[string]interface{})
 	publishArgs := fields["publishArgs"].(map[string]interface{})
@@ -281,14 +285,120 @@ func TestSchemaFieldsCommandOutputsFieldView(t *testing.T) {
 	}
 }
 
+func TestSchemaFieldsCommandOutputsDynamicFieldExamples(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	var out bytes.Buffer
+	cmd := newSchemaFieldsCmd()
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"抖音", "video"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	examples := data["dynamicFieldExamples"].(map[string]interface{})
+	for _, key := range []string{"shopping_cart", "location", "music", "tags"} {
+		if _, ok := examples[key]; !ok {
+			t.Fatalf("expected dynamicFieldExamples.%s, got %#v", key, examples)
+		}
+	}
+	cart := examples["shopping_cart"].(map[string]interface{})
+	cartValue := cart["value"].([]interface{})[0].(map[string]interface{})
+	if cartValue["data"] == nil || cartValue["images"] == nil {
+		t.Fatalf("expected douyin shopping_cart example to use nested data/images, got %#v", cart)
+	}
+	if cart["queryCommand"] != "yxer query goods <account_id> [--query 关键词] --json" {
+		t.Fatalf("expected goods query command in shopping cart example, got %#v", cart)
+	}
+}
+
+func TestSchemaGetCommandSupportsOverseasVideoPlatforms(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+
+	cases := []struct {
+		name          string
+		platform      string
+		wantKey       string
+		requiredField string
+		enumField     string
+	}{
+		{
+			name:          "tiktok",
+			platform:      "TikTok",
+			wantKey:       "tiktok/video",
+			requiredField: "description",
+			enumField:     "visible",
+		},
+		{
+			name:          "youtube",
+			platform:      "YouTube",
+			wantKey:       "youtube/video",
+			requiredField: "title",
+			enumField:     "category",
+		},
+		{
+			name:      "facebook",
+			platform:  "Facebook",
+			wantKey:   "facebook/video",
+			enumField: "formType",
+		},
+		{
+			name:      "instagram",
+			platform:  "Instagram",
+			wantKey:   "instagram/video",
+			enumField: "share_to_feed",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var out bytes.Buffer
+			cmd := newSchemaGetCmd()
+			cmd.SetOut(&out)
+			cmd.SetArgs([]string{tc.platform, "video"})
+
+			if err := cmd.Execute(); err != nil {
+				t.Fatal(err)
+			}
+
+			var response map[string]interface{}
+			if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+				t.Fatal(err)
+			}
+			data := response["data"].(map[string]interface{})
+			if data["key"] != tc.wantKey {
+				t.Fatalf("unexpected schema key: %#v", data["key"])
+			}
+			businessFields := data["businessFields"].(map[string]interface{})
+			if tc.requiredField != "" {
+				field := businessFields[tc.requiredField].(map[string]interface{})
+				if field["required"] != true {
+					t.Fatalf("expected %s to be required, got %#v", tc.requiredField, field)
+				}
+			}
+			if _, ok := businessFields[tc.enumField]; !ok {
+				t.Fatalf("expected overseas field %s in businessFields, got %#v", tc.enumField, businessFields)
+			}
+		})
+	}
+}
+
 func TestSchemaFieldsCommandPlacesArticleContentUnderPublishArgs(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newSchemaFieldsCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"知乎", "article"})
 
-	if err := schemaFieldsCmd.RunE(cmd, []string{"知乎", "article"}); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -320,10 +430,11 @@ func TestSchemaFieldsCommandUsesArticleDescFieldName(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newSchemaFieldsCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"抖音", "article"})
 
-	if err := schemaFieldsCmd.RunE(cmd, []string{"抖音", "article"}); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 

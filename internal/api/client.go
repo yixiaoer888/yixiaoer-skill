@@ -50,6 +50,10 @@ func (c *Client) Patch(endpoint string, body interface{}, out interface{}) error
 	return c.Do(http.MethodPatch, endpoint, body, out)
 }
 
+func (c *Client) Delete(endpoint string, out interface{}) error {
+	return c.Do(http.MethodDelete, endpoint, nil, out)
+}
+
 func (c *Client) Do(method, endpoint string, body interface{}, out interface{}) error {
 	if err := c.cfg.RequireAPIKey(); err != nil {
 		return err
@@ -94,7 +98,10 @@ func (c *Client) Do(method, endpoint string, body interface{}, out interface{}) 
 	if len(raw) == 0 {
 		return nil
 	}
-	return json.Unmarshal(raw, out)
+	if err := json.Unmarshal(raw, out); err != nil {
+		return invalidJSONResponseError(err, raw)
+	}
+	return nil
 }
 
 // remoteErrorFromBody builds a remote error from a non-2xx response, preferring
@@ -115,7 +122,28 @@ func remoteErrorFromBody(status int, raw []byte) error {
 	if body := strings.TrimSpace(string(raw)); body != "" {
 		details["body"] = body
 	}
-	return yxerrors.Remote(message, details)
+	typed := yxerrors.Remote(message, details)
+	if shouldHintSetAPIKey(status, message, code) {
+		typed.WithHint("请求返回 401，可能是 apiKey 缺失、无效或已过期；请重新设置 apiKey 后再重试。").
+			WithNextCommand("yxer config set-api-key <apiKey>")
+	}
+	return typed
+}
+
+func invalidJSONResponseError(err error, raw []byte) error {
+	return yxerrors.Remote("API response was not valid JSON", map[string]interface{}{
+		"cause": err.Error(),
+		"body":  truncateBody(raw, 2048),
+	}).WithHint("远端接口返回了非预期 JSON，请稍后重试；若持续出现，请保留 details.body 排查网关响应。").
+		WithRetryable(true)
+}
+
+func truncateBody(raw []byte, limit int) string {
+	body := strings.TrimSpace(string(raw))
+	if limit <= 0 || len(body) <= limit {
+		return body
+	}
+	return body[:limit] + "...(truncated)"
 }
 
 // assertBusinessOK rejects 2xx responses whose envelope carries a non-zero
@@ -187,6 +215,28 @@ func stringifyEnvelopeValue(value interface{}) string {
 		}
 		return text
 	}
+}
+
+func shouldHintSetAPIKey(status int, message, code string) bool {
+	if status == http.StatusUnauthorized {
+		return true
+	}
+	joined := strings.ToLower(strings.TrimSpace(message + " " + code))
+	fragments := []string{
+		"unauthorized",
+		"api key",
+		"apikey",
+		"token expired",
+		"token invalid",
+		"登录失效",
+		"鉴权失败",
+	}
+	for _, fragment := range fragments {
+		if strings.Contains(joined, fragment) {
+			return true
+		}
+	}
+	return false
 }
 
 func baseURL(cfg config.Config) string {

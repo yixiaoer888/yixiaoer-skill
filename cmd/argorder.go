@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/core/platform"
+	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 

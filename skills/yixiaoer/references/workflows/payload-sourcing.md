@@ -11,6 +11,8 @@
 
 ## 字段来源优先级
 
+字段选择、候选确认和写入门禁必须同时遵守 [`data-accuracy.md`](./data-accuracy.md)。
+
 1. `yxer prepare <platform> <type>`：确认表单项、前置数据、账号能力
 2. 优先执行 `yxer schema fields <platform> <type>`：确认字段名、类型、必填项；需要完整层级骨架时再执行 `yxer schema get <platform> <type>`
 3. 查询命令：补充动态对象，如 `category`、`location`、`music`、`collection`、`challenge`、`goods`
@@ -47,6 +49,13 @@
 - `publishArgs.accountForms[].contentPublishForm`：平台业务字段
 - `publishArgs.content`：文章正文主入口
 
+## 查询 `data` 处理规则
+
+- `yxer query ...` 的 stdout 外层 `data` 是 CLI 结果容器，只能作为字段来源，不能把整个响应 envelope 原样塞进发布 payload。
+- 从查询结果选中候选后，必须按 `yxer schema fields <platform> <type>` / `dynamicFieldExamples` 显示的目标字段结构重新装配。
+- 若目标字段要求嵌套 `data`，例如抖音视频 `shopping_cart[]`，应把商品完整对象放入该字段要求的内层 `data`，并补齐 schema 要求的外层字段，如 `sale_title`、`images`。
+- 写入接口前必须重新执行 `yxer validate` 和 `yxer publish --dry-run`，以 dry-run 输出的 `request` 为最终请求结构依据。
+
 ## 哪些字段不能猜
 
 - 任意 schema 未声明字段
@@ -68,3 +77,4 @@
 - 直接把平台表单字段写到顶层
 - 动态字段只填 ID 或名称、不填合法对象
 - 手工伪造上传资源元数据
+- 查询结果存在多个候选时，不经用户确认直接采用第一项

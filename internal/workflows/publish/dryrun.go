@@ -7,16 +7,19 @@ import (
 )
 
 type DryRunResult struct {
-	Platform      string                 `json:"platform"`
-	PublishType   string                 `json:"publishType"`
-	PublishBody   map[string]interface{} `json:"request"`
-	PublishArgs   map[string]interface{} `json:"publishArgs,omitempty"`
-	PublishMode   string                 `json:"publishChannel"`
-	ClientID      string                 `json:"clientId,omitempty"`
-	AccountIDs    []string               `json:"accountIds,omitempty"`
-	PlatformDraft bool                   `json:"platformDraft"`
-	YixiaoerDraft bool                   `json:"yixiaoerDraft"`
-	SchemaChecked bool                   `json:"schemaChecked"`
+	Platform       string                          `json:"platform"`
+	PublishType    string                          `json:"publishType"`
+	PublishBody    map[string]interface{}          `json:"request"`
+	PublishArgs    map[string]interface{}          `json:"publishArgs,omitempty"`
+	PublishMode    string                          `json:"publishChannel"`
+	ClientID       string                          `json:"clientId,omitempty"`
+	AccountIDs     []string                        `json:"accountIds,omitempty"`
+	PlatformDraft  bool                            `json:"platformDraft"`
+	YixiaoerDraft  bool                            `json:"yixiaoerDraft"`
+	SchemaChecked  bool                            `json:"schemaChecked"`
+	RemoteChecks   bool                            `json:"remoteChecks"`
+	Normalizations []publishmod.NormalizationEvent `json:"normalizations,omitempty"`
+	InferredFields map[string]InferredField        `json:"inferredFields,omitempty"`
 }
 
 func (s Service) DryRunEnvelope(input ExecuteInput) (EnvelopeResult, error) {
@@ -42,9 +45,26 @@ func (s Service) wrapDryRunEnvelope(result DryRunResult, err error) (EnvelopeRes
 				"platformDraft":  result.PlatformDraft,
 				"yixiaoerDraft":  result.YixiaoerDraft,
 				"schemaChecked":  result.SchemaChecked,
+				"remoteChecks":   result.RemoteChecks,
+				"normalizations": normalizationsForMeta(result.Normalizations),
+				"inferredFields": inferredFieldsForMeta(result.InferredFields),
 			},
 		},
 	}, nil
+}
+
+func normalizationsForMeta(events []publishmod.NormalizationEvent) []publishmod.NormalizationEvent {
+	if events == nil {
+		return []publishmod.NormalizationEvent{}
+	}
+	return events
+}
+
+func inferredFieldsForMeta(fields map[string]InferredField) map[string]InferredField {
+	if fields == nil {
+		return map[string]InferredField{}
+	}
+	return fields
 }
 
 func (s Service) DryRun(input ExecuteInput) (DryRunResult, error) {
@@ -75,40 +95,58 @@ func (s Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 	}
 	validator := schema.NewValidator(cfg.SchemaDir)
 	topicPolicy := topicHTMLPolicyForPlatforms(validator, platforms, input.PublishType)
-	publishArgs := publishmod.NormalizeStandardPayloadForSchemaValidation(input.PublishType, platforms, resolvedPayload)
+	var normalizations []publishmod.NormalizationEvent
+	publishArgs := publishmod.NormalizeStandardPayloadForSchemaValidationWithTrace(input.PublishType, platforms, resolvedPayload, &normalizations)
 
 	for _, platform := range platforms {
-		result := validator.Validate(platform, input.PublishType, resolvedPayload)
+		result, err := validator.ValidateStrict(platform, input.PublishType, resolvedPayload)
+		if err != nil {
+			return DryRunResult{}, schemaUnavailableError(platform, input.PublishType, cfg.SchemaDir, err)
+		}
 		if !result.Valid {
 			return DryRunResult{}, yxerrors.Usage("Schema validation failed", result.Errors).
-				WithHint("请根据对应平台 schema 修正 payload 字段后重试。").
+				WithHint(schemaValidationHint(result.Errors)).
 				WithNextCommand("yxer schema fields <platform> <type>")
 		}
 	}
-	preflight := publishmod.PreflightWithTopicHTMLPolicy(input.PublishType, platforms, payloadWithPublishMode(resolvedPayload, channel, clientID), topicPolicy)
+	preflight := publishmod.PreflightWithTopicHTMLPolicyAndTrace(input.PublishType, platforms, payloadWithPublishMode(resolvedPayload, channel, clientID), topicPolicy, &normalizations)
 	if len(preflight.Errors) > 0 {
 		return DryRunResult{}, yxerrors.Usage("Publish preflight failed", preflight.Errors).
 			WithHint("请先完成资源上传、账号校验，并确保发布参数中不包含外部 URL。")
 	}
 
-	body := BuildPublishBody(resolvedPayload, publishArgs, input.PublishType, platforms, channel, clientID)
+	body, inferredFields := BuildPublishBodyWithInferred(resolvedPayload, publishArgs, input.PublishType, platforms, channel, clientID)
+	if err := validateInstagramMediaKeys(platform, input.PublishType, body); err != nil {
+		return DryRunResult{}, err
+	}
 
 	return DryRunResult{
-		Platform:      platform,
-		PublishType:   input.PublishType,
-		PublishBody:   body,
-		PublishArgs:   publishArgs,
-		PublishMode:   channel,
-		ClientID:      clientID,
-		AccountIDs:    preflight.AccountIDs,
-		PlatformDraft: isPlatformDraftPublish(body),
-		YixiaoerDraft: inferYixiaoerDraft(body),
-		SchemaChecked: true,
+		Platform:       platform,
+		PublishType:    input.PublishType,
+		PublishBody:    body,
+		PublishArgs:    publishArgs,
+		PublishMode:    channel,
+		ClientID:       clientID,
+		AccountIDs:     preflight.AccountIDs,
+		PlatformDraft:  isPlatformDraftPublish(body),
+		YixiaoerDraft:  inferYixiaoerDraft(body),
+		SchemaChecked:  true,
+		RemoteChecks:   false,
+		Normalizations: normalizations,
+		InferredFields: inferredFields,
 	}, nil
 }
 
 func isPlatformDraftPublish(body map[string]interface{}) bool {
 	publishArgs, _ := body["publishArgs"].(map[string]interface{})
+	if platformForm := weixinAccountArticlePlatformForm(publishArgs); platformForm != nil {
+		switch value := platformForm["pubType"].(type) {
+		case float64:
+			return int(value) == 0
+		case int:
+			return value == 0
+		}
+	}
 	accountForms, _ := publishArgs["accountForms"].([]interface{})
 	firstForm := firstObject(accountForms)
 	firstCPF := objectField(firstForm, "contentPublishForm")

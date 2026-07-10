@@ -24,17 +24,12 @@ func TestValidateCommandUsesConfiguredLocalClientID(t *testing.T) {
 		"publishChannel": "local",
 		"publishArgs":    validPublishArgs(),
 	})
-	validateChannelFlag = ""
-	validateClientID = ""
-	t.Cleanup(func() {
-		validateChannelFlag = ""
-		validateClientID = ""
-	})
 
-	cmd := &cobra.Command{}
+	cmd := newValidateCmd()
 	cmd.SetOut(&bytes.Buffer{})
 	cmd.SetErr(&bytes.Buffer{})
-	if err := validateCmd.RunE(cmd, []string{"抖音", "video", payloadPath}); err != nil {
+	cmd.SetArgs([]string{"抖音", "video", payloadPath})
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -42,17 +37,12 @@ func TestValidateCommandUsesConfiguredLocalClientID(t *testing.T) {
 func TestValidateCommandUsesLocalFlags(t *testing.T) {
 	withRepoRoot(t)
 	payloadPath := writePublishPayload(t, validPublishPayload())
-	validateChannelFlag = "local"
-	validateClientID = "flag_client_1"
-	t.Cleanup(func() {
-		validateChannelFlag = ""
-		validateClientID = ""
-	})
 
-	cmd := &cobra.Command{}
+	cmd := newValidateCmd()
 	cmd.SetOut(&bytes.Buffer{})
 	cmd.SetErr(&bytes.Buffer{})
-	if err := validateCmd.RunE(cmd, []string{"抖音", "video", payloadPath}); err != nil {
+	cmd.SetArgs([]string{"抖音", "video", payloadPath, "--publish-channel", "local", "--client-id", "flag_client_1"})
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -69,7 +59,7 @@ func TestValidateCommandRejectsInnerBusinessFormPayload(t *testing.T) {
 	cmd := &cobra.Command{}
 	cmd.SetOut(&bytes.Buffer{})
 	cmd.SetErr(&bytes.Buffer{})
-	err := validateCmd.RunE(cmd, []string{"小红书", "video", payloadPath})
+	err := newValidateCmd().RunE(cmd, []string{"小红书", "video", payloadPath})
 	if err == nil {
 		t.Fatal("expected standard payload error")
 	}

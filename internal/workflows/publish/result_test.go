@@ -1,6 +1,10 @@
 package publish
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
+)
 
 func TestExecuteEnvelopeWrapsPublishResult(t *testing.T) {
 	result := map[string]interface{}{"taskSetId": "task_set_1"}
@@ -48,5 +52,40 @@ func TestDryRunEnvelopeWrapsDryRunResult(t *testing.T) {
 	}
 	if meta["platform"] != "抖音" || meta["publishType"] != "video" {
 		t.Fatalf("unexpected dry-run meta: %+v", meta)
+	}
+	if meta["remoteChecks"] != false {
+		t.Fatalf("expected remoteChecks=false for local dry-run, got %#v", meta["remoteChecks"])
+	}
+	if fields, ok := meta["inferredFields"].(map[string]InferredField); !ok || len(fields) != 0 {
+		t.Fatalf("expected stable empty inferredFields object, got %#v", meta["inferredFields"])
+	}
+}
+
+func TestShouldOfferLocalPublishRetryUsesRemoteErrorCode(t *testing.T) {
+	err := yxerrors.Remote("remote publish failed", map[string]interface{}{
+		"code": "PROXY_NOT_CONFIGURED",
+	})
+
+	if !shouldOfferLocalPublishRetry(err, "cloud") {
+		t.Fatal("expected proxy code to offer local publish retry")
+	}
+	if shouldOfferLocalPublishRetry(err, "local") {
+		t.Fatal("did not expect local channel to offer local retry")
+	}
+}
+
+func TestMapInstagramMediaFetchErrorAddsRepairHint(t *testing.T) {
+	source := yxerrors.Remote("The media could not be fetched from the provided URI. Video download failed with: HTTP error code 400. Bad Request", nil)
+
+	got := mapInstagramMediaFetchError("Instagram", "video", source)
+	if got == nil {
+		t.Fatal("expected mapped instagram media fetch error")
+	}
+	typed := got.(*yxerrors.Error)
+	if typed.Category != "instagram_media_fetch" {
+		t.Fatalf("expected instagram_media_fetch category, got %+v", typed)
+	}
+	if typed.Hint == "" || typed.NextCommand == "" {
+		t.Fatalf("expected hint and next command, got %+v", typed)
 	}
 }

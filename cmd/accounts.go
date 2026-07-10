@@ -4,52 +4,76 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/output"
-	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 	accountsflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/accounts"
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
-var accountsName string
-var accountsStatus int
-var accountsPage int
-var accountsSize int
-var accountsAll bool
-
 func init() {
-	accountsCmd.PersistentFlags().StringVar(&accountsName, "name", "", "filter by name")
-	accountsCmd.PersistentFlags().IntVar(&accountsStatus, "status", -1, "filter by status")
-	accountsCmd.PersistentFlags().IntVar(&accountsPage, "page", 1, "page number")
-	accountsCmd.PersistentFlags().IntVar(&accountsSize, "size", 20, "page size")
-	accountsCmd.PersistentFlags().BoolVar(&accountsAll, "all", false, "fetch all pages when remote pagination metadata allows it")
-	accountsCmd.AddCommand(accountsListCmd)
-	rootCmd.AddCommand(accountsCmd)
+	rootCmd.AddCommand(newAccountsCmd())
 }
 
-var accountsCmd = &cobra.Command{
-	Use:   "accounts [中文平台名]",
-	Short: "查询账号",
-	Args:  cobra.MaximumNArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return runAccountsList(cmd, args)
-	},
+type accountsListOptions struct {
+	Name   string
+	Status int
+	Page   int
+	Size   int
+	All    bool
 }
 
-var accountsListCmd = &cobra.Command{
-	Use:     "list [中文平台名]",
-	Short:   "列出账号",
-	Aliases: []string{"ls"},
-	Args:    cobra.MaximumNArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return runAccountsList(cmd, args)
-	},
+func newAccountsCmd() *cobra.Command {
+	opts := defaultAccountsListOptions()
+	cmd := &cobra.Command{
+		Use:   "accounts [中文平台名]",
+		Short: "查询账号",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runAccountsListWithOptions(cmd, args, opts)
+		},
+	}
+	addAccountsListFlags(cmd, &opts)
+	cmd.AddCommand(newAccountsListCmd())
+	cmd.AddCommand(newAccountsUpdateCmd())
+	return cmd
 }
 
-func runAccountsList(cmd *cobra.Command, args []string) error {
-	if accountsPage <= 0 {
-		return yxerrors.Usage("accounts page must be greater than 0", map[string]interface{}{"page": accountsPage}).
+func newAccountsListCmd() *cobra.Command {
+	opts := defaultAccountsListOptions()
+	cmd := &cobra.Command{
+		Use:     "list [中文平台名]",
+		Short:   "列出账号",
+		Aliases: []string{"ls"},
+		Args:    cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runAccountsListWithOptions(cmd, args, opts)
+		},
+	}
+	addAccountsListFlags(cmd, &opts)
+	return cmd
+}
+
+func defaultAccountsListOptions() accountsListOptions {
+	return accountsListOptions{
+		Status: -1,
+		Page:   1,
+		Size:   50,
+	}
+}
+
+func addAccountsListFlags(cmd *cobra.Command, opts *accountsListOptions) {
+	cmd.Flags().StringVar(&opts.Name, "name", "", "filter by name")
+	cmd.Flags().IntVar(&opts.Status, "status", -1, "filter by status")
+	cmd.Flags().IntVar(&opts.Page, "page", 1, "page number")
+	cmd.Flags().IntVar(&opts.Size, "size", 50, "page size")
+	cmd.Flags().BoolVar(&opts.All, "all", false, "fetch all pages when remote pagination metadata allows it")
+}
+
+func runAccountsListWithOptions(cmd *cobra.Command, args []string, opts accountsListOptions) error {
+	if opts.Page <= 0 {
+		return yxerrors.Usage("accounts page must be greater than 0", map[string]interface{}{"page": opts.Page}).
 			WithCategory("invalid_input")
 	}
-	if accountsSize <= 0 {
-		return yxerrors.Usage("accounts size must be greater than 0", map[string]interface{}{"size": accountsSize}).
+	if opts.Size <= 0 {
+		return yxerrors.Usage("accounts size must be greater than 0", map[string]interface{}{"size": opts.Size}).
 			WithCategory("invalid_input")
 	}
 
@@ -61,10 +85,10 @@ func runAccountsList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	filtered, err := accountsflow.NewService(rt).ListWithOptions(platform, accountsName, accountsStatus, accountsflow.ListOptions{
-		Page: accountsPage,
-		Size: accountsSize,
-		All:  accountsAll,
+	filtered, err := accountsflow.NewService(rt).ListWithOptions(platform, opts.Name, opts.Status, accountsflow.ListOptions{
+		Page: opts.Page,
+		Size: opts.Size,
+		All:  opts.All,
 	})
 	if err != nil {
 		return err

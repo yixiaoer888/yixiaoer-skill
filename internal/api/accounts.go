@@ -8,7 +8,7 @@ import (
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
-const accountsPageSize = 20
+const accountsPageSize = 50
 
 func (c *Client) Accounts(platform string) ([]map[string]interface{}, error) {
 	return c.AccountsAll(platform, accountsPageSize)
@@ -141,7 +141,7 @@ func extractAccountsPageMeta(data interface{}) accountsPageMeta {
 	return meta
 }
 
-func shouldFetchNextAccountsPage(meta accountsPageMeta, _ int, _ int) bool {
+func shouldFetchNextAccountsPage(meta accountsPageMeta) bool {
 	if meta.hasNext != nil {
 		return *meta.hasNext
 	}

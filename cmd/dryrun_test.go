@@ -3,35 +3,25 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"image"
 	"image/color"
 	"image/png"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
-	"github.com/spf13/cobra"
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
 func TestUploadDryRunPreviewUsesExplicitFileFlag(t *testing.T) {
-	uploadFile = "C:\\tmp\\cover.png"
-	uploadURL = ""
-	uploadBucket = "cloud-publish"
-	uploadDryRun = true
-	uploadAutoMeta = true
-	t.Cleanup(func() {
-		uploadFile = ""
-		uploadURL = ""
-		uploadBucket = ""
-		uploadDryRun = false
-		uploadAutoMeta = false
-	})
-
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newUploadCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"--file", "C:\\tmp\\cover.png", "--dry-run"})
 
-	if err := uploadCmd.RunE(cmd, nil); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -50,8 +40,26 @@ func TestUploadDryRunPreviewUsesExplicitFileFlag(t *testing.T) {
 }
 
 func TestUploadFlagDefaultEnablesAutoMeta(t *testing.T) {
-	if uploadCmd.Flag("auto-meta").DefValue != "true" {
-		t.Fatalf("expected upload --auto-meta default to be true, got %q", uploadCmd.Flag("auto-meta").DefValue)
+	cmd := newUploadCmd()
+	if cmd.Flag("auto-meta").DefValue != "true" {
+		t.Fatalf("expected upload --auto-meta default to be true, got %q", cmd.Flag("auto-meta").DefValue)
+	}
+}
+
+func TestUploadRejectsResourceTypeSubcommand(t *testing.T) {
+	_, err := resolveUploadSource([]string{"video", "demo.mp4"}, uploadOptions{})
+	if err == nil {
+		t.Fatal("expected upload source error")
+	}
+	if !strings.Contains(err.Error(), "upload accepts exactly one file path or URL") {
+		t.Fatalf("expected hint to mention incorrect upload form, got %v", err)
+	}
+	var typed *yxerrors.Error
+	if !errors.As(err, &typed) {
+		t.Fatalf("expected structured yxerror, got %T", err)
+	}
+	if strings.Contains(typed.Hint, "upload video") {
+		t.Fatalf("expected generic upload hint, got %q", typed.Hint)
 	}
 }
 
@@ -65,16 +73,12 @@ func TestMaterialCreateDryRunBuildsPreviewBody(t *testing.T) {
 		"type":      "image",
 		"thumbPath": "material-library/demo-thumb.png",
 	})
-	materialCreateDryRun = true
-	t.Cleanup(func() {
-		materialCreateDryRun = false
-	})
-
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newMaterialCreateCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{payloadPath, "--dry-run"})
 
-	if err := materialCreateCmd.RunE(cmd, []string{payloadPath}); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -95,22 +99,12 @@ func TestMaterialAddDryRunExtractsImageMetadata(t *testing.T) {
 	if err := os.WriteFile(imagePath, testPNGBytesWithSize(t, 7, 9), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	materialFilePath = imagePath
-	materialThumbPath = ""
-	materialType = ""
-	materialDryRun = true
-	t.Cleanup(func() {
-		materialFilePath = ""
-		materialThumbPath = ""
-		materialType = ""
-		materialDryRun = false
-	})
-
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newMaterialAddCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"--file", imagePath, "--dry-run"})
 
-	if err := materialAddCmd.RunE(cmd, nil); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -138,16 +132,12 @@ func TestDraftSaveDryRunAddsDraftFlag(t *testing.T) {
 		"action": "publish",
 		"title":  "草稿标题",
 	})
-	draftDryRun = true
-	t.Cleanup(func() {
-		draftDryRun = false
-	})
-
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newDraftSaveCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{payloadPath, "--dry-run"})
 
-	if err := draftSaveCmd.RunE(cmd, []string{payloadPath}); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 

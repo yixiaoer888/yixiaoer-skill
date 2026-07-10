@@ -88,21 +88,35 @@
     "location": {
       "type": "object",
       "required": [
-        "yixiaoerId",
-        "yixiaoerName",
-        "raw"
+        "isScp",
+        "data"
       ],
       "properties": {
-        "yixiaoerId": {
-          "type": "string"
+        "isScp": {
+          "type": "boolean"
         },
-        "yixiaoerName": {
-          "type": "string"
-        },
-        "raw": {
-          "type": "object"
+        "data": {
+          "type": "object",
+          "required": [
+            "yixiaoerId",
+            "yixiaoerName",
+            "raw"
+          ],
+          "properties": {
+            "yixiaoerId": {
+              "type": "string"
+            },
+            "yixiaoerName": {
+              "type": "string"
+            },
+            "raw": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": true
         }
-      }
+      },
+      "additionalProperties": false
     },
     "music": {
       "type": "object",
@@ -145,11 +159,13 @@
     "declaration": {
       "type": "number",
       "enum": [
+        0,
         3,
         4,
         5,
         6
-      ]
+      ],
+      "default": 0
     },
     "allow_save": {
       "type": "number",
@@ -203,22 +219,6 @@
           }
         },
         "additionalProperties": false
-      }
-    },
-    "groupShopping": {
-      "type": "object",
-      "required": [
-        "sale_title",
-        "raw"
-      ],
-      "properties": {
-        "sale_title": {
-          "type": "string",
-          "maxLength": 10
-        },
-        "raw": {
-          "type": "object"
-        }
       }
     },
     "collection": {
@@ -427,21 +427,35 @@
               "location": {
                 "type": "object",
                 "required": [
-                  "yixiaoerId",
-                  "yixiaoerName",
-                  "raw"
+                  "isScp",
+                  "data"
                 ],
                 "properties": {
-                  "yixiaoerId": {
-                    "type": "string"
+                  "isScp": {
+                    "type": "boolean"
                   },
-                  "yixiaoerName": {
-                    "type": "string"
-                  },
-                  "raw": {
-                    "type": "object"
+                  "data": {
+                    "type": "object",
+                    "required": [
+                      "yixiaoerId",
+                      "yixiaoerName",
+                      "raw"
+                    ],
+                    "properties": {
+                      "yixiaoerId": {
+                        "type": "string"
+                      },
+                      "yixiaoerName": {
+                        "type": "string"
+                      },
+                      "raw": {
+                        "type": "object"
+                      }
+                    },
+                    "additionalProperties": true
                   }
-                }
+                },
+                "additionalProperties": false
               },
               "music": {
                 "type": "object",
@@ -484,11 +498,13 @@
               "declaration": {
                 "type": "number",
                 "enum": [
+                  0,
                   3,
                   4,
                   5,
                   6
-                ]
+                ],
+                "default": 0
               },
               "allow_save": {
                 "type": "number",
@@ -542,22 +558,6 @@
                     }
                   },
                   "additionalProperties": false
-                }
-              },
-              "groupShopping": {
-                "type": "object",
-                "required": [
-                  "sale_title",
-                  "raw"
-                ],
-                "properties": {
-                  "sale_title": {
-                    "type": "string",
-                    "maxLength": 10
-                  },
-                  "raw": {
-                    "type": "object"
-                  }
                 }
               },
               "collection": {
@@ -679,6 +679,60 @@
                     "type": "object"
                   }
                 }
+              },
+              "group_shopping": {
+                "type": "object",
+                "required": [
+                  "brand_switch_value",
+                  "sale_title",
+                  "data"
+                ],
+                "properties": {
+                  "brand_switch_value": {
+                    "type": "number",
+                    "enum": [
+                      0,
+                      1,
+                      2
+                    ]
+                  },
+                  "sale_title": {
+                    "type": "string",
+                    "maxLength": 10
+                  },
+                  "data": {
+                    "type": "object",
+                    "required": [
+                      "yixiaoerId",
+                      "yixiaoerName",
+                      "raw"
+                    ],
+                    "properties": {
+                      "yixiaoerId": {
+                        "type": "string"
+                      },
+                      "yixiaoerName": {
+                        "type": "string"
+                      },
+                      "raw": {
+                        "type": "object"
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                "additionalProperties": false
+              },
+              "tagType": {
+                "type": "string",
+                "enum": [
+                  "位置",
+                  "团购",
+                  "购物车",
+                  "小程序",
+                  "影视综艺",
+                  "游戏手柄"
+                ]
               }
             },
             "additionalProperties": false
@@ -738,6 +792,60 @@
         },
         "additionalProperties": false
       }
+    },
+    "group_shopping": {
+      "type": "object",
+      "required": [
+        "brand_switch_value",
+        "sale_title",
+        "data"
+      ],
+      "properties": {
+        "brand_switch_value": {
+          "type": "number",
+          "enum": [
+            0,
+            1,
+            2
+          ]
+        },
+        "sale_title": {
+          "type": "string",
+          "maxLength": 10
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "yixiaoerId",
+            "yixiaoerName",
+            "raw"
+          ],
+          "properties": {
+            "yixiaoerId": {
+              "type": "string"
+            },
+            "yixiaoerName": {
+              "type": "string"
+            },
+            "raw": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "tagType": {
+      "type": "string",
+      "enum": [
+        "位置",
+        "团购",
+        "购物车",
+        "小程序",
+        "影视综艺",
+        "游戏手柄"
+      ]
     }
   },
   "additionalProperties": false

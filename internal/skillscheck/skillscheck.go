@@ -146,6 +146,36 @@ func WriteStamp(version string) error {
 	return os.WriteFile(path, []byte(strings.TrimSpace(version)+"\n"), 0o644)
 }
 
+func SkillVersion(skillDir string) (string, error) {
+	raw, err := os.ReadFile(filepath.Join(skillDir, "SKILL.md"))
+	if err != nil {
+		return "", err
+	}
+	lines := strings.Split(normalizeMarkdown(raw), "\n")
+	if len(lines) == 0 || strings.TrimSpace(lines[0]) != "---" {
+		return "", yxerrors.Usage("skill version not found", map[string]interface{}{
+			"skillDir": skillDir,
+		}).WithCategory("skill_validation")
+	}
+	for _, line := range lines[1:] {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "---" {
+			break
+		}
+		if !strings.HasPrefix(trimmed, "version:") {
+			continue
+		}
+		version := strings.TrimSpace(strings.TrimPrefix(trimmed, "version:"))
+		version = strings.Trim(version, `"'`)
+		if version != "" {
+			return version, nil
+		}
+	}
+	return "", yxerrors.Usage("skill version not found", map[string]interface{}{
+		"skillDir": skillDir,
+	}).WithCategory("skill_validation")
+}
+
 func Check(currentVersion string) (Status, error) {
 	stamp, err := ReadStamp()
 	if err != nil {
@@ -177,14 +207,17 @@ func Notice(currentVersion, skillDir string) (map[string]interface{}, error) {
 	if status.Sync {
 		return nil, nil
 	}
-	command := `npx skills add "` + skillDir + `" -y`
 	return map[string]interface{}{
 		"type":    "skills_out_of_sync",
 		"current": status.Current,
 		"target":  status.Target,
 		"state":   status.State,
-		"message": "本地 AI skill 与当前 yxer 版本未同步，请重新安装技能包。",
-		"command": command,
+		"message": "本地 AI skill 与记录的 skill 版本未同步，请重新安装技能包。",
+		"command": "yxer skill sync",
+		"fallbackCommands": []string{
+			`npx skills add "` + skillDir + `" -y`,
+			`npx skills add "` + skillDir + `" -g -y`,
+		},
 	}, nil
 }
 

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"os/exec"
 	"path/filepath"
 	"time"
@@ -13,43 +14,53 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(skillCmd)
-	skillCmd.AddCommand(skillShowCmd)
-	skillCmd.AddCommand(skillCheckCmd)
-	skillCmd.AddCommand(skillSyncCmd)
-	skillSyncCmd.Flags().Bool("global", false, "install skill globally")
+	rootCmd.AddCommand(newSkillCmd())
 }
 
-var skillCmd = &cobra.Command{
-	Use:   "skill",
-	Short: "显示 AI agent 技能安装与同步信息",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return runSkillShow(cmd)
-	},
+func newSkillCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "skill",
+		Short: "显示 AI agent 技能安装与同步信息",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runSkillShow(cmd)
+		},
+	}
+	cmd.AddCommand(newSkillShowCmd())
+	cmd.AddCommand(newSkillCheckCmd())
+	cmd.AddCommand(newSkillSyncCmd())
+	return cmd
 }
 
-var skillShowCmd = &cobra.Command{
-	Use:   "show",
-	Short: "输出当前项目技能包位置和安装命令",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return runSkillShow(cmd)
-	},
+func newSkillShowCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "show",
+		Short: "输出当前项目技能包位置和安装命令",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runSkillShow(cmd)
+		},
+	}
 }
 
-var skillSyncCmd = &cobra.Command{
-	Use:   "sync",
-	Short: "安装或同步当前项目的 AI skill，并写入本地版本戳",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return runSkillSync(cmd)
-	},
+func newSkillSyncCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "sync",
+		Short: "安装或同步当前项目的 AI skill，并写入本地版本戳",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runSkillSync(cmd)
+		},
+	}
+	cmd.Flags().Bool("global", false, "install skill globally")
+	return cmd
 }
 
-var skillCheckCmd = &cobra.Command{
-	Use:   "check",
-	Short: "检查当前 skill 包的入口格式、文档结构和 Markdown 链接",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return runSkillCheck(cmd)
-	},
+func newSkillCheckCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "check",
+		Short: "检查当前 skill 包的入口格式、文档结构和 Markdown 链接",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runSkillCheck(cmd)
+		},
+	}
 }
 
 func runSkillShow(cmd *cobra.Command) error {
@@ -58,14 +69,19 @@ func runSkillShow(cmd *cobra.Command) error {
 		return err
 	}
 	skillFile := filepath.Join(skillDir, "SKILL.md")
-	status, err := skillscheck.Check(rootCmd.Version)
+	skillVersion, err := skillscheck.SkillVersion(skillDir)
+	if err != nil {
+		return err
+	}
+	status, err := skillscheck.Check(skillVersion)
 	if err != nil {
 		return err
 	}
 
 	data := map[string]interface{}{
 		"name":         "yixiaoer",
-		"version":      rootCmd.Version,
+		"version":      skillVersion,
+		"cliVersion":   rootCmd.Version,
 		"skillDir":     skillDir,
 		"skillFile":    skillFile,
 		"skillsStatus": status,
@@ -73,6 +89,10 @@ func runSkillShow(cmd *cobra.Command) error {
 		"summary": []string{
 			"先安装 yxer CLI，再安装 yixiaoer skill，供 AI agent 读取技能后调用 yxer。",
 			"技能文件负责约束工作流与命令选择，真正执行统一走 yxer CLI。",
+		},
+		"recommended": map[string]interface{}{
+			"local":  "yxer skill sync",
+			"global": "yxer skill sync --global",
 		},
 		"install": map[string]interface{}{
 			"local": []string{
@@ -84,10 +104,12 @@ func runSkillShow(cmd *cobra.Command) error {
 		},
 		"sync": map[string]interface{}{
 			"when": []string{
-				"更新 yxer 版本后",
+				"SKILL.md 版本更新后",
 				"SKILL.md 或 references/workflows 发生变化后",
 			},
 			"commands": []string{
+				"yxer skill sync",
+				"yxer skill sync --global",
 				"npx skills add \"" + skillDir + "\" -y",
 				"npx skills add \"" + skillDir + "\" -g -y",
 			},
@@ -137,24 +159,22 @@ func runSkillCheck(cmd *cobra.Command) error {
 }
 
 func syncSkill(cmd *cobra.Command, skillDir string, globalInstall bool) error {
-	npxPath, err := exec.LookPath("npx")
+	runner, err := resolveSkillsRunner(globalInstall, skillDir)
 	if err != nil {
-		return yxerrors.Usage("npx not found in PATH", map[string]interface{}{
-			"binary": "npx",
-		}).WithCategory("missing_dependency").
-			WithHint("请先安装 Node.js，并确保 `npx` 在 PATH 中可用。").
-			WithNextCommand("node --version")
-	}
-
-	args := []string{"-y", "skills", "add", skillDir, "-y"}
-	if globalInstall {
-		args = []string{"-y", "skills", "add", skillDir, "-g", "-y"}
+		if errors.Is(err, exec.ErrNotFound) {
+			return yxerrors.Usage("skills installer not found in PATH", map[string]interface{}{
+				"binaries": []string{"skills", "npx"},
+			}).WithCategory("missing_dependency").
+				WithHint("请先安装 `skills` 或 Node.js（含 `npx`），然后重试 `yxer skill sync`。").
+				WithNextCommand("node --version")
+		}
+		return err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	execCmd := exec.CommandContext(ctx, npxPath, args...)
+	execCmd := exec.CommandContext(ctx, runner.Path, runner.Args...)
 	execCmd.Stdout = cmd.OutOrStdout()
 	execCmd.Stderr = cmd.ErrOrStderr()
 	if err := execCmd.Run(); err != nil {
@@ -168,21 +188,50 @@ func syncSkill(cmd *cobra.Command, skillDir string, globalInstall bool) error {
 		return err
 	}
 
-	if err := skillscheck.WriteStamp(rootCmd.Version); err != nil {
+	skillVersion, err := skillscheck.SkillVersion(skillDir)
+	if err != nil {
+		return err
+	}
+
+	if err := skillscheck.WriteStamp(skillVersion); err != nil {
 		return err
 	}
 
 	if cmd.Name() == "sync" && cmd.Parent() != nil && cmd.Parent().Name() == "skill" {
 		data := map[string]interface{}{
 			"name":      "yixiaoer",
-			"version":   rootCmd.Version,
+			"version":   skillVersion,
 			"skillDir":  skillDir,
 			"installed": true,
 			"global":    globalInstall,
-			"command":   append([]string{npxPath}, args...),
+			"command":   append([]string{runner.Path}, runner.Args...),
 		}
 		return output.Success(cmd.OutOrStdout(), "skill.sync", data)
 	}
 
 	return nil
+}
+
+type skillsRunner struct {
+	Path string
+	Args []string
+}
+
+func resolveSkillsRunner(globalInstall bool, skillDir string) (skillsRunner, error) {
+	args := []string{"add", skillDir, "-y"}
+	if globalInstall {
+		args = []string{"add", skillDir, "-g", "-y"}
+	}
+
+	if skillsPath, err := exec.LookPath("skills"); err == nil {
+		return skillsRunner{Path: skillsPath, Args: args}, nil
+	}
+
+	npxPath, err := exec.LookPath("npx")
+	if err != nil {
+		return skillsRunner{}, err
+	}
+
+	npxArgs := append([]string{"-y", "skills"}, args...)
+	return skillsRunner{Path: npxPath, Args: npxArgs}, nil
 }

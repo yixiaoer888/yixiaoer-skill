@@ -8,81 +8,92 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/output"
-	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/core/platform"
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/schema"
+	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
+	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
-var schemaGetVerbose bool
-
 func init() {
-	schemaGetCmd.Flags().BoolVar(&schemaGetVerbose, "verbose", false, "include duplicated debug schema views")
-	schemaCmd.AddCommand(schemaCatalogCmd)
-	schemaCmd.AddCommand(schemaListCmd)
-	schemaCmd.AddCommand(schemaGetCmd)
-	schemaCmd.AddCommand(schemaFieldsCmd)
-	rootCmd.AddCommand(schemaCmd)
+	rootCmd.AddCommand(newSchemaCmd())
 }
 
-var schemaCmd = &cobra.Command{
-	Use:   "schema",
-	Short: "查询 Agent 可用的参数 Schema",
-	Args:  cobra.MaximumNArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) == 0 {
-			return cmd.Help()
-		}
-		if len(args) != 2 {
-			return yxerrors.Usage("schema requires <platform> and <type>", nil).
-				WithHint("请同时提供平台和发布类型，例如：yxer schema get 抖音 video。").
-				WithNextCommand("yxer schema list")
-		}
-		return runSchemaGet(cmd, args[0], args[1])
-	},
+func newSchemaCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "schema",
+		Short: "查询 Agent 可用的参数 Schema",
+		Args:  cobra.MaximumNArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return cmd.Help()
+			}
+			if len(args) != 2 {
+				return yxerrors.Usage("schema requires <platform> and <type>", nil).
+					WithHint("请同时提供平台和发布类型，例如：yxer schema get 抖音 video。").
+					WithNextCommand("yxer schema list")
+			}
+			return runSchemaGet(cmd, args[0], args[1], false)
+		},
+	}
+	cmd.AddCommand(newSchemaCatalogCmd())
+	cmd.AddCommand(newSchemaListCmd())
+	cmd.AddCommand(newSchemaGetCmd())
+	cmd.AddCommand(newSchemaFieldsCmd())
+	return cmd
 }
 
-var schemaListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "列出所有平台和发布类型 Schema",
-	Args:  cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return runSchemaList(cmd)
-	},
+func newSchemaListCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "list",
+		Short: "列出所有平台和发布类型 Schema",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runSchemaList(cmd)
+		},
+	}
 }
 
-var schemaCatalogCmd = &cobra.Command{
-	Use:   "catalog",
-	Short: "返回 schema 根目录、根 schema 和平台 schema 索引",
-	Args:  cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		rt, err := app.Load()
-		if err != nil {
-			return err
-		}
-		catalog, err := schema.NewValidator(rt.Config.SchemaDir).Catalog()
-		if err != nil {
-			return err
-		}
-		return output.Success(cmd.OutOrStdout(), "schema.catalog", catalog)
-	},
+func newSchemaCatalogCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "catalog",
+		Short: "返回 schema 根目录、根 schema 和平台 schema 索引",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			rt, err := app.Load()
+			if err != nil {
+				return err
+			}
+			catalog, err := schema.NewValidator(rt.Config.SchemaDir).Catalog()
+			if err != nil {
+				return err
+			}
+			return output.Success(cmd.OutOrStdout(), "schema.catalog", catalog)
+		},
+	}
 }
 
-var schemaGetCmd = &cobra.Command{
-	Use:   "get <中文平台名|platform-key> <type>",
-	Short: "返回指定平台和发布类型的 JSON Schema",
-	Args:  cobra.ExactArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return runSchemaGet(cmd, args[0], args[1])
-	},
+func newSchemaGetCmd() *cobra.Command {
+	var verbose bool
+	cmd := &cobra.Command{
+		Use:   "get <中文平台名|platform-key> <type>",
+		Short: "返回指定平台和发布类型的 JSON Schema",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runSchemaGet(cmd, args[0], args[1], verbose)
+		},
+	}
+	cmd.Flags().BoolVar(&verbose, "verbose", false, "include duplicated debug schema views")
+	return cmd
 }
 
-var schemaFieldsCmd = &cobra.Command{
-	Use:   "fields <中文平台名|platform-key> <type>",
-	Short: "返回指定平台和发布类型的紧凑字段视图",
-	Args:  cobra.ExactArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return runSchemaFields(cmd, args[0], args[1])
-	},
+func newSchemaFieldsCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "fields <中文平台名|platform-key> <type>",
+		Short: "返回指定平台和发布类型的紧凑字段视图",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runSchemaFields(cmd, args[0], args[1])
+		},
+	}
 }
 
 type flatFieldView struct {
@@ -116,7 +127,7 @@ func runSchemaList(cmd *cobra.Command) error {
 	})
 }
 
-func runSchemaGet(cmd *cobra.Command, platform, publishType string) error {
+func runSchemaGet(cmd *cobra.Command, platform, publishType string, verbose bool) error {
 	rt, err := app.Load()
 	if err != nil {
 		return err
@@ -141,7 +152,7 @@ func runSchemaGet(cmd *cobra.Command, platform, publishType string) error {
 		"file":     filepath.ToSlash(schemaDoc.File),
 
 		// 只返回业务字段定义（最核心的部分）
-		"businessFields": schemaDoc.Properties,
+		"businessFields":  schemaDoc.Properties,
 		"fieldPlacements": buildFieldPlacements(schemaDoc),
 
 		// 标准结构说明（文本形式）
@@ -163,6 +174,9 @@ func runSchemaGet(cmd *cobra.Command, platform, publishType string) error {
 		// 最小可用模板
 		"minimalTemplate": buildMinimalPayloadTemplate(schemaDoc),
 
+		// 动态字段公共示例（仅包含当前 schema 暴露的字段）
+		"dynamicFieldExamples": buildDynamicFieldExamples(schemaDoc),
+
 		// 使用指引
 		"guidance": []string{
 			"1. 优先使用 'yxer schema fields' 查看紧凑字段列表",
@@ -176,7 +190,7 @@ func runSchemaGet(cmd *cobra.Command, platform, publishType string) error {
 	}
 
 	// verbose 模式返回完整 schema（用于调试）
-	if schemaGetVerbose {
+	if verbose {
 		result["fullDocument"] = envelopeSchema
 		result["accountFormSchema"] = buildAccountFormSchema(schemaDoc)
 		result["contentPublishFormSchema"] = buildContentPublishFormSchema(schemaDoc)
@@ -198,11 +212,30 @@ func buildFieldPlacements(doc schema.Document) map[string]fieldPlacementView {
 }
 
 func fieldPlacementFor(doc schema.Document, key string) fieldPlacementView {
+	if isWeixinAccountArticleDoc(doc) {
+		return fieldPlacementView{
+			SchemaPath: "businessFields." + key,
+			InputPaths: []string{"publishArgs.platformForms.微信公众号." + key},
+			Note:       "微信公众号文章平台字段应填写在 publishArgs.platformForms[\"微信公众号\"] 下，不走 accountForms[].contentPublishForm。",
+		}
+	}
 	view := fieldPlacementView{
 		SchemaPath: "businessFields." + key,
 		InputPaths: []string{"publishArgs.accountForms[].contentPublishForm." + key},
 	}
 	switch key {
+	case "video":
+		view.InputPaths = []string{
+			"publishArgs.accountForms[].video",
+			"publishArgs.accountForms[].contentPublishForm.video",
+		}
+		view.Note = "视频资源运行时从 accountForms[] 层读取；请使用 yxer upload 返回的完整对象，并保留 duration。"
+	case "images":
+		view.InputPaths = []string{
+			"publishArgs.accountForms[].images",
+			"publishArgs.accountForms[].contentPublishForm.images",
+		}
+		view.Note = "图文图片运行时从 accountForms[] 层读取；CLI 会从 contentPublishForm.images 归一化，但推荐直接填写 accountForms[].images。"
 	case "cover":
 		view.InputPaths = []string{
 			"publishArgs.accountForms[].cover",
@@ -275,6 +308,9 @@ func runSchemaFields(cmd *cobra.Command, platform, publishType string) error {
 		// 复杂字段的查询命令提示
 		"queryCommands": buildQueryCommandHints(grouped.Complex, platform),
 
+		// 动态字段公共示例（仅包含当前 schema 暴露的字段）
+		"dynamicFieldExamples": buildDynamicFieldExamples(doc),
+
 		// 平台特定说明
 		"platformNotes": getPlatformSpecificNotes(platform, publishType),
 
@@ -305,6 +341,7 @@ func buildStandardPublishSchema(doc schema.Document) schema.Document {
 func buildStandardPublishFieldView(doc schema.Document, businessFields map[string]schema.PropertyView) map[string]schema.PropertyView {
 	platformName := platformutil.ChineseName(doc.Platform)
 	contentPublishFields := contentPublishFormFieldsForEnvelope(doc)
+	accountResourceFields := accountResourceFieldViews(doc)
 	publishArgsProperties := map[string]schema.PropertyView{
 		"cover": {
 			Type: "object",
@@ -327,16 +364,32 @@ func buildStandardPublishFieldView(doc schema.Document, businessFields map[strin
 						Type: "string",
 					},
 					"video": {
-						Type: "object",
+						Type:       "object",
+						Required:   accountResourceFields["video"].Required,
+						Properties: resourceFieldProperties(true),
 					},
 					"images": {
-						Type: "array",
+						Type:     "array",
+						Required: accountResourceFields["images"].Required,
+						MinItems: accountResourceFields["images"].MinItems,
+						Items: &schema.PropertyView{
+							Type:       "object",
+							Properties: resourceFieldProperties(false),
+						},
 					},
 					"cover": {
-						Type: "object",
+						Type:       "object",
+						Required:   accountResourceFields["cover"].Required,
+						Properties: resourceFieldProperties(false),
 					},
 					"coverKey": {
-						Type: "string",
+						Type:     "string",
+						Required: accountResourceFields["coverKey"].Required,
+					},
+					"horizontalCover": {
+						Type:       "object",
+						Required:   accountResourceFields["horizontalCover"].Required,
+						Properties: resourceFieldProperties(false),
 					},
 					"contentPublishForm": {
 						Type:       "object",
@@ -355,6 +408,25 @@ func buildStandardPublishFieldView(doc schema.Document, businessFields map[strin
 	} else {
 		publishArgsProperties["content"] = schema.PropertyView{
 			Type: "string",
+		}
+	}
+	if isWeixinAccountArticleDoc(doc) {
+		delete(publishArgsProperties, "content")
+		publishArgsProperties["platformForms"] = schema.PropertyView{
+			Type: "object",
+			Properties: map[string]schema.PropertyView{
+				"微信公众号": {
+					Type:       "object",
+					Required:   true,
+					Properties: doc.Properties,
+				},
+			},
+		}
+		accountFormItem := publishArgsProperties["accountForms"].Items
+		if accountFormItem != nil {
+			accountFormItem.Properties["contentPublishForm"] = schema.PropertyView{
+				Type: "object",
+			}
 		}
 	}
 	return map[string]schema.PropertyView{
@@ -403,14 +475,22 @@ func buildStandardPublishFieldView(doc schema.Document, businessFields map[strin
 			Default: false,
 		},
 		"publishArgs": {
-			Type:     "object",
-			Required: true,
+			Type:       "object",
+			Required:   true,
 			Properties: publishArgsProperties,
 		},
 	}
 }
 
 func buildAccountFormSchema(doc schema.Document) schema.PropertyView {
+	contentPublishFormSchema := schema.PropertyView{
+		Type:       "object",
+		Required:   true,
+		Properties: contentPublishFormFieldsForEnvelope(doc),
+	}
+	if isWeixinAccountArticleDoc(doc) {
+		contentPublishFormSchema = schema.PropertyView{Type: "object"}
+	}
 	return schema.PropertyView{
 		Type:     "object",
 		Required: true,
@@ -435,9 +515,9 @@ func buildAccountFormSchema(doc schema.Document) schema.PropertyView {
 				Type: "string",
 			},
 			"contentPublishForm": {
-				Type:       "object",
-				Required:   true,
-				Properties: contentPublishFormFieldsForEnvelope(doc),
+				Type:       contentPublishFormSchema.Type,
+				Required:   contentPublishFormSchema.Required,
+				Properties: contentPublishFormSchema.Properties,
 			},
 		},
 	}
@@ -458,10 +538,49 @@ func buildContentPublishFormSchema(doc schema.Document) schema.Document {
 }
 
 func contentPublishFormFieldsForEnvelope(doc schema.Document) map[string]schema.PropertyView {
+	if isWeixinAccountArticleDoc(doc) {
+		return nil
+	}
 	if doc.Type != "article" {
-		return doc.Properties
+		return clonePropertyViewsWithoutKeys(doc.Properties, accountLevelResourceKeys(doc.Type)...)
 	}
 	return clonePropertyViewsWithoutKeys(doc.Properties, "content")
+}
+
+func accountResourceFieldViews(doc schema.Document) map[string]schema.PropertyView {
+	fields := map[string]schema.PropertyView{}
+	if doc.Type == "video" {
+		fields["video"] = schema.PropertyView{Required: true}
+		fields["cover"] = schema.PropertyView{Required: true}
+		fields["coverKey"] = schema.PropertyView{Required: true}
+		if _, ok := doc.Properties["horizontalCover"]; ok {
+			fields["horizontalCover"] = schema.PropertyView{Required: true}
+		}
+	}
+	if doc.Type == "imageText" {
+		fields["images"] = schema.PropertyView{Required: true, MinItems: intPtr(1)}
+		fields["cover"] = schema.PropertyView{Required: true}
+		fields["coverKey"] = schema.PropertyView{Required: true}
+	}
+	return fields
+}
+
+func resourceFieldProperties(includeDuration bool) map[string]schema.PropertyView {
+	props := map[string]schema.PropertyView{
+		"key":    {Type: "string", Required: true},
+		"size":   {Type: "integer"},
+		"width":  {Type: "integer"},
+		"height": {Type: "integer"},
+		"format": {Type: "string"},
+	}
+	if includeDuration {
+		props["duration"] = schema.PropertyView{Type: "number", Required: true}
+	}
+	return props
+}
+
+func isWeixinAccountArticleDoc(doc schema.Document) bool {
+	return doc.Type == "article" && platformutil.CanonicalKey(doc.Platform) == "weixin.account"
 }
 
 func requiredPropertyKeys(fields map[string]schema.PropertyView) []string {
@@ -589,7 +708,7 @@ func isStandardTopLevelField(path string) bool {
 func isComplexField(path string) bool {
 	complexPatterns := []string{
 		"location", "music", "challenge", "collection", "sub_collection",
-		"category", "goods", "shopping_cart", "groupShopping",
+		"category", "goods", "shopping_cart", "group_shopping", "groupShopping",
 		"mini_app", "hot_event", "game", "sync_apps",
 		"cooperation_info", "friends", "group",
 	}
@@ -621,7 +740,7 @@ func buildQueryCommandHints(complexFields []flatFieldView, platform string) map[
 			fieldType = "collection"
 		} else if strings.Contains(path, "category") {
 			fieldType = "category"
-		} else if strings.Contains(path, "goods") || strings.Contains(path, "shopping_cart") || strings.Contains(path, "groupShopping") {
+		} else if strings.Contains(path, "goods") || strings.Contains(path, "shopping_cart") || strings.Contains(path, "group_shopping") || strings.Contains(path, "groupShopping") {
 			fieldType = "goods"
 		} else if strings.Contains(path, "mini_app") {
 			fieldType = "mini_app"
@@ -648,17 +767,17 @@ func buildQueryCommandHints(complexFields []flatFieldView, platform string) map[
 // getQueryCommand 获取字段类型对应的查询命令
 func getQueryCommand(fieldType string) string {
 	commands := map[string]string{
-		"location":    "yxer locations <account_id> [--query 关键词]",
-		"music":       "yxer music <account_id> [--query 关键词]",
-		"challenge":   "yxer challenges <account_id> [--query 关键词] [--type video]",
-		"collection":  "yxer collections <account_id> [--type video|article]",
-		"category":    "yxer categories <account_id> [--type video|article]",
-		"goods":       "yxer goods <account_id> [--query 关键词]",
-		"mini_app":    "yxer miniapps <account_id> [--query 关键词]",
-		"hot_event":   "yxer hot-events <account_id> [--query 关键词]",
-		"game":        "yxer games <account_id> [--query 关键词]",
-		"friends":     "yxer friends <account_id>",
-		"group":       "yxer groups <account_id>",
+		"location":   "yxer query locations <account_id> [--query 关键词]",
+		"music":      "yxer query music <account_id> [--query 关键词]",
+		"challenge":  "yxer query challenges <account_id> [--query 关键词] [--type video]",
+		"collection": "yxer query collections <account_id> [--type video|article]",
+		"category":   "yxer query categories <account_id> [--type video|article]",
+		"goods":      "yxer query goods <account_id> [--query 关键词]",
+		"mini_app":   "yxer query miniapps <account_id> [--query 关键词]",
+		"hot_event":  "yxer query hot-events <account_id> [--query 关键词]",
+		"game":       "yxer query games <account_id> [--query 关键词]",
+		"friends":    "yxer query friends <account_id>",
+		"group":      "yxer query groups <account_id>",
 	}
 	if cmd, ok := commands[fieldType]; ok {
 		return cmd
@@ -710,7 +829,8 @@ func getPlatformSpecificNotes(platform, publishType string) []string {
 
 	case "weixin.account", "微信公众号":
 		if publishType == "article" {
-			notes = append(notes, "公众号文章支持富文本和多媒体，需要使用 content 字段传递文章内容")
+			notes = append(notes, "公众号文章使用 publishArgs.platformForms[\"微信公众号\"].articles[] 传递文章包，而不是通用 contentPublishForm")
+			notes = append(notes, "公众号文章必须单平台发布；accountForms 仅用于声明目标账号")
 		}
 	}
 

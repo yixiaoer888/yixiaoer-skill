@@ -6,7 +6,7 @@
 
 - 统一 Agent 对“话题/标签”字段的装配方式
 - 明确“描述类字段/正文中的话题标签结构”和“字段中的话题对象结构”是两套规则
-- 明确 CLI 不负责兜底修复 `description` / `desc` / `content` 中的标签结构；字段中的话题对象仍按各平台字段定义传入
+- 明确 CLI 会兜底修复 `description` 中的普通 `#话题`；字段中的话题对象仍按各平台字段定义传入
 
 ## 总规则
 
@@ -14,7 +14,7 @@
 - 字段中的话题数据，如 `topics`、`tags`、`challenge`，必须按各平台 schema 和平台文档定义的字段结构传入。
 - 只有当平台文档明确要求在 `description`、`desc` 或 `content` 中嵌入话题标签时，才使用 `<topic>` HTML。
 - `description` / `desc` / `content` 中的 `<topic>` 规则，不适用于 `topics`、`tags`、`challenge` 等字段对象。
-- CLI 内部兼容逻辑只用于历史 payload 兜底，不能作为 Agent 的标准装配方案。
+- CLI 内部兼容逻辑只处理 `description` 字段：将普通 `#话题` 归一化为 `<topic>` HTML；不会处理 `content`，也不会改变 `tags` / `topics` / `challenge` 字段结构。
 
 ## 字段类型对照
 
@@ -89,10 +89,11 @@
 规则：
 
 - Agent 必须直接写出最终 HTML
+- 如 `description` 仍是普通文本加 `#话题`，CLI 会在 validate/dry-run/publish 流程中归一化为上述 HTML。
 - `text` 属性应为不带 `#` 的标签文本
 - 标签正文通常为 `#标签名`
 - 不要把这种 HTML 结构误用于 `topics` / `challenge` / `tags` 字段
-- 不要同时依赖 `tags` 再让 CLI 自动拼 `<topic>`
+- 不要同时依赖 `tags` 再让 CLI 自动拼 `<topic>`；CLI 不从 `tags` 生成描述话题。
 
 ## 平台装配优先级
 
@@ -111,7 +112,7 @@
 ### 抖音图文
 
 - 若文档要求 `description` 支持 `<topic>`，Agent 应直接传最终 HTML
-- 这个规则只针对描述类字段本身，例如 `description`
+- 这个规则只针对 `description`
 - 不要把 `topics` / `challenge` 之类字段也按 `<topic>` HTML 处理
 - 不要只传 `tags` 再期待 CLI 注入 `<topic>`
 
@@ -128,7 +129,7 @@
 - 把 `tags` 写成对象数组
 - 把 `topics` / `challenge` / `tags` 按 `<topic>` HTML 结构传入字段本身
 - 省略查询结果里的 `raw`
-- 依赖 CLI 在发布前自动修复标签结构
+- 依赖 CLI 从 `tags`、`topics`、`challenge` 或 `content` 自动修复标签结构
 
 ## 推荐执行方式
 
@@ -136,4 +137,4 @@
 2. 再查平台文档确认字段类型
 3. 如需动态话题对象，先执行 `yxer query challenges` / `yxer query categories`
 4. 由 Agent 直接生成最终 payload
-5. 用 `yxer validate` 验证，而不是依赖 CLI 重写标签结构
+5. 用 `yxer validate` 验证；`description` 中的普通 `#话题` 会被 CLI 归一化为 `<topic>` HTML

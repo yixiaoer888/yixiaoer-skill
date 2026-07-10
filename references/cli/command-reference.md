@@ -2,6 +2,8 @@
 
 `yxer` 是本技能唯一执行入口。Agent 和用户都应直接使用它。
 
+命令树设计标准见：`references/cli/command-design.md`
+
 ## 命令分组
 
 ### 环境与版本
@@ -30,6 +32,12 @@ yxer skill sync [--global]
 
 ```bash
 yxer accounts list [platform] [--name 关键词] [--status 1] [--page 1] [--size 20] [--all] [--json]
+yxer accounts update <account_id> [--proxy-id ID] [--kuaidaili-area CODE] [--remark 文本] [--group ID] --dry-run
+yxer accounts update <account_id> [--proxy-id ID] [--kuaidaili-area CODE] [--remark 文本] [--group ID]
+yxer account-group list
+yxer account-group create <name> [--visible-scope all|specific] [--visible-user USER_ID]... [--dry-run]
+yxer account-group update <group_id> <name> [--visible-scope all|specific] [--visible-user USER_ID]... [--dry-run]
+yxer account-group delete <group_id> [--dry-run]
 yxer upload --file <file_path> [--bucket cloud-publish|material-library] [--dry-run]
 yxer upload --url <resource_url> [--bucket cloud-publish|material-library] [--dry-run]
 ```
@@ -63,6 +71,7 @@ yxer query syncapps <account_id>
 yxer query games <account_id> [--query 关键词]
 yxer query hot-events <account_id> [--type video|article]
 yxer query groups <account_id>
+yxer query members [--page 1] [--size 10] [--status notJoined|pending|joined] [--query 关键词] [--role master|admin|member]
 yxer query activities <account_id> [--type video|article] [--category-id ID] [--query 关键词]
 yxer query challenges <account_id> [--query 关键词] [--type video] [--next-page TOKEN]
 yxer query records [--platform P] [--limit N] [--status S] [--json]
@@ -71,17 +80,16 @@ yxer query account-overviews --platform P [--name 关键词] [--group 分组] [-
 yxer query content-overviews [--platform P] [--account-id ID] [--publish-user-id ID] [--type video|article|miniVideo|dynamic] [--title 关键词] [--publish-start-time 毫秒] [--publish-end-time 毫秒] [--page 1] [--size 10]
 yxer query proxies [--size 9999]
 yxer query proxy-areas
-yxer update-account <account_id> [--proxy-id ID] [--kuaidaili-area CODE] [--remark 文本] [--group ID] --dry-run
-yxer update-account <account_id> [--proxy-id ID] [--kuaidaili-area CODE] [--remark 文本] [--group ID]
 yxer prepare <platform> <type>
 yxer schema fields <platform> <type>
 yxer schema get <platform> <type>
 ```
 
-兼容说明：
+入口说明：
 
-- 推荐新入口：`yxer query ...`
-- 旧入口如 `yxer categories ...`、`yxer records list ...` 仍可用，但后续文档统一以 `query` 入口为准
+- 推荐分组入口：`yxer account-group {list|create|update|delete}`
+- 查询类能力统一使用：`yxer query ...`
+- 旧的一层查询入口（如 `yxer categories ...`、`yxer records list ...`）已移除。
 
 ## 基本约束
 
@@ -101,7 +109,7 @@ yxer schema get <platform> <type>
 - 本机发布校验时，推荐在 `validate` 阶段就显式传入 `--publish-channel local`；若未显式传入但 payload 中已写 `publishChannel=local`，CLI 也会尝试从默认配置读取 `clientId`
 - `yxer draft save` 只处理蚁小二内部草稿，不等同于平台草稿箱
 - `yxer material create` 只做素材登记，前提是资源已经通过 `yxer upload --bucket material-library` 上传
-- 推荐优先使用 `yxer material add --file ...`，由 CLI 自动完成上传和素材登记
+- `yxer material add --file ...` 会自动完成上传和素材登记
 - 查询类操作可以直接执行
 - 发布类操作必须遵守“查账号 -> prepare/schema -> 上传资源 -> 查询复杂对象 -> 填 payload -> validate -> publish”顺序
 - 所有请求字段都必须来自 schema、平台文档或 CLI 返回结果；严禁虚构字段、乱猜枚举、手写 `raw` 对象或编造资源元数据
@@ -220,8 +228,8 @@ yxer publish video 抖音 .\payload.json --publish-channel local --client-id <cl
 
 ## 输出约定
 
-- 默认输出适合人读
-- 加 `--json` 时输出结构化结果，适合 Agent 二次处理
+- stdout 始终输出 JSON 数据
+- stderr 只输出诊断、警告、提示和结构化错误
 - 成功输出格式：`ok/action/version/data`
 - 失败输出格式：`ok/version/error`
 - 错误通过统一错误 envelope 输出

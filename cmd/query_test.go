@@ -10,16 +10,7 @@ import (
 )
 
 func TestRunRecordsListRequiresLimit(t *testing.T) {
-	recordsPlatform = ""
-	recordsLimit = ""
-	recordsStatus = ""
-	t.Cleanup(func() {
-		recordsPlatform = ""
-		recordsLimit = ""
-		recordsStatus = ""
-	})
-
-	err := runRecordsList(testCobraCommand())
+	err := runRecordsListWithOptions(testCobraCommand(), recordsOptions{})
 	if err == nil {
 		t.Fatal("expected records limit validation error")
 	}
@@ -41,102 +32,45 @@ func TestResolveQueryAliasFallsBackToAlias(t *testing.T) {
 }
 
 func TestLocationsKeywordFlagUsesAliasStorage(t *testing.T) {
-	cmd := &cobra.Command{Use: "locations"}
-	cmd.Flags().StringVar(&locationsQuery, "query", "", "search keyword")
-	cmd.Flags().StringVar(&locationsKeyword, "keyword", "", "search keyword (alias for --query)")
-	t.Cleanup(func() {
-		locationsQuery = ""
-		locationsKeyword = ""
-	})
-
-	if err := cmd.Flags().Parse([]string{"--keyword", "parks"}); err != nil {
-		t.Fatal(err)
-	}
-	if locationsQuery != "" {
-		t.Fatalf("expected primary query storage to remain empty, got %q", locationsQuery)
-	}
-	if locationsKeyword != "parks" {
-		t.Fatalf("expected alias storage to capture keyword flag, got %q", locationsKeyword)
-	}
+	assertKeywordFlagUsesAliasStorage(t, "locations", "parks")
 }
 
 func TestGoodsKeywordFlagUsesAliasStorage(t *testing.T) {
-	cmd := &cobra.Command{Use: "goods"}
-	cmd.Flags().StringVar(&goodsQuery, "query", "", "search keyword")
-	cmd.Flags().StringVar(&goodsKeyword, "keyword", "", "search keyword (alias for --query)")
-	t.Cleanup(func() {
-		goodsQuery = ""
-		goodsKeyword = ""
-	})
-
-	if err := cmd.Flags().Parse([]string{"--keyword", "phone"}); err != nil {
-		t.Fatal(err)
-	}
-	if goodsQuery != "" {
-		t.Fatalf("expected primary query storage to remain empty, got %q", goodsQuery)
-	}
-	if goodsKeyword != "phone" {
-		t.Fatalf("expected alias storage to capture keyword flag, got %q", goodsKeyword)
-	}
+	assertKeywordFlagUsesAliasStorage(t, "goods", "phone")
 }
 
 func TestMiniAppsKeywordFlagUsesAliasStorage(t *testing.T) {
-	cmd := &cobra.Command{Use: "miniapps"}
-	cmd.Flags().StringVar(&miniAppsQuery, "query", "", "search keyword")
-	cmd.Flags().StringVar(&miniAppsKeyword, "keyword", "", "search keyword (alias for --query)")
-	t.Cleanup(func() {
-		miniAppsQuery = ""
-		miniAppsKeyword = ""
-	})
-
-	if err := cmd.Flags().Parse([]string{"--keyword", "抽奖"}); err != nil {
-		t.Fatal(err)
-	}
-	if miniAppsQuery != "" {
-		t.Fatalf("expected primary query storage to remain empty, got %q", miniAppsQuery)
-	}
-	if miniAppsKeyword != "抽奖" {
-		t.Fatalf("expected alias storage to capture keyword flag, got %q", miniAppsKeyword)
-	}
+	assertKeywordFlagUsesAliasStorage(t, "miniapps", "抽奖")
 }
 
 func TestGamesKeywordFlagUsesAliasStorage(t *testing.T) {
-	cmd := &cobra.Command{Use: "games"}
-	cmd.Flags().StringVar(&gamesQuery, "query", "", "search keyword")
-	cmd.Flags().StringVar(&gamesKeyword, "keyword", "", "search keyword (alias for --query)")
-	t.Cleanup(func() {
-		gamesQuery = ""
-		gamesKeyword = ""
-	})
+	assertKeywordFlagUsesAliasStorage(t, "games", "消消乐")
+}
 
-	if err := cmd.Flags().Parse([]string{"--keyword", "消消乐"}); err != nil {
-		t.Fatal(err)
-	}
-	if gamesQuery != "" {
-		t.Fatalf("expected primary query storage to remain empty, got %q", gamesQuery)
-	}
-	if gamesKeyword != "消消乐" {
-		t.Fatalf("expected alias storage to capture keyword flag, got %q", gamesKeyword)
-	}
+func TestMembersKeywordFlagUsesAliasStorage(t *testing.T) {
+	assertKeywordFlagUsesAliasStorage(t, "members", "张三")
 }
 
 func TestActivitiesKeywordFlagUsesAliasStorage(t *testing.T) {
-	cmd := &cobra.Command{Use: "activities"}
-	cmd.Flags().StringVar(&activitiesQuery, "query", "", "search keyword")
-	cmd.Flags().StringVar(&activitiesKeyword, "keyword", "", "search keyword (alias for --query)")
-	t.Cleanup(func() {
-		activitiesQuery = ""
-		activitiesKeyword = ""
-	})
+	assertKeywordFlagUsesAliasStorage(t, "activities", "创作")
+}
 
-	if err := cmd.Flags().Parse([]string{"--keyword", "创作"}); err != nil {
+func assertKeywordFlagUsesAliasStorage(t *testing.T, use, value string) {
+	t.Helper()
+	var query string
+	var keyword string
+	cmd := &cobra.Command{Use: use}
+	cmd.Flags().StringVar(&query, "query", "", "search keyword")
+	cmd.Flags().StringVar(&keyword, "keyword", "", "search keyword (alias for --query)")
+
+	if err := cmd.Flags().Parse([]string{"--keyword", value}); err != nil {
 		t.Fatal(err)
 	}
-	if activitiesQuery != "" {
-		t.Fatalf("expected primary query storage to remain empty, got %q", activitiesQuery)
+	if query != "" {
+		t.Fatalf("expected primary query storage to remain empty, got %q", query)
 	}
-	if activitiesKeyword != "创作" {
-		t.Fatalf("expected alias storage to capture keyword flag, got %q", activitiesKeyword)
+	if keyword != value {
+		t.Fatalf("expected alias storage to capture keyword flag, got %q", keyword)
 	}
 }
 
@@ -158,10 +92,48 @@ func TestQueryCommandExistsWithLocationsSubcommand(t *testing.T) {
 	}
 }
 
-func TestLocationsCommandMarkedAsCompatibilityEntry(t *testing.T) {
-	cmd := newLocationsCmd()
-	if !strings.Contains(cmd.Short, "兼容入口") {
-		t.Fatalf("expected compatibility hint in short help, got %q", cmd.Short)
+func TestQueryCommandsUseCommandLocalFlagStorage(t *testing.T) {
+	locations := newLocationsCmd()
+	if err := locations.Flags().Parse([]string{"--query", "parks", "--keyword", "alias"}); err != nil {
+		t.Fatal(err)
+	}
+	anotherLocations := newLocationsCmd()
+	if got, err := anotherLocations.Flags().GetString("query"); err != nil || got != "" {
+		t.Fatalf("expected independent locations command query default, got %q, err=%v", got, err)
+	}
+
+	update := newAccountsUpdateCmd()
+	if err := update.Flags().Parse([]string{"--proxy-id", "proxy_1", "--dry-run"}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRootDoesNotExposeQueryCompatibilityCommands(t *testing.T) {
+	removed := map[string]bool{
+		"categories":        true,
+		"locations":         true,
+		"music":             true,
+		"music-categories":  true,
+		"goods":             true,
+		"collections":       true,
+		"miniapps":          true,
+		"syncapps":          true,
+		"games":             true,
+		"hot-events":        true,
+		"groups":            true,
+		"activities":        true,
+		"challenges":        true,
+		"records":           true,
+		"details":           true,
+		"account-overviews": true,
+		"content-overviews": true,
+		"proxies":           true,
+		"proxy-areas":       true,
+	}
+	for _, child := range rootCmd.Commands() {
+		if removed[child.Name()] {
+			t.Fatalf("root should not expose query compatibility command %q", child.Name())
+		}
 	}
 }
 
@@ -171,6 +143,7 @@ func TestQueryCommandExistsWithMiniAppsAndSyncAppsSubcommands(t *testing.T) {
 	foundGames := false
 	foundHotEvents := false
 	foundGroups := false
+	foundMembers := false
 	foundActivities := false
 	foundMusicCategories := false
 	foundDetails := false
@@ -194,6 +167,8 @@ func TestQueryCommandExistsWithMiniAppsAndSyncAppsSubcommands(t *testing.T) {
 				foundHotEvents = true
 			case "groups":
 				foundGroups = true
+			case "members":
+				foundMembers = true
 			case "activities":
 				foundActivities = true
 			case "music-categories":
@@ -226,6 +201,9 @@ func TestQueryCommandExistsWithMiniAppsAndSyncAppsSubcommands(t *testing.T) {
 	if !foundGroups {
 		t.Fatal("expected query command to expose groups subcommand")
 	}
+	if !foundMembers {
+		t.Fatal("expected query command to expose members subcommand")
+	}
 	if !foundActivities {
 		t.Fatal("expected query command to expose activities subcommand")
 	}
@@ -249,68 +227,7 @@ func TestQueryCommandExistsWithMiniAppsAndSyncAppsSubcommands(t *testing.T) {
 	}
 }
 
-func TestMiniAppsCommandMarkedAsCompatibilityEntry(t *testing.T) {
-	cmd := newMiniAppsCmd()
-	if !strings.Contains(cmd.Short, "兼容入口") {
-		t.Fatalf("expected compatibility hint in short help, got %q", cmd.Short)
-	}
-}
-
-func TestSyncAppsCommandMarkedAsCompatibilityEntry(t *testing.T) {
-	cmd := newSyncAppsCmd()
-	if !strings.Contains(cmd.Short, "兼容入口") {
-		t.Fatalf("expected compatibility hint in short help, got %q", cmd.Short)
-	}
-}
-
-func TestGamesCommandMarkedAsCompatibilityEntry(t *testing.T) {
-	cmd := newGamesCmd()
-	if !strings.Contains(cmd.Short, "兼容入口") {
-		t.Fatalf("expected compatibility hint in short help, got %q", cmd.Short)
-	}
-}
-
-func TestHotEventsCommandMarkedAsCompatibilityEntry(t *testing.T) {
-	cmd := newHotEventsCmd()
-	if !strings.Contains(cmd.Short, "兼容入口") {
-		t.Fatalf("expected compatibility hint in short help, got %q", cmd.Short)
-	}
-}
-
-func TestGroupsCommandMarkedAsCompatibilityEntry(t *testing.T) {
-	cmd := newGroupsCmd()
-	if !strings.Contains(cmd.Short, "兼容入口") {
-		t.Fatalf("expected compatibility hint in short help, got %q", cmd.Short)
-	}
-}
-
-func TestActivitiesCommandMarkedAsCompatibilityEntry(t *testing.T) {
-	cmd := newActivitiesCmd()
-	if !strings.Contains(cmd.Short, "兼容入口") {
-		t.Fatalf("expected compatibility hint in short help, got %q", cmd.Short)
-	}
-}
-
-func TestMusicCategoriesCommandMarkedAsCompatibilityEntry(t *testing.T) {
-	cmd := newMusicCategoriesCmd()
-	if !strings.Contains(cmd.Short, "兼容入口") {
-		t.Fatalf("expected compatibility hint in short help, got %q", cmd.Short)
-	}
-}
-
-func TestDetailsCommandMarkedAsCompatibilityEntry(t *testing.T) {
-	cmd := newDetailsCmd()
-	if !strings.Contains(cmd.Short, "兼容入口") {
-		t.Fatalf("expected compatibility hint in short help, got %q", cmd.Short)
-	}
-}
-
 func TestAccountOverviewsRequiresPlatform(t *testing.T) {
-	accountOverviewPlatform = ""
-	t.Cleanup(func() {
-		accountOverviewPlatform = ""
-	})
-
 	err := newAccountOverviewsCmd().RunE(testCobraCommand(), nil)
 	if err == nil {
 		t.Fatal("expected missing platform error")
@@ -321,17 +238,8 @@ func TestAccountOverviewsRequiresPlatform(t *testing.T) {
 }
 
 func TestUpdateAccountDryRunOutputsRequestBody(t *testing.T) {
-	updateAccountKuaidailiArea = ""
-	t.Cleanup(func() {
-		updateAccountProxyID = ""
-		updateAccountKuaidailiArea = ""
-		updateAccountRemark = ""
-		updateAccountGroups = nil
-		updateAccountDryRun = false
-	})
-
 	var out bytes.Buffer
-	cmd := newUpdateAccountCmd()
+	cmd := newAccountsUpdateCmd()
 	cmd.SetOut(&out)
 	cmd.SetArgs([]string{"acc_1", "--proxy-id", "proxy_1", "--remark", "主账号", "--group", "group_1", "--dry-run"})
 	if err := cmd.Execute(); err != nil {
@@ -341,6 +249,9 @@ func TestUpdateAccountDryRunOutputsRequestBody(t *testing.T) {
 	var response map[string]interface{}
 	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
 		t.Fatal(err)
+	}
+	if response["action"] != "accounts.update.dry-run" {
+		t.Fatalf("unexpected action: %#v", response)
 	}
 	data := response["data"].(map[string]interface{})
 	if data["dryRun"] != true || data["account"] != "acc_1" {
@@ -357,16 +268,7 @@ func TestUpdateAccountDryRunOutputsRequestBody(t *testing.T) {
 }
 
 func TestUpdateAccountRejectsEmptyRequest(t *testing.T) {
-	updateAccountProxyID = ""
-	updateAccountKuaidailiArea = ""
-	updateAccountRemark = ""
-	updateAccountGroups = nil
-	updateAccountDryRun = true
-	t.Cleanup(func() {
-		updateAccountDryRun = false
-	})
-
-	err := newUpdateAccountCmd().RunE(testCobraCommand(), []string{"acc_1"})
+	err := newAccountsUpdateCmd().RunE(testCobraCommand(), []string{"acc_1"})
 	if err == nil {
 		t.Fatal("expected empty request error")
 	}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
@@ -95,6 +96,41 @@ func TestSkillCheckCommandReturnsStructuredError(t *testing.T) {
 	}
 }
 
+func TestResolveSkillsRunnerPrefersSkillsBinary(t *testing.T) {
+	binDir := t.TempDir()
+	createTestExecutable(t, binDir, "skills")
+	createTestExecutable(t, binDir, "npx")
+	t.Setenv("PATH", binDir)
+
+	runner, err := resolveSkillsRunner(false, `C:\skill\dir`)
+	if err != nil {
+		t.Fatalf("resolveSkillsRunner returned error: %v", err)
+	}
+	if filepath.Base(runner.Path) != executableName("skills") {
+		t.Fatalf("runner.Path = %q, want %q", runner.Path, executableName("skills"))
+	}
+	if len(runner.Args) < 2 || runner.Args[0] != "add" {
+		t.Fatalf("runner.Args = %#v, want skills add args", runner.Args)
+	}
+}
+
+func TestResolveSkillsRunnerFallsBackToNpx(t *testing.T) {
+	binDir := t.TempDir()
+	createTestExecutable(t, binDir, "npx")
+	t.Setenv("PATH", binDir)
+
+	runner, err := resolveSkillsRunner(true, `C:\skill\dir`)
+	if err != nil {
+		t.Fatalf("resolveSkillsRunner returned error: %v", err)
+	}
+	if filepath.Base(runner.Path) != executableName("npx") {
+		t.Fatalf("runner.Path = %q, want %q", runner.Path, executableName("npx"))
+	}
+	if len(runner.Args) < 4 || runner.Args[0] != "-y" || runner.Args[1] != "skills" {
+		t.Fatalf("runner.Args = %#v, want npx skills args", runner.Args)
+	}
+}
+
 func createSkillCheckFixture(t *testing.T) string {
 	t.Helper()
 
@@ -113,7 +149,7 @@ func createSkillCheckFixture(t *testing.T) string {
 
 	skillContent := `---
 name: yixiaoer
-version: 3.1.0
+version: 3.1.1
 description: "通过 yxer CLI 操作蚁小二"
 metadata:
   requires:
@@ -183,4 +219,23 @@ metadata:
 	}
 
 	return skillDir
+}
+
+func createTestExecutable(t *testing.T, dir, name string) {
+	t.Helper()
+	path := filepath.Join(dir, executableName(name))
+	content := []byte("")
+	if runtime.GOOS == "windows" {
+		content = []byte("@echo off\r\n")
+	}
+	if err := os.WriteFile(path, content, 0o755); err != nil {
+		t.Fatalf("WriteFile(%q) returned error: %v", path, err)
+	}
+}
+
+func executableName(name string) string {
+	if runtime.GOOS == "windows" {
+		return name + ".cmd"
+	}
+	return name
 }

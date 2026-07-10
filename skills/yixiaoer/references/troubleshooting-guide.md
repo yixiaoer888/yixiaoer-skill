@@ -61,8 +61,8 @@
 > [!IMPORTANT]
 > **原因与对策：**
 > *   **原因：** 账号绑定的独立代理 (proxyId) 已被删除/过期，或该平台强制要求绑定代理才能进行云发布。
-> *   **方案 A (推荐)：** 使用 `action: "proxy-areas"` 查询可用地区码，并使用 `action: "update-account"` 为账号设置 `kuaidailiArea`（内置代理）。
-> *   **方案 B：** 检查 `action: "proxies"` 列表，重新为账号绑定一个有效的 `proxyId`。
+> *   **方案 A：** 使用 `yxer query proxy-areas` 查询可用地区码，并使用 `yxer accounts update <account_id> --kuaidaili-area <code> --dry-run` 预览后正式更新。
+> *   **方案 B：** 检查 `yxer query proxies` 列表，重新为账号绑定一个有效的 `proxyId`。
 > *   **方案 C：** 如果条件允许，切换回 `publishChannel: 'local'`（本机发布），此模式使用本地 IP，不依赖云端代理。
 
 ---

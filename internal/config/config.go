@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
@@ -100,8 +99,12 @@ func SaveLocalClientID(clientID string) (string, error) {
 	return configPath, nil
 }
 
+func PreviewConfigPath() (string, error) {
+	return resolveConfigPath()
+}
+
 func writeFileConfig(configPath string, cfg fileConfig) error {
-	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o700); err != nil {
 		return err
 	}
 	raw, err := json.MarshalIndent(cfg, "", "  ")
@@ -109,7 +112,7 @@ func writeFileConfig(configPath string, cfg fileConfig) error {
 		return err
 	}
 	raw = append(raw, '\n')
-	if err := os.WriteFile(configPath, raw, 0o644); err != nil {
+	if err := os.WriteFile(configPath, raw, 0o600); err != nil {
 		return err
 	}
 	return nil
@@ -135,14 +138,11 @@ func loadFileConfig(path string) (fileConfig, error) {
 		}
 		return cfg, err
 	}
+	_ = os.Chmod(path, 0o600)
 	if err := json.Unmarshal(raw, &cfg); err != nil {
 		return cfg, err
 	}
 	return cfg, nil
-}
-
-var nowRFC3339 = func() string {
-	return time.Now().Format(time.RFC3339)
 }
 
 func resolveProjectDir(cwd, exeDir string) (string, error) {
@@ -153,7 +153,7 @@ func resolveProjectDir(cwd, exeDir string) (string, error) {
 		}
 		if !isProjectDir(abs) {
 			return "", yxerrors.Usage("project directory not found", abs).
-				WithHint("请确认 YIXIAOER_PROJECT_DIR 指向项目根目录，且 schemas 和 workflows 目录存在。")
+				WithHint("请确认 YIXIAOER_PROJECT_DIR 指向项目根目录，且 schemas 与 workflows 或 references/workflows 目录存在。")
 		}
 		return abs, nil
 	}
@@ -190,7 +190,14 @@ func findProjectDirFrom(start string) (string, bool) {
 }
 
 func isProjectDir(path string) bool {
-	return isDir(filepath.Join(path, "schemas")) && isDir(filepath.Join(path, "workflows"))
+	if !isDir(filepath.Join(path, "schemas")) {
+		return false
+	}
+	return hasWorkflowDocs(path)
+}
+
+func hasWorkflowDocs(path string) bool {
+	return isDir(filepath.Join(path, "workflows")) || isDir(filepath.Join(path, "references", "workflows"))
 }
 
 func isDir(path string) bool {

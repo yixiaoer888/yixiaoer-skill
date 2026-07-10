@@ -10,8 +10,7 @@
   - “将这个 Key 对应的图片登记到素材管理中”
 
 > [!TIP]
-> **推荐命令 (Recommended Command)**:
-> 当用户意图是“把文件放进素材库”，优先直接使用：
+> 当用户意图是“把文件放进素材库”，直接使用：
 >
 > ```bash
 > yxer material add --file ./demo.mp4
@@ -39,12 +38,12 @@
 1. **链路检查**：确认资源是否已通过 `upload` 动作上传（建议使用 `bucket: "material-library"`）。
 2. **元数据提取**：识别文件的真实名称、宽高及类型。
 3. **参数装配**：构造 `action: "material"` 及完整元数据。
-4. **指令执行**：优先调用 `yxer material add --file ...`；只有高级定制时再拆分成 `upload + material create`。
+4. **指令执行**：调用 `yxer material add --file ...`；只有高级定制时再拆分成 `upload + material create`。
 5. **入库反馈**：向用户确认素材 ID 及入库成功状态。
 
-## 推荐链路 (Recommended Flow)
+## 执行链路
 
-1. 优先使用：
+1. 直接使用：
 
 ```bash
 yxer material add --file ./demo.mp4
@@ -60,13 +59,13 @@ yxer material add --file ./demo.mp4
 yxer material create material-payload.json
 ```
 
-推荐优先执行：
+也可直接上传并登记：
 
 ```bash
 yxer material add --file ./demo.mp4
 ```
 
-兼容旧模式时，先执行：
+如需手工控制资源 key 或缩略图，先执行：
 
 ```bash
 yxer upload ./demo.mp4 --bucket material-library

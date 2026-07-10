@@ -101,21 +101,35 @@
     "location": {
       "type": "object",
       "required": [
-        "yixiaoerId",
-        "yixiaoerName",
-        "raw"
+        "isScp",
+        "data"
       ],
       "properties": {
-        "yixiaoerId": {
-          "type": "string"
+        "isScp": {
+          "type": "boolean"
         },
-        "yixiaoerName": {
-          "type": "string"
-        },
-        "raw": {
-          "type": "object"
+        "data": {
+          "type": "object",
+          "required": [
+            "yixiaoerId",
+            "yixiaoerName",
+            "raw"
+          ],
+          "properties": {
+            "yixiaoerId": {
+              "type": "string"
+            },
+            "yixiaoerName": {
+              "type": "string"
+            },
+            "raw": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": true
         }
-      }
+      },
+      "additionalProperties": false
     },
     "music": {
       "type": "object",
@@ -206,10 +220,66 @@
     "declaration": {
       "type": "number",
       "enum": [
+        0,
         3,
         4,
         5,
         6
+      ],
+      "default": 0
+    },
+    "shopping_cart": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "sale_title",
+          "images",
+          "data"
+        ],
+        "properties": {
+          "sale_title": {
+            "type": "string",
+            "maxLength": 10
+          },
+          "images": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "yixiaoerId",
+              "yixiaoerName",
+              "raw"
+            ],
+            "properties": {
+              "yixiaoerId": {
+                "type": "string"
+              },
+              "yixiaoerName": {
+                "type": "string"
+              },
+              "raw": {
+                "type": "object"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "tagType": {
+      "type": "string",
+      "enum": [
+        "位置",
+        "团购",
+        "购物车"
       ]
     }
   },

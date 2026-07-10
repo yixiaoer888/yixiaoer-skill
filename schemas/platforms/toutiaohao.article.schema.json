@@ -102,6 +102,53 @@
       ],
       "default": 1
     },
+    "isFirst": {
+      "type": "boolean",
+      "default": false
+    },
+    "location": {
+      "type": "object",
+      "required": [
+        "id",
+        "text",
+        "raw"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    },
+    "scheduledTime": {
+      "type": "number",
+      "minimum": 0
+    },
+    "advertisement": {
+      "type": "number",
+      "enum": [
+        2,
+        3
+      ],
+      "default": 3
+    },
+    "declaration": {
+      "type": "number",
+      "enum": [
+        1,
+        2,
+        3,
+        6,
+        7,
+        8
+      ]
+    },
     "statement": {
       "type": "number",
       "enum": [

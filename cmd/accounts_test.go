@@ -60,38 +60,32 @@ func TestFilterAccountsSortsOnlineAccountsFirst(t *testing.T) {
 	}
 }
 
-func TestAccountsListSubcommandInheritsNameAndStatusFlags(t *testing.T) {
-	cmd := &cobra.Command{}
-	cmd.Flags().AddFlagSet(accountsListCmd.InheritedFlags())
-	if accountsListCmd.InheritedFlags().Lookup("name") == nil {
-		t.Fatal("expected accounts list to inherit --name flag")
+func TestAccountsListSubcommandHasListFlags(t *testing.T) {
+	accountsCmd := newAccountsCmd()
+	listCmd := findChildCommand(t, accountsCmd, "list")
+	if listCmd.Flags().Lookup("name") == nil {
+		t.Fatal("expected accounts list to expose --name flag")
 	}
-	if accountsListCmd.InheritedFlags().Lookup("status") == nil {
-		t.Fatal("expected accounts list to inherit --status flag")
+	if listCmd.Flags().Lookup("status") == nil {
+		t.Fatal("expected accounts list to expose --status flag")
 	}
-	if accountsListCmd.InheritedFlags().Lookup("page") == nil {
-		t.Fatal("expected accounts list to inherit --page flag")
+	if listCmd.Flags().Lookup("page") == nil {
+		t.Fatal("expected accounts list to expose --page flag")
 	}
-	if accountsListCmd.InheritedFlags().Lookup("size") == nil {
-		t.Fatal("expected accounts list to inherit --size flag")
+	if listCmd.Flags().Lookup("size") == nil {
+		t.Fatal("expected accounts list to expose --size flag")
 	}
-	if accountsListCmd.InheritedFlags().Lookup("all") == nil {
-		t.Fatal("expected accounts list to inherit --all flag")
+	if listCmd.Flags().Lookup("all") == nil {
+		t.Fatal("expected accounts list to expose --all flag")
 	}
 }
 
 func TestRunAccountsListRejectsInvalidPage(t *testing.T) {
-	previousPage := accountsPage
-	previousSize := accountsSize
-	t.Cleanup(func() {
-		accountsPage = previousPage
-		accountsSize = previousSize
+	err := runAccountsListWithOptions(&cobra.Command{}, nil, accountsListOptions{
+		Status: -1,
+		Page:   0,
+		Size:   20,
 	})
-
-	accountsPage = 0
-	accountsSize = 20
-
-	err := runAccountsList(&cobra.Command{}, nil)
 	if err == nil {
 		t.Fatal("expected error for invalid page")
 	}
@@ -101,21 +95,46 @@ func TestRunAccountsListRejectsInvalidPage(t *testing.T) {
 }
 
 func TestRunAccountsListRejectsInvalidSize(t *testing.T) {
-	previousPage := accountsPage
-	previousSize := accountsSize
-	t.Cleanup(func() {
-		accountsPage = previousPage
-		accountsSize = previousSize
+	err := runAccountsListWithOptions(&cobra.Command{}, nil, accountsListOptions{
+		Status: -1,
+		Page:   1,
+		Size:   0,
 	})
-
-	accountsPage = 1
-	accountsSize = 0
-
-	err := runAccountsList(&cobra.Command{}, nil)
 	if err == nil {
 		t.Fatal("expected error for invalid size")
 	}
 	if !strings.Contains(err.Error(), "accounts size must be greater than 0") {
 		t.Fatalf("unexpected error: %v", err)
 	}
+}
+
+func TestAccountsCommandExposesUpdateSubcommand(t *testing.T) {
+	cmd := newAccountsCmd()
+	updateCmd := findChildCommand(t, cmd, "update")
+	if updateCmd.Use != "update <account_id>" {
+		t.Fatalf("unexpected update command use: %q", updateCmd.Use)
+	}
+}
+
+func TestAccountsUpdateRejectsListFilterFlags(t *testing.T) {
+	cmd := newAccountsCmd()
+	cmd.SetArgs([]string{"update", "acc_1", "--proxy-id", "proxy_1", "--name", "ignored", "--dry-run"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected accounts update to reject list filter flags")
+	}
+	if !strings.Contains(err.Error(), "unknown flag: --name") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func findChildCommand(t *testing.T, parent *cobra.Command, name string) *cobra.Command {
+	t.Helper()
+	for _, child := range parent.Commands() {
+		if child.Name() == name {
+			return child
+		}
+	}
+	t.Fatalf("expected %s child command", name)
+	return nil
 }

@@ -3,24 +3,31 @@ package cmd
 import (
 	"sort"
 
-	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/core/platform"
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/schema"
+	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
+	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
 )
 
 func buildPayloadTemplate(doc schema.Document) map[string]interface{} {
 	contentProperties := doc.Properties
-	if doc.Type == "article" {
+	if doc.Type == "article" && !isWeixinAccountArticleDoc(doc) {
 		contentProperties = clonePropertyViewsWithoutKeys(doc.Properties, "content")
 	}
+	contentProperties = clonePropertyViewsWithoutKeys(contentProperties, accountLevelResourceKeys(doc.Type)...)
+	accountForm := map[string]interface{}{
+		"platformAccountId":  "<platformAccountId>",
+		"contentPublishForm": buildTemplateObject(contentProperties),
+	}
+	addRequiredAccountResources(accountForm, doc)
 	publishArgs := map[string]interface{}{
 		"accountForms": []interface{}{
-			map[string]interface{}{
-				"platformAccountId":  "<platformAccountId>",
-				"contentPublishForm": buildTemplateObject(contentProperties),
-			},
+			accountForm,
 		},
 	}
-	if doc.Type == "article" {
+	if isWeixinAccountArticleDoc(doc) {
+		publishArgs["platformForms"] = map[string]interface{}{
+			"微信公众号": buildTemplateObject(doc.Properties),
+		}
+	} else if doc.Type == "article" {
 		publishArgs["content"] = "<content>"
 	}
 	template := map[string]interface{}{
@@ -50,19 +57,14 @@ func buildMinimalPayloadTemplate(doc schema.Document) map[string]interface{} {
 	}
 
 	accountForm := map[string]interface{}{
-		"platformAccountId":  "<从 accounts list 获取>",
-		"contentPublishForm": requiredFields,
+		"platformAccountId": "<从 accounts list 获取>",
 	}
-	if requiresAccountLevelCover(doc) {
-		accountForm["cover"] = map[string]interface{}{
-			"key":    "<从 upload 获取>",
-			"size":   0,
-			"width":  0,
-			"height": 0,
-			"format": "<png|jpg|jpeg|webp>",
-		}
-		accountForm["coverKey"] = "<与 cover.key 一致>"
+	if isWeixinAccountArticleDoc(doc) {
+		accountForm["platformName"] = "微信公众号"
+	} else {
+		accountForm["contentPublishForm"] = requiredFields
 	}
+	addRequiredAccountResources(accountForm, doc)
 
 	template := map[string]interface{}{
 		"action":      "publish",
@@ -74,7 +76,12 @@ func buildMinimalPayloadTemplate(doc schema.Document) map[string]interface{} {
 			},
 		},
 	}
-	if doc.Type == "article" {
+	if isWeixinAccountArticleDoc(doc) {
+		template["publishArgs"].(map[string]interface{})["platformForms"] = map[string]interface{}{
+			"微信公众号": requiredFields,
+		}
+		template["desc"] = "<任务描述>"
+	} else if doc.Type == "article" {
 		template["publishArgs"].(map[string]interface{})["content"] = "<从正文生成>"
 		template["desc"] = "<任务描述>"
 	}
@@ -82,8 +89,8 @@ func buildMinimalPayloadTemplate(doc schema.Document) map[string]interface{} {
 	return template
 }
 
-func requiresAccountLevelCover(doc schema.Document) bool {
-	return doc.Platform == "shipinhao" && doc.Type == "imageText"
+func requiresPublishCoverResource(doc schema.Document) bool {
+	return doc.Type == "video" || doc.Type == "imageText"
 }
 
 func articleContentTemplateExclusion(publishType string) []string {
@@ -166,4 +173,50 @@ func buildTemplateValue(name string, view schema.PropertyView) (interface{}, boo
 	default:
 		return "<" + name + ">", true
 	}
+}
+
+func accountLevelResourceKeys(publishType string) []string {
+	switch publishType {
+	case "video":
+		return []string{"video", "cover", "coverKey", "horizontalCover"}
+	case "imageText":
+		return []string{"images", "cover", "coverKey"}
+	default:
+		return nil
+	}
+}
+
+func addRequiredAccountResources(accountForm map[string]interface{}, doc schema.Document) {
+	switch doc.Type {
+	case "video":
+		accountForm["video"] = videoResourcePlaceholder()
+		accountForm["cover"] = imageResourcePlaceholder()
+		accountForm["coverKey"] = "<与 cover.key 一致>"
+		if _, ok := doc.Properties["horizontalCover"]; ok {
+			accountForm["horizontalCover"] = imageResourcePlaceholder()
+		}
+	case "imageText":
+		accountForm["images"] = []interface{}{imageResourcePlaceholder()}
+		if requiresPublishCoverResource(doc) {
+			accountForm["cover"] = imageResourcePlaceholder()
+			accountForm["coverKey"] = "<与 cover.key 一致>"
+		}
+	}
+}
+
+func imageResourcePlaceholder() map[string]interface{} {
+	return map[string]interface{}{
+		"key":    "<从 yxer upload 获取>",
+		"size":   0,
+		"width":  0,
+		"height": 0,
+		"format": "<png|jpg|jpeg|webp>",
+	}
+}
+
+func videoResourcePlaceholder() map[string]interface{} {
+	resource := imageResourcePlaceholder()
+	resource["format"] = "<mp4|mov>"
+	resource["duration"] = 0
+	return resource
 }

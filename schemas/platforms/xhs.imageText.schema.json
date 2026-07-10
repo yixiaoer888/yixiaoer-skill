@@ -33,7 +33,7 @@
     "images": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 9,
+      "maxItems": 18,
       "items": {
         "type": "object",
         "required": [
@@ -72,10 +72,47 @@
     "location": {
       "type": "object",
       "required": [
+        "id",
+        "text",
+        "raw"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    },
+    "music": {
+      "type": "object",
+      "required": [
         "yixiaoerId",
         "yixiaoerName",
         "raw"
-      ]
+      ],
+      "properties": {
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "number"
+        },
+        "playUrl": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
+      }
     },
     "collection": {
       "type": "object",
@@ -84,6 +121,10 @@
         "yixiaoerName",
         "raw"
       ]
+    },
+    "scheduledTime": {
+      "type": "number",
+      "minimum": 0
     }
   },
   "additionalProperties": false

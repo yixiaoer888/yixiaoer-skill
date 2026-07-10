@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/spf13/cobra"
 )
 
 func TestPublishInitCommandWritesTemplateFile(t *testing.T) {
@@ -15,16 +13,13 @@ func TestPublishInitCommandWritesTemplateFile(t *testing.T) {
 	withGoBuildCache(t)
 
 	outputPath := filepath.Join(t.TempDir(), "douyin-video-payload.json")
-	publishInitOutput = outputPath
-	t.Cleanup(func() {
-		publishInitOutput = ""
-	})
 
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newPublishInitCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"抖音", "video", "--output", outputPath})
 
-	if err := publishInitCmd.RunE(cmd, []string{"抖音", "video"}); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -46,9 +41,19 @@ func TestPublishInitCommandWritesTemplateFile(t *testing.T) {
 	if form["platformAccountId"] != "<platformAccountId>" {
 		t.Fatalf("expected placeholder platformAccountId, got %#v", form["platformAccountId"])
 	}
+	video := form["video"].(map[string]interface{})
+	if video["duration"] == nil {
+		t.Fatalf("expected video resource placeholder with duration, got %#v", video)
+	}
+	if form["cover"] == nil || form["coverKey"] == nil {
+		t.Fatalf("expected account-level cover and coverKey placeholders, got %#v", form)
+	}
 	cpf := form["contentPublishForm"].(map[string]interface{})
 	if cpf["formType"] == nil || cpf["title"] == nil {
 		t.Fatalf("expected required schema fields in template, got %#v", cpf)
+	}
+	if _, exists := cpf["video"]; exists {
+		t.Fatalf("did not expect video resource under contentPublishForm template, got %#v", cpf)
 	}
 }
 
@@ -57,16 +62,13 @@ func TestPublishInitCommandPlacesArticleContentUnderPublishArgs(t *testing.T) {
 	withGoBuildCache(t)
 
 	outputPath := filepath.Join(t.TempDir(), "zhihu-article-payload.json")
-	publishInitOutput = outputPath
-	t.Cleanup(func() {
-		publishInitOutput = ""
-	})
 
 	var out bytes.Buffer
-	cmd := &cobra.Command{}
+	cmd := newPublishInitCmd()
 	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"知乎", "article", "--output", outputPath})
 
-	if err := publishInitCmd.RunE(cmd, []string{"知乎", "article"}); err != nil {
+	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 

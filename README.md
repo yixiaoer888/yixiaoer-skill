@@ -19,14 +19,40 @@
 - `skills/yixiaoer/references/domains/` 放任务分域入口。
 - `references/` 放命令参考、工作流和平台差异说明。
 
+命令树设计标准与演进建议见 [references/cli/command-design.md](references/cli/command-design.md)。
+
 运行时统一通过 `yxer` 执行，不再假设存在旧 Node 脚本入口。
 
-## 安装
+## 安装与快速开始
 
 ### 环境要求
 
 - Go `1.25.0` 或更高
 - Node.js 和 `npx`
+
+### 快速开始（npm 安装，推荐）
+
+如果你已经把 `yxer` 发布到了 npm，推荐优先使用全局安装：
+
+```powershell
+npm install -g @yixiaoermail/cli@latest
+yxer --version
+yxer skill sync
+```
+
+如需全局同步 skill：
+
+```powershell
+yxer skill sync --global
+```
+
+升级后建议再执行一次：
+
+```powershell
+yxer doctor
+```
+
+本次版本修改内容请查看 [CHANGELOG.md](CHANGELOG.md)。
 
 ### 从源码构建
 
@@ -156,9 +182,82 @@ yxer publish video 抖音 .\payload.json --publish-channel local --client-id <cl
 yxer publish video 抖音 .\payload.json --publish-channel local --client-id <clientId>
 ```
 
+## 升级
+
+如果 CLI 是通过 npm 安装的，推荐按下面顺序升级：
+
+```powershell
+npm install -g @yixiaoermail/cli@latest
+yxer --version
+yxer skill sync
+```
+
+如需全局 skill：
+
+```powershell
+yxer skill sync --global
+```
+
+只检查当前状态而不执行同步，可运行：
+
+```bash
+yxer update --check
+```
+
+执行“检查状态 + 同步 skill + 查看升级指引”：
+
+```bash
+yxer update
+```
+
+本次版本更新内容统一记录在 [CHANGELOG.md](CHANGELOG.md)。
+
 ## AI Skill 安装
 
 本项目采用“CLI 先安装，Skill 再安装”的方式，和飞书 CLI 的 skill 使用习惯保持一致。
+
+如果 CLI 是通过 npm 成品包安装的，推荐优先使用：
+
+```bash
+yxer skill sync
+yxer skill sync --global
+```
+
+npm 包会内置 `skills/yixiaoer`，`skill sync` 会直接使用本地随包分发的 skill 源文件，不依赖 GitHub 仓库地址。
+
+### 生成 npm 成品包
+
+如需产出可通过 `npm install -g` 安装的 CLI 成品包，可在仓库根目录执行：
+
+```powershell
+.\scripts\build-npm-package.ps1
+```
+
+默认会自动读取仓库内部版本，并校验以下版本源保持一致：
+
+- `internal/domain/response.go`
+- `skills/yixiaoer/SKILL.md`
+- `skills/yixiaoer/plugin.json`
+
+如需显式传版本号，也必须与内部版本一致：
+
+```powershell
+.\scripts\build-npm-package.ps1 -Version 3.1.1
+```
+
+该脚本会：
+
+- 先运行 `go test ./...`
+- 交叉编译 `windows/darwin/linux` 的 `amd64/arm64` 二进制
+- 生成 npm 发布包到 `out\npm\`
+
+生成完成后，可用下列命令验证 tarball：
+
+```powershell
+npm install -g .\out\npm\<generated-tarball>.tgz
+yxer --version
+yxer skill sync
+```
 
 ### 查看当前技能包位置
 
@@ -241,6 +340,7 @@ yxer config set-local-client-id <clientId>
 
 ```bash
 yxer accounts list [platform] [--name 关键词] [--status 1] [--json]
+yxer accounts update <account_id> [--proxy-id ID] [--kuaidaili-area CODE] [--remark 文本] [--group ID] [--dry-run]
 yxer upload --file <file_path> [--bucket cloud-publish|material-library] [--dry-run]
 yxer upload --url <resource_url> [--bucket cloud-publish|material-library] [--dry-run]
 ```
@@ -275,8 +375,7 @@ yxer query records [--platform P] [--limit N] [--status S] [--json]
 
 说明：
 
-- 推荐优先使用 `yxer query ...` 作为统一查询入口
-- 旧的一层命令如 `yxer locations ...`、`yxer records list ...` 仍兼容，可逐步迁移
+- 查询类能力统一使用 `yxer query ...` 入口，不再保留旧的一层查询命令。
 
 ## 使用说明
 
@@ -327,7 +426,7 @@ yxer query records [--platform P] [--limit N] [--status S] [--json]
 {
   "ok": true,
   "action": "doctor",
-  "version": "3.0.0",
+  "version": "3.1.1",
   "data": {
     "configPath": "C:\\Users\\<user>\\AppData\\Roaming\\yxer\\config.json",
     "apiUrl": "https://www.yixiaoer.cn/api",
@@ -335,8 +434,8 @@ yxer query records [--platform P] [--limit N] [--status S] [--json]
   },
   "_notice": {
     "skills": {
-      "current": "3.0.0",
-      "target": "3.0.0"
+      "current": "3.1.1",
+      "target": "3.1.1"
     }
   }
 }
@@ -347,7 +446,7 @@ yxer query records [--platform P] [--limit N] [--status S] [--json]
 ```json
 {
   "ok": false,
-  "version": "3.0.0",
+  "version": "3.1.1",
   "error": {
     "type": "validation_error",
     "code": "YIXIAOER_USAGE_ERR",
@@ -360,8 +459,8 @@ yxer query records [--platform P] [--limit N] [--status S] [--json]
 
 说明：
 
-- 默认输出更适合人读
-- 加 `--json` 后适合脚本和 AI agent 继续处理
+- stdout 始终输出 JSON 数据
+- stderr 只输出诊断、警告、提示和结构化错误
 - 成功输出使用 `ok/action/version/data`
 - 失败输出使用 `ok/version/error`
 
@@ -434,9 +533,8 @@ scripts/
 - 技能入口：`skills/yixiaoer/SKILL.md`
 - 任务分域：`skills/yixiaoer/references/domains/`
 - 命令参考：`references/cli/command-reference.md`
-- 技能安装与同步：`references/cli/skill-install.md`
+- 安装、升级与同步：`skills/yixiaoer/references/domains/install-and-sync.md`
 - 上线流程：`skills/yixiaoer/references/go-live-process.md`
-- CLI/Skill 安装卸载：`skills/yixiaoer/references/cli-install-uninstall.md`
 - 关键词文档：`skills/yixiaoer/references/keyword-reference.md`
 - 使用流程文档：`skills/yixiaoer/references/usage-workflow.md`
 - 工作流正文：`references/workflows/`

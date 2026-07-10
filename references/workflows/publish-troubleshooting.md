@@ -29,6 +29,12 @@
 - `publish --dry-run` 失败：发布前检查问题
 - 正式 `publish` 失败：通道、代理、客户端在线状态或平台返回错误
 
+## Instagram 视频特殊排查
+
+- 如果错误包含 `The media could not be fetched from the provided URI`、`Video download failed`、`创建发布容器失败`，优先检查视频资源 key 或 URL 路径里是否带中文文件名。
+- Instagram/Meta 会主动拉取视频 URL；带中文路径的媒体 URL 可能被 Meta 下载器直接判为 HTTP 400。
+- 修复方式：把原视频重命名为英文、数字、连字符或下划线，再重新执行 `yxer upload`，并用新的 `video.key` 更新 payload 后重试发布。
+
 ## 推荐命令
 
 ```bash

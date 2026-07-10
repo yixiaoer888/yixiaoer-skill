@@ -2,12 +2,43 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/config"
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
+
+func TestClientAddsSetAPIKeyHintForUnauthorizedResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"message": "账号登录失效",
+			"code":    "UNAUTHORIZED",
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "expired-key", APIURL: server.URL})
+	var out map[string]interface{}
+	err := client.Get("/accounts", &out)
+	if err == nil {
+		t.Fatal("expected unauthorized error")
+	}
+
+	var typed *yxerrors.Error
+	if !errors.As(err, &typed) {
+		t.Fatalf("expected structured yx error, got %T", err)
+	}
+	if typed.Hint == "" {
+		t.Fatalf("expected unauthorized error to include api key hint: %#v", typed)
+	}
+	if typed.NextCommand != "yxer config set-api-key <apiKey>" {
+		t.Fatalf("unexpected next command: %#v", typed.NextCommand)
+	}
+}
 
 func TestPlatformDocFileNameUsesShipinhaoAliasForImageText(t *testing.T) {
 	if got := platformDocFileName("shipinhao", "imageText"); got != "shipinhao.md" {
@@ -15,6 +46,27 @@ func TestPlatformDocFileNameUsesShipinhaoAliasForImageText(t *testing.T) {
 	}
 	if got := platformDocFileName("douyin", "imageText"); got != "douyin.md" {
 		t.Fatalf("expected default platform doc file, got %q", got)
+	}
+}
+
+func TestClientWrapsInvalidJSONResponseAsRemoteError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("<html>not json</html>"))
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	var out map[string]interface{}
+	err := client.Get("/broken", &out)
+	if err == nil {
+		t.Fatal("expected invalid JSON response error")
+	}
+	var typed *yxerrors.Error
+	if !errors.As(err, &typed) {
+		t.Fatalf("expected structured yx error, got %T", err)
+	}
+	if typed.Type != yxerrors.RemoteType || !typed.Retryable {
+		t.Fatalf("unexpected structured error: %#v", typed)
 	}
 }
 
@@ -349,6 +401,175 @@ func TestGroupsUsesExpectedEndpoint(t *testing.T) {
 	}
 }
 
+func TestMembersUsesExpectedEndpointAndFilters(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/members" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if got := r.URL.Query().Get("page"); got != "2" {
+			t.Fatalf("unexpected page query: %s", got)
+		}
+		if got := r.URL.Query().Get("size"); got != "20" {
+			t.Fatalf("unexpected size query: %s", got)
+		}
+		if got := r.URL.Query()["statuses"]; len(got) != 2 || got[0] != "joined" || got[1] != "pending" {
+			t.Fatalf("unexpected statuses query: %#v", got)
+		}
+		if got := r.URL.Query().Get("keyWords"); got != "张三" {
+			t.Fatalf("unexpected keyWords query: %s", got)
+		}
+		if got := r.URL.Query().Get("role"); got != "member" {
+			t.Fatalf("unexpected role query: %s", got)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": []map[string]interface{}{
+				{"id": "member_1", "name": "张三"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.Members(MembersOptions{
+		Page:     2,
+		Size:     20,
+		Statuses: []string{"joined", "pending"},
+		KeyWords: "张三",
+		Role:     "member",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	items := result.([]interface{})
+	if len(items) != 1 {
+		t.Fatalf("expected one member, got %d", len(items))
+	}
+	first := items[0].(map[string]interface{})
+	if first["name"] != "张三" {
+		t.Fatalf("unexpected member payload: %#v", first)
+	}
+}
+
+func TestAccountGroupsUsesExpectedEndpoint(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/groups" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": []map[string]interface{}{
+				{"id": "grp_1", "name": "核心账号组"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.AccountGroups()
+	if err != nil {
+		t.Fatal(err)
+	}
+	items := result.([]interface{})
+	if len(items) != 1 {
+		t.Fatalf("expected one account group, got %d", len(items))
+	}
+	first := items[0].(map[string]interface{})
+	if first["name"] != "核心账号组" {
+		t.Fatalf("unexpected account group payload: %#v", first)
+	}
+}
+
+func TestCreateAccountGroupUsesExpectedEndpointAndBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("unexpected method: %s", r.Method)
+		}
+		if r.URL.Path != "/groups" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		if body["name"] != "核心账号组" {
+			t.Fatalf("unexpected body: %#v", body)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": map[string]interface{}{
+				"id":   "grp_1",
+				"name": "核心账号组",
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.CreateAccountGroup(map[string]interface{}{"name": "核心账号组"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := result.(map[string]interface{})
+	if data["id"] != "grp_1" || data["name"] != "核心账号组" {
+		t.Fatalf("unexpected create account group result: %#v", data)
+	}
+}
+
+func TestUpdateAccountGroupUsesExpectedEndpointAndBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPatch {
+			t.Fatalf("unexpected method: %s", r.Method)
+		}
+		if r.URL.Path != "/groups/grp_1" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		if body["name"] != "新版核心账号组" {
+			t.Fatalf("unexpected body: %#v", body)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": map[string]interface{}{
+				"id":   "grp_1",
+				"name": "新版核心账号组",
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.UpdateAccountGroup("grp_1", map[string]interface{}{"name": "新版核心账号组"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := result.(map[string]interface{})
+	if data["id"] != "grp_1" || data["name"] != "新版核心账号组" {
+		t.Fatalf("unexpected update account group result: %#v", data)
+	}
+}
+
+func TestDeleteAccountGroupUsesExpectedEndpoint(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("unexpected method: %s", r.Method)
+		}
+		if r.URL.Path != "/groups/grp_1" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.DeleteAccountGroup("grp_1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result != nil {
+		t.Fatalf("expected nil delete result for empty response, got %#v", result)
+	}
+}
+
 func TestActivitiesUsesExpectedEndpointAndFilters(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/platform-accounts/acc_1/activities" {
@@ -383,5 +604,71 @@ func TestActivitiesUsesExpectedEndpointAndFilters(t *testing.T) {
 	first := items[0].(map[string]interface{})
 	if first["name"] != "创作激励" {
 		t.Fatalf("unexpected activity payload: %#v", first)
+	}
+}
+
+func TestPrepareUsesFirstOnlineAccountAcrossPagesForCategories(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			switch r.URL.Query().Get("page") {
+			case "1":
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"data": map[string]interface{}{
+						"list": []map[string]interface{}{
+							{"platformAccountId": "acc_1", "platformAccountName": "账号1", "status": 1},
+							{"platformAccountId": "acc_2", "platformAccountName": "账号2", "status": 0},
+						},
+						"page":      1,
+						"size":      50,
+						"totalPage": 2,
+						"totalSize": 3,
+					},
+				})
+			case "2":
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"data": map[string]interface{}{
+						"list": []map[string]interface{}{
+							{"platformAccountId": "acc_3", "platformAccountName": "账号3", "status": 1},
+						},
+						"page":      2,
+						"size":      50,
+						"totalPage": 2,
+						"totalSize": 3,
+					},
+				})
+			default:
+				t.Fatalf("unexpected page query: %s", r.URL.Query().Get("page"))
+			}
+		case "/platform-accounts/acc_1/categories":
+			if got := r.URL.Query().Get("publishType"); got != "video" {
+				t.Fatalf("unexpected publishType query: %s", got)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{
+					{"id": "cat_1", "name": "分类1"},
+				},
+			})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.Prepare("小红书", "video")
+	if err != nil {
+		t.Fatal(err)
+	}
+	items, ok := result.Categories.([]interface{})
+	if !ok {
+		t.Fatalf("expected categories list, got %#v", result.Categories)
+	}
+	if len(items) != 1 {
+		t.Fatalf("expected one category, got %d", len(items))
+	}
+	first := items[0].(map[string]interface{})
+	if first["id"] != "cat_1" {
+		t.Fatalf("unexpected category payload: %#v", first)
 	}
 }

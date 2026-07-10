@@ -31,6 +31,10 @@
 4. **指令执行**：调用 `yxer upload <file_path_or_url> [--bucket cloud-publish|material-library]`。
 5. **Key 提取**：获取返回的 `key`，并作为后续发布 Payload 的输入（如 `coverKey`, `video.key`）。
 
+> [!IMPORTANT]
+> **Instagram / Meta 兼容性**:
+> 若后续要发 Instagram 视频，原视频文件名不要使用中文、空格或其它非 ASCII 字符。Meta 会主动回拉蚁小二返回的媒体 URL；若 URL 路径中带中文，Meta 下载器可能直接返回 HTTP 400，导致“创建发布容器失败 / The media could not be fetched from the provided URI”。
+
 ## 输出结果 (Output)
 
 输出生成的资源标识，供发布脚本引用：

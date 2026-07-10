@@ -142,6 +142,10 @@
 | **哔哩哔哩** | `Bilibili` | [bilibili.md](./bilibili.md) |
 | **抖音** | `Douyin` | [douyin.md](./douyin.md) |
 | **视频号** | `Shipinhao` | [shipinhao.md](./shipinhao.md) |
+| **TikTok** | `Tiktok` | [tiktok.md](./tiktok.md) |
+| **Youtube** | `Youtube` | [youtube.md](./youtube.md) |
+| **Facebook** | `Facebook` | [facebook.md](./facebook.md) |
+| **Instagram** | `Instagram` | [instagram.md](./instagram.md) |
 | ... | ... | ... |
 
 ## 4. 通用规则 (Common DTO Rules)

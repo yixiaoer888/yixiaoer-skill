@@ -11,7 +11,6 @@ import (
 type PrepareData struct {
 	Platform        string                   `json:"platform"`
 	Type            string                   `json:"type"`
-	Accounts        []map[string]interface{} `json:"accounts"`
 	Categories      interface{}              `json:"categories"`
 	DefaultFormType string                   `json:"defaultFormType"`
 	Workflow        string                   `json:"workflow"`
@@ -85,6 +84,65 @@ func (c *Client) HotEvents(accountID, publishType string) (interface{}, error) {
 
 func (c *Client) Groups(accountID string) (interface{}, error) {
 	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/group-chats", accountID), nil))
+}
+
+type MembersOptions struct {
+	Page     int
+	Size     int
+	Statuses []string
+	KeyWords string
+	Role     string
+}
+
+func (c *Client) Members(opts MembersOptions) (interface{}, error) {
+	values := url.Values{}
+	setIfPositive(values, "page", opts.Page)
+	setIfPositive(values, "size", opts.Size)
+	setIfNotEmpty(values, "keyWords", opts.KeyWords)
+	setIfNotEmpty(values, "role", opts.Role)
+	for _, status := range opts.Statuses {
+		if status != "" {
+			values.Add("statuses", status)
+		}
+	}
+	return c.queryData(QueryValues("/members", values))
+}
+
+func (c *Client) AccountGroups() (interface{}, error) {
+	return c.queryData(Query("/groups", nil))
+}
+
+func (c *Client) CreateAccountGroup(body map[string]interface{}) (interface{}, error) {
+	var result interface{}
+	if err := c.Post("/groups", body, &result); err != nil {
+		return nil, err
+	}
+	if typed, ok := result.(map[string]interface{}); ok {
+		return DataOrSelf(typed), nil
+	}
+	return result, nil
+}
+
+func (c *Client) UpdateAccountGroup(groupID string, body map[string]interface{}) (interface{}, error) {
+	var result interface{}
+	if err := c.Patch(fmt.Sprintf("/groups/%s", groupID), body, &result); err != nil {
+		return nil, err
+	}
+	if typed, ok := result.(map[string]interface{}); ok {
+		return DataOrSelf(typed), nil
+	}
+	return result, nil
+}
+
+func (c *Client) DeleteAccountGroup(groupID string) (interface{}, error) {
+	var result interface{}
+	if err := c.Delete(fmt.Sprintf("/groups/%s", groupID), &result); err != nil {
+		return nil, err
+	}
+	if typed, ok := result.(map[string]interface{}); ok {
+		return DataOrSelf(typed), nil
+	}
+	return result, nil
 }
 
 func (c *Client) Activities(accountID, publishType, categoryID, keyword string) (interface{}, error) {
@@ -206,7 +264,6 @@ func (c *Client) Prepare(platform, publishType string) (PrepareData, error) {
 	return PrepareData{
 		Platform:        platform,
 		Type:            publishType,
-		Accounts:        onlineAccounts,
 		Categories:      categories,
 		DefaultFormType: "task",
 		Workflow:        fmt.Sprintf("workflows/publish-%s.md", publishType),

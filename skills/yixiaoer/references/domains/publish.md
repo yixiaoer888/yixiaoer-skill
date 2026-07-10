@@ -8,10 +8,11 @@
 ## 读取顺序
 
 1. [`../workflows/common-rules.md`](../workflows/common-rules.md)
-2. [`../workflows/account-selection.md`](../workflows/account-selection.md)
-3. [`../workflows/local-vs-cloud.md`](../workflows/local-vs-cloud.md)
-4. [`../workflows/payload-sourcing.md`](../workflows/payload-sourcing.md)
-5. 按类型继续读取：
+2. [`../workflows/data-accuracy.md`](../workflows/data-accuracy.md)
+3. [`../workflows/account-selection.md`](../workflows/account-selection.md)
+4. [`../workflows/local-vs-cloud.md`](../workflows/local-vs-cloud.md)
+5. [`../workflows/payload-sourcing.md`](../workflows/payload-sourcing.md)
+6. 按类型继续读取：
    - 图文：[`../workflows/publish-imageText.md`](../workflows/publish-imageText.md)
    - 视频：[`../workflows/publish-video.md`](../workflows/publish-video.md)
    - 文章：[`../workflows/publish-article.md`](../workflows/publish-article.md)
@@ -37,6 +38,7 @@
 - 未执行 `yxer doctor` 不进入发布流程
 - 未确认 `accounts list` 中账号 `status=1` 不继续
 - 未执行 `prepare` / `schema fields` 不组装 payload；只有需要 payload 骨架时再补 `schema get`
+- 未按 `data-accuracy.md` 完成动态字段查询和多候选确认，不继续写 payload 或发布
 - 未先 `validate` 与 `publish --dry-run` 不执行正式 `publish`
 
 ## 常用命令

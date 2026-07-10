@@ -2,6 +2,8 @@ package api
 
 import (
 	"bytes"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"mime"
@@ -10,10 +12,15 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
-	"github.com/yixiaoer/yixiaoer-skill/internal/core/media"
+	"github.com/yixiaoer/yixiaoer-skill/internal/media"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
+
+const maxRemoteUploadDownloadSize int64 = 5 * 1024 * 1024 * 1024
+
+var uploadHTTPClient = &http.Client{Timeout: 30 * time.Second}
 
 type UploadResult struct {
 	Key         string  `json:"key"`
@@ -49,7 +56,7 @@ func (c *Client) Upload(pathOrURL, bucket string, autoMeta bool) (UploadResult, 
 	}
 
 	params := map[string]string{
-		"fileKey":     fileName,
+		"fileKey":     uploadObjectName(fileName),
 		"contentType": result.ContentType,
 	}
 	if result.Size > 0 {
@@ -77,7 +84,7 @@ func (c *Client) Upload(pathOrURL, bucket string, autoMeta bool) (UploadResult, 
 		return UploadResult{}, err
 	}
 	req.Header.Set("Content-Type", result.ContentType)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := uploadHTTPClient.Do(req)
 	if err != nil {
 		return UploadResult{}, err
 	}
@@ -91,6 +98,62 @@ func (c *Client) Upload(pathOrURL, bucket string, autoMeta bool) (UploadResult, 
 	result.Key = key
 	result.Bucket = bucket
 	return result, nil
+}
+
+func uploadObjectName(fileName string) string {
+	fileName = strings.TrimSpace(fileName)
+	if fileName == "" {
+		return "file"
+	}
+	ext := strings.ToLower(filepath.Ext(fileName))
+	base := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+	safeBase := asciiSafeFileStem(base)
+	if safeBase == "" {
+		safeBase = "file"
+	}
+	if ext == "" {
+		return safeBase
+	}
+	return safeBase + ext
+}
+
+func asciiSafeFileStem(name string) string {
+	var builder strings.Builder
+	lastUnderscore := false
+	hasNonASCII := false
+	for _, r := range name {
+		switch {
+		case r > 127:
+			hasNonASCII = true
+			if !lastUnderscore && builder.Len() > 0 {
+				builder.WriteByte('_')
+				lastUnderscore = true
+			}
+		case (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9'):
+			builder.WriteRune(r)
+			lastUnderscore = false
+		case r == '-' || r == '_':
+			if !lastUnderscore && builder.Len() > 0 {
+				builder.WriteRune(r)
+				lastUnderscore = true
+			}
+		default:
+			if !lastUnderscore && builder.Len() > 0 {
+				builder.WriteByte('_')
+				lastUnderscore = true
+			}
+		}
+	}
+	safe := strings.Trim(builder.String(), "_-")
+	if hasNonASCII {
+		sum := sha1.Sum([]byte(name))
+		suffix := hex.EncodeToString(sum[:])[:8]
+		if safe == "" {
+			return "file_" + suffix
+		}
+		return safe + "_" + suffix
+	}
+	return safe
 }
 
 func probeVideoMetadata(pathOrURL string, raw []byte, fileName string) (media.VideoMetadata, error) {
@@ -157,7 +220,7 @@ func DetectContentType(pathOrURL string) string {
 
 func readUploadContent(pathOrURL string) ([]byte, string, int64, error) {
 	if strings.HasPrefix(pathOrURL, "http://") || strings.HasPrefix(pathOrURL, "https://") {
-		resp, err := http.Get(pathOrURL)
+		resp, err := uploadHTTPClient.Get(pathOrURL)
 		if err != nil {
 			return nil, "", 0, err
 		}
@@ -168,9 +231,22 @@ func readUploadContent(pathOrURL string) ([]byte, string, int64, error) {
 				"url":        pathOrURL,
 			}).WithCategory("remote_download")
 		}
-		raw, err := io.ReadAll(resp.Body)
+		if resp.ContentLength > maxRemoteUploadDownloadSize {
+			return nil, "", 0, yxerrors.Usage("remote file exceeds size limit", map[string]interface{}{
+				"limitBytes":   maxRemoteUploadDownloadSize,
+				"contentBytes": resp.ContentLength,
+				"url":          pathOrURL,
+			}).WithHint("请改用更小的素材文件，或先下载到本地压缩后再上传。")
+		}
+		raw, err := io.ReadAll(io.LimitReader(resp.Body, maxRemoteUploadDownloadSize+1))
 		if err != nil {
 			return nil, "", 0, err
+		}
+		if int64(len(raw)) > maxRemoteUploadDownloadSize {
+			return nil, "", 0, yxerrors.Usage("remote file exceeds size limit", map[string]interface{}{
+				"limitBytes": maxRemoteUploadDownloadSize,
+				"url":        pathOrURL,
+			}).WithHint("请改用更小的素材文件，或先下载到本地压缩后再上传。")
 		}
 		parsed, _ := url.Parse(pathOrURL)
 		fileName := filepath.Base(parsed.Path)

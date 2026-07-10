@@ -5,7 +5,8 @@
     "formType",
     "title",
     "content",
-    "covers"
+    "covers",
+    "pubType"
   ],
   "properties": {
     "formType": {
@@ -102,6 +103,45 @@
         0,
         1
       ]
+    },
+    "declaration": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "activity": {
+      "type": "object",
+      "required": [
+        "yixiaoerId",
+        "yixiaoerName",
+        "raw"
+      ],
+      "properties": {
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
+      }
+    },
+    "pubType": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "scheduledTime": {
+      "type": "number",
+      "minimum": 0
     },
     "publishTime": {
       "type": "string",

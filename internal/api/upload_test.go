@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"image"
 	"image/color"
 	"image/png"
@@ -13,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/config"
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
 func TestUploadLocalImage(t *testing.T) {
@@ -122,6 +124,79 @@ func TestUploadURLImage(t *testing.T) {
 	}
 	if result.Width != 4 || result.Height != 5 {
 		t.Fatalf("unexpected dimensions: %dx%d", result.Width, result.Height)
+	}
+}
+
+func TestUploadLocalFileUsesASCIISafeObjectName(t *testing.T) {
+	imageBytes := testPNG(t, 3, 2)
+	tmpDir := t.TempDir()
+	imagePath := filepath.Join(tmpDir, "飞书20250424-172618.png")
+	if err := os.WriteFile(imagePath, imageBytes, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var requestedFileKey string
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/storages/cloud-publish/upload-url":
+			requestedFileKey = r.URL.Query().Get("fileKey")
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"serviceUrl": server.URL + "/oss/video.png",
+					"key":        "uploaded/video.png",
+				},
+			})
+		case "/oss/video.png":
+			w.WriteHeader(http.StatusOK)
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	if _, err := client.Upload(imagePath, "", false); err != nil {
+		t.Fatal(err)
+	}
+	if requestedFileKey == "" {
+		t.Fatal("expected upload-url request to include fileKey")
+	}
+	if requestedFileKey == "飞书20250424-172618.png" {
+		t.Fatalf("expected fileKey to be normalized, got %q", requestedFileKey)
+	}
+	for _, r := range requestedFileKey {
+		if r > 127 {
+			t.Fatalf("expected ASCII-only fileKey, got %q", requestedFileKey)
+		}
+	}
+	if filepath.Ext(requestedFileKey) != ".png" {
+		t.Fatalf("expected normalized fileKey to preserve extension, got %q", requestedFileKey)
+	}
+}
+
+func TestInspectUploadRejectsOversizedRemoteFile(t *testing.T) {
+	var sourceRead bool
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sourceRead = true
+		w.Header().Set("Content-Length", "5368709121")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	_, _, err := InspectUpload(server.URL+"/huge.bin", false)
+	if err == nil {
+		t.Fatal("expected oversized remote file error")
+	}
+	var typed *yxerrors.Error
+	if !errors.As(err, &typed) {
+		t.Fatalf("expected structured error, got %T: %v", err, err)
+	}
+	if typed.Code != yxerrors.UsageErr {
+		t.Fatalf("expected usage error, got %+v", typed)
+	}
+	if !sourceRead {
+		t.Fatal("expected source handler to be called")
 	}
 }
 

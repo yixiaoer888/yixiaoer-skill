@@ -25,12 +25,13 @@ func (s Service) Check() (map[string]interface{}, error) {
 		"apiKeyPresent":        cfg.APIKey != "",
 		"schemaDir":            cfg.SchemaDir,
 		"schemaDirOK":          PathExists(cfg.SchemaDir),
-		"workflowsOK":          PathExists(filepath.Join(cfg.ProjectDir, "workflows")),
+		"workflowsOK":          hasWorkflowDocs(cfg.ProjectDir),
+		"workflowDocsPath":     workflowDocsPath(cfg.ProjectDir),
 		"localPublishClientId": cfg.LocalClientID,
 		"publishChannelReadiness": map[string]interface{}{
 			"cloud": map[string]interface{}{
 				"configured": cfg.APIKey != "",
-				"note":       "云发布是否需要平台代理，取决于目标平台账号配置；正式发布前建议结合 accounts/prepare 结果确认。",
+				"note":       "云发布是否需要平台代理，取决于目标平台账号配置；正式发布前建议先执行 accounts list 确认可用账号，再结合 prepare 结果确认前置数据。",
 			},
 			"local": map[string]interface{}{
 				"configured": cfg.LocalClientID != "",
@@ -55,4 +56,16 @@ func (s Service) Check() (map[string]interface{}, error) {
 func PathExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
+}
+
+func hasWorkflowDocs(projectDir string) bool {
+	return PathExists(filepath.Join(projectDir, "workflows")) || PathExists(filepath.Join(projectDir, "references", "workflows"))
+}
+
+func workflowDocsPath(projectDir string) string {
+	workflowsDir := filepath.Join(projectDir, "workflows")
+	if PathExists(workflowsDir) {
+		return workflowsDir
+	}
+	return filepath.Join(projectDir, "references", "workflows")
 }

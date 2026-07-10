@@ -1,0 +1,140 @@
+package cmd
+
+import (
+	"strings"
+
+	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
+)
+
+type dynamicFieldExample struct {
+	Field        string      `json:"field"`
+	Path         string      `json:"path"`
+	Source       string      `json:"source"`
+	QueryCommand string      `json:"queryCommand,omitempty"`
+	Note         string      `json:"note"`
+	Value        interface{} `json:"value"`
+}
+
+func buildDynamicFieldExamples(doc schema.Document) map[string]dynamicFieldExample {
+	examples := map[string]dynamicFieldExample{}
+	addDynamicObjectExample(examples, doc, "location", "yxer query locations <account_id> [--query 关键词] --json", "位置对象必须完整来自查询结果，并按 schema 显示的前端表单结构回填。")
+	addDynamicObjectExample(examples, doc, "music", "yxer query music <account_id> [--query 关键词] --json", "音乐对象必须完整来自查询结果，保留播放地址、时长等查询返回字段以及 raw。")
+	addTagsExample(examples, doc)
+	addShoppingCartExample(examples, doc)
+	if len(examples) == 0 {
+		return nil
+	}
+	return examples
+}
+
+func addDynamicObjectExample(examples map[string]dynamicFieldExample, doc schema.Document, field, command, note string) {
+	if _, ok := doc.Properties[field]; !ok {
+		return
+	}
+	view := doc.Properties[field]
+	queryObject := map[string]interface{}{
+		"yixiaoerId":   "<from query>",
+		"yixiaoerName": "<from query>",
+		"raw": map[string]interface{}{
+			"...": "copy complete raw object from query result",
+		},
+	}
+	value := queryObject
+	if _, ok := view.Properties["isScp"]; ok {
+		value = map[string]interface{}{
+			"isScp": false,
+			"data":  queryObject,
+		}
+	} else if _, ok := view.Properties["id"]; ok {
+		value = map[string]interface{}{
+			"id":   "<from query yixiaoerId>",
+			"text": "<from query yixiaoerName>",
+			"raw":  queryObject,
+		}
+	}
+	if field == "music" {
+		value["duration"] = 0
+		value["playUrl"] = "<from query>"
+	}
+	examples[field] = dynamicFieldExample{
+		Field:        field,
+		Path:         "publishArgs.accountForms[].contentPublishForm." + field,
+		Source:       "query",
+		QueryCommand: command,
+		Note:         note,
+		Value:        value,
+	}
+}
+
+func addTagsExample(examples map[string]dynamicFieldExample, doc schema.Document) {
+	if _, ok := doc.Properties["tags"]; !ok {
+		return
+	}
+	examples["tags"] = dynamicFieldExample{
+		Field:  "tags",
+		Path:   "publishArgs.accountForms[].contentPublishForm.tags",
+		Source: "schema",
+		Note:   "话题标签使用字符串数组；CLI 不会改变 tags 字段结构。description 中的 #话题 会按描述规则归一化。",
+		Value:  []interface{}{"话题1", "话题2"},
+	}
+}
+
+func addShoppingCartExample(examples map[string]dynamicFieldExample, doc schema.Document) {
+	field, view, ok := shoppingCartField(doc)
+	if !ok {
+		return
+	}
+	item := map[string]interface{}{
+		"yixiaoerId":   "<from query>",
+		"yixiaoerName": "<from query>",
+		"raw": map[string]interface{}{
+			"...": "copy complete goods raw object from query result",
+		},
+	}
+	value := []interface{}{item}
+	note := "购物车商品必须来自 yxer query goods 返回的完整对象。"
+	if shoppingCartUsesNestedData(view) {
+		value = []interface{}{
+			map[string]interface{}{
+				"sale_title": "点击购买",
+				"images":     []interface{}{"<from query images[0]>"},
+				"data":       item,
+			},
+		}
+		note = "购物车使用顶层 sale_title/images + 内层 data；直接把商品字段扁平放在根节点会在 dry-run 中被归一化，但新 payload 应直接使用该结构。"
+	}
+	examples[field] = dynamicFieldExample{
+		Field:        field,
+		Path:         "publishArgs.accountForms[].contentPublishForm." + field,
+		Source:       "query",
+		QueryCommand: "yxer query goods <account_id> [--query 关键词] --json",
+		Note:         note,
+		Value:        value,
+	}
+}
+
+func shoppingCartField(doc schema.Document) (string, schema.PropertyView, bool) {
+	for _, key := range []string{"shopping_cart", "group_shopping", "shoppingCart", "groupShopping"} {
+		if view, ok := doc.Properties[key]; ok {
+			return key, view, true
+		}
+	}
+	return "", schema.PropertyView{}, false
+}
+
+func shoppingCartUsesNestedData(view schema.PropertyView) bool {
+	if view.Items != nil {
+		_, ok := view.Items.Properties["data"]
+		return ok
+	}
+	_, ok := view.Properties["data"]
+	if ok {
+		return true
+	}
+	for key := range view.Properties {
+		if strings.EqualFold(key, "data") {
+			return true
+		}
+	}
+	return false
+}

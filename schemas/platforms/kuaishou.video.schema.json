@@ -1,7 +1,9 @@
-﻿{
+{
   "title": "快手视频发布表单 (Kuaishou Video)",
   "type": "object",
-  "required": ["formType"],
+  "required": [
+    "formType"
+  ],
   "properties": {
     "formType": {
       "type": "string",
@@ -83,21 +85,22 @@
     "location": {
       "type": "object",
       "required": [
-        "yixiaoerId",
-        "yixiaoerName",
+        "id",
+        "text",
         "raw"
       ],
       "properties": {
-        "yixiaoerId": {
+        "id": {
           "type": "string"
         },
-        "yixiaoerName": {
+        "text": {
           "type": "string"
         },
         "raw": {
           "type": "object"
         }
-      }
+      },
+      "additionalProperties": true
     },
     "music": {
       "type": "object",

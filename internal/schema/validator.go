@@ -39,12 +39,30 @@ func (v Validator) Validate(platform, publishType string, payload map[string]int
 		return basicValidate(payload)
 	}
 	sanitizeSchemaDocument(schema)
-	targets := validationTargets(publishType, payload)
+	targets := validationTargets(platform, publishType, payload)
 	var errors []string
 	for _, target := range targets {
 		errors = append(errors, validateValue(schema, target.Value, "/", target.Prefix)...)
 	}
 	return Result{Valid: len(errors) == 0, Errors: errors}
+}
+
+func (v Validator) ValidateStrict(platform, publishType string, payload map[string]interface{}) (Result, error) {
+	raw, _, err := v.readSchema(platform, publishType)
+	if err != nil {
+		return Result{}, err
+	}
+	var schema map[string]interface{}
+	if err := json.Unmarshal(stripBOM(raw), &schema); err != nil {
+		return Result{}, err
+	}
+	sanitizeSchemaDocument(schema)
+	targets := validationTargets(platform, publishType, payload)
+	var errors []string
+	for _, target := range targets {
+		errors = append(errors, validateValue(schema, target.Value, "/", target.Prefix)...)
+	}
+	return Result{Valid: len(errors) == 0, Errors: errors}, nil
 }
 
 func (v Validator) Schema(platform, publishType string) (Document, error) {
@@ -177,9 +195,16 @@ func sanitizeSchemaDocument(schema map[string]interface{}) {
 	}
 }
 
-func validationTargets(publishType string, payload map[string]interface{}) []validationTarget {
+func validationTargets(platform, publishType string, payload map[string]interface{}) []validationTarget {
 	if publishArgs, ok := payload["publishArgs"].(map[string]interface{}); ok {
-		return validationTargets(publishType, normalizeValidationPayload(publishType, publishArgs))
+		normalized := normalizeValidationPayload(platform, publishType, publishArgs)
+		if target := weixinAccountArticlePlatformForm(normalized); target != nil {
+			return []validationTarget{{
+				Value:  target,
+				Prefix: "publishArgs.platformForms.微信公众号: ",
+			}}
+		}
+		return validationTargets(platform, publishType, normalized)
 	}
 	if accountForms, ok := payload["accountForms"].([]interface{}); ok {
 		var targets []validationTarget
@@ -211,8 +236,8 @@ func validationTargets(publishType string, payload map[string]interface{}) []val
 	return []validationTarget{{Value: payload}}
 }
 
-func normalizeValidationPayload(publishType string, payload map[string]interface{}) map[string]interface{} {
-	if TypeKey(publishType) != "article" {
+func normalizeValidationPayload(platform, publishType string, payload map[string]interface{}) map[string]interface{} {
+	if TypeKey(publishType) != "article" || platformutil.CanonicalKey(platform) == "weixin.account" {
 		return payload
 	}
 	content, _ := payload["content"].(string)
@@ -237,6 +262,20 @@ func normalizeValidationPayload(publishType string, payload map[string]interface
 		}
 	}
 	return payload
+}
+
+func weixinAccountArticlePlatformForm(payload map[string]interface{}) map[string]interface{} {
+	platformForms, _ := payload["platformForms"].(map[string]interface{})
+	if platformForms == nil {
+		return nil
+	}
+	for _, key := range []string{"微信公众号", "weixin.account"} {
+		form, _ := platformForms[key].(map[string]interface{})
+		if form != nil {
+			return form
+		}
+	}
+	return nil
 }
 
 func validateValue(schema map[string]interface{}, value interface{}, pathLabel, prefix string) []string {
