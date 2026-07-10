@@ -86,13 +86,13 @@ function New-ArchiveFromBinary {
     param(
         [string]$BinaryPath,
         [string]$ArchivePath,
-        [bool]$IsWindows
+        [bool]$TargetIsWindows
     )
 
     $archiveDir = Split-Path -Parent $ArchivePath
     New-Item -ItemType Directory -Path $archiveDir -Force | Out-Null
 
-    if ($IsWindows) {
+    if ($TargetIsWindows) {
         if (Test-Path $ArchivePath) {
             Remove-Item -LiteralPath $ArchivePath -Force
         }
@@ -234,7 +234,7 @@ try {
         go build -buildvcs=false -o $binaryPath .
         Assert-LastExitCode "go build ($($target.GOOS)/$($target.GOARCH))"
 
-        New-ArchiveFromBinary -BinaryPath $binaryPath -ArchivePath $archivePath -IsWindows:($target.GOOS -eq "windows")
+        New-ArchiveFromBinary -BinaryPath $binaryPath -ArchivePath $archivePath -TargetIsWindows:($target.GOOS -eq "windows")
         $checksumLines.Add("$(Get-FileSha256 -Path $archivePath)  $archiveName")
     }
 
