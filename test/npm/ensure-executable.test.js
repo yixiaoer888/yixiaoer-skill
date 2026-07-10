@@ -7,6 +7,7 @@ const path = require("node:path");
 
 const {
   buildDownloadUrl,
+  download,
   getExpectedChecksum,
   getTarget,
   parseChecksums,
@@ -52,6 +53,34 @@ test("parseChecksums reads sha256 entries", () => {
   const parsed = parseChecksums("abc123  yxer-cli-3.2.2-linux-amd64.tar.gz\nfff999  yxer-cli-3.2.2-windows-amd64.zip\n");
   assert.equal(parsed.get("yxer-cli-3.2.2-linux-amd64.tar.gz"), "abc123");
   assert.equal(parsed.get("yxer-cli-3.2.2-windows-amd64.zip"), "fff999");
+});
+
+test("download falls back to PowerShell on Windows when curl fails", () => {
+  const calls = [];
+  const runner = (command, args, options) => {
+    calls.push({ command, args, options });
+    if (command === "curl") {
+      const error = new Error("curl: (56) Recv failure: Connection was reset");
+      throw error;
+    }
+  };
+
+  assert.doesNotThrow(() => download("https://github.com/example/release.zip", "C:\\tmp\\release.zip", "win32", runner));
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].command, "curl");
+  assert.equal(calls[1].command, "powershell.exe");
+  assert.equal(calls[1].options.env.YXER_URL, "https://github.com/example/release.zip");
+  assert.equal(calls[1].options.env.YXER_DEST, "C:\\tmp\\release.zip");
+});
+
+test("download preserves curl failure on non-windows platforms", () => {
+  const runner = () => {
+    throw new Error("curl failed");
+  };
+
+  assert.throws(() => download("https://github.com/example/release.tar.gz", "/tmp/release.tar.gz", "linux", runner), {
+    message: "curl failed"
+  });
 });
 
 test("getExpectedChecksum returns matching checksum from file", () => {

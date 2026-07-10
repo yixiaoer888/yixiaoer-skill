@@ -66,7 +66,18 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${GITHUB_REF_NAME}"
-          gh release download "${TAG}" --pattern "*.tgz" --dir .
+          gh release download "${TAG}" --pattern "*" --dir out/release
+          ls -l out/release
+
+      - name: Verify release artifacts before npm publish
+        shell: pwsh
+        run: |
+          ./scripts/verify-release-artifacts.ps1 -ReleaseDir out/release
+
+      - name: Prepare npm tarball
+        run: |
+          set -euo pipefail
+          cp out/release/*.tgz .
           ls -l *.tgz
 
       - name: Publish to npm

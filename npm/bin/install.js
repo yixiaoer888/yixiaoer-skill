@@ -83,7 +83,7 @@ function buildDownloadUrl(baseUrl, archiveName) {
   return `${baseUrl.replace(/\/+$/, "")}/${archiveName}`;
 }
 
-function download(url, destPath) {
+function downloadWithCurl(url, destPath, execFile = execFileSync) {
   assertAllowedHost(url);
 
   const args = [
@@ -106,7 +106,48 @@ function download(url, destPath) {
   }
 
   args.push(url);
-  execFileSync("curl", args, { stdio: ["ignore", "ignore", "pipe"] });
+  execFile("curl", args, { stdio: ["ignore", "ignore", "pipe"] });
+}
+
+function downloadWithPowerShell(url, destPath, execFile = execFileSync) {
+  assertAllowedHost(url);
+
+  const psCommand =
+    "$ProgressPreference='SilentlyContinue';" +
+    "$ErrorActionPreference='Stop';" +
+    "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12;" +
+    "Invoke-WebRequest -UseBasicParsing -Uri $env:YXER_URL -OutFile $env:YXER_DEST";
+
+  execFile(
+    "powershell.exe",
+    ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", psCommand],
+    {
+      stdio: ["ignore", "ignore", "pipe"],
+      env: {
+        ...process.env,
+        YXER_URL: url,
+        YXER_DEST: destPath
+      }
+    }
+  );
+}
+
+function download(url, destPath, platform = process.platform, execFile = execFileSync) {
+  try {
+    downloadWithCurl(url, destPath, execFile);
+  } catch (error) {
+    if (platform !== "win32") {
+      throw error;
+    }
+
+    try {
+      downloadWithPowerShell(url, destPath, execFile);
+    } catch (fallbackError) {
+      fallbackError.message =
+        `${error.message}; fallback via PowerShell failed: ${fallbackError.message}`;
+      throw fallbackError;
+    }
+  }
 }
 
 function parseChecksums(content) {
@@ -245,6 +286,9 @@ if (require.main === module) {
 module.exports = {
   ALLOWED_HOSTS,
   buildDownloadUrl,
+  download,
+  downloadWithCurl,
+  downloadWithPowerShell,
   getBinaryPath,
   getBinDir,
   getExpectedChecksum,
