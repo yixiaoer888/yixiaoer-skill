@@ -533,9 +533,8 @@ scripts/
 - 技能入口：`skills/yixiaoer/SKILL.md`
 - 任务分域：`skills/yixiaoer/references/domains/`
 - 命令参考：`references/cli/command-reference.md`
-- 技能安装与同步：`references/cli/skill-install.md`
+- 安装、升级与同步：`skills/yixiaoer/references/domains/install-and-sync.md`
 - 上线流程：`skills/yixiaoer/references/go-live-process.md`
-- CLI/Skill 安装卸载：`skills/yixiaoer/references/cli-install-uninstall.md`
 - 关键词文档：`skills/yixiaoer/references/keyword-reference.md`
 - 使用流程文档：`skills/yixiaoer/references/usage-workflow.md`
 - 工作流正文：`references/workflows/`

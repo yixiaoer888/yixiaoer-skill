@@ -110,7 +110,6 @@ bin\yxer.exe skill sync --global
 - `yxer.exe`
 - `README.md`
 - `skills/yixiaoer/references/go-live-process.md`
-- `skills/yixiaoer/references/cli-install-uninstall.md`
 - `skills/yixiaoer/references/usage-workflow.md`
 - `skills/yixiaoer/references/keyword-reference.md`
 - `skills/yixiaoer/SKILL.md`
@@ -120,24 +119,17 @@ bin\yxer.exe skill sync --global
 
 ## 4. 建议交付方式
 
-当前仓库尚未提供自动下载新版 CLI 二进制的能力，因此推荐以下两种方式之一：
+用户侧统一通过 npm 成品包安装 CLI：
 
-### 方式 A：源码构建交付
+```bash
+npm install -g @yixiaoermail/cli
+yxer --version
+yxer config init --api-key <apiKey>
+yxer skill sync
+yxer doctor
+```
 
-适用于研发或内测环境：
-
-1. 拉取指定版本代码
-2. 执行 `go build -o bin/yxer.exe .`
-3. 按文档安装 skill
-
-### 方式 B：制品包交付
-
-适用于正式上线或给业务同学分发：
-
-1. 由发布人员构建 `yxer.exe`
-2. 打包 `yxer.exe + skills/yixiaoer + references + docs + schemas`
-3. 上传到内部制品库、网盘或发布平台
-4. 给使用方发固定版本下载地址
+源码构建仅用于研发、测试或 npm 成品包制作，不作为普通用户安装入口。
 
 ## 5. 回滚流程
 
@@ -163,6 +155,6 @@ bin\yxer.exe skill sync --global
 
 ## 7. 风险提示
 
-- 当前项目没有“自动下载最新 CLI”的能力，版本升级仍以源码构建或制品分发为主
+- 用户环境依赖 npm 全局安装 `@yixiaoermail/cli`
 - Skill 的实际执行依赖外部 `npx skills add` 工具，目标环境必须具备 Node.js 和 `npx`
 - 若只替换 `yxer.exe` 但未同步 skill，AI agent 可能继续使用旧规则

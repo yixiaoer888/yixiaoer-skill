@@ -7,16 +7,14 @@
 ### 步骤 1：安装 CLI
 
 ```bash
-go build -o bin/yxer.exe .
+npm install -g @yixiaoermail/cli
 ```
-
-或使用发布人员提供的 `yxer.exe`。
 
 ### 步骤 2：初始化配置
 
 ```bash
+yxer --version
 yxer config init --api-key <apiKey>
-yxer doctor
 ```
 
 ### 步骤 3：安装 Skill
@@ -28,7 +26,7 @@ yxer skill sync
 ### 步骤 4：检查环境
 
 ```bash
-yxer --version
+yxer doctor
 yxer config get
 yxer skill show
 ```

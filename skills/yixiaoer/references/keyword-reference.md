@@ -16,12 +16,12 @@
 
 | 关键词 | 推荐理解 |
 | --- | --- |
-| 下载 CLI | 获取 `yxer.exe`，来源可以是源码构建或制品包 |
-| 安装 CLI | 放置 `yxer.exe` 到本地目录并加入 `PATH` |
+| 下载 CLI | 通过 `npm install -g @yixiaoermail/cli` 安装 npm 成品包 |
+| 安装 CLI | 执行 `npm install -g @yixiaoermail/cli` 并验证 `yxer --version` |
 | 安装 skill | 执行 `npx skills add "<repo>\\skills\\yixiaoer" -y` |
 | 同步 skill | 执行 `yxer skill sync`，让 skill 版本与 CLI 对齐 |
-| 升级 CLI | 重新构建或替换新版 `yxer.exe` |
-| 卸载 CLI | 删除 `yxer.exe`、移除 `PATH`、按需清理 `.yxer` 配置 |
+| 升级 CLI | 重新执行 `npm install -g @yixiaoermail/cli` |
+| 卸载 CLI | 执行 `npm uninstall -g @yixiaoermail/cli`，按需清理 `.yxer` 配置 |
 | 卸载 skill | 删除 AI 宿主中的 `yixiaoer` 技能安装，并清理 `skills.stamp` |
 
 ## 3. 发布能力关键词
