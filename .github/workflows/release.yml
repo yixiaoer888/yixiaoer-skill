@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build release artifacts
+        shell: pwsh
+        run: |
+          ./scripts/build-npm-package.ps1
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/release/checksums.txt
+            out/release/yxer-cli-*-windows-amd64.zip
+            out/release/yxer-cli-*-windows-arm64.zip
+            out/release/yxer-cli-*-darwin-amd64.tar.gz
+            out/release/yxer-cli-*-darwin-arm64.tar.gz
+            out/release/yxer-cli-*-linux-amd64.tar.gz
+            out/release/yxer-cli-*-linux-arm64.tar.gz
+            out/npm/*.tgz
+
+  publish-npm:
+    needs: release
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Download npm tarball from release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          gh release download "${TAG}" --pattern "*.tgz" --dir .
+          ls -l *.tgz
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish ./*.tgz --access public

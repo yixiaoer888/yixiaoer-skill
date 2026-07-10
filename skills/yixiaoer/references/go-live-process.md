@@ -56,7 +56,7 @@ go build -o bin/yxer.exe .
 
 ```text
 release/
-  yxer-windows-amd64/
+  yxer-cli-<version>-windows-amd64/
     yxer.exe
     README.md
     skills/yixiaoer/references/

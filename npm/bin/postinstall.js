@@ -1,18 +1,14 @@
 #!/usr/bin/env node
 
-const { ensureExecutable } = require("./ensure-executable");
-const { resolveBinaryPath } = require("./resolve-binary");
+const { install, isSupportedPlatform } = require("./install");
 
 try {
-  const binaryPath = resolveBinaryPath(__dirname, process.platform, process.arch);
-  if (!binaryPath) {
+  if (!isSupportedPlatform(process.platform, process.arch)) {
     process.exit(0);
   }
 
-  ensureExecutable(binaryPath);
+  install();
 } catch (error) {
-  console.error(
-    `[yxer] postinstall failed to ensure executable permission: ${error.message}`
-  );
+  console.error(`[yxer] postinstall failed: ${error.message}`);
   process.exit(0);
 }

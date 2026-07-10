@@ -12,7 +12,7 @@
 
 ---
 
-仓库入口参考飞书 CLI 的组织方式来写：
+仓库入口按当前项目的使用对象分层组织：
 
 - `README.md` 面向人类用户和维护者，负责安装、快速开始和常用命令。
 - `skills/yixiaoer/SKILL.md` 面向 AI agent，负责共享规则、能力索引和命令探索。
@@ -38,6 +38,19 @@
 npm install -g @yixiaoermail/cli@latest
 yxer --version
 yxer skill sync
+```
+
+npm 包现在采用轻量安装器模式：
+
+- npm 包本身只包含启动器、skill、schema 和 references
+- 安装阶段会按当前系统下载匹配的 `yxer` 二进制归档
+- 如果 `postinstall` 被跳过，首次运行 `yxer` 时也会自动补装二进制
+
+如需使用私有镜像或自建发布源，可在安装前设置：
+
+```powershell
+$env:YXER_DOWNLOAD_BASE_URL = "https://your-release-host/yxer/v3.2.2"
+npm install -g @yixiaoermail/cli@latest
 ```
 
 如需全局同步 skill：
@@ -214,7 +227,15 @@ yxer update
 
 ## AI Skill 安装
 
-本项目采用“CLI 先安装，Skill 再安装”的方式，和飞书 CLI 的 skill 使用习惯保持一致。
+本项目采用“CLI 先安装，Skill 再安装”的方式。
+
+如果要接入 SkillHub / skills 市场，建议使用独立的 bootstrap skill：
+
+- SkillHub 安装入口：`skills/yixiaoer-bootstrap`
+- 正式业务 skill：`skills/yixiaoer`
+- 推荐职责划分：
+  - bootstrap skill 只负责安装 `@yixiaoermail/cli`、执行 `yxer skill sync --global`、引导 `config init`
+  - 正式 skill 负责发布、查询、校验、草稿、素材、排障
 
 如果 CLI 是通过 npm 成品包安装的，推荐优先使用：
 
@@ -237,7 +258,6 @@ npm 包会内置 `skills/yixiaoer`，`skill sync` 会直接使用本地随包分
 
 - `internal/domain/response.go`
 - `skills/yixiaoer/SKILL.md`
-- `skills/yixiaoer/plugin.json`
 
 如需显式传版本号，也必须与内部版本一致：
 
@@ -249,7 +269,8 @@ npm 包会内置 `skills/yixiaoer`，`skill sync` 会直接使用本地随包分
 
 - 先运行 `go test ./...`
 - 交叉编译 `windows/darwin/linux` 的 `amd64/arm64` 二进制
-- 生成 npm 发布包到 `out\npm\`
+- 生成 release 压缩包与 `checksums.txt` 到 `out\release\`
+- 生成轻量 npm 发布包到 `out\npm\`
 
 生成完成后，可用下列命令验证 tarball：
 
@@ -258,6 +279,33 @@ npm install -g .\out\npm\<generated-tarball>.tgz
 yxer --version
 yxer skill sync
 ```
+
+发布到 GitHub Release 或其他下载源时，需同时上传：
+
+- `yxer-cli-<version>-windows-amd64.zip`
+- `yxer-cli-<version>-windows-arm64.zip`
+- `yxer-cli-<version>-darwin-amd64.tar.gz`
+- `yxer-cli-<version>-darwin-arm64.tar.gz`
+- `yxer-cli-<version>-linux-amd64.tar.gz`
+- `yxer-cli-<version>-linux-arm64.tar.gz`
+- `checksums.txt`
+
+如果仓库已配置 GitHub Actions 发版流，也可以直接通过打 tag 触发自动上传：
+
+```powershell
+git tag v3.2.2
+git push origin v3.2.2
+```
+
+注意：仅本地创建 tag 不会触发远端发版，必须把 tag push 到 GitHub。
+
+按当前仓库的自动发版逻辑，push `v*` tag 后会依次完成：
+
+- 构建并上传 GitHub Release 资产
+- 上传 npm tarball 到 Release
+- 使用 Release 中的 tarball 自动发布到 npmjs
+
+如需启用 npm 自动发布，需要在 GitHub 仓库 Secrets 中配置 `NPM_TOKEN`。
 
 ### 查看当前技能包位置
 

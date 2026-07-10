@@ -8,3 +8,4 @@ bin/**
 out/**
 .npmrc-publish
 .npm-cache/**
+skills/yixiaoer-bootstrap/**

@@ -3,6 +3,7 @@
 const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const { ensureExecutable } = require("./ensure-executable");
+const { install } = require("./install");
 const { getBinaryFilename, resolveBinaryPath } = require("./resolve-binary");
 
 function resolveBinary() {
@@ -26,18 +27,23 @@ function resolveBinary() {
 
   const binaryPath = resolveBinaryPath(__dirname, platform, arch);
   if (!binaryPath || !fs.existsSync(binaryPath)) {
-    console.error(
-      JSON.stringify({
-        error: {
-          code: "missing_binary",
-          message: `Expected packaged binary not found: ${filename}`,
-          category: "environment",
-          hint: "Reinstall the npm package or rebuild the release artifact.",
-          retryable: false
-        }
-      })
-    );
-    process.exit(1);
+    try {
+      return install(__dirname);
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          error: {
+            code: "missing_binary",
+            message: `Expected packaged binary not found: ${filename}`,
+            category: "environment",
+            hint: `Automatic install failed: ${error.message}`,
+            nextCommand: "npm install -g @yixiaoermail/cli@latest",
+            retryable: true
+          }
+        })
+      );
+      process.exit(1);
+    }
   }
 
   return binaryPath;

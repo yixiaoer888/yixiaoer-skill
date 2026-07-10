@@ -14,6 +14,15 @@ yxer skill sync
 yxer doctor
 ```
 
+如果是 SkillHub / skills 市场接入，建议先安装 `skills/yixiaoer-bootstrap`，由它负责：
+
+```bash
+npm install -g @yixiaoermail/cli@latest
+yxer skill sync --global
+yxer config init --api-key <apiKey>
+yxer doctor
+```
+
 ## 升级流程
 
 ```bash
