@@ -37,7 +37,7 @@
 ```powershell
 npm install -g @yixiaoermail/cli@latest
 yxer --version
-yxer skill sync
+yxer update
 ```
 
 npm 包现在采用轻量安装器模式：
@@ -200,15 +200,13 @@ yxer publish video 抖音 .\payload.json --publish-channel local --client-id <cl
 如果 CLI 是通过 npm 安装的，推荐按下面顺序升级：
 
 ```powershell
-npm install -g @yixiaoermail/cli@latest
-yxer --version
-yxer skill sync
+yxer update
 ```
 
 如需全局 skill：
 
 ```powershell
-yxer skill sync --global
+yxer update --global
 ```
 
 只检查当前状态而不执行同步，可运行：
@@ -519,12 +517,13 @@ yxer query records [--platform P] [--limit N] [--status S] [--json]
 先执行：
 
 ```bash
-yxer skill sync
+yxer update
 ```
 
-如果需要全局同步：
+如果用户明确只想单独同步 skill，也可以：
 
 ```bash
+yxer skill sync
 yxer skill sync --global
 ```
 

@@ -50,8 +50,8 @@ yxer config set-local-client-id <clientId>
 
 ```bash
 yxer skill show
-yxer skill sync
-yxer skill sync --global
+yxer update
+yxer update --global
 ```
 
 以下情况应提示重新同步：
