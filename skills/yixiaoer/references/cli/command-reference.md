@@ -211,8 +211,8 @@ yxer publish video 抖音 .\payload.json --publish-channel local --client-id <cl
 - 成功输出格式：`ok/action/version/data`
 - 失败输出格式：`ok/version/error`
 - 错误通过统一错误 envelope 输出
-- `yxer doctor` 可能返回 `_notice.skills`，提示当前 AI skill 与 CLI 版本不同步
-- `yxer update` 当前会同步 AI skill，并给出 CLI 本体更新指引
+- `yxer doctor` 可能返回 `_notice.skills`，提示当前 AI skill 与 CLI 版本不同步，并建议优先执行 `yxer update`
+- `yxer update` 是当前推荐的统一入口：会检查 CLI 安装方式、在 npm 安装场景下升级 CLI，并同步 AI skill
 
 ## 入口约束
 

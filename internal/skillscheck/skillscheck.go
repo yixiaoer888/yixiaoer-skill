@@ -212,9 +212,11 @@ func Notice(currentVersion, skillDir string) (map[string]interface{}, error) {
 		"current": status.Current,
 		"target":  status.Target,
 		"state":   status.State,
-		"message": "本地 AI skill 与记录的 skill 版本未同步，请重新安装技能包。",
-		"command": "yxer skill sync",
+		"message": "本地 AI skill 与记录的 skill 版本未同步，推荐先执行 `yxer update` 统一处理 CLI 升级与 skill 同步。",
+		"command": "yxer update",
 		"fallbackCommands": []string{
+			"yxer skill sync",
+			"yxer skill sync --global",
 			`npx skills add "` + skillDir + `" -y`,
 			`npx skills add "` + skillDir + `" -g -y`,
 		},

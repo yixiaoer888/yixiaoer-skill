@@ -29,10 +29,12 @@ func newDoctorCmd() *cobra.Command {
 			if err != nil {
 				return output.SuccessWithNotice(cmd.OutOrStdout(), "doctor", checks, map[string]interface{}{
 					"skills": map[string]interface{}{
-						"type":    "skills_path_unresolved",
-						"target":  "unknown",
-						"state":   "unknown",
-						"message": `未能自动定位 "skills/yixiaoer" 目录；如需检查或同步 skill，请设置 YIXIAOER_SKILL_DIR。`,
+						"type":            "skills_path_unresolved",
+						"target":          "unknown",
+						"state":           "unknown",
+						"message":         `未能自动定位 "skills/yixiaoer" 目录；如需统一检查 CLI/skill 状态，优先执行 yxer update，或先设置 YIXIAOER_SKILL_DIR。`,
+						"command":         "yxer update",
+						"fallbackCommand": "yxer skill sync",
 					},
 				})
 			}

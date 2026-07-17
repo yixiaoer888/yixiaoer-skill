@@ -90,15 +90,15 @@ func TestNoticeStale(t *testing.T) {
 	if got := notice["state"]; got != "stale" {
 		t.Fatalf("notice[state] = %v, want stale", got)
 	}
-	if got := notice["command"]; got != "yxer skill sync" {
-		t.Fatalf("notice[command] = %v, want yxer skill sync", got)
+	if got := notice["command"]; got != "yxer update" {
+		t.Fatalf("notice[command] = %v, want yxer update", got)
 	}
 	fallbacks, ok := notice["fallbackCommands"].([]string)
 	if !ok {
 		t.Fatalf("notice[fallbackCommands] type = %T, want []string", notice["fallbackCommands"])
 	}
-	if len(fallbacks) != 2 {
-		t.Fatalf("len(fallbackCommands) = %d, want 2", len(fallbacks))
+	if len(fallbacks) != 4 {
+		t.Fatalf("len(fallbackCommands) = %d, want 4", len(fallbacks))
 	}
 }
 
