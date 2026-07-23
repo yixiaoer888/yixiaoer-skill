@@ -35,6 +35,7 @@ func newPublishCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&opts.DryRun, "dry-run", false, "preview the publish request without performing the write")
 	cmd.Flags().BoolVar(&opts.AutoFallbackLocal, "auto-fallback-local", false, "automatically retry with local publish when cloud publish fails due to proxy availability")
 	cmd.AddCommand(newPublishInitCmd())
+	cmd.AddCommand(newPublishFormCmd())
 	return cmd
 }
 

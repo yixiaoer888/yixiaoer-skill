@@ -45,6 +45,10 @@ yxer upload --url <resource_url> [--bucket cloud-publish|material-library] [--dr
 ```bash
 yxer validate <platform> <type> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>]
 yxer publish <type> <platform> <payload.json> [clientId] [--dry-run]
+yxer publish form start <platform> <type> [--output publish-form.json] [--dry-run]
+yxer publish form inspect <session.json>
+yxer publish form set <session.json> <payload.path> --value '<json-value-or-text>' [--index N] [--dry-run]
+yxer publish form export <session.json> [--output payload.json] [--dry-run]
 ```
 
 ### 草稿与素材库
@@ -98,6 +102,7 @@ yxer schema get <platform> <type>
 - `yxer material add --file ...` 会自动完成上传和素材登记
 - 查询类操作可以直接执行
 - 发布类操作必须遵守“查账号 -> prepare/schema -> 上传资源 -> 查询复杂对象 -> 填 payload -> validate -> publish”顺序
+- 页面式逐步填写可使用 `publish form` 会话；会话只负责本地状态，正式发布仍必须使用标准 payload 和原有校验门禁
 - 所有请求字段都必须来自 schema、平台文档或 CLI 返回结果；严禁虚构字段、乱猜枚举、手写 `raw` 对象或编造资源元数据
 
 ## 快速示例

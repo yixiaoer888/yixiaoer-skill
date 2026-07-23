@@ -671,4 +671,7 @@ func TestPrepareUsesFirstOnlineAccountAcrossPagesForCategories(t *testing.T) {
 	if first["id"] != "cat_1" {
 		t.Fatalf("unexpected category payload: %#v", first)
 	}
+	if len(result.Accounts) != 2 || result.Accounts[0]["platformAccountId"] != "acc_1" || result.Accounts[1]["platformAccountId"] != "acc_3" {
+		t.Fatalf("expected online accounts in prepare response, got %#v", result.Accounts)
+	}
 }

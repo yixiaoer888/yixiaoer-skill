@@ -66,6 +66,21 @@ yxer schema get <platform> <type>
 - 涉及写操作或 payload 修订时，必须遵守 [`./references/workflows/data-accuracy.md`](./references/workflows/data-accuracy.md)：先查询真实数据，再确认候选，最后 validate / dry-run / 写入。
 - BLOCKING REQUIREMENT: 正式发布前固定顺序是 `doctor -> accounts list -> prepare -> schema fields -> validate -> publish --dry-run -> publish`；只有需要 payload 骨架时再补 `schema get`。
 - `prepare`、`schema fields` / `schema get`、workflow、平台文档和 CLI 实际输出，是组装 payload 的唯一依据。
+- `prepare` 返回的 `data.form` 是可恢复的页面式表单契约；需要逐步填写时使用 `yxer publish form start/inspect/set/export`，不要自行发明字段或路径。
 - 图片、视频、封面等资源必须先上传，且只能复用 `yxer upload` 返回的真实字段。
 - `category`、`location`、`music`、`collection`、`challenge`、`goods` 等动态字段必须先通过 `yxer query ...` 查询，不能手写对象。
 - CRITICAL: `validate`、`publish --dry-run`、正式 `publish` 必须使用同一套发布通道参数。
+
+## 页面式表单会话
+
+当一次性编辑 `payload.json` 无法表达页面中的完整流程时，使用本地会话逐步推进：
+
+```bash
+yxer publish form start <platform> <type> --output publish-form.json
+yxer publish form inspect publish-form.json
+yxer publish form set publish-form.json <payload.path> --value '<json-value>'
+yxer publish form set publish-form.json <payload.path> --value-file query-result.json
+yxer publish form export publish-form.json --output payload.json
+```
+
+`set` 只更新本地会话，不会触发发布；动态字段应直接使用 `query` 返回的完整对象或 CLI 输出文件（会自动取 `data`），资源应直接使用 `upload` 返回的完整对象。文本字段可直接传文本，复杂对象使用 JSON。导出后仍必须按固定顺序执行 `validate -> publish --dry-run -> publish`。所有写本地文件的会话命令都支持 `--dry-run`。
