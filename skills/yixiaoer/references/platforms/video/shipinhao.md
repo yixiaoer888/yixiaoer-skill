@@ -34,6 +34,7 @@
 | `description` | `string` | 否 | 视频描述，支持 HTML 格式和 `@` 好友/话题标签 | - |
 | `horizontalCover` | `object` | 否 | 视频横板封面，使用 `OldCover` 结构 | - |
 | `createType` | `number` | **是** | 创建类型：1-草稿，2-直接发布 | 2 |
+| `declaration` | `number` | 否 | 视频标注：0-无需标注，1-含 AI 生成内容，2-内容包含营销广告，3-内容为虚构剧情仅供娱乐，7-内容为转载，8-个人观点仅供参考 | 0 |
 | `pubType` | `number` | **是** | 发布类型：0-草稿，1-直接发布 | 1 |
 | `location` | `object` | 否 | 视频位置，使用 `PlatformDataItem` 结构 | - |
 | `scheduledTime` | `number` | 否 | 定时发布时间戳 (13 位 Unix 时间戳，单位: 毫秒) | - |
@@ -64,6 +65,7 @@
           "title": "记录美好瞬间",
           "description": "<p>这是我的视频号首发 #生活 #记录</p>",
           "createType": 2,
+          "declaration": 1,
           "pubType": 1,
           "location": {
             "yixiaoerId": "loc_001",

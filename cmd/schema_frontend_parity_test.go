@@ -41,6 +41,7 @@ func TestWebParitySchemasExposeCurrentFieldNamesAndEnums(t *testing.T) {
 		{"小红书", "imageText", "declaration", []float64{0, 1, 2}},
 		{"新浪微博", "imageText", "visibleType", []float64{0, 1}},
 		{"新浪微博", "imageText", "declaration", []float64{0, 1, 2, 3, 4}},
+		{"视频号", "video", "declaration", []float64{0, 1, 2, 3, 7, 8}},
 		{"一点号", "video", "createType", []float64{1, 2}},
 	}
 	for _, tc := range tests {

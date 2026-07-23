@@ -142,6 +142,28 @@ func TestSchemaReturnsValidShipinhaoVideoSchema(t *testing.T) {
 	if _, ok := schemaDoc.Properties["pubType"]; !ok {
 		t.Fatalf("expected shipinhao video schema to expose pubType, got %+v", schemaDoc.Properties)
 	}
+	declaration, ok := schemaDoc.Properties["declaration"]
+	if !ok {
+		t.Fatalf("expected shipinhao video schema to expose declaration, got %+v", schemaDoc.Properties)
+	}
+	if declaration.Default != float64(0) {
+		t.Fatalf("expected declaration default 0, got %#v", declaration.Default)
+	}
+}
+
+func TestValidateAcceptsShipinhaoVideoAiDeclaration(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	payload := map[string]interface{}{
+		"formType":    "task",
+		"createType":  float64(2),
+		"declaration": float64(1),
+		"pubType":     float64(1),
+	}
+
+	result := validator.Validate("视频号", "video", payload)
+	if !result.Valid {
+		t.Fatalf("expected shipinhao video AI declaration payload to pass, got %v", result.Errors)
+	}
 }
 
 func TestSchemaResolvesShipinhaoImageTextWithoutLegacyAlias(t *testing.T) {
