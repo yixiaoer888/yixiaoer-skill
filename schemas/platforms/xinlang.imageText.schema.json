@@ -4,7 +4,9 @@
   "required": [
     "formType",
     "description",
-    "images"
+    "images",
+    "visibleType",
+    "declaration"
   ],
   "properties": {
     "formType": {
@@ -14,7 +16,7 @@
     "description": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 2000
+      "maxLength": 5000
     },
     "images": {
       "type": "array",
@@ -80,6 +82,25 @@
     "scheduledTime": {
       "type": "number",
       "minimum": 0
+    },
+    "visibleType": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "declaration": {
+      "type": "number",
+      "enum": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "default": 0
     }
   },
   "additionalProperties": false

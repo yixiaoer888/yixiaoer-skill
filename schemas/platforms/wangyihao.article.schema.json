@@ -62,23 +62,24 @@
     "declaration": {
       "type": "number",
       "enum": [
+        0,
         1,
         2,
         3,
         4
       ]
     },
-    "type": {
+    "scheduledTime": {
+      "type": "number",
+      "minimum": 0
+    },
+    "createType": {
       "type": "number",
       "enum": [
         0,
         1
       ],
       "default": 0
-    },
-    "scheduledTime": {
-      "type": "number",
-      "minimum": 0
     }
   },
   "additionalProperties": false

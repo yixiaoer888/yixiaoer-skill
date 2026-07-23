@@ -18,7 +18,7 @@
     },
     "description": {
       "type": "string",
-      "maxLength": 5000
+      "maxLength": 1000
     },
     "tags": {
       "type": "array",
@@ -217,6 +217,15 @@
       "type": "number",
       "minimum": 0
     },
+    "visibleType": {
+      "type": "number",
+      "enum": [
+        0,
+        1,
+        2
+      ],
+      "default": 0
+    },
     "declaration": {
       "type": "number",
       "enum": [
@@ -283,6 +292,9 @@
         "团购",
         "购物车"
       ]
+    },
+    "group_shopping": {
+      "type": "object"
     }
   },
   "additionalProperties": false

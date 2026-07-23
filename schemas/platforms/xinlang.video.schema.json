@@ -23,15 +23,6 @@
       "minLength": 1,
       "maxLength": 2000
     },
-    "type": {
-      "type": "number",
-      "enum": [
-        1,
-        2,
-        3
-      ],
-      "default": 1
-    },
     "video": {
       "type": "object",
       "required": [
@@ -144,6 +135,15 @@
       "enum": [
         0,
         1
+      ],
+      "default": 1
+    },
+    "createType": {
+      "type": "number",
+      "enum": [
+        1,
+        2,
+        3
       ],
       "default": 1
     }

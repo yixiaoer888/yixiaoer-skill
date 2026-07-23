@@ -52,14 +52,6 @@
         }
       }
     },
-    "type": {
-      "type": "number",
-      "enum": [
-        0,
-        1
-      ],
-      "default": 1
-    },
     "pubType": {
       "type": "number",
       "enum": [
@@ -77,6 +69,26 @@
     "scheduledTime": {
       "type": "number",
       "minimum": 0
+    },
+    "createType": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    },
+    "declaration": {
+      "type": "number",
+      "enum": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "default": 0
     }
   },
   "additionalProperties": false

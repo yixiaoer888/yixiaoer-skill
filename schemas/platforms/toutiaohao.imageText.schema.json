@@ -15,7 +15,7 @@
     "description": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 1000
+      "maxLength": 2000
     },
     "images": {
       "type": "array",
@@ -62,6 +62,7 @@
     "declaration": {
       "type": "number",
       "enum": [
+        0,
         1,
         2,
         3,
