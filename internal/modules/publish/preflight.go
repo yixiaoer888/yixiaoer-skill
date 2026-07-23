@@ -126,6 +126,9 @@ func PreflightWithTopicHTMLPolicyAndTrace(publishType string, platforms []string
 
 		switch publishType {
 		case "video":
+			if _, exists := form["horizontalCover"]; exists {
+				result.Errors = append(result.Errors, formPath+".horizontalCover: unexpected field; use contentPublishForm.horizontalCover or publishArgs.horizontalCover")
+			}
 			video := objectField(form, "video")
 			if video == nil && cpf != nil {
 				video = objectField(cpf, "video")
@@ -136,6 +139,10 @@ func PreflightWithTopicHTMLPolicyAndTrace(publishType string, platforms []string
 				cover = objectField(cpf, "cover")
 			}
 			requireUploadedResource(cover, formPath+".cover", &result.Errors)
+			horizontalCover := objectField(cpf, "horizontalCover")
+			if horizontalCover != nil {
+				requireUploadedResource(horizontalCover, formPath+".contentPublishForm.horizontalCover", &result.Errors)
+			}
 			requireCoverKey(form, cpf, cover, formPath, &result.Errors)
 			requirePlatformConstraints(platforms, cover, formPath, &result.Errors)
 		case "imageText":
@@ -407,6 +414,9 @@ func NormalizeStandardPublishArgs(payload map[string]interface{}, publishType st
 		cpf, _ := form["contentPublishForm"].(map[string]interface{})
 		if cpf == nil {
 			continue
+		}
+		if NormalizePublishType(publishType) == "video" {
+			copyIfMissing(cpf, payload, "horizontalCover")
 		}
 		if allowArticleCovers {
 			copyIfMissing(cpf, payload, "covers")
@@ -1571,6 +1581,7 @@ func enrichResourceContainerMetadata(container map[string]interface{}, path stri
 	}
 	enrichResourceObjectMetadata(objectField(container, "video"), path+".video", errors)
 	enrichResourceObjectMetadata(objectField(container, "cover"), path+".cover", errors)
+	enrichResourceObjectMetadata(objectField(container, "horizontalCover"), path+".horizontalCover", errors)
 	if items, _ := container["images"].([]interface{}); len(items) > 0 {
 		for i, item := range items {
 			resource, _ := item.(map[string]interface{})

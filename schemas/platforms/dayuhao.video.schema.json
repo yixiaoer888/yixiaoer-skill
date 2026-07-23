@@ -144,6 +144,32 @@
     "coverKey": {
       "type": "string"
     },
+    "horizontalCover": {
+      "type": "object",
+      "required": [
+        "key",
+        "size",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
     "scheduledTime": {
       "type": "number",
       "minimum": 0

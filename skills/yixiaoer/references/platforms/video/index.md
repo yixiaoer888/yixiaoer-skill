@@ -69,10 +69,12 @@
 | `images` | `Array` | 否 | **标准请求体共享图片资源**。视频场景通常仅作扩展透传 | - |
 | `cover` | `Object` | 否 | **标准请求体共享封面资源**。CLI 校验时会在缺失时复制到各 `accountForms[i].cover` | - |
 | `coverKey` | `string` | 否 | **标准请求体共享封面 Key**。CLI 校验时会在缺失时复制到各 `accountForms[i].coverKey` | - |
+| `horizontalCover` | `Object` | 否 | **标准请求体共享横版封面资源**。仅适用于平台 schema 暴露 `horizontalCover` 的视频平台；CLI 校验时会复制到各 `accountForms[i].contentPublishForm.horizontalCover` | - |
 
 > [!TIP]
 > **CLI 输入兼容规则**:
 > - 推荐优先使用“标准请求体”形态，即在 `publishArgs` 中声明共享的 `video`、`cover`、`coverKey`，再在 `accountForms[]` 中补平台差异字段。
+> - 若平台支持横版封面，推荐在 `publishArgs.horizontalCover` 声明共享横版封面，或直接填写 `accountForms[].contentPublishForm.horizontalCover`；不要放在 `accountForms[].horizontalCover`。
 > - CLI 当前仍按**单平台命令**执行：`yxer publish video <platform> <payload.json> [clientId]`。即使请求体里可以表达多平台，命令本身仍需逐个平台调用。
 > - `yxer validate` 与 `yxer publish` 都接受完整标准请求体；在共享资源字段存在而账号项缺失时，CLI 会在校验阶段自动补齐到对应 `accountForms[]`。
 

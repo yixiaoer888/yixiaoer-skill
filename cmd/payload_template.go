@@ -178,7 +178,7 @@ func buildTemplateValue(name string, view schema.PropertyView) (interface{}, boo
 func accountLevelResourceKeys(publishType string) []string {
 	switch publishType {
 	case "video":
-		return []string{"video", "cover", "coverKey", "horizontalCover"}
+		return []string{"video", "cover", "coverKey"}
 	case "imageText":
 		return []string{"images", "cover", "coverKey"}
 	default:
@@ -192,9 +192,6 @@ func addRequiredAccountResources(accountForm map[string]interface{}, doc schema.
 		accountForm["video"] = videoResourcePlaceholder()
 		accountForm["cover"] = imageResourcePlaceholder()
 		accountForm["coverKey"] = "<与 cover.key 一致>"
-		if _, ok := doc.Properties["horizontalCover"]; ok {
-			accountForm["horizontalCover"] = imageResourcePlaceholder()
-		}
 	case "imageText":
 		accountForm["images"] = []interface{}{imageResourcePlaceholder()}
 		if requiresPublishCoverResource(doc) {

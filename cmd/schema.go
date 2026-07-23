@@ -248,6 +248,14 @@ func fieldPlacementFor(doc schema.Document, key string) fieldPlacementView {
 			"publishArgs.accountForms[].contentPublishForm.coverKey",
 		}
 		view.Note = "coverKey 需要和 accountForms[].cover.key 保持一致；若 contentPublishForm 也有该字段，两个层级都要同步。"
+	case "horizontalCover":
+		if doc.Type == "video" {
+			view.InputPaths = []string{
+				"publishArgs.horizontalCover",
+				"publishArgs.accountForms[].contentPublishForm.horizontalCover",
+			}
+			view.Note = "横版封面最终写入 contentPublishForm.horizontalCover；可在 publishArgs.horizontalCover 共享填写，CLI 会自动补齐。"
+		}
 	case "content":
 		if doc.Type == "article" {
 			view.InputPaths = []string{"publishArgs.content"}
@@ -386,11 +394,6 @@ func buildStandardPublishFieldView(doc schema.Document, businessFields map[strin
 						Type:     "string",
 						Required: accountResourceFields["coverKey"].Required,
 					},
-					"horizontalCover": {
-						Type:       "object",
-						Required:   accountResourceFields["horizontalCover"].Required,
-						Properties: resourceFieldProperties(false),
-					},
 					"contentPublishForm": {
 						Type:       "object",
 						Required:   true,
@@ -399,6 +402,12 @@ func buildStandardPublishFieldView(doc schema.Document, businessFields map[strin
 				},
 			},
 		},
+	}
+	if supportsHorizontalCover(doc) {
+		publishArgsProperties["horizontalCover"] = schema.PropertyView{
+			Type:       "object",
+			Properties: resourceFieldProperties(false),
+		}
 	}
 	if doc.Type == "article" {
 		publishArgsProperties["content"] = schema.PropertyView{
@@ -491,36 +500,45 @@ func buildAccountFormSchema(doc schema.Document) schema.PropertyView {
 	if isWeixinAccountArticleDoc(doc) {
 		contentPublishFormSchema = schema.PropertyView{Type: "object"}
 	}
-	return schema.PropertyView{
-		Type:     "object",
-		Required: true,
-		Properties: map[string]schema.PropertyView{
-			"platformAccountId": {
-				Type:     "string",
-				Required: true,
-			},
-			"account_id": {
-				Type: "string",
-			},
-			"video": {
-				Type: "object",
-			},
-			"images": {
-				Type: "array",
-			},
-			"cover": {
-				Type: "object",
-			},
-			"coverKey": {
-				Type: "string",
-			},
-			"contentPublishForm": {
-				Type:       contentPublishFormSchema.Type,
-				Required:   contentPublishFormSchema.Required,
-				Properties: contentPublishFormSchema.Properties,
-			},
+	properties := map[string]schema.PropertyView{
+		"platformAccountId": {
+			Type:     "string",
+			Required: true,
+		},
+		"account_id": {
+			Type: "string",
+		},
+		"video": {
+			Type: "object",
+		},
+		"images": {
+			Type: "array",
+		},
+		"cover": {
+			Type: "object",
+		},
+		"coverKey": {
+			Type: "string",
+		},
+		"contentPublishForm": {
+			Type:       contentPublishFormSchema.Type,
+			Required:   contentPublishFormSchema.Required,
+			Properties: contentPublishFormSchema.Properties,
 		},
 	}
+	return schema.PropertyView{
+		Type:       "object",
+		Required:   true,
+		Properties: properties,
+	}
+}
+
+func supportsHorizontalCover(doc schema.Document) bool {
+	if doc.Type != "video" {
+		return false
+	}
+	_, ok := doc.Properties["horizontalCover"]
+	return ok
 }
 
 func buildContentPublishFormSchema(doc schema.Document) schema.Document {
@@ -553,9 +571,6 @@ func accountResourceFieldViews(doc schema.Document) map[string]schema.PropertyVi
 		fields["video"] = schema.PropertyView{Required: true}
 		fields["cover"] = schema.PropertyView{Required: true}
 		fields["coverKey"] = schema.PropertyView{Required: true}
-		if _, ok := doc.Properties["horizontalCover"]; ok {
-			fields["horizontalCover"] = schema.PropertyView{Required: true}
-		}
 	}
 	if doc.Type == "imageText" {
 		fields["images"] = schema.PropertyView{Required: true, MinItems: intPtr(1)}

@@ -32,7 +32,7 @@
 | `title` | `string` | 否 | 视频标题 (最多 80 字) | - |
 | `short_title` | `string` | 否 | 视频短标题 | - |
 | `description` | `string` | 否 | 视频描述，支持 HTML 格式和 `@` 好友/话题标签 | - |
-| `horizontalCover` | `object` | 否 | 视频横板封面，使用 `OldCover` 结构 | - |
+| `horizontalCover` | `object` | 否 | 视频横版封面，使用 `OldCover` 结构；填写在 `contentPublishForm.horizontalCover`，也可用共享字段 `publishArgs.horizontalCover` 自动补齐 | - |
 | `createType` | `number` | **是** | 创建类型：1-草稿，2-直接发布 | 2 |
 | `declaration` | `number` | 否 | 视频标注：0-无需标注，1-含 AI 生成内容，2-内容包含营销广告，3-内容为虚构剧情仅供娱乐，7-内容为转载，8-个人观点仅供参考 | 0 |
 | `pubType` | `number` | **是** | 发布类型：0-草稿，1-直接发布 | 1 |
