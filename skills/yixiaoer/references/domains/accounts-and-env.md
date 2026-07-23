@@ -6,8 +6,11 @@
 
 ## 优先读取
 
-1. [`../yixiaoer-shared.md`](../yixiaoer-shared.md)
-2. [`../workflows/account-selection.md`](../workflows/account-selection.md)
+1. [`../protocols/execution.md`](../protocols/execution.md)
+2. [`../protocols/confirmation.md`](../protocols/confirmation.md)
+3. [`../protocols/error-recovery.md`](../protocols/error-recovery.md)
+4. [`../yixiaoer-shared.md`](../yixiaoer-shared.md)
+5. [`../workflows/account-selection.md`](../workflows/account-selection.md)
 
 ## 常用命令
 
@@ -36,4 +39,5 @@ yxer skill sync [--global]
 - `yxer accounts update` 是写操作，正式执行前必须先用同一参数执行 `--dry-run`
 - 涉及账号分组的 `visibleUsers`、指定成员可见、按成员挑选负责人时，先执行 `yxer query members` 获取真实成员 ID
 - 命中多个账号时，结构化列出候选并让用户确认；只有一个可用账号时可自动选中并说明
+- 查询或更新账号配置时，按执行协议记录当前状态；任何写操作失败后按错误恢复协议处理，不直接重复执行
 - 用户明确说“先不要发布，只查环境/账号”时，完成本域后直接停下，不擅自继续发布流程
