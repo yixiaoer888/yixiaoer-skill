@@ -34,6 +34,7 @@
 | `scheduledTime` | `number` | 否 | 定时发布时间 (13 位 Unix 时间戳，单位: 毫秒) | - |
 | `collection` | `Object` | 否 | 合集信息，使用 `Collection` 结构 | - |
 | `visibleType` | `number` | **是** | 可见类型: 0-公开, 1-私密, 3-好友可见 | 0 |
+| `createType` | `number` | 否 | 原创申明: 0-不申明, 1-原创 | 0 |
 
 ## 2. 复杂对象结构说明
 
@@ -70,7 +71,8 @@
           "images": [
             { "key": "img_xhs_01", "size": 1024, "width": 1080, "height": 1440, "format": "jpg" }
           ],
-          "visibleType": 0
+          "visibleType": 0,
+          "createType": 1
         }
       }
     ]

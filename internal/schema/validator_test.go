@@ -505,6 +505,7 @@ func TestValidateAcceptsXhsImageTextMusicAndScheduledFields(t *testing.T) {
 		"formType":      "task",
 		"description":   "<p>小红书图文内容</p>",
 		"visibleType":   float64(0),
+		"createType":    float64(1),
 		"scheduledTime": float64(1760000000000),
 		"music": map[string]interface{}{
 			"yixiaoerId":   "music_1",
@@ -527,6 +528,24 @@ func TestValidateAcceptsXhsImageTextMusicAndScheduledFields(t *testing.T) {
 	result := validator.Validate("小红书", "imageText", payload)
 	if !result.Valid {
 		t.Fatalf("expected xiaohongshu imageText music/scheduled payload to pass, got %v", result.Errors)
+	}
+}
+
+func TestSchemaExposesXhsImageTextCreateType(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	schemaDoc, err := validator.Schema("小红书", "imageText")
+	if err != nil {
+		t.Fatal(err)
+	}
+	createType, ok := schemaDoc.Properties["createType"]
+	if !ok {
+		t.Fatalf("expected xiaohongshu imageText schema to expose createType, got %+v", schemaDoc.Properties)
+	}
+	if createType.Default != float64(0) {
+		t.Fatalf("expected createType default 0, got %#v", createType.Default)
+	}
+	if len(createType.Enum) != 2 || createType.Enum[0] != float64(0) || createType.Enum[1] != float64(1) {
+		t.Fatalf("expected createType enum [0 1], got %#v", createType.Enum)
 	}
 }
 
