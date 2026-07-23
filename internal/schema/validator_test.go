@@ -335,6 +335,37 @@ func TestValidateAcceptsDouyinFrontendLocationAndGroupShoppingShape(t *testing.T
 	}
 }
 
+func TestValidateAcceptsDouyinVideoDescriptionOverThirtyCharacters(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	payload := map[string]interface{}{
+		"formType":    "task",
+		"title":       "视频标题",
+		"description": strings.Repeat("字", 31),
+	}
+
+	result := validator.Validate("抖音", "video", payload)
+	if !result.Valid {
+		t.Fatalf("expected douyin video description over 30 characters to pass, got %v", result.Errors)
+	}
+}
+
+func TestValidateRejectsDouyinVideoDescriptionOverOneThousandCharacters(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	payload := map[string]interface{}{
+		"formType":    "task",
+		"title":       "视频标题",
+		"description": strings.Repeat("字", 1001),
+	}
+
+	result := validator.Validate("抖音", "video", payload)
+	if result.Valid {
+		t.Fatal("expected douyin video description over 1000 characters to fail")
+	}
+	if !containsError(result.Errors, "description: must NOT have more than 1000 characters") {
+		t.Fatalf("expected description maxLength error, got %v", result.Errors)
+	}
+}
+
 func TestValidateAcceptsFrontendPlatformDataLocationShape(t *testing.T) {
 	validator := NewValidator(filepath.Join("..", "..", "schemas"))
 	payload := map[string]interface{}{

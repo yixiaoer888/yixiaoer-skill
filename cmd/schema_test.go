@@ -285,6 +285,44 @@ func TestSchemaFieldsCommandOutputsFieldView(t *testing.T) {
 	}
 }
 
+func TestSchemaFieldsCommandExposesDouyinVideoDescriptionLimit(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	var out bytes.Buffer
+	cmd := newSchemaFieldsCmd()
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"抖音", "video"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	fields := data["fields"].(map[string]interface{})
+	publishArgs := fields["publishArgs"].(map[string]interface{})
+	accountForms := publishArgs["properties"].(map[string]interface{})["accountForms"].(map[string]interface{})
+	contentPublishForm := accountForms["items"].(map[string]interface{})["properties"].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	description := contentPublishForm["properties"].(map[string]interface{})["description"].(map[string]interface{})
+	if description["required"] != true || description["maxLength"] != float64(1000) {
+		t.Fatalf("expected douyin video description to be required with maxLength=1000, got %#v", description)
+	}
+
+	notes := data["platformNotes"].([]interface{})
+	foundLimitNote := false
+	for _, note := range notes {
+		if note == "标题最大长度为30字符，描述最大长度为1000字符" {
+			foundLimitNote = true
+		}
+	}
+	if !foundLimitNote {
+		t.Fatalf("expected douyin video platformNotes to mention frontend title/description limits, got %#v", notes)
+	}
+}
+
 func TestSchemaFieldsCommandOutputsDynamicFieldExamples(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)

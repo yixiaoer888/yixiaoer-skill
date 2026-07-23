@@ -796,7 +796,7 @@ func getPlatformSpecificNotes(platform, publishType string) []string {
 	case "douyin", "抖音":
 		if publishType == "video" {
 			notes = append(notes, "抖音视频支持挂车(shopping_cart)、话题(challenge)、合集(collection)、热点(hot_event)等高级功能")
-			notes = append(notes, "标题和描述最大长度均为30字符")
+			notes = append(notes, "标题最大长度为30字符，描述最大长度为1000字符")
 		} else if publishType == "imageText" {
 			notes = append(notes, "抖音图文需要1-35张图片")
 		}
