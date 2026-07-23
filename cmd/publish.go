@@ -24,7 +24,7 @@ func newPublishCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "publish <type> <中文平台名|platform-key> <payload.json> [clientId]",
 		Short: "发布内容（单平台原子发布）",
-		Long:  "仅支持 payload.json 模式。发布前请先通过 prepare / schema fields 获取表单字段和前置数据；需要完整骨架时再补 schema get，随后执行 validate 和 publish。",
+		Long:  "仅支持标准 payload.json。发布前请先通过 prepare / schema fields 获取表单字段和前置数据；需要完整骨架时再补 schema get，随后执行 validate 和 publish。",
 		Args:  cobra.RangeArgs(3, 4),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runPublish(cmd, args, opts)

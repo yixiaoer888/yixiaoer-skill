@@ -36,10 +36,18 @@ func buildPublishFormContract(doc schema.Document) map[string]interface{} {
 			map[string]interface{}{"id": "account", "kind": "account-selection", "required": true, "command": fmt.Sprintf("yxer accounts list %s --status 1 --json", platformutil.ChineseName(doc.Platform))},
 			map[string]interface{}{"id": "resources", "kind": "resource-upload", "fields": resourceFields, "command": "yxer upload --file <path> --json"},
 			map[string]interface{}{"id": "platform-form", "kind": "field-entry", "fields": fields},
-			map[string]interface{}{"id": "dynamic-selection", "kind": "query-selection", "fields": dynamic, "queries": queries},
+			map[string]interface{}{
+				"id":      "dynamic-selection",
+				"kind":    "query-selection",
+				"fields":  dynamic,
+				"queries": queries,
+				"command": "yxer publish form choose <session.json> <field> --value-file <query.json> --id <candidate_id>",
+			},
 			map[string]interface{}{"id": "review", "kind": "validation", "commands": []string{
+				"yxer publish form export <session.json> --output payload.json",
 				fmt.Sprintf("yxer validate %s %s <payload.json>", doc.Platform, doc.Type),
 				fmt.Sprintf("yxer publish %s %s <payload.json> --dry-run", doc.Type, doc.Platform),
+				"yxer publish form review <session.json>",
 			}},
 		},
 		"fields":               fields,
@@ -47,6 +55,6 @@ func buildPublishFormContract(doc schema.Document) map[string]interface{} {
 		"fieldPlacements":      buildFieldPlacements(doc),
 		"dynamicFieldExamples": dynamic,
 		"template":             buildPayloadTemplate(doc),
-		"sourceOfTruth":        []string{"prepare", "schema fields", "schema get", "query results", "upload results"},
+		"sourceOfTruth":        []string{"prepare", "schema fields", "schema get", "query results", "upload results", "session.sources"},
 	}
 }

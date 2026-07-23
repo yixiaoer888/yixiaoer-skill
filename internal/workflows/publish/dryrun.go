@@ -2,8 +2,6 @@ package publish
 
 import (
 	publishmod "github.com/yixiaoer/yixiaoer-skill/internal/modules/publish"
-	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
-	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
 type DryRunResult struct {
@@ -68,72 +66,25 @@ func inferredFieldsForMeta(fields map[string]InferredField) map[string]InferredF
 }
 
 func (s Service) DryRun(input ExecuteInput) (DryRunResult, error) {
-	input.PublishType = publishmod.NormalizePublishType(input.PublishType)
-	platform, err := SinglePlatform(input.PlatformInput)
+	prepared, err := s.Prepare(input, PrepareOptions{TraceNormalizations: true, RemoteChecks: RemoteChecksNone})
 	if err != nil {
-		return DryRunResult{}, err
-	}
-	platforms := []string{platform}
-
-	cfg := s.rt.Config
-	resolvedPayload := cloneMap(input.Payload)
-	channel, clientID, err := ResolvePublishMode(cfg, resolvedPayload, input.PositionalClientID, input.FlagChannel, input.FlagClientID)
-	if err != nil {
-		return DryRunResult{}, err
-	}
-	resolvedPayload["publishChannel"] = channel
-	if clientID != "" {
-		resolvedPayload["clientId"] = clientID
-	} else {
-		delete(resolvedPayload, "clientId")
-	}
-	if err := publishmod.RequireStandardPayload(resolvedPayload); err != nil {
-		return DryRunResult{}, err
-	}
-	if err := publishmod.ResolveStandardPayloadResourceMetadata(resolvedPayload); err != nil {
-		return DryRunResult{}, err
-	}
-	validator := schema.NewValidator(cfg.SchemaDir)
-	topicPolicy := topicHTMLPolicyForPlatforms(validator, platforms, input.PublishType)
-	var normalizations []publishmod.NormalizationEvent
-	publishArgs := publishmod.NormalizeStandardPayloadForSchemaValidationWithTrace(input.PublishType, platforms, resolvedPayload, &normalizations)
-
-	for _, platform := range platforms {
-		result, err := validator.ValidateStrict(platform, input.PublishType, resolvedPayload)
-		if err != nil {
-			return DryRunResult{}, schemaUnavailableError(platform, input.PublishType, cfg.SchemaDir, err)
-		}
-		if !result.Valid {
-			return DryRunResult{}, yxerrors.Usage("Schema validation failed", result.Errors).
-				WithHint(schemaValidationHint(result.Errors)).
-				WithNextCommand("yxer schema fields <platform> <type>")
-		}
-	}
-	preflight := publishmod.PreflightWithTopicHTMLPolicyAndTrace(input.PublishType, platforms, payloadWithPublishMode(resolvedPayload, channel, clientID), topicPolicy, &normalizations)
-	if len(preflight.Errors) > 0 {
-		return DryRunResult{}, yxerrors.Usage("Publish preflight failed", preflight.Errors).
-			WithHint("请先完成资源上传、账号校验，并确保发布参数中不包含外部 URL。")
-	}
-
-	body, inferredFields := BuildPublishBodyWithInferred(resolvedPayload, publishArgs, input.PublishType, platforms, channel, clientID)
-	if err := validateInstagramMediaKeys(platform, input.PublishType, body); err != nil {
 		return DryRunResult{}, err
 	}
 
 	return DryRunResult{
-		Platform:       platform,
-		PublishType:    input.PublishType,
-		PublishBody:    body,
-		PublishArgs:    publishArgs,
-		PublishMode:    channel,
-		ClientID:       clientID,
-		AccountIDs:     preflight.AccountIDs,
-		PlatformDraft:  isPlatformDraftPublish(body),
-		YixiaoerDraft:  inferYixiaoerDraft(body),
+		Platform:       prepared.Platform,
+		PublishType:    prepared.PublishType,
+		PublishBody:    prepared.PublishBody,
+		PublishArgs:    prepared.PublishArgs,
+		PublishMode:    prepared.PublishMode,
+		ClientID:       prepared.ClientID,
+		AccountIDs:     prepared.Preflight.AccountIDs,
+		PlatformDraft:  isPlatformDraftPublish(prepared.PublishBody),
+		YixiaoerDraft:  inferYixiaoerDraft(prepared.PublishBody),
 		SchemaChecked:  true,
-		RemoteChecks:   false,
-		Normalizations: normalizations,
-		InferredFields: inferredFields,
+		RemoteChecks:   prepared.RemoteChecked,
+		Normalizations: prepared.Normalizations,
+		InferredFields: prepared.InferredFields,
 	}, nil
 }
 

@@ -31,6 +31,34 @@ type Service struct {
 	rt *app.Runtime
 }
 
+type RemoteCheckMode string
+
+const (
+	RemoteChecksNone         RemoteCheckMode = "none"
+	RemoteChecksRequired     RemoteCheckMode = "required"
+	RemoteChecksCloudWithKey RemoteCheckMode = "cloud_with_api_key"
+)
+
+type PrepareOptions struct {
+	TraceNormalizations bool
+	RemoteChecks        RemoteCheckMode
+}
+
+type PreparedPublish struct {
+	Platform       string
+	Platforms      []string
+	PublishType    string
+	Payload        map[string]interface{}
+	PublishArgs    map[string]interface{}
+	PublishMode    string
+	ClientID       string
+	Preflight      publishmod.PreflightResult
+	Normalizations []publishmod.NormalizationEvent
+	PublishBody    map[string]interface{}
+	InferredFields map[string]InferredField
+	RemoteChecked  bool
+}
+
 type InferredField struct {
 	Value      interface{} `json:"value"`
 	SourcePath string      `json:"sourcePath"`
@@ -38,6 +66,103 @@ type InferredField struct {
 
 func NewService(rt *app.Runtime) Service {
 	return Service{rt: rt}
+}
+
+func (s Service) Prepare(input ExecuteInput, opts PrepareOptions) (PreparedPublish, error) {
+	input.PublishType = publishmod.NormalizePublishType(input.PublishType)
+	platform, err := SinglePlatform(input.PlatformInput)
+	if err != nil {
+		return PreparedPublish{}, err
+	}
+	platforms := []string{platform}
+	cfg := s.rt.Config
+	resolvedPayload := cloneMap(input.Payload)
+	channel, clientID, err := ResolvePublishMode(cfg, resolvedPayload, input.PositionalClientID, input.FlagChannel, input.FlagClientID)
+	if err != nil {
+		return PreparedPublish{}, err
+	}
+	resolvedPayload["publishChannel"] = channel
+	if clientID != "" {
+		resolvedPayload["clientId"] = clientID
+	} else {
+		delete(resolvedPayload, "clientId")
+	}
+	if err := publishmod.RequireStandardPayload(resolvedPayload); err != nil {
+		return PreparedPublish{}, err
+	}
+	if err := publishmod.ResolveStandardPayloadResourceMetadata(resolvedPayload); err != nil {
+		return PreparedPublish{}, err
+	}
+	validator := schema.NewValidator(cfg.SchemaDir)
+	topicPolicy := topicHTMLPolicyForPlatforms(validator, platforms, input.PublishType)
+	var normalizations []publishmod.NormalizationEvent
+	publishArgs := publishmod.NormalizeStandardPayloadForSchemaValidationWithTrace(input.PublishType, platforms, resolvedPayload, &normalizations)
+
+	for _, platform := range platforms {
+		result, err := validator.ValidateStrict(platform, input.PublishType, resolvedPayload)
+		if err != nil {
+			return PreparedPublish{}, schemaUnavailableError(platform, input.PublishType, cfg.SchemaDir, err)
+		}
+		if !result.Valid {
+			return PreparedPublish{}, yxerrors.Usage("Schema validation failed", result.Errors).
+				WithHint(schemaValidationHint(result.Errors)).
+				WithNextCommand(fmt.Sprintf("yxer validate %s %s <payload.json>", platform, input.PublishType))
+		}
+	}
+	preflight := publishmod.PreflightWithTopicHTMLPolicyAndTrace(input.PublishType, platforms, payloadWithPublishMode(resolvedPayload, channel, clientID), topicPolicy, &normalizations)
+	if len(preflight.Errors) > 0 {
+		return PreparedPublish{}, yxerrors.Usage("Publish preflight failed", preflight.Errors).
+			WithHint("请先完成资源上传、账号校验，并确保发布参数中不包含外部 URL。")
+	}
+
+	remoteChecked := false
+	if shouldPrepareRemoteCheck(opts.RemoteChecks, channel, cfg, preflight.AccountIDs) {
+		accountsByID, err := ResolveTargetAccounts(s.rt.Client, platforms, preflight.AccountIDs)
+		if err != nil {
+			return PreparedPublish{}, err
+		}
+		if err := AssertCloudChannelReady(channel, platforms, accountsByID); err != nil {
+			return PreparedPublish{}, err
+		}
+		remoteChecked = true
+	}
+
+	body, inferredFields := BuildPublishBodyWithInferred(resolvedPayload, publishArgs, input.PublishType, platforms, channel, clientID)
+	if err := validateInstagramMediaKeys(platform, input.PublishType, body); err != nil {
+		return PreparedPublish{}, err
+	}
+
+	if !opts.TraceNormalizations {
+		normalizations = nil
+	}
+	return PreparedPublish{
+		Platform:       platform,
+		Platforms:      platforms,
+		PublishType:    input.PublishType,
+		Payload:        resolvedPayload,
+		PublishArgs:    publishArgs,
+		PublishMode:    channel,
+		ClientID:       clientID,
+		Preflight:      preflight,
+		Normalizations: normalizations,
+		PublishBody:    body,
+		InferredFields: inferredFields,
+		RemoteChecked:  remoteChecked,
+	}, nil
+}
+
+func shouldPrepareRemoteCheck(mode RemoteCheckMode, channel string, cfg config.Config, accountIDs []string) bool {
+	if len(accountIDs) == 0 {
+		return false
+	}
+	switch mode {
+	case RemoteChecksRequired:
+		return true
+	case RemoteChecksCloudWithKey:
+		return channel == "cloud" && cfg.APIKey != ""
+	default:
+		return false
+	}
 }
 
 func topicHTMLPolicyForPlatforms(validator schema.Validator, platforms []string, publishType string) publishmod.TopicHTMLPolicy {
@@ -58,84 +183,32 @@ func topicHTMLPolicyForPlatforms(validator schema.Validator, platforms []string,
 }
 
 func (s Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
-	input.PublishType = publishmod.NormalizePublishType(input.PublishType)
-	platform, err := SinglePlatform(input.PlatformInput)
+	prepared, err := s.Prepare(input, PrepareOptions{RemoteChecks: RemoteChecksRequired})
 	if err != nil {
 		return nil, err
 	}
-	platforms := []string{platform}
 	cfg := s.rt.Config
-	resolvedPayload := cloneMap(input.Payload)
-	channel, clientID, err := ResolvePublishMode(cfg, resolvedPayload, input.PositionalClientID, input.FlagChannel, input.FlagClientID)
-	if err != nil {
-		return nil, err
-	}
-	resolvedPayload["publishChannel"] = channel
-	if clientID != "" {
-		resolvedPayload["clientId"] = clientID
-	} else {
-		delete(resolvedPayload, "clientId")
-	}
-	if err := publishmod.RequireStandardPayload(resolvedPayload); err != nil {
-		return nil, err
-	}
-	if err := publishmod.ResolveStandardPayloadResourceMetadata(resolvedPayload); err != nil {
-		return nil, err
-	}
-	validator := schema.NewValidator(cfg.SchemaDir)
-	topicPolicy := topicHTMLPolicyForPlatforms(validator, platforms, input.PublishType)
-	publishArgs := publishmod.NormalizeStandardPayloadForSchemaValidation(input.PublishType, platforms, resolvedPayload)
-
-	for _, platform := range platforms {
-		result, err := validator.ValidateStrict(platform, input.PublishType, resolvedPayload)
-		if err != nil {
-			return nil, schemaUnavailableError(platform, input.PublishType, cfg.SchemaDir, err)
-		}
-		if !result.Valid {
-			return nil, yxerrors.Usage("Schema validation failed", result.Errors).
-				WithHint(schemaValidationHint(result.Errors)).
-				WithNextCommand(fmt.Sprintf("yxer validate %s %s <payload.json>", platform, input.PublishType))
-		}
-	}
-	preflight := publishmod.PreflightWithTopicHTMLPolicy(input.PublishType, platforms, resolvedPayload, topicPolicy)
-	if len(preflight.Errors) > 0 {
-		return nil, yxerrors.Usage("Publish preflight failed", preflight.Errors).
-			WithHint("请先完成资源上传、账号校验，并确保发布参数中不包含外部 URL。")
-	}
-
 	apiClient := s.rt.Client
-	accountsByID, err := ResolveTargetAccounts(apiClient, platforms, preflight.AccountIDs)
-	if err != nil {
-		return nil, err
-	}
-	if err := AssertCloudChannelReady(channel, platforms, accountsByID); err != nil {
-		return nil, err
-	}
-
-	body := BuildPublishBody(resolvedPayload, publishArgs, input.PublishType, platforms, channel, clientID)
-	if err := validateInstagramMediaKeys(platform, input.PublishType, body); err != nil {
-		return nil, err
-	}
-	result, err := apiClient.Publish(body)
+	result, err := apiClient.Publish(prepared.PublishBody)
 	if err == nil {
 		return result, nil
 	}
-	if mapped := mapInstagramMediaFetchError(platform, input.PublishType, err); mapped != nil {
+	if mapped := mapInstagramMediaFetchError(prepared.Platform, prepared.PublishType, err); mapped != nil {
 		return nil, mapped
 	}
-	if !shouldOfferLocalPublishRetry(err, channel) {
+	if !shouldOfferLocalPublishRetry(err, prepared.PublishMode) {
 		return nil, err
 	}
 	if !input.AutoFallbackLocal {
-		return nil, buildLocalFallbackError(platform, input.PublishType, clientID, err)
+		return nil, buildLocalFallbackError(prepared.Platform, prepared.PublishType, prepared.ClientID, err)
 	}
-	localChannel, localClientID, resolveErr := ResolvePublishMode(cfg, resolvedPayload, "", "local", "")
+	localChannel, localClientID, resolveErr := ResolvePublishMode(cfg, prepared.Payload, "", "local", "")
 	if resolveErr != nil {
 		return nil, resolveErr
 	}
-	resolvedPayload["publishChannel"] = localChannel
-	resolvedPayload["clientId"] = localClientID
-	body = BuildPublishBody(resolvedPayload, publishArgs, input.PublishType, platforms, localChannel, localClientID)
+	prepared.Payload["publishChannel"] = localChannel
+	prepared.Payload["clientId"] = localClientID
+	body := BuildPublishBody(prepared.Payload, prepared.PublishArgs, prepared.PublishType, prepared.Platforms, localChannel, localClientID)
 	return apiClient.Publish(body)
 }
 

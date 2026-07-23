@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -19,12 +21,31 @@ import (
 type publishFormSession struct {
 	Kind      string                 `json:"kind"`
 	Version   int                    `json:"version"`
+	PlanID    string                 `json:"planId,omitempty"`
 	Platform  string                 `json:"platform"`
 	Type      string                 `json:"type"`
 	CreatedAt string                 `json:"createdAt"`
 	UpdatedAt string                 `json:"updatedAt"`
 	Contract  map[string]interface{} `json:"contract"`
 	Payload   map[string]interface{} `json:"payload"`
+	Sources   []publishFormSource    `json:"sources,omitempty"`
+	Reviews   []publishFormReview    `json:"reviews,omitempty"`
+}
+
+type publishFormSource struct {
+	Path          string      `json:"path"`
+	Field         string      `json:"field,omitempty"`
+	Kind          string      `json:"kind"`
+	SourceCommand string      `json:"sourceCommand,omitempty"`
+	Target        string      `json:"target,omitempty"`
+	AccountIndex  int         `json:"accountIndex,omitempty"`
+	Value         interface{} `json:"value,omitempty"`
+	UpdatedAt     string      `json:"updatedAt"`
+}
+
+type publishFormReview struct {
+	PayloadHash string `json:"payloadHash"`
+	ReviewedAt  string `json:"reviewedAt"`
 }
 
 func newPublishFormCmd() *cobra.Command {
@@ -32,6 +53,8 @@ func newPublishFormCmd() *cobra.Command {
 	cmd.AddCommand(newPublishFormStartCmd())
 	cmd.AddCommand(newPublishFormInspectCmd())
 	cmd.AddCommand(newPublishFormSetCmd())
+	cmd.AddCommand(newPublishFormChooseCmd())
+	cmd.AddCommand(newPublishFormReviewCmd())
 	cmd.AddCommand(newPublishFormExportCmd())
 	return cmd
 }
@@ -84,7 +107,8 @@ func newPublishFormInspectCmd() *cobra.Command {
 			}
 			return output.Success(cmd.OutOrStdout(), "publish.form.inspect", map[string]interface{}{
 				"file": filepath.ToSlash(args[0]), "platform": session.Platform, "type": session.Type,
-				"contract": session.Contract, "payload": session.Payload,
+				"planId": session.PlanID, "contract": session.Contract, "payload": session.Payload,
+				"sources": session.Sources, "reviews": session.Reviews,
 			})
 		},
 	}
@@ -93,6 +117,7 @@ func newPublishFormInspectCmd() *cobra.Command {
 func newPublishFormSetCmd() *cobra.Command {
 	var value, valueFile string
 	var index int
+	var sourceCommand string
 	var dryRun bool
 	cmd := &cobra.Command{
 		Use:   "set <session.json> <path>",
@@ -128,19 +153,154 @@ func newPublishFormSetCmd() *cobra.Command {
 			}
 			session.Payload = updated
 			session.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+			session.Sources = appendPublishFormSource(session.Sources, publishFormSource{
+				Path:          args[1],
+				Kind:          "manual",
+				SourceCommand: sourceCommand,
+				Value:         parsed,
+				UpdatedAt:     session.UpdatedAt,
+			})
 			if dryRun {
-				return output.Success(cmd.OutOrStdout(), "publish.form.set.dry-run", map[string]interface{}{"file": filepath.ToSlash(args[0]), "path": args[1], "value": parsed, "payload": updated})
+				return output.Success(cmd.OutOrStdout(), "publish.form.set.dry-run", map[string]interface{}{"file": filepath.ToSlash(args[0]), "path": args[1], "value": parsed, "source": lastPublishFormSource(session.Sources), "payload": updated})
 			}
 			if err := writePublishFormSession(args[0], session); err != nil {
 				return yxerrors.Internal("failed to write publish form session", err.Error())
 			}
-			return output.Success(cmd.OutOrStdout(), "publish.form.set", map[string]interface{}{"file": filepath.ToSlash(args[0]), "path": args[1], "value": parsed, "payload": updated})
+			return output.Success(cmd.OutOrStdout(), "publish.form.set", map[string]interface{}{"file": filepath.ToSlash(args[0]), "path": args[1], "value": parsed, "source": lastPublishFormSource(session.Sources), "payload": updated})
 		},
 	}
 	cmd.Flags().StringVar(&value, "value", "", "JSON value to set")
 	cmd.Flags().StringVar(&valueFile, "value-file", "", "file containing one JSON value")
 	cmd.Flags().IntVar(&index, "index", -1, "select an item from an array value (for query results)")
+	cmd.Flags().StringVar(&sourceCommand, "source-command", "", "command or note that produced this value")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview the updated session without writing it")
+	return cmd
+}
+
+func newPublishFormChooseCmd() *cobra.Command {
+	var value, valueFile string
+	var index int
+	var id, path, accountID, target, sourceCommand string
+	var dryRun bool
+	cmd := &cobra.Command{
+		Use:   "choose <session.json> <field>",
+		Short: "从 query 输出中选择候选并写入目标账号表单字段",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if strings.TrimSpace(value) == "" && strings.TrimSpace(valueFile) == "" {
+				return yxerrors.Usage("form choose requires --value or --value-file", nil).
+					WithHint("请把 yxer query ... --json 的输出通过 --value-file 传入，或将候选对象作为 --value 传入。")
+			}
+			rawValue, err := readFormValue(value, valueFile)
+			if err != nil {
+				return yxerrors.Usage("form choose value is not valid JSON", err.Error())
+			}
+			selected, candidates, err := selectPublishFormCandidate(rawValue, index, id)
+			if err != nil {
+				return err
+			}
+			session, err := readPublishFormSession(args[0])
+			if err != nil {
+				return err
+			}
+			accountIndex, resolvedTarget, err := resolvePublishFormAccountTarget(session.Payload, accountID, target)
+			if err != nil {
+				return err
+			}
+			resolvedPath := strings.TrimSpace(path)
+			if resolvedPath == "" {
+				resolvedPath, err = resolvePublishFormFieldPath(session, args[1], accountIndex)
+				if err != nil {
+					return err
+				}
+			}
+			updated := cloneJSONMap(session.Payload)
+			if err := setJSONPath(updated, resolvedPath, selected); err != nil {
+				return yxerrors.Usage("form choose target path cannot be updated", map[string]interface{}{"path": resolvedPath, "cause": err.Error()}).
+					WithHint("请确认字段存在于 form contract；多账号场景请使用 --account-id 或 --target 精确定位。").
+					WithNextCommand("yxer publish form inspect " + args[0])
+			}
+			session.Payload = updated
+			session.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+			source := publishFormSource{
+				Path:          resolvedPath,
+				Field:         args[1],
+				Kind:          "query",
+				SourceCommand: sourceCommand,
+				Target:        resolvedTarget,
+				AccountIndex:  accountIndex,
+				Value:         selected,
+				UpdatedAt:     session.UpdatedAt,
+			}
+			session.Sources = appendPublishFormSource(session.Sources, source)
+			if dryRun {
+				return output.Success(cmd.OutOrStdout(), "publish.form.choose.dry-run", map[string]interface{}{
+					"file": filepath.ToSlash(args[0]), "field": args[1], "path": resolvedPath, "selected": selected,
+					"candidateCount": len(candidates), "source": source, "payload": updated,
+				})
+			}
+			if err := writePublishFormSession(args[0], session); err != nil {
+				return yxerrors.Internal("failed to write publish form session", err.Error())
+			}
+			return output.Success(cmd.OutOrStdout(), "publish.form.choose", map[string]interface{}{
+				"file": filepath.ToSlash(args[0]), "field": args[1], "path": resolvedPath, "selected": selected,
+				"candidateCount": len(candidates), "source": source, "payload": updated,
+			})
+		},
+	}
+	cmd.Flags().StringVar(&value, "value", "", "query result JSON, selected object JSON, or candidate array JSON")
+	cmd.Flags().StringVar(&valueFile, "value-file", "", "file containing query result JSON")
+	cmd.Flags().IntVar(&index, "index", -1, "candidate index to select when query result has multiple items")
+	cmd.Flags().StringVar(&id, "id", "", "candidate id to select (matches yixiaoerId/id/value/key)")
+	cmd.Flags().StringVar(&path, "path", "", "override target JSON path; defaults to contract dynamic field path")
+	cmd.Flags().StringVar(&accountID, "account-id", "", "target platformAccountId/account_id when session has multiple accountForms")
+	cmd.Flags().StringVar(&target, "target", "", "target selector, usually <platform>:<accountId> or <accountId>")
+	cmd.Flags().StringVar(&sourceCommand, "source-command", "", "query command that produced this value")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview the selected write without updating the session")
+	return cmd
+}
+
+func newPublishFormReviewCmd() *cobra.Command {
+	var dryRun bool
+	cmd := &cobra.Command{
+		Use:   "review <session.json>",
+		Short: "生成会话摘要、payload hash 和后续 validate/dry-run 命令",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			session, err := readPublishFormSession(args[0])
+			if err != nil {
+				return err
+			}
+			hash, err := hashJSONValue(session.Payload)
+			if err != nil {
+				return yxerrors.Internal("failed to hash publish form payload", err.Error())
+			}
+			review := publishFormReview{PayloadHash: hash, ReviewedAt: time.Now().UTC().Format(time.RFC3339)}
+			if !dryRun {
+				session.Reviews = append(session.Reviews, review)
+				session.UpdatedAt = review.ReviewedAt
+				if err := writePublishFormSession(args[0], session); err != nil {
+					return yxerrors.Internal("failed to write publish form session", err.Error())
+				}
+			}
+			return output.Success(cmd.OutOrStdout(), actionForReview(dryRun), map[string]interface{}{
+				"file":        filepath.ToSlash(args[0]),
+				"planId":      session.PlanID,
+				"platform":    session.Platform,
+				"type":        session.Type,
+				"payloadHash": hash,
+				"sourceCount": len(session.Sources),
+				"sources":     session.Sources,
+				"next": []string{
+					fmt.Sprintf("yxer publish form export %s --output payload.json", filepath.ToSlash(args[0])),
+					fmt.Sprintf("yxer validate %s %s payload.json", session.Platform, session.Type),
+					fmt.Sprintf("yxer publish %s %s payload.json --dry-run", session.Type, session.Platform),
+					fmt.Sprintf("yxer publish %s %s payload.json", session.Type, session.Platform),
+				},
+			})
+		},
+	}
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview review without appending it to the session")
 	return cmd
 }
 
@@ -161,7 +321,12 @@ func newPublishFormExportCmd() *cobra.Command {
 				return err
 			}
 			if dryRun {
-				return output.Success(cmd.OutOrStdout(), "publish.form.export.dry-run", map[string]interface{}{"file": filepath.ToSlash(target), "payload": session.Payload})
+				hash, _ := hashJSONValue(session.Payload)
+				return output.Success(cmd.OutOrStdout(), "publish.form.export.dry-run", map[string]interface{}{"file": filepath.ToSlash(target), "payloadHash": hash, "sourceCount": len(session.Sources), "payload": session.Payload, "next": []string{
+					fmt.Sprintf("yxer validate %s %s %s", session.Platform, session.Type, filepath.ToSlash(target)),
+					fmt.Sprintf("yxer publish %s %s %s --dry-run", session.Type, session.Platform, filepath.ToSlash(target)),
+					fmt.Sprintf("yxer publish %s %s %s", session.Type, session.Platform, filepath.ToSlash(target)),
+				}})
 			}
 			raw, err := json.MarshalIndent(session.Payload, "", "  ")
 			if err != nil {
@@ -170,9 +335,11 @@ func newPublishFormExportCmd() *cobra.Command {
 			if err := os.WriteFile(target, append(raw, '\n'), 0o644); err != nil {
 				return yxerrors.Internal("failed to write payload", err.Error())
 			}
-			return output.Success(cmd.OutOrStdout(), "publish.form.export", map[string]interface{}{"file": filepath.ToSlash(target), "payload": session.Payload, "next": []string{
+			hash, _ := hashJSONValue(session.Payload)
+			return output.Success(cmd.OutOrStdout(), "publish.form.export", map[string]interface{}{"file": filepath.ToSlash(target), "payloadHash": hash, "sourceCount": len(session.Sources), "payload": session.Payload, "next": []string{
 				fmt.Sprintf("yxer validate %s %s %s", session.Platform, session.Type, filepath.ToSlash(target)),
 				fmt.Sprintf("yxer publish %s %s %s --dry-run", session.Type, session.Platform, filepath.ToSlash(target)),
+				fmt.Sprintf("yxer publish %s %s %s", session.Type, session.Platform, filepath.ToSlash(target)),
 			}})
 		},
 	}
@@ -183,7 +350,12 @@ func newPublishFormExportCmd() *cobra.Command {
 
 func newPublishFormSession(doc schema.Document) publishFormSession {
 	now := time.Now().UTC().Format(time.RFC3339)
-	return publishFormSession{Kind: "yxer.publish-form", Version: 1, Platform: doc.Platform, Type: doc.Type, CreatedAt: now, UpdatedAt: now, Contract: buildPublishFormContract(doc), Payload: buildPayloadTemplate(doc)}
+	return publishFormSession{Kind: "yxer.publish-form", Version: 1, PlanID: newPublishFormPlanID(doc, now), Platform: doc.Platform, Type: doc.Type, CreatedAt: now, UpdatedAt: now, Contract: buildPublishFormContract(doc), Payload: buildPayloadTemplate(doc)}
+}
+
+func newPublishFormPlanID(doc schema.Document, now string) string {
+	sum := sha256.Sum256([]byte(doc.Platform + "\x00" + doc.Type + "\x00" + now))
+	return "plan_" + hex.EncodeToString(sum[:])[:12]
 }
 
 func absoluteFormPath(raw, fallback string) (string, error) {
@@ -246,6 +418,241 @@ func readFormValue(raw, file string) (interface{}, error) {
 		}
 	}
 	return value, nil
+}
+
+func selectPublishFormCandidate(value interface{}, index int, id string) (interface{}, []interface{}, error) {
+	candidates := publishFormCandidates(value)
+	id = strings.TrimSpace(id)
+	if len(candidates) == 0 {
+		return value, nil, nil
+	}
+	if id != "" {
+		for _, candidate := range candidates {
+			if candidateMatchesID(candidate, id) {
+				return candidate, candidates, nil
+			}
+		}
+		return nil, candidates, yxerrors.Usage("form choose candidate id not found", map[string]interface{}{"id": id, "candidateCount": len(candidates)}).
+			WithHint("请使用 query 输出中的 yixiaoerId/id/value/key，或改用 --index 指定候选。")
+	}
+	if index >= 0 {
+		if index >= len(candidates) {
+			return nil, candidates, yxerrors.Usage("form choose candidate index is out of range", map[string]interface{}{"index": index, "candidateCount": len(candidates)})
+		}
+		return candidates[index], candidates, nil
+	}
+	if len(candidates) == 1 {
+		return candidates[0], candidates, nil
+	}
+	return nil, candidates, yxerrors.Usage("form choose has multiple candidates", map[string]interface{}{"candidateCount": len(candidates), "candidates": previewCandidates(candidates)}).
+		WithHint("请使用 --id 或 --index 明确选择一个候选，避免把错误动态对象写入发布会话。")
+}
+
+func publishFormCandidates(value interface{}) []interface{} {
+	switch typed := value.(type) {
+	case []interface{}:
+		return typed
+	case map[string]interface{}:
+		for _, key := range []string{"items", "list", "records", "results", "data"} {
+			if items, ok := typed[key].([]interface{}); ok {
+				return items
+			}
+		}
+		if nested, ok := typed["data"].(map[string]interface{}); ok {
+			return publishFormCandidates(nested)
+		}
+	}
+	return nil
+}
+
+func candidateMatchesID(candidate interface{}, id string) bool {
+	obj, ok := candidate.(map[string]interface{})
+	if !ok {
+		return strings.TrimSpace(fmt.Sprint(candidate)) == id
+	}
+	for _, key := range []string{"yixiaoerId", "id", "value", "key"} {
+		if strings.TrimSpace(fmt.Sprint(obj[key])) == id {
+			return true
+		}
+	}
+	if raw, ok := obj["raw"].(map[string]interface{}); ok {
+		for _, key := range []string{"id", "value", "key"} {
+			if strings.TrimSpace(fmt.Sprint(raw[key])) == id {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func previewCandidates(candidates []interface{}) []interface{} {
+	limit := len(candidates)
+	if limit > 10 {
+		limit = 10
+	}
+	out := make([]interface{}, 0, limit)
+	for i := 0; i < limit; i++ {
+		obj, ok := candidates[i].(map[string]interface{})
+		if !ok {
+			out = append(out, map[string]interface{}{"index": i, "value": candidates[i]})
+			continue
+		}
+		out = append(out, map[string]interface{}{
+			"index":        i,
+			"yixiaoerId":   firstStringField(obj, "yixiaoerId", "id", "value", "key"),
+			"yixiaoerName": firstStringField(obj, "yixiaoerName", "name", "label", "text", "title"),
+		})
+	}
+	return out
+}
+
+func firstStringField(obj map[string]interface{}, keys ...string) string {
+	for _, key := range keys {
+		value := strings.TrimSpace(fmt.Sprint(obj[key]))
+		if value != "" && value != "<nil>" {
+			return value
+		}
+	}
+	return ""
+}
+
+func resolvePublishFormAccountTarget(payload map[string]interface{}, accountID, target string) (int, string, error) {
+	accountForms, err := publishFormAccountForms(payload)
+	if err != nil {
+		return 0, "", err
+	}
+	selector := strings.TrimSpace(accountID)
+	rawTarget := strings.TrimSpace(target)
+	if rawTarget != "" {
+		parts := strings.Split(rawTarget, ":")
+		selector = strings.TrimSpace(parts[len(parts)-1])
+	}
+	if selector != "" {
+		for i, form := range accountForms {
+			if publishFormAccountMatches(form, selector) {
+				return i, firstNonEmptyAccountFormID(form), nil
+			}
+		}
+		return 0, "", yxerrors.Usage("target accountForm not found", map[string]interface{}{"target": rawTargetOrAccount(rawTarget, selector)}).
+			WithHint("请先设置 publishArgs.accountForms[].platformAccountId，或使用 inspect 查看当前会话里的账号表单。")
+	}
+	if len(accountForms) == 1 {
+		return 0, firstNonEmptyAccountFormID(accountForms[0]), nil
+	}
+	return 0, "", yxerrors.Usage("form choose target is ambiguous", map[string]interface{}{"accountForms": len(accountForms)}).
+		WithHint("当前会话包含多个 accountForms，请使用 --account-id 或 --target 精确定位写入目标。")
+}
+
+func publishFormAccountForms(payload map[string]interface{}) ([]map[string]interface{}, error) {
+	publishArgs, _ := payload["publishArgs"].(map[string]interface{})
+	if publishArgs == nil {
+		return nil, yxerrors.Usage("publish form payload missing publishArgs", nil)
+	}
+	rawForms, _ := publishArgs["accountForms"].([]interface{})
+	if len(rawForms) == 0 {
+		return nil, yxerrors.Usage("publish form payload has no accountForms", nil)
+	}
+	forms := make([]map[string]interface{}, 0, len(rawForms))
+	for _, raw := range rawForms {
+		form, ok := raw.(map[string]interface{})
+		if !ok {
+			return nil, yxerrors.Usage("publish form accountForms item is not an object", nil)
+		}
+		forms = append(forms, form)
+	}
+	return forms, nil
+}
+
+func publishFormAccountMatches(form map[string]interface{}, selector string) bool {
+	for _, key := range []string{"platformAccountId", "account_id", "accountId"} {
+		if strings.TrimSpace(fmt.Sprint(form[key])) == selector {
+			return true
+		}
+	}
+	return false
+}
+
+func firstNonEmptyAccountFormID(form map[string]interface{}) string {
+	for _, key := range []string{"platformAccountId", "account_id", "accountId"} {
+		value := strings.TrimSpace(fmt.Sprint(form[key]))
+		if value != "" && value != "<nil>" {
+			return value
+		}
+	}
+	return ""
+}
+
+func rawTargetOrAccount(target, accountID string) string {
+	if strings.TrimSpace(target) != "" {
+		return target
+	}
+	return accountID
+}
+
+func resolvePublishFormFieldPath(session publishFormSession, field string, accountIndex int) (string, error) {
+	field = strings.TrimSpace(field)
+	if field == "" {
+		return "", yxerrors.Usage("form choose field is required", nil)
+	}
+	if path := dynamicFieldPath(session.Contract, field); path != "" {
+		return expandAccountFormPath(path, accountIndex), nil
+	}
+	return fmt.Sprintf("publishArgs.accountForms[%d].contentPublishForm.%s", accountIndex, field), nil
+}
+
+func dynamicFieldPath(contract map[string]interface{}, field string) string {
+	rawExamples, ok := contract["dynamicFieldExamples"]
+	if !ok {
+		return ""
+	}
+	switch examples := rawExamples.(type) {
+	case map[string]dynamicFieldExample:
+		if example, ok := examples[field]; ok {
+			return example.Path
+		}
+	case map[string]interface{}:
+		if raw, ok := examples[field].(map[string]interface{}); ok {
+			return strings.TrimSpace(fmt.Sprint(raw["path"]))
+		}
+	}
+	return ""
+}
+
+func expandAccountFormPath(path string, index int) string {
+	replacement := fmt.Sprintf("accountForms[%d]", index)
+	path = strings.Replace(path, "accountForms[]", replacement, 1)
+	path = strings.Replace(path, "accountForms[].", replacement+".", 1)
+	return path
+}
+
+func appendPublishFormSource(sources []publishFormSource, source publishFormSource) []publishFormSource {
+	if source.UpdatedAt == "" {
+		source.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+	}
+	return append(sources, source)
+}
+
+func lastPublishFormSource(sources []publishFormSource) publishFormSource {
+	if len(sources) == 0 {
+		return publishFormSource{}
+	}
+	return sources[len(sources)-1]
+}
+
+func hashJSONValue(value interface{}) (string, error) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256(raw)
+	return "sha256:" + hex.EncodeToString(sum[:]), nil
+}
+
+func actionForReview(dryRun bool) string {
+	if dryRun {
+		return "publish.form.review.dry-run"
+	}
+	return "publish.form.review"
 }
 
 func cloneJSONMap(input map[string]interface{}) map[string]interface{} {

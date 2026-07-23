@@ -131,6 +131,76 @@ func TestPublishFormExportProducesStandardPayload(t *testing.T) {
 	}
 }
 
+func TestPublishFormChooseSelectsCandidateAndRecordsSource(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	sessionPath := filepath.Join(t.TempDir(), "form.json")
+	candidatesPath := filepath.Join(t.TempDir(), "categories.json")
+
+	start := newPublishFormStartCmd()
+	start.SetArgs([]string{"抖音", "video", "--output", sessionPath})
+	start.SetOut(&bytes.Buffer{})
+	if err := start.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(candidatesPath, []byte(`{"ok":true,"data":{"items":[{"yixiaoerId":"cat_food","yixiaoerName":"美食"},{"yixiaoerId":"cat_travel","yixiaoerName":"旅行"}]}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	choose := newPublishFormChooseCmd()
+	choose.SetArgs([]string{sessionPath, "category", "--value-file", candidatesPath, "--id", "cat_food", "--source-command", "yxer query categories acc_1 --type video --json"})
+	choose.SetOut(&bytes.Buffer{})
+	if err := choose.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	session, err := readPublishFormSession(sessionPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	form := session.Payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	category := form["category"].(map[string]interface{})
+	if category["yixiaoerId"] != "cat_food" {
+		t.Fatalf("unexpected category: %#v", category)
+	}
+	if len(session.Sources) != 1 {
+		t.Fatalf("expected one source record, got %#v", session.Sources)
+	}
+	if session.Sources[0].Kind != "query" || session.Sources[0].Path != "publishArgs.accountForms[0].contentPublishForm.category" {
+		t.Fatalf("unexpected source record: %#v", session.Sources[0])
+	}
+}
+
+func TestPublishFormChooseRequiresTargetForMultipleAccountForms(t *testing.T) {
+	session := publishFormSession{
+		Kind:     "yxer.publish-form",
+		Version:  1,
+		Platform: "抖音",
+		Type:     "video",
+		Contract: map[string]interface{}{},
+		Payload: map[string]interface{}{
+			"publishArgs": map[string]interface{}{
+				"accountForms": []interface{}{
+					map[string]interface{}{"platformAccountId": "acc_1", "contentPublishForm": map[string]interface{}{}},
+					map[string]interface{}{"platformAccountId": "acc_2", "contentPublishForm": map[string]interface{}{}},
+				},
+			},
+		},
+	}
+	sessionPath := filepath.Join(t.TempDir(), "form.json")
+	if err := writePublishFormSession(sessionPath, session); err != nil {
+		t.Fatal(err)
+	}
+
+	choose := newPublishFormChooseCmd()
+	choose.SetArgs([]string{sessionPath, "category", "--value", `{"yixiaoerId":"cat_food"}`})
+	choose.SetOut(&bytes.Buffer{})
+	err := choose.Execute()
+	if err == nil {
+		t.Fatal("expected ambiguous target error")
+	}
+}
+
 func TestReadFormValueAcceptsPlainTextAndCLIEnvelope(t *testing.T) {
 	value, err := readFormValue("页面标题", "")
 	if err != nil || value != "页面标题" {
