@@ -118,6 +118,20 @@ func readPayload(path string) (map[string]interface{}, error) {
 	}
 	raw, err := os.ReadFile(abs)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, yxerrors.Usage("Payload file not found", map[string]interface{}{
+				"path": abs,
+			}).
+				WithCategory("file_not_found").
+				WithHint("请检查 payload 文件路径；相对路径按当前工作目录解析，或先用对应的 init/form export 命令生成文件。")
+		}
+		if os.IsPermission(err) {
+			return nil, yxerrors.Usage("Payload file is not readable", map[string]interface{}{
+				"path": abs,
+			}).
+				WithCategory("file_not_readable").
+				WithHint("请检查文件权限，确认当前用户可以读取该 payload 文件。")
+		}
 		return nil, err
 	}
 	var payload map[string]interface{}

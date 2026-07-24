@@ -45,18 +45,20 @@ type PrepareOptions struct {
 }
 
 type PreparedPublish struct {
-	Platform       string
-	Platforms      []string
-	PublishType    string
-	Payload        map[string]interface{}
-	PublishArgs    map[string]interface{}
-	PublishMode    string
-	ClientID       string
-	Preflight      publishmod.PreflightResult
-	Normalizations []publishmod.NormalizationEvent
-	PublishBody    map[string]interface{}
-	InferredFields map[string]InferredField
-	RemoteChecked  bool
+	Platform          string
+	Platforms         []string
+	PublishType       string
+	Payload           map[string]interface{}
+	PublishArgs       map[string]interface{}
+	PublishMode       string
+	PublishModeSource string
+	ClientID          string
+	ClientIDSource    string
+	Preflight         publishmod.PreflightResult
+	Normalizations    []publishmod.NormalizationEvent
+	PublishBody       map[string]interface{}
+	InferredFields    map[string]InferredField
+	RemoteChecked     bool
 }
 
 type InferredField struct {
@@ -77,10 +79,11 @@ func (s Service) Prepare(input ExecuteInput, opts PrepareOptions) (PreparedPubli
 	platforms := []string{platform}
 	cfg := s.rt.Config
 	resolvedPayload := cloneMap(input.Payload)
-	channel, clientID, err := ResolvePublishMode(cfg, resolvedPayload, input.PositionalClientID, input.FlagChannel, input.FlagClientID)
+	mode, err := ResolvePublishModeDetailed(cfg, resolvedPayload, input.PositionalClientID, input.FlagChannel, input.FlagClientID)
 	if err != nil {
 		return PreparedPublish{}, err
 	}
+	channel, clientID := mode.Channel, mode.ClientID
 	resolvedPayload["publishChannel"] = channel
 	if clientID != "" {
 		resolvedPayload["clientId"] = clientID
@@ -136,18 +139,20 @@ func (s Service) Prepare(input ExecuteInput, opts PrepareOptions) (PreparedPubli
 		normalizations = nil
 	}
 	return PreparedPublish{
-		Platform:       platform,
-		Platforms:      platforms,
-		PublishType:    input.PublishType,
-		Payload:        resolvedPayload,
-		PublishArgs:    publishArgs,
-		PublishMode:    channel,
-		ClientID:       clientID,
-		Preflight:      preflight,
-		Normalizations: normalizations,
-		PublishBody:    body,
-		InferredFields: inferredFields,
-		RemoteChecked:  remoteChecked,
+		Platform:          platform,
+		Platforms:         platforms,
+		PublishType:       input.PublishType,
+		Payload:           resolvedPayload,
+		PublishArgs:       publishArgs,
+		PublishMode:       channel,
+		PublishModeSource: mode.ChannelSource,
+		ClientID:          clientID,
+		ClientIDSource:    mode.ClientIDSource,
+		Preflight:         preflight,
+		Normalizations:    normalizations,
+		PublishBody:       body,
+		InferredFields:    inferredFields,
+		RemoteChecked:     remoteChecked,
 	}, nil
 }
 
@@ -534,20 +539,41 @@ func payloadWithPublishMode(payload map[string]interface{}, channel, clientID st
 	return withMode
 }
 
+type PublishModeResolution struct {
+	Channel        string
+	ClientID       string
+	ChannelSource  string
+	ClientIDSource string
+}
+
 func ResolvePublishMode(cfg config.Config, payload map[string]interface{}, positionalClientID, flagChannel, flagClientID string) (string, string, error) {
+	resolution, err := ResolvePublishModeDetailed(cfg, payload, positionalClientID, flagChannel, flagClientID)
+	if err != nil {
+		return "", "", err
+	}
+	return resolution.Channel, resolution.ClientID, nil
+}
+
+func ResolvePublishModeDetailed(cfg config.Config, payload map[string]interface{}, positionalClientID, flagChannel, flagClientID string) (PublishModeResolution, error) {
 	channel := "cloud"
+	channelSource := "default"
 	clientID := ""
+	clientIDSource := "none"
 	payloadChannel := ""
 	if value, ok := payload["publishChannel"]; ok {
 		payloadChannel = strings.TrimSpace(fmt.Sprint(value))
 		channel = payloadChannel
+		channelSource = "payload"
 	}
 	if value, ok := payload["clientId"]; ok {
 		clientID = strings.TrimSpace(fmt.Sprint(value))
+		if clientID != "" {
+			clientIDSource = "payload"
+		}
 	}
 	if strings.TrimSpace(positionalClientID) != "" {
 		if strings.TrimSpace(flagChannel) != "local" && payloadChannel != "local" {
-			return "", "", yxerrors.Usage("positional clientId requires local publish channel", []string{
+			return PublishModeResolution{}, yxerrors.Usage("positional clientId requires local publish channel", []string{
 				`The fourth positional clientId is deprecated and no longer switches publishChannel implicitly.`,
 				`Use flags: yxer publish video <platform> payload.json --publish-channel local --client-id <clientId>`,
 			}).
@@ -555,38 +581,50 @@ func ResolvePublishMode(cfg config.Config, payload map[string]interface{}, posit
 				WithNextCommand("yxer publish video <platform> payload.json --publish-channel local --client-id <clientId>")
 		}
 		channel = "local"
+		channelSource = "positional"
 		clientID = strings.TrimSpace(positionalClientID)
+		clientIDSource = "positional"
 	}
 	if strings.TrimSpace(flagChannel) != "" {
 		channel = strings.TrimSpace(flagChannel)
+		channelSource = "flag"
 	}
 	if strings.TrimSpace(flagClientID) != "" {
 		clientID = strings.TrimSpace(flagClientID)
+		clientIDSource = "flag"
 	}
 	switch channel {
 	case "", "cloud":
 		channel = "cloud"
 		clientID = ""
+		clientIDSource = "none"
 	case "local":
 		if clientID == "" {
 			clientID = strings.TrimSpace(cfg.LocalClientID)
+			if clientID != "" {
+				clientIDSource = "config"
+			}
 		}
 		if clientID == "" {
-			return "", "", yxerrors.Usage(`clientId is required when publishChannel is "local"`, []string{
+			return PublishModeResolution{}, yxerrors.Usage(`clientId is required when publishChannel is "local"`, []string{
 				`Run: yxer config set-local-client-id <clientId>`,
-				`Or pass a fourth positional argument: yxer publish video <platform> payload.json <clientId>`,
 				`Or pass flags: yxer publish video <platform> payload.json --publish-channel local --client-id <clientId>`,
 			}).
 				WithHint("本机发布必须指定 clientId，可通过配置或命令参数提供。").
 				WithNextCommand("yxer config set-local-client-id <clientId>")
 		}
 	default:
-		return "", "", yxerrors.Usage(`publishChannel must be "cloud" or "local"`, []string{
+		return PublishModeResolution{}, yxerrors.Usage(`publishChannel must be "cloud" or "local"`, []string{
 			fmt.Sprintf("got %q", channel),
 		}).
 			WithHint(`publishChannel 仅支持 "cloud" 或 "local"。`)
 	}
-	return channel, clientID, nil
+	return PublishModeResolution{
+		Channel:        channel,
+		ClientID:       clientID,
+		ChannelSource:  channelSource,
+		ClientIDSource: clientIDSource,
+	}, nil
 }
 
 func shouldOfferLocalPublishRetry(err error, channel string) bool {

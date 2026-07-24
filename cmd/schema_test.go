@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -331,6 +332,17 @@ func TestSchemaFieldsCommandExposesDouyinVideoDescriptionLimit(t *testing.T) {
 	description := contentPublishForm["properties"].(map[string]interface{})["description"].(map[string]interface{})
 	if description["required"] != true || description["maxLength"] != float64(1000) {
 		t.Fatalf("expected douyin video description to be required with maxLength=1000, got %#v", description)
+	}
+	if _, ok := contentPublishForm["properties"].(map[string]interface{})["accountForms"]; ok {
+		t.Fatalf("did not expect nested accountForms inside contentPublishForm: %#v", contentPublishForm)
+	}
+
+	for _, item := range data["flatFields"].([]interface{}) {
+		field := item.(map[string]interface{})
+		path, _ := field["path"].(string)
+		if strings.Contains(path, ".contentPublishForm.accountForms") {
+			t.Fatalf("did not expect recursive accountForms path in flatFields: %s", path)
+		}
 	}
 
 	notes := data["platformNotes"].([]interface{})

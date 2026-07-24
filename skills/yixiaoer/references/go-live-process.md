@@ -25,7 +25,7 @@
 
 - `README.md` 是否已更新
 - `skills/yixiaoer/SKILL.md` 是否已同步当前版本说明
-- `references/cli/`、`references/workflows/` 是否与本次功能一致
+- `skills/yixiaoer/references/cli/`、`skills/yixiaoer/references/workflows/` 是否与本次功能一致
 - `schemas/` 是否覆盖本次变更涉及的平台字段
 
 ## 3. 标准上线步骤
@@ -114,7 +114,7 @@ bin\yxer.exe skill sync --global
 - `skills/yixiaoer/references/keyword-reference.md`
 - `skills/yixiaoer/SKILL.md`
 - `references/cli/`
-- `references/workflows/`
+- `skills/yixiaoer/references/workflows/`
 - `schemas/`
 
 ## 4. 建议交付方式

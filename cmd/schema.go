@@ -560,9 +560,18 @@ func contentPublishFormFieldsForEnvelope(doc schema.Document) map[string]schema.
 		return nil
 	}
 	if doc.Type != "article" {
-		return clonePropertyViewsWithoutKeys(doc.Properties, accountLevelResourceKeys(doc.Type)...)
+		return clonePropertyViewsWithoutKeys(doc.Properties, contentPublishFormExcludedKeys(doc.Type)...)
 	}
-	return clonePropertyViewsWithoutKeys(doc.Properties, "content")
+	return clonePropertyViewsWithoutKeys(doc.Properties, contentPublishFormExcludedKeys(doc.Type)...)
+}
+
+func contentPublishFormExcludedKeys(publishType string) []string {
+	keys := []string{"accountForms", "platformForms", "publishArgs", "publishChannel", "clientId", "action", "platforms", "publishType"}
+	if publishType == "article" {
+		keys = append(keys, "content")
+		return keys
+	}
+	return append(keys, accountLevelResourceKeys(publishType)...)
 }
 
 func accountResourceFieldViews(doc schema.Document) map[string]schema.PropertyView {

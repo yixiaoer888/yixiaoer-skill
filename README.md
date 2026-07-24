@@ -16,10 +16,10 @@
 
 - `README.md` 面向人类用户和维护者，负责安装、快速开始和常用命令。
 - `skills/yixiaoer/SKILL.md` 面向 AI agent，负责共享规则、能力索引和命令探索。
-- `skills/yixiaoer/references/domains/` 放任务分域入口。
-- `references/` 放命令参考、工作流和平台差异说明。
+- `skills/yixiaoer/references/` 是引用主源，放任务分域、工作流、平台文档和命令参考。
+- 根目录 `references/` 仅作为打包时的输出目录，内容来源于 `skills/yixiaoer/references/`。
 
-命令树设计标准与演进建议见 [references/cli/command-design.md](references/cli/command-design.md)。
+命令树设计标准与演进建议见 [skills/yixiaoer/references/cli/command-design.md](skills/yixiaoer/references/cli/command-design.md)。
 
 运行时统一通过 `yxer` 执行，不再假设存在旧 Node 脚本入口。
 
@@ -42,7 +42,7 @@ yxer update
 
 npm 包现在采用轻量安装器模式：
 
-- npm 包本身只包含启动器、skill、schema 和 references
+- npm 包本身只包含启动器、skill 源文档、schema 和 references 打包输出
 - 安装阶段会按当前系统下载匹配的 `yxer` 二进制归档
 - 如果 `postinstall` 被跳过，首次运行 `yxer` 时也会自动补装二进制
 
@@ -335,7 +335,7 @@ yxer skill sync --global
 - `yxer --version` 升级后
 - `skills/yixiaoer/SKILL.md` 更新后
 - `skills/yixiaoer/references/domains/` 更新后
-- `references/workflows/` 或 `references/cli/` 更新后
+- `skills/yixiaoer/references/workflows/` 或 `skills/yixiaoer/references/cli/` 更新后
 
 ## 面向 AI Agent
 
@@ -350,7 +350,7 @@ yxer skill sync --global
 
 - 发布任务：
   - `skills/yixiaoer/references/domains/publish.md`
-  - 继续进入 `references/workflows/common-rules.md`、`account-selection.md`、`local-vs-cloud.md`、`payload-sourcing.md`
+  - 继续进入 `skills/yixiaoer/references/workflows/common-rules.md`、`skills/yixiaoer/references/workflows/account-selection.md`、`skills/yixiaoer/references/workflows/local-vs-cloud.md`、`skills/yixiaoer/references/workflows/payload-sourcing.md`
   - 再按类型进入 `publish-video.md`、`publish-imageText.md`、`publish-article.md`
 - 草稿或素材任务：
   - `skills/yixiaoer/references/domains/draft-and-material.md`
@@ -556,10 +556,10 @@ yxer skill sync --global
 
 对应入口：
 
-- 蚁小二草稿：`references/workflows/draft-workflow.md`
-- 发布失败排查：`references/workflows/publish-troubleshooting.md`
-- 通道判断：`references/workflows/local-vs-cloud.md`
-- payload 修订：`references/workflows/payload-sourcing.md`
+- 蚁小二草稿：`skills/yixiaoer/references/workflows/draft-workflow.md`
+- 发布失败排查：`skills/yixiaoer/references/workflows/publish-troubleshooting.md`
+- 通道判断：`skills/yixiaoer/references/workflows/local-vs-cloud.md`
+- payload 修订：`skills/yixiaoer/references/workflows/payload-sourcing.md`
 
 ## 目录结构
 
@@ -571,14 +571,10 @@ schemas/
 skills/
   yixiaoer/
     SKILL.md
-    references/
+      references/  # 打包时从 skills/yixiaoer/references/ 复制
       domains/
       platforms/
-references/
-  cli/
-  legacy/
-  platforms/
-  workflows/
+references/  # 打包输出，不作为主维护源
 tests/
 scripts/
 ```
@@ -587,11 +583,11 @@ scripts/
 
 - 技能入口：`skills/yixiaoer/SKILL.md`
 - 任务分域：`skills/yixiaoer/references/domains/`
-- 命令参考：`references/cli/command-reference.md`
+- 命令参考：`skills/yixiaoer/references/cli/command-reference.md`
 - 安装、升级与同步：`skills/yixiaoer/references/domains/install-and-sync.md`
 - 上线流程：`skills/yixiaoer/references/go-live-process.md`
 - 关键词文档：`skills/yixiaoer/references/keyword-reference.md`
 - 使用流程文档：`skills/yixiaoer/references/usage-workflow.md`
-- 工作流正文：`references/workflows/`
+- 工作流正文：`skills/yixiaoer/references/workflows/`
 - 平台文档：`skills/yixiaoer/references/platforms/`
 - 平台文档维护规范：`skills/yixiaoer/references/platform-doc-maintenance.md`

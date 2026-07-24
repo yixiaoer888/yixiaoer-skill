@@ -21,6 +21,7 @@
 - 必须显式带 `--publish-channel local`
 - 必须确认 `clientId`
 - `validate`、`publish --dry-run`、正式 `publish` 必须保持同一套通道参数
+- 通道只在当前命令执行时解析一次；最终以 CLI 返回的 `publishChannel` 为准，不要根据服务端默认值猜测
 
 ## clientId 获取方式
 
@@ -30,6 +31,8 @@
 
 第四个位置参数 `yxer publish <type> <platform> <payload.json> <clientId>` 只用于旧版兼容，不再推荐 Agent 使用。
 
+通道和 clientId 的优先级为：显式 flag > 旧版第四位置参数 > payload > 本地配置（仅 local 的 clientId）> 默认 cloud。cloud 发布会主动移除 clientId，避免把本机连接信息误带到云端。
+
 ## 推荐命令
 
 ```bash
@@ -38,6 +41,8 @@ yxer validate 抖音 video .\payload.json --publish-channel local --client-id <c
 yxer publish video 抖音 .\payload.json --publish-channel local --client-id <clientId> --dry-run
 yxer publish video 抖音 .\payload.json --publish-channel local --client-id <clientId>
 ```
+
+`publish --dry-run` 的 `data.meta` 会返回 `effectivePublishChannel`、`publishChannelSource`、`clientIdSource` 和 `requestHash`。正式发布前应确认这些值与授权意图一致；`requestHash` 用于确认 validate、dry-run 和最终 payload 没有被中途替换。
 
 ## 回退策略
 
