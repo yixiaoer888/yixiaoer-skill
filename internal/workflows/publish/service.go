@@ -624,7 +624,7 @@ func buildLocalFallbackError(platform, publishType, clientID string, cause error
 	}
 	return yxerrors.Remote("cloud publish failed; local publish fallback is available", cause.Error()).
 		WithCategory("publish_channel_fallback").
-		WithHint("当前账号云发布失败，可改用本机发布；如需自动回退，请显式传入 --auto-fallback-local。").
+		WithHint("当前账号云发布失败，可改用本机发布；CLI 不会默认自动重试，如需授权自动回退，请显式传入 --auto-fallback-local。").
 		WithNextCommand(nextCommand)
 }
 
@@ -688,7 +688,7 @@ func ResolveTargetAccounts(apiClient *api.Client, platforms []string, accountIDs
 	if len(errors) > 0 {
 		return nil, yxerrors.Usage("Account preflight failed", errors).
 			WithHint("请先运行账号查询，确认目标账号存在且状态为在线。").
-			WithNextCommand("yxer accounts <platform>")
+			WithNextCommand("yxer accounts list <platform> --status 1 --json")
 	}
 	return found, nil
 }

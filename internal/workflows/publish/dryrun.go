@@ -66,7 +66,7 @@ func inferredFieldsForMeta(fields map[string]InferredField) map[string]InferredF
 }
 
 func (s Service) DryRun(input ExecuteInput) (DryRunResult, error) {
-	prepared, err := s.Prepare(input, PrepareOptions{TraceNormalizations: true, RemoteChecks: RemoteChecksNone})
+	prepared, err := s.Prepare(input, PrepareOptions{TraceNormalizations: true, RemoteChecks: RemoteChecksCloudWithKey})
 	if err != nil {
 		return DryRunResult{}, err
 	}

@@ -621,6 +621,7 @@ func TestPublishCommandRejectsInstagramVideoKeyWithChineseCharacters(t *testing.
 
 func TestPublishDryRunAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
 	withRepoRoot(t)
+	configureEmptyConfig(t)
 	service := publishflow.NewService(testRuntime(t))
 	result, err := service.DryRun(publishflow.ExecuteInput{
 		PublishType:   "video",
@@ -686,8 +687,48 @@ func TestPublishDryRunAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
 	}
 }
 
+func TestPublishDryRunChecksCloudProxyWhenAPIKeyConfigured(t *testing.T) {
+	withRepoRoot(t)
+	payload := validPublishPayload()
+	payload["platforms"] = []interface{}{"视频号"}
+	form := payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	form["platformAccountId"] = "acc_shipinhao_1"
+	cpf := form["contentPublishForm"].(map[string]interface{})
+	cpf["createType"] = float64(2)
+	cpf["pubType"] = float64(1)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{
+					{"platformAccountId": "acc_shipinhao_1", "name": "视频号账号", "status": 1},
+				},
+			})
+		case "/taskSets/v2":
+			t.Fatal("dry-run should not call publish API")
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	service := publishflow.NewService(testRuntime(t))
+	_, err := service.DryRun(publishflow.ExecuteInput{
+		PublishType:   "video",
+		PlatformInput: "视频号",
+		Payload:       payload,
+	})
+	if err == nil || !strings.Contains(err.Error(), "Cloud publish preflight failed") {
+		t.Fatalf("expected cloud proxy preflight error, got %v", err)
+	}
+}
+
 func TestPublishDryRunMarksPlatformDraftSeparatelyFromYixiaoerDraft(t *testing.T) {
 	withRepoRoot(t)
+	configureEmptyConfig(t)
 	service := publishflow.NewService(testRuntime(t))
 	result, err := service.DryRun(publishflow.ExecuteInput{
 		PublishType:   "imageText",
@@ -1404,6 +1445,7 @@ func TestPublishCommandNormalizesDouyinShoppingCartStructure(t *testing.T) {
 
 func TestPublishDryRunReportsDynamicFieldNormalizations(t *testing.T) {
 	withRepoRoot(t)
+	configureEmptyConfig(t)
 	payload := validPublishPayload()
 	cpf := payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
 	cpf["shoppingCart"] = []interface{}{
@@ -2038,6 +2080,11 @@ func configureAPIKey(t *testing.T, apiKey string) {
 	if _, err := config.SaveAPIKey(apiKey); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func configureEmptyConfig(t *testing.T) {
+	t.Helper()
+	t.Setenv("YIXIAOER_CONFIG", filepath.Join(t.TempDir(), "yxer-config.json"))
 }
 
 func useTestAPIBaseURL(t *testing.T, rawURL string) {

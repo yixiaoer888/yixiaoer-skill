@@ -16,7 +16,7 @@
 1. **意图细化**：识别抖音特有的增强功能需求（如地点、音乐、合集）。
 2. **辅助查询**：对于 `location`, `music`, `challenge` 等字段，必须先调用对应的 `get-*` action 获取标准 ID 及 `raw` 数据。
 3. **参数装配**：将细化参数封装至 `accountForms[i].contentPublishForm`。
-4. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
+4. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [--publish-channel local --client-id <clientId>]`。
 
 > [!TIP]
 > 抖音视频如涉及话题，请先读取 [`../../topic-tags.md`](../../topic-tags.md)。标准做法是直接传平台字段定义的最终结构，不依赖 CLI 从 `tags` 自动改写 `description`。

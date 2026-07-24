@@ -24,7 +24,7 @@
 | `sources_collected` | 资源、动态字段、用户业务内容都已确认来源 | 组装或修订 payload | 编造动态对象 |
 | `payload_ready` | payload 无占位符，字段来源清晰 | `yxer validate` | publish |
 | `validated` | `yxer validate` 成功 | `yxer publish --dry-run` | 正式 publish |
-| `dry_run_passed` | dry-run 成功，且通道参数与 validate 一致 | 等待用户授权正式发布 | 未授权 publish |
+| `dry_run_passed` | dry-run 成功，且通道参数与 validate 一致；云发布有 API key 时已完成账号/代理 preflight | 等待用户授权正式发布 | 未授权 publish |
 | `published` | 正式 publish 成功 | 返回结果、记录后续排查方式 | 重复 publish |
 
 ## 状态回退规则

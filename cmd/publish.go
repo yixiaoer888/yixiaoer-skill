@@ -22,9 +22,9 @@ type publishOptions struct {
 func newPublishCmd() *cobra.Command {
 	opts := publishOptions{}
 	cmd := &cobra.Command{
-		Use:   "publish <type> <中文平台名|platform-key> <payload.json> [clientId]",
+		Use:   "publish <type> <中文平台名|platform-key> <payload.json>",
 		Short: "发布内容（单平台原子发布）",
-		Long:  "仅支持标准 payload.json。发布前请先通过 prepare / schema fields 获取表单字段和前置数据；需要完整骨架时再补 schema get，随后执行 validate 和 publish。",
+		Long:  "仅支持标准 payload.json。默认云发布；本机发布请显式传 --publish-channel local，并通过 --client-id 或 config set-local-client-id 提供客户端标识。第四个位置参数仅为旧版兼容，不再推荐使用。发布前请先执行 validate 和 publish --dry-run。",
 		Args:  cobra.RangeArgs(3, 4),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runPublish(cmd, args, opts)
@@ -33,7 +33,7 @@ func newPublishCmd() *cobra.Command {
 	cmd.Flags().StringVar(&opts.Channel, "publish-channel", "", `publish channel: "cloud" or "local"`)
 	cmd.Flags().StringVar(&opts.ClientID, "client-id", "", "client ID for local publish")
 	cmd.Flags().BoolVar(&opts.DryRun, "dry-run", false, "preview the publish request without performing the write")
-	cmd.Flags().BoolVar(&opts.AutoFallbackLocal, "auto-fallback-local", false, "automatically retry with local publish when cloud publish fails due to proxy availability")
+	cmd.Flags().BoolVar(&opts.AutoFallbackLocal, "auto-fallback-local", false, "advanced: explicitly authorize retrying with local publish when cloud publish fails due to proxy availability")
 	cmd.AddCommand(newPublishInitCmd())
 	cmd.AddCommand(newPublishFormCmd())
 	return cmd

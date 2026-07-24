@@ -14,7 +14,7 @@
 ## 执行逻辑 (Logic Flow)
 1. **内容处理**：确保文章正文符合Douyin要求的格式。
 2. **参数装配**：提取标题、正文及封面信息至 `contentPublishForm`。
-3. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
+3. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [--publish-channel local --client-id <clientId>]`。
 
 > [!TIP]
 > 示例优先使用“标准请求体”格式：共享封面和正文放在 `publishArgs` 根级，账号差异字段放在 `accountForms[]`。CLI 会在校验阶段自动补齐缺失字段。

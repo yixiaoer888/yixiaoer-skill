@@ -132,6 +132,51 @@ func TestPublishFormExportProducesStandardPayload(t *testing.T) {
 	}
 }
 
+func TestPublishFormExportNextCommandsPreserveLocalPublishMode(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	sessionPath := filepath.Join(t.TempDir(), "form.json")
+	payloadPath := filepath.Join(t.TempDir(), "payload.json")
+
+	start := newPublishFormStartCmd()
+	start.SetArgs([]string{"抖音", "video", "--output", sessionPath})
+	start.SetOut(&bytes.Buffer{})
+	if err := start.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	session, err := readPublishFormSession(sessionPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	session.Payload["publishChannel"] = "local"
+	session.Payload["clientId"] = "local-client-1"
+	if err := writePublishFormSession(sessionPath, session); err != nil {
+		t.Fatal(err)
+	}
+
+	var out bytes.Buffer
+	export := newPublishFormExportCmd()
+	export.SetArgs([]string{sessionPath, "--output", payloadPath, "--dry-run"})
+	export.SetOut(&out)
+	if err := export.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	next := data["next"].([]interface{})
+	for _, raw := range next {
+		command := raw.(string)
+		if strings.Contains(command, "validate") || (strings.Contains(command, "publish") && !strings.Contains(command, "publish form")) {
+			if !strings.Contains(command, "--publish-channel local") || !strings.Contains(command, "--client-id local-client-1") {
+				t.Fatalf("expected local publish mode in next command, got %q", command)
+			}
+		}
+	}
+}
+
 func TestPublishFormChooseSelectsCandidateAndRecordsSource(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)

@@ -3,7 +3,7 @@
 适用范围：用户要发布视频、图文、文章，或要修订发布 payload、解释字段归属、确认发布通道。
 
 **CRITICAL - 只要用户意图落在本域，MUST 先读取下方 workflow，再决定是否执行任何 `prepare`、字段查询、`validate` 或 `publish`。**
-**BLOCKING REQUIREMENT - 未完成 `doctor`、账号确认、`prepare`、`schema fields`、`validate`、`publish --dry-run` 前，绝对禁止正式 `publish`。**
+**BLOCKING REQUIREMENT - 未使用同一份 `payload.json` 和同一套发布通道参数完成 `validate`、`publish --dry-run` 前，绝对禁止正式 `publish`。缺账号、字段、资源或动态对象时，必须先完成 `doctor`、账号确认、`prepare/form`、`schema fields`、上传和查询。**
 **AI EXECUTION PROTOCOL - 发布域任务必须先按协议状态机推进，不允许越过 `validated` / `dry_run_passed` 状态直接发布。**
 
 ## 读取顺序
@@ -41,9 +41,10 @@
 ## 强制门禁
 
 - 未进入协议状态机的 `workflow_loaded` 状态不执行 CLI 写操作
-- 未执行 `yxer doctor` 不进入发布流程
-- 未确认 `accounts list` 中账号 `status=1` 不继续
-- 未执行 `prepare` / `schema fields` 不组装 payload；只有需要 payload 骨架时再补 `schema get`
+- 已有完整 payload 时，可直接进入 `validate -> publish --dry-run`；但不得跳过正式发布前用户授权
+- 缺账号、字段、资源或动态对象时，未执行 `yxer doctor` 不进入组装流程
+- 缺账号或账号不确定时，未确认 `accounts list` 中账号 `status=1` 不继续
+- 需要组装或补字段时，未执行 `prepare` / `publish form` / `schema fields` 不组装 payload；只有需要 payload 骨架时再补 `schema get`
 - 未按 `data-accuracy.md` 完成动态字段查询和多候选确认，不继续写 payload 或发布
 - 未先 `validate` 与 `publish --dry-run` 不执行正式 `publish`
 

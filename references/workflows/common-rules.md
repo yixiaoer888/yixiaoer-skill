@@ -10,7 +10,7 @@
 
 ## 强制门禁
 
-发布类任务必须满足以下顺序；任意一步未完成，都不允许继续到下一步：
+发布类任务分为两条路径。已有完整标准 `payload.json` 时，正式发布前最小门禁是 `validate -> publish --dry-run -> 用户授权 -> publish`。缺账号、字段、资源或动态字段时，必须满足以下组装顺序；任意一步未完成，都不允许继续到下一步：
 
 1. 读取 `skills/yixiaoer/SKILL.md`
 2. 读取当前文件
@@ -18,17 +18,18 @@
 4. 读取对应类型 workflow
 5. 执行 `yxer doctor`
 6. 执行 `yxer accounts list`
-7. 执行 `yxer prepare <platform> <type>`
+7. 执行 `yxer prepare <platform> <type>` 或 `yxer publish form start/inspect`
 8. 优先执行 `yxer schema fields <platform> <type>`；需要 payload 骨架时再执行 `yxer schema get <platform> <type>`
 9. 执行 `yxer upload`
 10. 执行动态字段查询命令
 11. 组装 payload
 12. 执行 `yxer validate`
-13. 执行 `yxer publish`
+13. 执行 `yxer publish --dry-run`
+14. 用户授权后执行正式 `yxer publish`
 
 禁止行为：
 
-- 跳过 `prepare` / `schema fields` / `schema get` 直接手写 payload
+- 缺字段来源时跳过 `prepare` / `publish form` / `schema fields` / `schema get` 直接手写 payload
 - 先执行 `publish`，失败后再补 `validate`
 - 从空白 JSON 文件开始猜字段、猜层级、猜顺序
 - 未读取 workflow 就按历史记忆填平台字段
@@ -42,12 +43,13 @@
 - `[ ]` 已读类型 workflow
 - `[ ]` 已完成环境检查
 - `[ ]` 已确认账号有效
-- `[ ]` 已拿到最新 `prepare` 结果
-- `[ ]` 已拿到最新 `schema fields` 结果；如需骨架再补 `schema get`
+- `[ ]` 新建或补字段时已拿到最新 `prepare` / `publish form` 结果
+- `[ ]` 新建或补字段时已拿到最新 `schema fields` 结果；如需骨架再补 `schema get`
 - `[ ]` 已完成上传，不存在外部 URL 直填
 - `[ ]` 已查询动态字段，不存在手写 `raw`
 - `[ ]` 当前 payload 不含模板占位符
 - `[ ]` 当前 payload 已先通过 `validate`
+- `[ ]` 当前 payload 已先通过 `publish --dry-run`
 
 ## 数据真实性原则
 
@@ -77,13 +79,14 @@ Agent 在任何 `publish` 之前，都要先读取 [`local-vs-cloud.md`](./local
 ### 本机发布执行规则
 
 - 必须显式使用 `publishChannel=local`
-- 必须提供 `clientId`
+- 必须通过 `--client-id` 或 `yxer config set-local-client-id` 提供 `clientId`
 - `validate`、`publish --dry-run`、正式 `publish` 必须使用同一套发布通道参数，避免“校验通过但执行模式不一致”
-- `clientId` 获取优先级：
-  1. payload 中已有 `clientId`
-  2. 命令 flags：`--client-id <clientId>`
-  3. 第四个位置参数：`yxer publish <type> <platform> <payload.json> <clientId>`
-  4. 本地配置：`yxer config set-local-client-id <clientId>` 后由 CLI 自动读取
+- 推荐的 `clientId` 来源：
+  1. 命令 flags：`--client-id <clientId>`
+  2. 本地配置：`yxer config set-local-client-id <clientId>` 后由 CLI 自动读取
+  3. payload 中已有 `clientId` 时可沿用
+
+第四个位置参数属于旧版兼容，不再作为 Agent 推荐入口。
 
 推荐命令形态：
 
@@ -103,6 +106,13 @@ yxer publish <type> <platform> .\payload.json --publish-channel local --client-i
 - 云发布报“账号代理不存在”：
   - 提示检查账号代理配置
   - 若用户希望立即绕过代理限制，可改用本机发布
+  - 不默认使用 `--auto-fallback-local`；只有用户明确授权“一失败就切本机”时才可使用
+
+### dry-run 语义
+
+- `yxer publish --dry-run` 只预览最终请求，不创建发布任务。
+- 云发布且已配置 API key 时，dry-run 会做账号/代理 preflight；local dry-run 不检测客户端在线状态。
+- dry-run 输出中的 `meta.remoteChecks` 表示本次是否实际执行了远端 preflight。
 
 ---
 
@@ -155,10 +165,10 @@ yxer publish <type> <platform> .\payload.json --publish-channel local --client-i
 
 在自动填值之前，Agent 必须先读取平台前置数据和 schema：
 
-- 先执行 `yxer prepare <platform> <type>`，确认该平台该类型需要哪些表单字段、账号能力和前置数据
-- 先执行 `yxer schema fields <platform> <type>`，确认字段名、类型和必填项；需要根层级骨架时再执行 `yxer schema get <platform> <type>`
-- 只有在 `prepare` / `schema fields` / `schema get` 已确认后，才开始填写或补齐 `payload.json`
-- Agent 不允许从空白 JSON 手工拼接 payload；必须先基于标准结构或 CLI 模板生成骨架，再按返回结果填值
+- 新建或补字段时，先执行 `yxer prepare <platform> <type>` 或使用 `yxer publish form start/inspect` 获取表单契约
+- 新建或补字段时，先执行 `yxer schema fields <platform> <type>`，确认字段名、类型和必填项；需要根层级骨架时再执行 `yxer schema get <platform> <type>`
+- 只有在 `prepare` / `publish form` / `schema fields` / `schema get` 已确认后，才开始填写或补齐 `payload.json`
+- Agent 不允许从空白 JSON 手工拼接 payload；必须先基于标准结构、publish form 会话或 CLI 模板生成骨架，再按返回结果填值
 
 以下字段应先向用户确认，再填入：
 
@@ -248,7 +258,7 @@ yxer publish <type> <platform> .\payload.json --publish-channel local --client-i
 
 - 未确认账号 `status=1` 就构造 payload
 - 用户明确要求本机发布时，仍然默认走云发布
-- 使用本机发布却没有显式提供或确认 `clientId`
+- 使用本机发布却没有通过 flag、配置或 payload 提供 `clientId`
 - 手动编造 `key` / `size` / `width` / `height` / `duration`
 - 手动构造 `location` / `music` / `collection` / `challenge` 的 `raw`
 - 跳过 `yxer validate` 直接执行 `yxer publish`

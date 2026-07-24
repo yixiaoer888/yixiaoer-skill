@@ -47,7 +47,7 @@ yxer validate 抖音 video .\payload.json
 
 - 排查优先读错误信息和记录，不要先重写 payload
 - 若错误发生在 `validate`，不要跳过它直接重试 `publish`
-- 若用户给的是历史任务，先看 `records list`，不要立刻重新发布
+- 若用户给的是历史任务，先看 `yxer query records`，不要立刻重新发布
 
 ## 严禁行为
 

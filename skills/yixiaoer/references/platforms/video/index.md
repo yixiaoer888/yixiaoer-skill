@@ -20,7 +20,7 @@
 2. **账号与平台选取**：识别目标 `platforms` 列表及具体的 `platformAccountId`（通过 `yxer accounts` 查询）。
 3. **参数深度补全**：若涉及分类、地理位置、音乐等动态字段，调用对应 `yxer query categories`、`yxer query locations`、`yxer query music` 等命令获取合法对象。
 4. **Payload 装配**：按照本文档 1.1 - 1.3 节定义的 DTO 结构，组装包含 `action: "publish"` 的完整 JSON。
-5. **指令交付**：先执行 `yxer validate <platform> video <payload.json>`，再执行 `yxer publish video <platform> <payload.json> [clientId]`。
+5. **指令交付**：先执行 `yxer validate <platform> video <payload.json>`，再执行 `yxer publish video <platform> <payload.json> [--publish-channel local --client-id <clientId>]`。
 6. **状态跟踪**：记录返回的 `taskSetId`，以便后续通过 `yxer query records` 查询进度。
 
 ## 1. 数据结构 (Data Structure)
@@ -75,7 +75,7 @@
 > **CLI 输入兼容规则**:
 > - 推荐优先使用“标准请求体”形态，即在 `publishArgs` 中声明共享的 `video`、`cover`、`coverKey`，再在 `accountForms[]` 中补平台差异字段。
 > - 若平台支持横版封面，推荐在 `publishArgs.horizontalCover` 声明共享横版封面，或直接填写 `accountForms[].contentPublishForm.horizontalCover`；不要放在 `accountForms[].horizontalCover`。
-> - CLI 当前仍按**单平台命令**执行：`yxer publish video <platform> <payload.json> [clientId]`。即使请求体里可以表达多平台，命令本身仍需逐个平台调用。
+> - CLI 当前仍按**单平台命令**执行：`yxer publish video <platform> <payload.json> [--publish-channel local --client-id <clientId>]`。即使请求体里可以表达多平台，命令本身仍需逐个平台调用。
 > - `yxer validate` 与 `yxer publish` 都接受完整标准请求体；在共享资源字段存在而账号项缺失时，CLI 会在校验阶段自动补齐到对应 `accountForms[]`。
 
 ### 1.4 账号表单项 (accountForms Item)

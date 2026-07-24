@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -26,11 +27,21 @@ func TestValidateCommandUsesConfiguredLocalClientID(t *testing.T) {
 	})
 
 	cmd := newValidateCmd()
-	cmd.SetOut(&bytes.Buffer{})
+	var out bytes.Buffer
+	cmd.SetOut(&out)
 	cmd.SetErr(&bytes.Buffer{})
 	cmd.SetArgs([]string{"抖音", "video", payloadPath})
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
+	}
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	nextStep := data["nextStep"].(string)
+	if !strings.Contains(nextStep, "--publish-channel local") || !strings.Contains(nextStep, "--client-id configured_client_1") {
+		t.Fatalf("expected local publish nextStep, got %q", nextStep)
 	}
 }
 

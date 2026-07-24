@@ -90,14 +90,17 @@ yxer update --global
 
 ## 危险动作协议
 
-- 真正发布前，固定顺序是：
+- 真正发布前，最小固定门禁是：
+  1. 已有或已导出标准 `payload.json`
+  2. `yxer validate`
+  3. `yxer publish --dry-run`
+  4. 用户授权后 `yxer publish`
+- 当 payload 尚未完整、账号未确认、资源未上传或动态字段未查询时，先补完整组装路径：
   1. `yxer doctor`
   2. `yxer accounts list`
-  3. `yxer prepare`
-  4. `yxer schema fields`
-  5. 只有需要 payload 骨架时再补 `yxer schema get`
-  6. `yxer validate`
-  7. `yxer publish --dry-run`
-  8. `yxer publish`
+  3. `yxer prepare` 或 `yxer publish form start/inspect`
+  4. `yxer schema fields`；只有需要完整骨架时再补 `yxer schema get`
+  5. `yxer upload` / `yxer query ...`
+  6. 组装或导出 `payload.json`
 - 不允许跳过 `validate`
 - 不允许把正式 `publish` 当成试错手段

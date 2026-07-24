@@ -22,12 +22,13 @@
 - 必须确认 `clientId`
 - `validate`、`publish --dry-run`、正式 `publish` 必须保持同一套通道参数
 
-## clientId 获取顺序
+## clientId 获取方式
 
-1. payload 中已有 `clientId`
-2. 显式 flags：`--client-id <clientId>`
-3. 第四个位置参数：`yxer publish <type> <platform> <payload.json> <clientId>`
-4. 本地默认配置：`yxer config set-local-client-id <clientId>`
+1. 显式 flags：`--client-id <clientId>`
+2. 本地默认配置：`yxer config set-local-client-id <clientId>`
+3. payload 中已有 `clientId`
+
+第四个位置参数 `yxer publish <type> <platform> <payload.json> <clientId>` 只用于旧版兼容，不再推荐 Agent 使用。
 
 ## 推荐命令
 
@@ -42,6 +43,7 @@ yxer publish video 抖音 .\payload.json --publish-channel local --client-id <cl
 
 - 云发布报“账号代理不存在”：提示检查代理配置，或改走本机发布
 - 本机发布报“客户端不在线”或“获取在线设备列表失败”：提示用户启动并登录客户端，或改回云发布
+- 不默认使用 `--auto-fallback-local`；该参数只在用户明确授权自动切换通道时使用
 
 ## 严禁行为
 

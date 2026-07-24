@@ -32,7 +32,7 @@ yxer skill sync [--global]
 yxer accounts list [platform] [--name 关键词] [--status 1] [--page 1] [--size 20] [--all] [--json]
 yxer accounts update <account_id> [--proxy-id ID] [--kuaidaili-area CODE] [--remark 文本] [--group ID] --dry-run
 yxer accounts update <account_id> [--proxy-id ID] [--kuaidaili-area CODE] [--remark 文本] [--group ID]
-yxer account-group list
+yxer account-group list [--page 1] [--size 10]
 yxer account-group create <name> [--visible-scope all|specific] [--visible-user USER_ID]... [--dry-run]
 yxer account-group update <group_id> <name> [--visible-scope all|specific] [--visible-user USER_ID]... [--dry-run]
 yxer account-group delete <group_id> [--dry-run]
@@ -44,7 +44,7 @@ yxer upload --url <resource_url> [--bucket cloud-publish|material-library] [--dr
 
 ```bash
 yxer validate <platform> <type> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>]
-yxer publish <type> <platform> <payload.json> [clientId] [--dry-run]
+yxer publish <type> <platform> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>] [--dry-run]
 yxer publish form start <platform> <type> [--output publish-form.json] [--dry-run]
 yxer publish form inspect <session.json>
 yxer publish form set <session.json> <payload.path> --value '<json-value-or-text>' [--index N] [--source-command <cmd>] [--dry-run]
@@ -89,22 +89,23 @@ yxer schema get <platform> <type>
 - 发布类型统一使用：`video`、`imageText`、`article`
 - 单次 `yxer publish` 只处理一个平台
 - `publish` 仅支持 `payload.json` 模式
-- 发布前必须先执行 `yxer prepare <platform> <type>` 和 `yxer schema fields <platform> <type>`；`schema fields` 默认返回扁平路径清单，只有需要完整 payload 骨架时再执行 `yxer schema get <platform> <type>`
+- 新建或补字段时，先执行 `yxer prepare <platform> <type>` / `yxer publish form start` 和 `yxer schema fields <platform> <type>`；`schema fields` 默认返回扁平路径清单，只有需要完整 payload 骨架时再执行 `yxer schema get <platform> <type>`
 - `payload.json` 只支持标准 `publishArgs` 结构，所有平台统一
 - CLI 会根据 `publishArgs` 自动补齐最外层 `cover`、`coverKey`、`desc`、`isDraft`、`isAppContent`
 - 云发布是默认模式
 - 本机发布时必须提供 `clientId`
 - `yxer validate`、`yxer publish --dry-run`、`yxer publish` 使用同一套发布通道解析逻辑
-- 本机发布可通过三种方式提供 `clientId`：
-  - 第四个位置参数：`yxer publish <type> <platform> <payload.json> <clientId>`
+- `yxer publish --dry-run` 不创建发布任务；它返回最终请求预览，并在有 API key 的云发布场景执行账号/代理 preflight。local dry-run 不检测客户端在线状态。
+- 本机发布推荐通过两种方式提供 `clientId`：
   - flags：`yxer publish <type> <platform> <payload.json> --publish-channel local --client-id <clientId>`
   - 预设默认值：`yxer config set-local-client-id <clientId>` 后，再执行 `--publish-channel local`
+- 第四个位置参数属于旧版兼容，不再作为 Agent 推荐入口。
 - 本机发布校验时，推荐在 `validate` 阶段就显式传入 `--publish-channel local`；若未显式传入但 payload 中已写 `publishChannel=local`，CLI 也会尝试从默认配置读取 `clientId`
 - `yxer draft save` 只处理蚁小二内部草稿，不等同于平台草稿箱
 - `yxer material create` 只做素材登记，前提是资源已经通过 `yxer upload --bucket material-library` 上传
 - `yxer material add --file ...` 会自动完成上传和素材登记
 - 查询类操作可以直接执行
-- 发布类操作必须遵守“查账号 -> prepare/schema -> 上传资源 -> 查询复杂对象 -> 填 payload -> validate -> publish”顺序
+- 已有完整标准 payload 时，发布类操作遵守“validate -> publish --dry-run -> 用户授权 -> publish”顺序；缺账号、字段、资源或动态对象时，先补“查账号 -> prepare/form/schema -> 上传资源 -> 查询复杂对象 -> 填 payload”。
 - 页面式逐步填写可使用 `publish form` 会话；会话只负责本地状态，正式发布路径固定为 `publish form verify -> publish form export -> validate payload.json -> publish payload.json --dry-run -> publish payload.json`
 - `publish form set` 只能写 `prepare` / `schema fields` / `fieldPlacements` 声明过的路径，不能用拼写不确定的路径试错。
 - `publish form choose` 只用于 `dynamicFieldExamples` 声明的动态字段，必须带 `--source-command` 记录产生候选的 `yxer query ... --json` 命令；若 query 账号和目标账号不一致会被拒绝。
@@ -213,6 +214,7 @@ yxer publish video 抖音 .\payload.json --publish-channel local --client-id <cl
 - 用户未指定“本机发布 / 本地发布 / 客户端发布”时，Agent 应默认使用云发布。
 - 用户明确要求本机发布，或说明要走本机客户端/本机网络时，Agent 必须显式传 `--publish-channel local`，不要只在说明文字里表达。
 - 若云发布返回“账号代理不存在”等代理相关错误，可建议切换到本机发布。
+- CLI 默认只返回本机发布 `nextCommand`，不会自动切换通道；`--auto-fallback-local` 属于用户明确授权后的高级选项，不作为 Agent 默认路径。
 - 若本机发布返回“客户端不在线”或“获取在线设备列表失败”，可建议用户启动蚁小二客户端，或改回云发布。
 
 ## 输出约定

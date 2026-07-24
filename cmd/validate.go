@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -71,8 +71,44 @@ func runValidate(cmd *cobra.Command, args []string, opts validateOptions) error 
 		"prepared":     true,
 		"request":      prepared.PublishBody,
 		"remoteChecks": prepared.RemoteChecked,
-		"nextStep":     fmt.Sprintf("yxer publish %s %s %s --dry-run", publishType, platform, payloadPath),
+		"nextStep":     publishNextCommand(publishType, platform, payloadPath, prepared.PublishMode, prepared.ClientID, true),
 	})
+}
+
+func publishNextCommand(publishType, platform, payloadPath, channel, clientID string, dryRun bool) string {
+	parts := []string{"yxer", "publish", publishType, quoteCommandArg(platform), quoteCommandArg(payloadPath)}
+	if strings.TrimSpace(channel) == "local" {
+		parts = append(parts, "--publish-channel", "local")
+		if strings.TrimSpace(clientID) != "" {
+			parts = append(parts, "--client-id", quoteCommandArg(clientID))
+		}
+	}
+	if dryRun {
+		parts = append(parts, "--dry-run")
+	}
+	return strings.Join(parts, " ")
+}
+
+func validateNextCommand(platform, publishType, payloadPath, channel, clientID string) string {
+	parts := []string{"yxer", "validate", quoteCommandArg(platform), publishType, quoteCommandArg(payloadPath)}
+	if strings.TrimSpace(channel) == "local" {
+		parts = append(parts, "--publish-channel", "local")
+		if strings.TrimSpace(clientID) != "" {
+			parts = append(parts, "--client-id", quoteCommandArg(clientID))
+		}
+	}
+	return strings.Join(parts, " ")
+}
+
+func quoteCommandArg(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return value
+	}
+	if strings.ContainsAny(value, " \t\"'") {
+		return strconv.Quote(value)
+	}
+	return value
 }
 
 func readPayload(path string) (map[string]interface{}, error) {

@@ -328,6 +328,7 @@ func newPublishFormReviewCmd() *cobra.Command {
 					return yxerrors.Internal("failed to write publish form session", err.Error())
 				}
 			}
+			channel, clientID := publishModeFromPayload(session.Payload)
 			return output.Success(cmd.OutOrStdout(), actionForReview(dryRun), map[string]interface{}{
 				"file":        filepath.ToSlash(args[0]),
 				"planId":      session.PlanID,
@@ -339,9 +340,9 @@ func newPublishFormReviewCmd() *cobra.Command {
 				"provenance":  provenance,
 				"next": []string{
 					fmt.Sprintf("yxer publish form export %s --output payload.json", filepath.ToSlash(args[0])),
-					fmt.Sprintf("yxer validate %s %s payload.json", session.Platform, session.Type),
-					fmt.Sprintf("yxer publish %s %s payload.json --dry-run", session.Type, session.Platform),
-					fmt.Sprintf("yxer publish %s %s payload.json", session.Type, session.Platform),
+					validateNextCommand(session.Platform, session.Type, "payload.json", channel, clientID),
+					publishNextCommand(session.Type, session.Platform, "payload.json", channel, clientID, true),
+					publishNextCommand(session.Type, session.Platform, "payload.json", channel, clientID, false),
 				},
 			})
 		},
@@ -370,12 +371,13 @@ func newPublishFormExportCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			channel, clientID := publishModeFromPayload(session.Payload)
 			if dryRun {
 				hash, _ := hashJSONValue(session.Payload)
 				return output.Success(cmd.OutOrStdout(), "publish.form.export.dry-run", map[string]interface{}{"file": filepath.ToSlash(target), "payloadHash": hash, "sourceCount": len(session.Sources), "provenance": provenance, "payload": session.Payload, "next": []string{
-					fmt.Sprintf("yxer validate %s %s %s", session.Platform, session.Type, filepath.ToSlash(target)),
-					fmt.Sprintf("yxer publish %s %s %s --dry-run", session.Type, session.Platform, filepath.ToSlash(target)),
-					fmt.Sprintf("yxer publish %s %s %s", session.Type, session.Platform, filepath.ToSlash(target)),
+					validateNextCommand(session.Platform, session.Type, filepath.ToSlash(target), channel, clientID),
+					publishNextCommand(session.Type, session.Platform, filepath.ToSlash(target), channel, clientID, true),
+					publishNextCommand(session.Type, session.Platform, filepath.ToSlash(target), channel, clientID, false),
 				}})
 			}
 			raw, err := json.MarshalIndent(session.Payload, "", "  ")
@@ -387,9 +389,9 @@ func newPublishFormExportCmd() *cobra.Command {
 			}
 			hash, _ := hashJSONValue(session.Payload)
 			return output.Success(cmd.OutOrStdout(), "publish.form.export", map[string]interface{}{"file": filepath.ToSlash(target), "payloadHash": hash, "sourceCount": len(session.Sources), "provenance": provenance, "payload": session.Payload, "next": []string{
-				fmt.Sprintf("yxer validate %s %s %s", session.Platform, session.Type, filepath.ToSlash(target)),
-				fmt.Sprintf("yxer publish %s %s %s --dry-run", session.Type, session.Platform, filepath.ToSlash(target)),
-				fmt.Sprintf("yxer publish %s %s %s", session.Type, session.Platform, filepath.ToSlash(target)),
+				validateNextCommand(session.Platform, session.Type, filepath.ToSlash(target), channel, clientID),
+				publishNextCommand(session.Type, session.Platform, filepath.ToSlash(target), channel, clientID, true),
+				publishNextCommand(session.Type, session.Platform, filepath.ToSlash(target), channel, clientID, false),
 			}})
 		},
 	}
@@ -989,6 +991,18 @@ func actionForReview(dryRun bool) string {
 		return "publish.form.review.dry-run"
 	}
 	return "publish.form.review"
+}
+
+func publishModeFromPayload(payload map[string]interface{}) (string, string) {
+	channel := strings.TrimSpace(fmt.Sprint(payload["publishChannel"]))
+	if channel == "" || channel == "<nil>" {
+		channel = "cloud"
+	}
+	clientID := strings.TrimSpace(fmt.Sprint(payload["clientId"]))
+	if clientID == "<nil>" {
+		clientID = ""
+	}
+	return channel, clientID
 }
 
 func cloneJSONMap(input map[string]interface{}) map[string]interface{} {

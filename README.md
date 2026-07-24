@@ -398,7 +398,7 @@ yxer prepare <platform> <type>
 yxer schema fields <platform> <type>
 yxer schema get <platform> <type>
 yxer validate <platform> <type> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>]
-yxer publish <type> <platform> <payload.json> [clientId] [--dry-run]
+yxer publish <type> <platform> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>] [--dry-run]
 ```
 
 推荐的发布类型只有三种：
@@ -431,6 +431,7 @@ yxer query records [--platform P] [--limit N] [--status S] [--json]
 - 用户明确要求“本机发布 / 本地发布 / 客户端发布”时，必须走本机发布。
 - 本机发布必须提供 `clientId`，可通过 `yxer config set-local-client-id <clientId>` 预设。
 - `validate`、`publish --dry-run`、`publish` 会共用同一套发布通道解析规则；若已预设默认 `clientId`，可在本机发布时只传 `--publish-channel local`。
+- `publish --dry-run` 不创建发布任务；它返回最终请求预览，并在有 API key 的云发布场景执行账号/代理 preflight。local dry-run 不检测客户端在线状态。
 
 ### 推荐任务分流
 
@@ -442,7 +443,13 @@ yxer query records [--platform P] [--limit N] [--status S] [--json]
 
 ### 推荐发布顺序
 
-发布类任务建议始终按这个顺序执行：
+已有完整标准 `payload.json` 时，发布类任务按这个快速路径执行：
+
+1. `yxer validate`
+2. `yxer publish --dry-run`
+3. 用户授权后 `yxer publish`
+
+缺账号、字段、资源或动态对象时，先按这个组装路径补齐：
 
 1. `yxer doctor`
 2. `yxer accounts list`
@@ -453,9 +460,9 @@ yxer query records [--platform P] [--limit N] [--status S] [--json]
 7. 填写 `payload.json`
 8. `yxer validate`
 9. `yxer publish --dry-run`
-10. `yxer publish`
+10. 用户授权后 `yxer publish`
 
-上面这 10 步只适用于“正式发布链路”；草稿、素材库、排查等任务不要强行套这条主流程。
+上面这 10 步只适用于“从零组装发布 payload”；草稿、素材库、排查等任务不要强行套这条主流程。
 
 ### Skill 与 CLI 的分工
 
@@ -532,6 +539,7 @@ yxer skill sync --global
 - 先检查账号代理配置
 - 如需快速绕过云端代理问题，可改用本机发布
 - 本机发布前先确认已经配置 `clientId`
+- CLI 默认只返回本机发布 `nextCommand`，不会自动切换通道；`--auto-fallback-local` 只适合用户明确授权自动回退的场景。
 
 ### 3. 本机发布失败，提示客户端不在线
 

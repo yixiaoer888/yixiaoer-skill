@@ -19,7 +19,7 @@
    - 活动：调用 `activities` 获取活动 ID。
    - 商品：调用 `goods` 获取带货商品信息。
 3. **参数装配**：将获取的 `raw` 结构与 `yixiaoerId` 组装进 `accountForms[i].contentPublishForm`。
-4. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
+4. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [--publish-channel local --client-id <clientId>]`。
 
 > [!TIP]
 > 示例优先使用“标准请求体”格式：共享资源放在 `publishArgs` 根级，账号差异字段放在 `accountForms[]`。CLI 会在校验阶段自动补齐缺失资源字段。
