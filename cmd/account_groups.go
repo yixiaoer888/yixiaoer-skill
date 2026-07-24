@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/yixiaoer/yixiaoer-skill/internal/api"
 	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/cmdflow"
 	queryflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/query"
@@ -84,17 +85,33 @@ func newAccountGroupCreateCmd() *cobra.Command {
 }
 
 func newAccountGroupListCmd() *cobra.Command {
-	return &cobra.Command{
+	opts := accountGroupListOptions{
+		Page: 1,
+		Size: 10,
+	}
+	cmd := &cobra.Command{
 		Use:     "list",
 		Short:   "列出账号分组",
 		Aliases: []string{"ls"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			input := api.AccountGroupOptions{
+				Page: opts.Page,
+				Size: opts.Size,
+			}
 			return runQuery(cmd, "account-group.list", func(service queryflow.Service) (interface{}, error) {
-				return service.AccountGroups()
+				return service.AccountGroups(input)
 			})
 		},
 	}
+	cmd.Flags().IntVar(&opts.Page, "page", 1, "page number")
+	cmd.Flags().IntVar(&opts.Size, "size", 10, "page size")
+	return cmd
+}
+
+type accountGroupListOptions struct {
+	Page int
+	Size int
 }
 
 func buildAccountGroupBody(name string, opts accountGroupUpdateOptions) (map[string]interface{}, error) {

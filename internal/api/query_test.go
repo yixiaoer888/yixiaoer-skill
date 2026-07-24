@@ -450,10 +450,16 @@ func TestMembersUsesExpectedEndpointAndFilters(t *testing.T) {
 	}
 }
 
-func TestAccountGroupsUsesExpectedEndpoint(t *testing.T) {
+func TestAccountGroupsUsesExpectedEndpointAndPagination(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/groups" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if got := r.URL.Query().Get("page"); got != "2" {
+			t.Fatalf("unexpected page query: %s", got)
+		}
+		if got := r.URL.Query().Get("size"); got != "20" {
+			t.Fatalf("unexpected size query: %s", got)
 		}
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"data": []map[string]interface{}{
@@ -464,7 +470,7 @@ func TestAccountGroupsUsesExpectedEndpoint(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
-	result, err := client.AccountGroups()
+	result, err := client.AccountGroups(AccountGroupOptions{Page: 2, Size: 20})
 	if err != nil {
 		t.Fatal(err)
 	}

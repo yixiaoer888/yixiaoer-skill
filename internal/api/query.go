@@ -110,8 +110,16 @@ func (c *Client) Members(opts MembersOptions) (interface{}, error) {
 	return c.queryData(QueryValues("/members", values))
 }
 
-func (c *Client) AccountGroups() (interface{}, error) {
-	return c.queryData(Query("/groups", nil))
+type AccountGroupOptions struct {
+	Page int
+	Size int
+}
+
+func (c *Client) AccountGroups(opts AccountGroupOptions) (interface{}, error) {
+	values := url.Values{}
+	setIfPositive(values, "page", opts.Page)
+	setIfPositive(values, "size", opts.Size)
+	return c.queryData(QueryValues("/groups", values))
 }
 
 func (c *Client) CreateAccountGroup(body map[string]interface{}) (interface{}, error) {

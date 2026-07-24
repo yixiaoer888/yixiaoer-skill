@@ -49,6 +49,12 @@ func TestAccountGroupListCommandUsesStructuredAction(t *testing.T) {
 	if len(cmd.Aliases) != 1 || cmd.Aliases[0] != "ls" {
 		t.Fatalf("unexpected aliases: %#v", cmd.Aliases)
 	}
+	if cmd.Flags().Lookup("page") == nil {
+		t.Fatal("expected account-group list to expose --page flag")
+	}
+	if cmd.Flags().Lookup("size") == nil {
+		t.Fatal("expected account-group list to expose --size flag")
+	}
 }
 
 func TestBuildAccountGroupBodyRejectsEmptyName(t *testing.T) {
