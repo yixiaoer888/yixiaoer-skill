@@ -41,9 +41,10 @@ func buildPublishFormContract(doc schema.Document) map[string]interface{} {
 				"kind":    "query-selection",
 				"fields":  dynamic,
 				"queries": queries,
-				"command": "yxer publish form choose <session.json> <field> --value-file <query.json> --id <candidate_id>",
+				"command": "yxer publish form choose <session.json> <field> --value-file <query.json> --id <candidate_id> --source-command \"yxer query ... --json\"",
 			},
 			map[string]interface{}{"id": "review", "kind": "validation", "commands": []string{
+				"yxer publish form verify <session.json>",
 				"yxer publish form export <session.json> --output payload.json",
 				fmt.Sprintf("yxer validate %s %s <payload.json>", doc.Platform, doc.Type),
 				fmt.Sprintf("yxer publish %s %s <payload.json> --dry-run", doc.Type, doc.Platform),

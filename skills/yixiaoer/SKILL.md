@@ -75,7 +75,7 @@ yxer schema get <platform> <type>
 - 涉及写操作或 payload 修订时，必须遵守 [`./references/workflows/data-accuracy.md`](./references/workflows/data-accuracy.md)：先查询真实数据，再确认候选，最后 validate / dry-run / 写入。
 - BLOCKING REQUIREMENT: 正式发布前固定顺序是 `doctor -> accounts list -> prepare -> schema fields -> validate payload.json -> publish payload.json --dry-run -> publish payload.json`；只有需要 payload 骨架时再补 `schema get`。
 - `prepare`、`schema fields` / `schema get`、workflow、平台文档和 CLI 实际输出，是组装 payload 的唯一依据。
-- `prepare` 返回的 `data.form` 是可恢复的页面式表单契约；需要逐步填写时使用 `yxer publish form start/inspect/set/choose/review/export`，不要自行发明字段或路径。form 会话不能直接发布，必须先 export 成标准 `payload.json`。
+- `prepare` 返回的 `data.form` 是可恢复的页面式表单契约；需要逐步填写时使用 `yxer publish form start/inspect/set/choose/verify/review/export`，不要自行发明字段或路径。form 会话不能直接发布，必须先 verify 并 export 成标准 `payload.json`。
 - 图片、视频、封面等资源必须先上传，且只能复用 `yxer upload` 返回的真实字段。
 - `category`、`location`、`music`、`collection`、`challenge`、`goods` 等动态字段必须先通过 `yxer query ...` 查询，不能手写对象。
 - CRITICAL: `validate`、`publish --dry-run`、正式 `publish` 必须使用同一套发布通道参数。
@@ -88,9 +88,10 @@ yxer schema get <platform> <type>
 yxer publish form start <platform> <type> --output publish-form.json
 yxer publish form inspect publish-form.json
 yxer publish form set publish-form.json <payload.path> --value '<json-value>'
-yxer publish form choose publish-form.json <field> --value-file query-result.json --id <candidate_id>
+yxer publish form choose publish-form.json <field> --value-file query-result.json --id <candidate_id> --source-command "yxer query ... --json"
+yxer publish form verify publish-form.json
 yxer publish form review publish-form.json
 yxer publish form export publish-form.json --output payload.json
 ```
 
-`set` / `choose` / `review` 只更新本地会话，不会触发发布；动态字段应优先用 `choose` 从 `query` 返回候选中选择，资源应直接使用 `upload` 返回的完整对象。文本字段可直接传文本，复杂对象使用 JSON。导出后仍必须按固定顺序执行 `validate payload.json -> publish payload.json --dry-run -> publish payload.json`。所有写本地文件的会话命令都支持 `--dry-run`。
+`set` / `choose` / `verify` / `review` 只更新或检查本地会话，不会触发发布；动态字段必须用 `choose` 从 `query` 返回候选中选择，并用 `--source-command` 记录实际执行的 `yxer query ... --json` 命令。`set` 只能写 form contract 声明过的路径；`choose` 只写 `dynamicFieldExamples` 声明的字段，且 query 账号必须匹配目标账号。资源应直接使用 `upload` 返回的完整对象。文本字段可直接传文本，复杂对象使用 JSON。导出前 `verify` / `review` / `export` 会校验来源记录和当前 payload 是否一致；导出后仍必须按固定顺序执行 `validate payload.json -> publish payload.json --dry-run -> publish payload.json`。所有写本地文件的会话命令都支持 `--dry-run`。

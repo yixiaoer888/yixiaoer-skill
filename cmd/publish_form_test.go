@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -143,12 +144,12 @@ func TestPublishFormChooseSelectsCandidateAndRecordsSource(t *testing.T) {
 	if err := start.Execute(); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(candidatesPath, []byte(`{"ok":true,"data":{"items":[{"yixiaoerId":"cat_food","yixiaoerName":"美食"},{"yixiaoerId":"cat_travel","yixiaoerName":"旅行"}]}}`), 0o644); err != nil {
+	if err := os.WriteFile(candidatesPath, []byte(`{"ok":true,"data":{"items":[{"yixiaoerId":"loc_sh","yixiaoerName":"上海","raw":{"id":"loc_sh"}},{"yixiaoerId":"loc_hz","yixiaoerName":"杭州","raw":{"id":"loc_hz"}}]}}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
 	choose := newPublishFormChooseCmd()
-	choose.SetArgs([]string{sessionPath, "category", "--value-file", candidatesPath, "--id", "cat_food", "--source-command", "yxer query categories acc_1 --type video --json"})
+	choose.SetArgs([]string{sessionPath, "location", "--value-file", candidatesPath, "--id", "loc_sh", "--source-command", "yxer query locations acc_1 --query 上海 --json"})
 	choose.SetOut(&bytes.Buffer{})
 	if err := choose.Execute(); err != nil {
 		t.Fatal(err)
@@ -159,15 +160,18 @@ func TestPublishFormChooseSelectsCandidateAndRecordsSource(t *testing.T) {
 		t.Fatal(err)
 	}
 	form := session.Payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
-	category := form["category"].(map[string]interface{})
-	if category["yixiaoerId"] != "cat_food" {
-		t.Fatalf("unexpected category: %#v", category)
+	location := form["location"].(map[string]interface{})
+	if location["yixiaoerId"] != "loc_sh" {
+		t.Fatalf("unexpected location: %#v", location)
 	}
 	if len(session.Sources) != 1 {
 		t.Fatalf("expected one source record, got %#v", session.Sources)
 	}
-	if session.Sources[0].Kind != "query" || session.Sources[0].Path != "publishArgs.accountForms[0].contentPublishForm.category" {
+	if session.Sources[0].Kind != "query" || session.Sources[0].Path != "publishArgs.accountForms[0].contentPublishForm.location" {
 		t.Fatalf("unexpected source record: %#v", session.Sources[0])
+	}
+	if session.Sources[0].ValueHash == "" || session.Sources[0].RawHash == "" || session.Sources[0].FetchedAt == "" {
+		t.Fatalf("expected query source hashes and fetchedAt, got %#v", session.Sources[0])
 	}
 }
 
@@ -193,11 +197,179 @@ func TestPublishFormChooseRequiresTargetForMultipleAccountForms(t *testing.T) {
 	}
 
 	choose := newPublishFormChooseCmd()
-	choose.SetArgs([]string{sessionPath, "category", "--value", `{"yixiaoerId":"cat_food"}`})
+	choose.SetArgs([]string{sessionPath, "category", "--value", `{"yixiaoerId":"cat_food"}`, "--source-command", "yxer query categories acc_1 --type video --json"})
 	choose.SetOut(&bytes.Buffer{})
 	err := choose.Execute()
 	if err == nil {
 		t.Fatal("expected ambiguous target error")
+	}
+}
+
+func TestPublishFormSetRejectsUndeclaredPath(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	sessionPath := filepath.Join(t.TempDir(), "form.json")
+
+	start := newPublishFormStartCmd()
+	start.SetArgs([]string{"抖音", "video", "--output", sessionPath})
+	start.SetOut(&bytes.Buffer{})
+	if err := start.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	setUnknown := newPublishFormSetCmd()
+	setUnknown.SetArgs([]string{sessionPath, "publishArgs.accountForms[0].contentPublishForm.titel", "--value", `"错字字段"`})
+	setUnknown.SetOut(&bytes.Buffer{})
+	err := setUnknown.Execute()
+	if err == nil {
+		t.Fatal("expected undeclared path error")
+	}
+	if !strings.Contains(err.Error(), "form path is not declared in contract") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestPublishFormChooseRejectsUndeclaredDynamicField(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	sessionPath := filepath.Join(t.TempDir(), "form.json")
+
+	start := newPublishFormStartCmd()
+	start.SetArgs([]string{"抖音", "video", "--output", sessionPath})
+	start.SetOut(&bytes.Buffer{})
+	if err := start.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	choose := newPublishFormChooseCmd()
+	choose.SetArgs([]string{sessionPath, "not_a_dynamic_field", "--value", `{"yixiaoerId":"id_1","yixiaoerName":"名称","raw":{"id":"id_1"}}`, "--source-command", "yxer query locations acc_1 --json"})
+	choose.SetOut(&bytes.Buffer{})
+	err := choose.Execute()
+	if err == nil {
+		t.Fatal("expected undeclared dynamic field error")
+	}
+	if !strings.Contains(err.Error(), "form choose field is not query-backed") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestPublishFormSessionRecordsContractHashAndRejectsStaleHash(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	sessionPath := filepath.Join(t.TempDir(), "form.json")
+
+	start := newPublishFormStartCmd()
+	start.SetArgs([]string{"抖音", "video", "--output", sessionPath})
+	start.SetOut(&bytes.Buffer{})
+	if err := start.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	session, err := readPublishFormSession(sessionPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if session.ContractHash == "" {
+		t.Fatal("expected new session to include contractHash")
+	}
+	session.ContractHash = "sha256:stale"
+	if err := writePublishFormSession(sessionPath, session); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := readPublishFormSession(sessionPath); err == nil || !strings.Contains(err.Error(), "publish form contract is stale") {
+		t.Fatalf("expected stale contract error, got %v", err)
+	}
+}
+
+func TestPublishFormChooseRequiresSourceCommand(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	sessionPath := filepath.Join(t.TempDir(), "form.json")
+
+	start := newPublishFormStartCmd()
+	start.SetArgs([]string{"抖音", "video", "--output", sessionPath})
+	start.SetOut(&bytes.Buffer{})
+	if err := start.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	choose := newPublishFormChooseCmd()
+	choose.SetArgs([]string{sessionPath, "location", "--value", `{"yixiaoerId":"loc_sh","yixiaoerName":"上海","raw":{"id":"loc_sh"}}`})
+	choose.SetOut(&bytes.Buffer{})
+	err := choose.Execute()
+	if err == nil || !strings.Contains(err.Error(), "form choose requires --source-command") {
+		t.Fatalf("expected source command error, got %v", err)
+	}
+}
+
+func TestPublishFormChooseRejectsCrossAccountQuerySource(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	sessionPath := filepath.Join(t.TempDir(), "form.json")
+
+	start := newPublishFormStartCmd()
+	start.SetArgs([]string{"抖音", "video", "--output", sessionPath})
+	start.SetOut(&bytes.Buffer{})
+	if err := start.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	setAccount := newPublishFormSetCmd()
+	setAccount.SetArgs([]string{sessionPath, "publishArgs.accountForms[0].platformAccountId", "--value", `"acc_2"`})
+	setAccount.SetOut(&bytes.Buffer{})
+	if err := setAccount.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	choose := newPublishFormChooseCmd()
+	choose.SetArgs([]string{sessionPath, "location", "--account-id", "acc_2", "--value", `{"yixiaoerId":"loc_sh","yixiaoerName":"上海","raw":{"id":"loc_sh"}}`, "--source-command", "yxer query locations acc_1 --query 上海 --json"})
+	choose.SetOut(&bytes.Buffer{})
+	err := choose.Execute()
+	if err == nil || !strings.Contains(err.Error(), "form choose source account does not match target account") {
+		t.Fatalf("expected cross-account source error, got %v", err)
+	}
+}
+
+func TestPublishFormReviewRejectsSourcePayloadDrift(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	sessionPath := filepath.Join(t.TempDir(), "form.json")
+
+	start := newPublishFormStartCmd()
+	start.SetArgs([]string{"抖音", "video", "--output", sessionPath})
+	start.SetOut(&bytes.Buffer{})
+	if err := start.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	choose := newPublishFormChooseCmd()
+	choose.SetArgs([]string{sessionPath, "location", "--value", `{"yixiaoerId":"loc_sh","yixiaoerName":"上海","raw":{"id":"loc_sh"}}`, "--source-command", "yxer query locations acc_1 --query 上海 --json"})
+	choose.SetOut(&bytes.Buffer{})
+	if err := choose.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	session, err := readPublishFormSession(sessionPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := setJSONPath(session.Payload, "publishArgs.accountForms[0].contentPublishForm.location", map[string]interface{}{
+		"yixiaoerId":   "loc_other",
+		"yixiaoerName": "其他位置",
+		"raw":          map[string]interface{}{"id": "loc_other"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := writePublishFormSession(sessionPath, session); err != nil {
+		t.Fatal(err)
+	}
+
+	review := newPublishFormReviewCmd()
+	review.SetArgs([]string{sessionPath, "--dry-run"})
+	review.SetOut(&bytes.Buffer{})
+	err = review.Execute()
+	if err == nil || !strings.Contains(err.Error(), "publish form provenance validation failed") {
+		t.Fatalf("expected provenance validation error, got %v", err)
 	}
 }
 

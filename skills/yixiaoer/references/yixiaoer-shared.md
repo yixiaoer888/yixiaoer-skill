@@ -75,6 +75,14 @@ yxer update --global
 - `publish --dry-run` 成功时，再进入正式发布
 - 不要跳过 `validate` 或 `publish --dry-run`
 
+### 表单会话来源校验
+
+- 使用 `publish form choose` 写动态字段时，必须带 `--source-command` 记录产生候选的 `yxer query ... --json` 命令
+- `publish form set` 只能写 form contract 声明过的路径；不要用未知路径试错
+- `publish form choose` 只用于 `dynamicFieldExamples` 声明的动态字段；普通文本、枚举和值字段使用 `publish form set`
+- 导出前应先执行 `yxer publish form verify <session.json>`；`review` 和 `export` 也会校验来源记录和当前 payload 是否一致
+- 如果 `verify` 报来源缺失、账号不一致或 hash 不匹配，回到对应字段重新执行 `set` / `choose`，不要手改 session 或 payload 绕过
+
 ### 发布结果
 
 - 成功时给出平台、类型、通道和关键结果
