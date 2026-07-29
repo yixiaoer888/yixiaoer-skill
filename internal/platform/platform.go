@@ -218,3 +218,15 @@ func IsKnown(value string) bool {
 	}
 	return chineseNameSet[trimmed]
 }
+
+// ImageTextUsesFirstImageAsCover reports platforms whose image-text forms do
+// not expose an external cover field. The publish flow derives cover/coverKey
+// from images[0] for internal compatibility.
+func ImageTextUsesFirstImageAsCover(value string) bool {
+	switch CanonicalKey(value) {
+	case "xinlang", "xhs", "shipinhao", "zhihu", "toutiaohao":
+		return true
+	default:
+		return false
+	}
+}

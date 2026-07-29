@@ -2057,6 +2057,60 @@ func TestPublishCommandAcceptsBaijiahaoImageTextPayload(t *testing.T) {
 	}
 }
 
+func TestPublishCommandAcceptsFirstImageCoverImageTextPayloadWithoutExternalCover(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "imageText",
+		"platforms":      []interface{}{"小红书"},
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_xhs_1",
+					"contentPublishForm": map[string]interface{}{
+						"formType":    "task",
+						"title":       "小红书图文标题",
+						"description": "小红书图文内容",
+						"visibleType": float64(0),
+						"images": []interface{}{
+							map[string]interface{}{
+								"key":    "first-image-key",
+								"size":   float64(512),
+								"width":  float64(1080),
+								"height": float64(1440),
+								"format": "jpg",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := imageTextPublishTestServer(t, &publishCalls, &publishBody)
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"imageText", "小红书", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if publishCalls != 1 {
+		t.Fatalf("expected one publish call, got %d", publishCalls)
+	}
+	form := publishBody["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	if form["coverKey"] != "first-image-key" {
+		t.Fatalf("expected internal coverKey derived from first image, got %+v", form)
+	}
+	if cover := form["cover"].(map[string]interface{}); cover["key"] != "first-image-key" {
+		t.Fatalf("expected internal cover derived from first image, got %+v", form)
+	}
+}
+
 func TestPublishCommandAcceptsSouhuhaoVideoPayload(t *testing.T) {
 	withRepoRoot(t)
 	payloadPath := writePublishPayload(t, map[string]interface{}{

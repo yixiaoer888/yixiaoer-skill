@@ -32,7 +32,7 @@
 | `action` | `string` | **是** | 固定值：`publish` | - |
 | `publishType` | `string` | **是** | 固定为 `imageText` | - |
 | `platforms` | `string[]` | **是** | 目标平台枚举数组，详见下方平台列表 | - |
-| `coverKey` | `string` | **是** | 任务封面资源 Key | - |
+| `coverKey` | `string` | 否 | 任务封面资源 Key；新浪微博、小红书、视频号、知乎、头条号图文默认使用 `images[0]` 作为内部封面，无需外部传入 | - |
 | `publishArgs` | `Object` | **是** | 发布参数核心容器 | - |
 | `taskSetId` | `string` | 否 | 任务集唯一标识 (草稿发布时必填) | - |
 | `desc` | `string` | 否 | 任务描述/摘要 | - |
@@ -70,9 +70,9 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `platformAccountId` | `string` | **是** | 蚁小二平台账号唯一 ID | - |
 | `images` | `Array` | **是** | **ImageFormItem[]**: 图文图片列表 (`key`, `width`, `height`, `size`) | - |
-| `cover` | `Object` | **是** | **ImageFormItem**: 主封面对象 | - |
+| `cover` | `Object` | 否 | **ImageFormItem**: 主封面对象；仅在平台 schema 暴露单独封面字段时填写 | - |
 | `contentPublishForm`| `Object` | **是** | **透传层**: `{}` | - |
-| `coverKey` | `string` | **是** | 账号级封面 Key (必须与 `cover.key` 一致) | - |
+| `coverKey` | `string` | 否 | 账号级封面 Key；新浪微博、小红书、视频号、知乎、头条号图文由 CLI 从首图派生 | - |
 
 ## 2. 发布示例 (Payload Example)
 
@@ -81,7 +81,6 @@
   "action": "publish",
   "publishType": "imageText",
   "platforms": ["小红书"],
-  "coverKey": "img_key_1",
   "publishArgs": {
     "content": "这是一个图文发布的描述内容。 #演示",
     "accountForms": [
@@ -89,9 +88,7 @@
         "platformAccountId": "acc_img_002",
         "images": [
           { "key": "img_key_1", "width": 1080, "height": 1440, "size": 200000 }
-        ],
-        "coverKey": "img_key_1",
-        "cover": { "key": "img_key_1", "width": 1080, "height": 1440, "size": 200000 }
+        ]
       }
     ]
   }

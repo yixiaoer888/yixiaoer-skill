@@ -90,7 +90,10 @@ func buildMinimalPayloadTemplate(doc schema.Document) map[string]interface{} {
 }
 
 func requiresPublishCoverResource(doc schema.Document) bool {
-	return doc.Type == "video" || doc.Type == "imageText"
+	if doc.Type == "video" {
+		return true
+	}
+	return doc.Type == "imageText" && !platformutil.ImageTextUsesFirstImageAsCover(doc.Platform)
 }
 
 func articleContentTemplateExclusion(publishType string) []string {

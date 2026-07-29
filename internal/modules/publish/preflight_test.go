@@ -211,6 +211,40 @@ func TestPreflightAcceptsImageTextImagesInContentPublishForm(t *testing.T) {
 	}
 }
 
+func TestPreflightDerivesImageTextCoverFromFirstImageForFirstImageCoverPlatforms(t *testing.T) {
+	for _, platform := range []string{"新浪微博", "小红书", "视频号", "知乎", "头条号"} {
+		t.Run(platform, func(t *testing.T) {
+			payload := standardPayload("imageText", []string{platform}, map[string]interface{}{
+				"accountForms": []interface{}{
+					map[string]interface{}{
+						"platformAccountId": "acc_001",
+						"contentPublishForm": map[string]interface{}{
+							"formType":    "task",
+							"title":       "图文",
+							"description": "正文",
+							"images":      []interface{}{uploadedResourceWithKey("first-image-key")},
+						},
+					},
+				},
+			})
+
+			result := Preflight("imageText", []string{platform}, payload)
+			if len(result.Errors) > 0 {
+				t.Fatalf("expected %s imageText preflight to pass without external cover, got %v", platform, result.Errors)
+			}
+
+			form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+			if form["coverKey"] != "first-image-key" {
+				t.Fatalf("expected %s coverKey derived from first image, got %+v", platform, form)
+			}
+			cover := form["cover"].(map[string]interface{})
+			if cover["key"] != "first-image-key" {
+				t.Fatalf("expected %s cover derived from first image, got %+v", platform, form)
+			}
+		})
+	}
+}
+
 func TestPreflightAcceptsBaijiahaoImageTextDraftFields(t *testing.T) {
 	payload := standardPayload("imageText", []string{"百家号"}, map[string]interface{}{
 		"accountForms": []interface{}{

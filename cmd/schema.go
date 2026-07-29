@@ -166,7 +166,7 @@ func runSchemaGet(cmd *cobra.Command, platform, publishType string, verbose bool
 				"publishArgs: { ... } (必填，包含 accountForms)",
 				"publishArgs.accountForms[]: 账号级表单数组",
 				"publishArgs.accountForms[].platformAccountId: 账号ID (必填)",
-				"publishArgs.accountForms[].cover / coverKey: 账号层资源字段；若 businessFields 也出现 cover / coverKey，需要同步填写",
+				"publishArgs.accountForms[].cover / coverKey: 账号层资源字段；仅在该发布类型或平台需要单独封面时填写",
 				"publishArgs.accountForms[].contentPublishForm: 业务字段 (必填，见 businessFields)",
 			}, platformSpecificEnvelopeNotes(schemaDoc)...),
 		},
@@ -182,7 +182,7 @@ func runSchemaGet(cmd *cobra.Command, platform, publishType string, verbose bool
 			"1. 优先使用 'yxer schema fields' 查看紧凑字段列表",
 			"2. businessFields 只描述平台字段定义；实际填写位置请看 fieldPlacements，不能默认全部写进 contentPublishForm",
 			"3. 复杂对象（location/music/challenge等）必须通过查询命令获取完整对象",
-			"4. 资源（video/images/cover）必须先通过 'yxer upload' 上传并使用返回的完整对象",
+			"4. 资源（video/images/cover）必须先通过 'yxer upload' 上传并使用返回的完整对象；图文首图封面平台只需提供 images",
 			"5. minimalTemplate 提供最小可用骨架，实际使用时需填入真实值",
 		},
 
@@ -583,8 +583,10 @@ func accountResourceFieldViews(doc schema.Document) map[string]schema.PropertyVi
 	}
 	if doc.Type == "imageText" {
 		fields["images"] = schema.PropertyView{Required: true, MinItems: intPtr(1)}
-		fields["cover"] = schema.PropertyView{Required: true}
-		fields["coverKey"] = schema.PropertyView{Required: true}
+		if !platformutil.ImageTextUsesFirstImageAsCover(doc.Platform) {
+			fields["cover"] = schema.PropertyView{Required: true}
+			fields["coverKey"] = schema.PropertyView{Required: true}
+		}
 	}
 	return fields
 }
@@ -839,7 +841,7 @@ func getPlatformSpecificNotes(platform, publishType string) []string {
 
 	case "weixin", "shipinhao", "视频号", "微信视频号":
 		if publishType == "imageText" {
-			notes = append(notes, "视频号图文除了 contentPublishForm.images，还需要在 accountForms[] 层同时提供 cover 和 coverKey")
+			notes = append(notes, "视频号图文不需要外部传入 cover/coverKey，CLI 会默认使用 images[0] 作为内部封面")
 			notes = append(notes, "平台草稿使用 contentPublishForm.pubType=0；这不同于蚁小二草稿 isDraft=true")
 		}
 		if publishType == "video" {
@@ -862,9 +864,9 @@ func getPlatformSpecificNotes(platform, publishType string) []string {
 }
 
 func platformSpecificEnvelopeNotes(doc schema.Document) []string {
-	if doc.Platform == "shipinhao" && doc.Type == "imageText" {
+	if doc.Type == "imageText" && platformutil.ImageTextUsesFirstImageAsCover(doc.Platform) {
 		return []string{
-			"视频号图文额外要求 publishArgs.accountForms[].cover 和 coverKey；建议与首图保持一致",
+			platformutil.ChineseName(doc.Platform) + "图文不需要外部传入 cover/coverKey；CLI 会默认使用 images[0] 作为内部封面",
 		}
 	}
 	return nil

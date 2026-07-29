@@ -424,6 +424,48 @@ func NormalizeStandardPublishArgs(payload map[string]interface{}, publishType st
 		copyIfMissing(form, cpf, "images")
 		copyIfMissing(form, cpf, "cover")
 		copyIfMissing(form, cpf, "coverKey")
+		if NormalizePublishType(publishType) == "imageText" && imageTextUsesFirstImageAsCover(platforms) {
+			deriveImageTextCoverFromFirstImage(form)
+		}
+	}
+}
+
+func imageTextUsesFirstImageAsCover(platforms []string) bool {
+	for _, platform := range platforms {
+		if platformutil.ImageTextUsesFirstImageAsCover(platform) {
+			return true
+		}
+	}
+	return false
+}
+
+func deriveImageTextCoverFromFirstImage(form map[string]interface{}) {
+	if form == nil {
+		return
+	}
+	if objectField(form, "cover") != nil && stringField(form, "coverKey") != "" {
+		return
+	}
+	images, _ := form["images"].([]interface{})
+	if len(images) == 0 {
+		if cpf, _ := form["contentPublishForm"].(map[string]interface{}); cpf != nil {
+			images, _ = cpf["images"].([]interface{})
+		}
+	}
+	if len(images) == 0 {
+		return
+	}
+	firstImage, _ := images[0].(map[string]interface{})
+	if firstImage == nil {
+		return
+	}
+	if objectField(form, "cover") == nil {
+		form["cover"] = firstImage
+	}
+	if stringField(form, "coverKey") == "" {
+		if key := stringField(firstImage, "key"); key != "" {
+			form["coverKey"] = key
+		}
 	}
 }
 
@@ -1259,7 +1301,9 @@ func requirePlatformImageTextConstraints(platforms []string, images []interface{
 		switch strings.TrimSpace(platform) {
 		case "视频号", "微信视频号", "shipinhao":
 			requireShipinhaoImageSizes(images, formPath, errors)
-			requireShipinhaoCoverSize(cover, formPath, errors)
+			if !platformutil.ImageTextUsesFirstImageAsCover(platform) {
+				requireShipinhaoCoverSize(cover, formPath, errors)
+			}
 		}
 	}
 }

@@ -14,7 +14,7 @@
 
 ## 执行逻辑 (Logic Flow)
 1. **资源校验**：确保所有图片均已上传并获得 Key。
-2. **参数装配**：填充描述及图片列表至 `contentPublishForm`，并把首图同步到账号层 `cover` / `coverKey`。
+2. **参数装配**：填充描述及图片列表至 `contentPublishForm`；无需外部传入 `cover` / `coverKey`，CLI 会默认使用首图作为内部封面。
 3. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [--publish-channel local --client-id <clientId>]`。
 
 
@@ -34,14 +34,9 @@
 | `collection` | `Object` | 否 | 合集信息，使用 `Collection` 结构 | - |
 | `pubType` | `number` | **是** | 发布类型: 0-平台草稿, 1-直接发布 | 1 |
 
-## 1.1 账号层必填封面
+## 1.1 封面派生规则
 
-视频号图文除 `contentPublishForm.images` 外，还要求在 `publishArgs.accountForms[]` 层提供：
-
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `cover` | `Object` | **是** | 账号级封面对象，通常直接复用首图资源对象 |
-| `coverKey` | `string` | **是** | 账号级封面 Key，必须与 `cover.key` 一致 |
+视频号图文没有单独的外部封面参数。只需提供 `contentPublishForm.images`；CLI 会在内部默认使用 `images[0]` 派生 `cover` / `coverKey`，不要在 payload 中额外手写封面字段。
 
 ## 2. 复杂对象结构说明
 
@@ -91,14 +86,6 @@
     "accountForms": [
       {
         "platformAccountId": "SPH_ACC_ID",
-        "coverKey": "img_sph_01",
-        "cover": {
-          "key": "img_sph_01",
-          "size": 1024,
-          "width": 1080,
-          "height": 1440,
-          "format": "jpg"
-        },
         "contentPublishForm": {
           "formType": "task",
           "title": "视频号动态标题",

@@ -182,31 +182,38 @@ func TestSchemaGetCommandPlacesHorizontalCoverInContentPublishForm(t *testing.T)
 	}
 }
 
-func TestSchemaGetCommandShipinhaoImageTextTemplateIncludesAccountCover(t *testing.T) {
+func TestSchemaGetCommandImageTextFirstImageCoverPlatformsOmitExternalCover(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)
-	var out bytes.Buffer
-	cmd := newSchemaGetCmd()
-	cmd.SetOut(&out)
-	cmd.SetArgs([]string{"shipinhao", "imageText"})
 
-	if err := cmd.Execute(); err != nil {
-		t.Fatal(err)
-	}
+	for _, platform := range []string{"新浪微博", "小红书", "视频号", "知乎", "头条号"} {
+		t.Run(platform, func(t *testing.T) {
+			var out bytes.Buffer
+			cmd := newSchemaGetCmd()
+			cmd.SetOut(&out)
+			cmd.SetArgs([]string{platform, "imageText"})
 
-	var response map[string]interface{}
-	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
-		t.Fatal(err)
-	}
-	data := response["data"].(map[string]interface{})
-	template := data["minimalTemplate"].(map[string]interface{})
-	form := template["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
-	if form["coverKey"] == nil {
-		t.Fatalf("expected shipinhao imageText minimalTemplate to include coverKey, got %#v", form)
-	}
-	cover, ok := form["cover"].(map[string]interface{})
-	if !ok || cover["key"] == nil {
-		t.Fatalf("expected shipinhao imageText minimalTemplate to include cover object, got %#v", form)
+			if err := cmd.Execute(); err != nil {
+				t.Fatal(err)
+			}
+
+			var response map[string]interface{}
+			if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+				t.Fatal(err)
+			}
+			data := response["data"].(map[string]interface{})
+			template := data["minimalTemplate"].(map[string]interface{})
+			form := template["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+			if _, exists := form["cover"]; exists {
+				t.Fatalf("did not expect %s imageText minimalTemplate to include cover, got %#v", platform, form)
+			}
+			if _, exists := form["coverKey"]; exists {
+				t.Fatalf("did not expect %s imageText minimalTemplate to include coverKey, got %#v", platform, form)
+			}
+			if images, _ := form["images"].([]interface{}); len(images) != 1 {
+				t.Fatalf("expected %s imageText minimalTemplate to include images, got %#v", platform, form)
+			}
+		})
 	}
 }
 
