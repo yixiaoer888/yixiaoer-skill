@@ -18,13 +18,15 @@ import (
 )
 
 type ExecuteInput struct {
-	PublishType        string
-	PlatformInput      string
-	Payload            map[string]interface{}
-	PositionalClientID string
-	FlagChannel        string
-	FlagClientID       string
-	AutoFallbackLocal  bool
+	PublishType                 string
+	PlatformInput               string
+	PayloadPath                 string
+	Payload                     map[string]interface{}
+	PositionalClientID          string
+	FlagChannel                 string
+	FlagClientID                string
+	AutoFallbackLocal           bool
+	ContinueOnContentImageError bool
 }
 
 type Service struct {
@@ -194,6 +196,9 @@ func (s Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	}
 	cfg := s.rt.Config
 	apiClient := s.rt.Client
+	if events, err := materializeArticleContentImages(apiClient, prepared.PublishBody, input.ContinueOnContentImageError); err != nil {
+		return nil, contentImageMaterializationPromptError(input, prepared, events, err)
+	}
 	result, err := apiClient.Publish(prepared.PublishBody)
 	if err == nil {
 		return result, nil
@@ -214,7 +219,39 @@ func (s Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	prepared.Payload["publishChannel"] = localChannel
 	prepared.Payload["clientId"] = localClientID
 	body := BuildPublishBody(prepared.Payload, prepared.PublishArgs, prepared.PublishType, prepared.Platforms, localChannel, localClientID)
+	if events, err := materializeArticleContentImages(apiClient, body, input.ContinueOnContentImageError); err != nil {
+		return nil, contentImageMaterializationPromptError(input, prepared, events, err)
+	}
 	return apiClient.Publish(body)
+}
+
+func contentImageMaterializationPromptError(input ExecuteInput, prepared PreparedPublish, events []ArticleContentImageMaterialization, cause error) error {
+	nextCommand := continueContentImagePublishCommand(input, prepared)
+	return yxerrors.Remote("article content image materialization failed; confirmation is required before publishing", map[string]interface{}{
+		"events": events,
+		"cause":  cause.Error(),
+	}).WithCategory("article_content_image_materialization_confirmation").
+		WithHint("文章正文中的部分图片无法转存为稳定地址。CLI 已中止发布，避免把第三方可能不可访问的图片地址发出去；如确认可以保留原图地址继续发布，请重新执行 nextCommand。").
+		WithNextCommand(nextCommand).
+		WithRetryable(true)
+}
+
+func continueContentImagePublishCommand(input ExecuteInput, prepared PreparedPublish) string {
+	publishType := firstNonEmptyString(input.PublishType, prepared.PublishType, "<type>")
+	platform := firstNonEmptyString(input.PlatformInput, prepared.Platform, "<platform>")
+	payloadPath := firstNonEmptyString(input.PayloadPath, "<payload.json>")
+	parts := []string{"yxer", "publish", publishType, platform, payloadPath}
+	if input.FlagChannel != "" {
+		parts = append(parts, "--publish-channel", input.FlagChannel)
+	}
+	if input.FlagClientID != "" {
+		parts = append(parts, "--client-id", input.FlagClientID)
+	}
+	if input.AutoFallbackLocal {
+		parts = append(parts, "--auto-fallback-local")
+	}
+	parts = append(parts, "--continue-on-content-image-error")
+	return strings.Join(parts, " ")
 }
 
 func (s Service) ExecuteEnvelope(input ExecuteInput) (EnvelopeResult, error) {

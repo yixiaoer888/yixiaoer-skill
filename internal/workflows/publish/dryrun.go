@@ -9,22 +9,23 @@ import (
 )
 
 type DryRunResult struct {
-	Platform          string                          `json:"platform"`
-	PublishType       string                          `json:"publishType"`
-	PublishBody       map[string]interface{}          `json:"request"`
-	PublishArgs       map[string]interface{}          `json:"publishArgs,omitempty"`
-	PublishMode       string                          `json:"publishChannel"`
-	PublishModeSource string                          `json:"publishChannelSource"`
-	ClientID          string                          `json:"clientId,omitempty"`
-	ClientIDSource    string                          `json:"clientIdSource"`
-	RequestHash       string                          `json:"requestHash"`
-	AccountIDs        []string                        `json:"accountIds,omitempty"`
-	PlatformDraft     bool                            `json:"platformDraft"`
-	YixiaoerDraft     bool                            `json:"yixiaoerDraft"`
-	SchemaChecked     bool                            `json:"schemaChecked"`
-	RemoteChecks      bool                            `json:"remoteChecks"`
-	Normalizations    []publishmod.NormalizationEvent `json:"normalizations,omitempty"`
-	InferredFields    map[string]InferredField        `json:"inferredFields,omitempty"`
+	Platform          string                               `json:"platform"`
+	PublishType       string                               `json:"publishType"`
+	PublishBody       map[string]interface{}               `json:"request"`
+	PublishArgs       map[string]interface{}               `json:"publishArgs,omitempty"`
+	PublishMode       string                               `json:"publishChannel"`
+	PublishModeSource string                               `json:"publishChannelSource"`
+	ClientID          string                               `json:"clientId,omitempty"`
+	ClientIDSource    string                               `json:"clientIdSource"`
+	RequestHash       string                               `json:"requestHash"`
+	AccountIDs        []string                             `json:"accountIds,omitempty"`
+	PlatformDraft     bool                                 `json:"platformDraft"`
+	YixiaoerDraft     bool                                 `json:"yixiaoerDraft"`
+	SchemaChecked     bool                                 `json:"schemaChecked"`
+	RemoteChecks      bool                                 `json:"remoteChecks"`
+	Normalizations    []publishmod.NormalizationEvent      `json:"normalizations,omitempty"`
+	InferredFields    map[string]InferredField             `json:"inferredFields,omitempty"`
+	ContentImages     []ArticleContentImageMaterialization `json:"contentImageMaterialization,omitempty"`
 }
 
 func (s Service) DryRunEnvelope(input ExecuteInput) (EnvelopeResult, error) {
@@ -42,21 +43,22 @@ func (s Service) wrapDryRunEnvelope(result DryRunResult, err error) (EnvelopeRes
 			"dryRun":  true,
 			"request": result.PublishBody,
 			"meta": map[string]interface{}{
-				"platform":                result.Platform,
-				"publishType":             result.PublishType,
-				"publishChannel":          result.PublishMode,
-				"effectivePublishChannel": result.PublishMode,
-				"publishChannelSource":    result.PublishModeSource,
-				"clientId":                result.ClientID,
-				"clientIdSource":          result.ClientIDSource,
-				"requestHash":             result.RequestHash,
-				"accountIds":              result.AccountIDs,
-				"platformDraft":           result.PlatformDraft,
-				"yixiaoerDraft":           result.YixiaoerDraft,
-				"schemaChecked":           result.SchemaChecked,
-				"remoteChecks":            result.RemoteChecks,
-				"normalizations":          normalizationsForMeta(result.Normalizations),
-				"inferredFields":          inferredFieldsForMeta(result.InferredFields),
+				"platform":                    result.Platform,
+				"publishType":                 result.PublishType,
+				"publishChannel":              result.PublishMode,
+				"effectivePublishChannel":     result.PublishMode,
+				"publishChannelSource":        result.PublishModeSource,
+				"clientId":                    result.ClientID,
+				"clientIdSource":              result.ClientIDSource,
+				"requestHash":                 result.RequestHash,
+				"accountIds":                  result.AccountIDs,
+				"platformDraft":               result.PlatformDraft,
+				"yixiaoerDraft":               result.YixiaoerDraft,
+				"schemaChecked":               result.SchemaChecked,
+				"remoteChecks":                result.RemoteChecks,
+				"normalizations":              normalizationsForMeta(result.Normalizations),
+				"inferredFields":              inferredFieldsForMeta(result.InferredFields),
+				"contentImageMaterialization": contentImageMaterializationForMeta(result.ContentImages),
 			},
 		},
 	}, nil
@@ -74,6 +76,13 @@ func inferredFieldsForMeta(fields map[string]InferredField) map[string]InferredF
 		return map[string]InferredField{}
 	}
 	return fields
+}
+
+func contentImageMaterializationForMeta(events []ArticleContentImageMaterialization) []ArticleContentImageMaterialization {
+	if events == nil {
+		return []ArticleContentImageMaterialization{}
+	}
+	return events
 }
 
 func (s Service) DryRun(input ExecuteInput) (DryRunResult, error) {
@@ -99,6 +108,7 @@ func (s Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 		RemoteChecks:      prepared.RemoteChecked,
 		Normalizations:    prepared.Normalizations,
 		InferredFields:    prepared.InferredFields,
+		ContentImages:     previewArticleContentImageMaterialization(prepared.PublishBody),
 	}, nil
 }
 

@@ -127,6 +127,67 @@ func TestUploadURLImage(t *testing.T) {
 	}
 }
 
+func TestUploadURLImageFallsBackToStorageProxy(t *testing.T) {
+	imageBytes := testPNG(t, 4, 5)
+	var proxyCalls int
+	var uploadCalls int
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/source/blocked.png":
+			http.Error(w, "forbidden", http.StatusForbidden)
+		case "/storages/proxy-url":
+			proxyCalls++
+			if got := r.URL.Query().Get("url"); got != server.URL+"/source/blocked.png" {
+				t.Fatalf("unexpected proxy source url: %s", got)
+			}
+			w.Header().Set("Content-Type", "image/png")
+			_, _ = w.Write(imageBytes)
+		case "/storages/material-library/upload-url":
+			if got := r.URL.Query().Get("fileKey"); got != "blocked.png" {
+				t.Fatalf("unexpected fileKey: %s", got)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"serviceUrl": server.URL + "/oss/blocked.png",
+					"key":        "uploaded/blocked.png",
+				},
+			})
+		case "/oss/blocked.png":
+			uploadCalls++
+			if got := r.Header.Get("Content-Type"); got != "image/png" {
+				t.Fatalf("unexpected PUT content type: %s", got)
+			}
+			uploaded, err := readAll(r)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(uploaded, imageBytes) {
+				t.Fatal("uploaded body did not match proxy response")
+			}
+			w.WriteHeader(http.StatusOK)
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.Upload(server.URL+"/source/blocked.png", "material-library", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if proxyCalls != 1 || uploadCalls != 1 {
+		t.Fatalf("expected one proxy call and one upload call, got proxy=%d upload=%d", proxyCalls, uploadCalls)
+	}
+	if result.Key != "uploaded/blocked.png" || result.Bucket != "material-library" {
+		t.Fatalf("unexpected upload result: %+v", result)
+	}
+	if result.Width != 4 || result.Height != 5 {
+		t.Fatalf("unexpected dimensions: %dx%d", result.Width, result.Height)
+	}
+}
+
 func TestUploadLocalFileUsesASCIISafeObjectName(t *testing.T) {
 	imageBytes := testPNG(t, 3, 2)
 	tmpDir := t.TempDir()

@@ -13,10 +13,11 @@ func init() {
 }
 
 type publishOptions struct {
-	Channel           string
-	ClientID          string
-	DryRun            bool
-	AutoFallbackLocal bool
+	Channel                     string
+	ClientID                    string
+	DryRun                      bool
+	AutoFallbackLocal           bool
+	ContinueOnContentImageError bool
 }
 
 func newPublishCmd() *cobra.Command {
@@ -34,6 +35,7 @@ func newPublishCmd() *cobra.Command {
 	cmd.Flags().StringVar(&opts.ClientID, "client-id", "", "client ID for local publish")
 	cmd.Flags().BoolVar(&opts.DryRun, "dry-run", false, "preview the publish request without performing the write")
 	cmd.Flags().BoolVar(&opts.AutoFallbackLocal, "auto-fallback-local", false, "advanced: explicitly authorize retrying with local publish when cloud publish fails due to proxy availability")
+	cmd.Flags().BoolVar(&opts.ContinueOnContentImageError, "continue-on-content-image-error", false, "advanced: continue publishing article content even when some img src URLs cannot be materialized")
 	cmd.AddCommand(newPublishInitCmd())
 	cmd.AddCommand(newPublishFormCmd())
 	return cmd
@@ -68,13 +70,15 @@ func runPublish(cmd *cobra.Command, args []string, opts publishOptions) error {
 				positionalClientID = args[3]
 			}
 			input = publishflow.ExecuteInput{
-				PublishType:        args[0],
-				PlatformInput:      args[1],
-				Payload:            payload,
-				PositionalClientID: positionalClientID,
-				FlagChannel:        opts.Channel,
-				FlagClientID:       opts.ClientID,
-				AutoFallbackLocal:  opts.AutoFallbackLocal,
+				PublishType:                 args[0],
+				PlatformInput:               args[1],
+				PayloadPath:                 args[2],
+				Payload:                     payload,
+				PositionalClientID:          positionalClientID,
+				FlagChannel:                 opts.Channel,
+				FlagClientID:                opts.ClientID,
+				AutoFallbackLocal:           opts.AutoFallbackLocal,
+				ContinueOnContentImageError: opts.ContinueOnContentImageError,
 			}
 			service = publishflow.NewService(rt)
 			return nil
