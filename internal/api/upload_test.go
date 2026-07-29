@@ -209,6 +209,12 @@ func TestDetectContentTypeVideoFallbacks(t *testing.T) {
 	}
 }
 
+func TestUploadHTTPClientDoesNotUseFixedTotalTimeout(t *testing.T) {
+	if uploadHTTPClient.Timeout != 0 {
+		t.Fatalf("expected upload HTTP client to avoid a fixed total timeout, got %s", uploadHTTPClient.Timeout)
+	}
+}
+
 func TestInspectUploadLocalImage(t *testing.T) {
 	imageBytes := testPNG(t, 6, 4)
 	tmpDir := t.TempDir()

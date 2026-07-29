@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/media"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
@@ -20,7 +19,7 @@ import (
 
 const maxRemoteUploadDownloadSize int64 = 5 * 1024 * 1024 * 1024
 
-var uploadHTTPClient = &http.Client{Timeout: 30 * time.Second}
+var uploadHTTPClient = &http.Client{}
 
 type UploadResult struct {
 	Key         string  `json:"key"`
