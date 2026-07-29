@@ -321,8 +321,47 @@
         }
       }
     },
+    "film": {
+      "type": "object",
+      "required": [
+        "yixiaoerId",
+        "yixiaoerName",
+        "raw"
+      ],
+      "properties": {
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    },
     "cooperation_info": {
-      "type": "object"
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "co_type",
+          "user_list"
+        ],
+        "properties": {
+          "co_type": {
+            "type": "object"
+          },
+          "user_list": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
     },
     "game": {
       "type": "object",
@@ -662,8 +701,47 @@
                   }
                 }
               },
+              "film": {
+                "type": "object",
+                "required": [
+                  "yixiaoerId",
+                  "yixiaoerName",
+                  "raw"
+                ],
+                "properties": {
+                  "yixiaoerId": {
+                    "type": "string"
+                  },
+                  "yixiaoerName": {
+                    "type": "string"
+                  },
+                  "raw": {
+                    "type": "object"
+                  }
+                },
+                "additionalProperties": true
+              },
               "cooperation_info": {
-                "type": "object"
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "co_type",
+                    "user_list"
+                  ],
+                  "properties": {
+                    "co_type": {
+                      "type": "object"
+                    },
+                    "user_list": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "additionalProperties": true
+                }
               },
               "game": {
                 "type": "object",

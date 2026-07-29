@@ -26,7 +26,7 @@
       "enum": [
         0,
         1,
-        2
+        3
       ],
       "default": 0
     },
@@ -96,31 +96,6 @@
         }
       },
       "additionalProperties": true
-    },
-    "music": {
-      "type": "object",
-      "required": [
-        "yixiaoerId",
-        "yixiaoerName",
-        "raw"
-      ],
-      "properties": {
-        "yixiaoerId": {
-          "type": "string"
-        },
-        "yixiaoerName": {
-          "type": "string"
-        },
-        "duration": {
-          "type": "number"
-        },
-        "playUrl": {
-          "type": "string"
-        },
-        "raw": {
-          "type": "object"
-        }
-      }
     },
     "collection": {
       "type": "object",

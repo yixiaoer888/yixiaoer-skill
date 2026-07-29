@@ -183,6 +183,25 @@
       },
       "additionalProperties": true
     },
+    "shopping_cart": {
+      "type": "object",
+      "required": [
+        "yixiaoerId",
+        "yixiaoerName",
+        "raw"
+      ],
+      "properties": {
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
+      }
+    },
     "shoppingCart": {
       "type": "object",
       "required": [

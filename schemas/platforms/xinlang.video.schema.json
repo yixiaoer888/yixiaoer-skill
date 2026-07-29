@@ -5,7 +5,7 @@
     "formType",
     "title",
     "description",
-    "type",
+    "createType",
     "video"
   ],
   "properties": {
@@ -107,6 +107,28 @@
       },
       "additionalProperties": true
     },
+    "category": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "yixiaoerId",
+          "yixiaoerName"
+        ],
+        "properties": {
+          "yixiaoerId": {
+            "type": "string"
+          },
+          "yixiaoerName": {
+            "type": "string"
+          },
+          "raw": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
     "collection": {
       "type": "object",
       "required": [
@@ -137,6 +159,14 @@
         1
       ],
       "default": 1
+    },
+    "visibleType": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
     },
     "createType": {
       "type": "number",

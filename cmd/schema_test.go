@@ -498,7 +498,7 @@ func TestSchemaFieldsCommandPlacesArticleContentUnderPublishArgs(t *testing.T) {
 	}
 }
 
-func TestSchemaFieldsCommandUsesArticleDescFieldName(t *testing.T) {
+func TestSchemaFieldsCommandExposesDouyinArticleDescriptionAlias(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
@@ -517,17 +517,21 @@ func TestSchemaFieldsCommandUsesArticleDescFieldName(t *testing.T) {
 	data := response["data"].(map[string]interface{})
 	flatFields := data["flatFields"].([]interface{})
 	foundDesc := false
+	foundDescription := false
 	for _, entry := range flatFields {
 		item := entry.(map[string]interface{})
 		if item["path"] == "publishArgs.accountForms[].contentPublishForm.desc" {
 			foundDesc = true
 		}
 		if item["path"] == "publishArgs.accountForms[].contentPublishForm.description" {
-			t.Fatalf("did not expect article description field name, got %#v", item)
+			foundDescription = true
 		}
 	}
 	if !foundDesc {
-		t.Fatal("expected article desc field in contentPublishForm")
+		t.Fatal("expected legacy article desc field in contentPublishForm")
+	}
+	if !foundDescription {
+		t.Fatal("expected douyin article description field in contentPublishForm")
 	}
 }
 
