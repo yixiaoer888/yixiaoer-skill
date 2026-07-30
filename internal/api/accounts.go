@@ -26,7 +26,7 @@ func (c *Client) AccountsAll(platform string, size int) ([]map[string]interface{
 			return nil, err
 		}
 		all = append(all, accounts...)
-		if !shouldFetchNextAccountsPage(meta, len(accounts), size) {
+		if !shouldFetchNextAccountsPage(meta) {
 			return all, nil
 		}
 	}
