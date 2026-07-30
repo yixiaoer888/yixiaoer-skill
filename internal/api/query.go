@@ -61,6 +61,16 @@ func (c *Client) Goods(accountID, keyword, nextPage string) (interface{}, error)
 	}))
 }
 
+func (c *Client) GoodsDetail(accountID, productURL string) (interface{}, error) {
+	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/goods-detail", accountID), map[string]string{
+		"url": productURL,
+	}))
+}
+
+func (c *Client) Entitlements(accountID string) (interface{}, error) {
+	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/entitlements", accountID), nil))
+}
+
 func (c *Client) Collections(accountID, publishType string) (interface{}, error) {
 	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/collections", accountID), map[string]string{
 		"publishType": schemaTypeName(publishType),

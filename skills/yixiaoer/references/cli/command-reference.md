@@ -69,6 +69,8 @@ yxer query categories <account_id> [--type video|article]
 yxer query locations <account_id> [--query 关键词] [--type 0|1|2|3]
 yxer query music <account_id> [--query 关键词]
 yxer query goods <account_id> [--query 关键词]
+yxer query goods-detail <account_id> --url <product_url>
+yxer query entitlements <account_id>
 yxer query collections <account_id> [--type video|article]
 yxer query members [--page 1] [--size 10] [--status notJoined|pending|joined] [--query 关键词] [--role master|admin|member]
 yxer query challenges <account_id> [--query 关键词] [--type video]

@@ -90,6 +90,9 @@ func (s Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 	if err != nil {
 		return DryRunResult{}, err
 	}
+	if err := AssertShoppingCartEntitlements(s.rt.Client, prepared.Payload); err != nil {
+		return DryRunResult{}, err
+	}
 
 	return DryRunResult{
 		Platform:          prepared.Platform,
@@ -105,7 +108,7 @@ func (s Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 		PlatformDraft:     isPlatformDraftPublish(prepared.PublishBody),
 		YixiaoerDraft:     inferYixiaoerDraft(prepared.PublishBody),
 		SchemaChecked:     true,
-		RemoteChecks:      prepared.RemoteChecked,
+		RemoteChecks:      prepared.RemoteChecked || len(ShoppingCartAccountIDs(prepared.Payload)) > 0,
 		Normalizations:    prepared.Normalizations,
 		InferredFields:    prepared.InferredFields,
 		ContentImages:     previewArticleContentImageMaterialization(prepared.PublishBody),

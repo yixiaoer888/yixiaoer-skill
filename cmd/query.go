@@ -30,6 +30,8 @@ func newQueryCmd() *cobra.Command {
 	cmd.AddCommand(newMusicCmd())
 	cmd.AddCommand(newMusicCategoriesCmd())
 	cmd.AddCommand(newGoodsCmd())
+	cmd.AddCommand(newGoodsDetailCmd())
+	cmd.AddCommand(newEntitlementsCmd())
 	cmd.AddCommand(newCollectionsCmd())
 	cmd.AddCommand(newMiniAppsCmd())
 	cmd.AddCommand(newSyncAppsCmd())
@@ -133,6 +135,40 @@ func newGoodsCmd() *cobra.Command {
 	cmd.Flags().StringVar(&query, "query", "", "search keyword")
 	cmd.Flags().StringVar(&keyword, "keyword", "", "search keyword (alias for --query)")
 	cmd.Flags().StringVar(&nextPage, "next-page", "", "pagination token from previous response")
+	return cmd
+}
+
+func newGoodsDetailCmd() *cobra.Command {
+	var productURL string
+	cmd := &cobra.Command{
+		Use:   "goods-detail <account_id>",
+		Short: "Parse a product link into a shopping-cart product",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if strings.TrimSpace(productURL) == "" {
+				return yxerrors.Usage("goods detail url must not be empty", nil).
+					WithHint("Provide a product link with --url.")
+			}
+			return runQuery(cmd, "goods-detail", func(service queryflow.Service) (interface{}, error) {
+				return service.GoodsDetail(args[0], strings.TrimSpace(productURL))
+			})
+		},
+	}
+	cmd.Flags().StringVar(&productURL, "url", "", "product link to parse")
+	return cmd
+}
+
+func newEntitlementsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "entitlements <account_id>",
+		Short: "Query shopping-cart and group-shopping entitlements",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runQuery(cmd, "entitlements", func(service queryflow.Service) (interface{}, error) {
+				return service.Entitlements(args[0])
+			})
+		},
+	}
 	return cmd
 }
 

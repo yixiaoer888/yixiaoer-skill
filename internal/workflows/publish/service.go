@@ -202,6 +202,9 @@ func (s Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := AssertShoppingCartEntitlements(apiClient, prepared.Payload); err != nil {
+		return nil, err
+	}
 	cfg := s.rt.Config
 	if events, err := materializeArticleContentImages(apiClient, prepared.PublishBody, input.ContinueOnContentImageError); err != nil {
 		return nil, contentImageMaterializationPromptError(input, prepared, events, err)
