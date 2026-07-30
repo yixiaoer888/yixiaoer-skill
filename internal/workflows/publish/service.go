@@ -190,17 +190,25 @@ func topicHTMLPolicyForPlatforms(validator schema.Validator, platforms []string,
 }
 
 func (s Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
+	apiClient := s.rt.Client
+	coverCompressionEvents := []CoverCompressionEvent{}
+	if payload, events, err := materializeShipinhaoCoverCompression(apiClient, input); err != nil {
+		return nil, err
+	} else if len(events) > 0 {
+		input.Payload = payload
+		coverCompressionEvents = events
+	}
 	prepared, err := s.Prepare(input, PrepareOptions{RemoteChecks: RemoteChecksRequired})
 	if err != nil {
 		return nil, err
 	}
 	cfg := s.rt.Config
-	apiClient := s.rt.Client
 	if events, err := materializeArticleContentImages(apiClient, prepared.PublishBody, input.ContinueOnContentImageError); err != nil {
 		return nil, contentImageMaterializationPromptError(input, prepared, events, err)
 	}
 	result, err := apiClient.Publish(prepared.PublishBody)
 	if err == nil {
+		attachCoverCompressionEvents(result, coverCompressionEvents)
 		return result, nil
 	}
 	if mapped := mapInstagramMediaFetchError(prepared.Platform, prepared.PublishType, err); mapped != nil {
@@ -222,7 +230,20 @@ func (s Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	if events, err := materializeArticleContentImages(apiClient, body, input.ContinueOnContentImageError); err != nil {
 		return nil, contentImageMaterializationPromptError(input, prepared, events, err)
 	}
-	return apiClient.Publish(body)
+	result, err = apiClient.Publish(body)
+	if err == nil {
+		attachCoverCompressionEvents(result, coverCompressionEvents)
+	}
+	return result, err
+}
+
+func attachCoverCompressionEvents(result map[string]interface{}, events []CoverCompressionEvent) {
+	if len(events) == 0 || result == nil {
+		return
+	}
+	result["mediaProcessing"] = map[string]interface{}{
+		"coverCompression": events,
+	}
 }
 
 func contentImageMaterializationPromptError(input ExecuteInput, prepared PreparedPublish, events []ArticleContentImageMaterialization, cause error) error {

@@ -4,6 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"image"
+	"image/color"
+	"image/png"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -1724,6 +1728,135 @@ func TestPublishCommandMaterializesArticleContentImageURLs(t *testing.T) {
 	}
 }
 
+func TestPublishCommandAutoCompressesShipinhaoCoverBeforePublish(t *testing.T) {
+	withRepoRoot(t)
+	coverPath := filepath.Join(t.TempDir(), "cover.png")
+	if err := os.WriteFile(coverPath, noisyPNGBytes(t, 1400, 1000), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "video",
+		"platforms":      []interface{}{"视频号"},
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_shipinhao_1",
+					"cover": map[string]interface{}{
+						"key":    "cover-key",
+						"size":   float64(700 * 1024),
+						"width":  float64(1080),
+						"height": float64(1920),
+						"source": coverPath,
+					},
+					"coverKey": "cover-key",
+					"video": map[string]interface{}{
+						"key":      "video-key",
+						"size":     float64(1024),
+						"width":    float64(1080),
+						"height":   float64(1920),
+						"duration": float64(30),
+					},
+					"contentPublishForm": map[string]interface{}{
+						"formType":    "task",
+						"title":       "视频号标题",
+						"description": "视频号正文",
+						"createType":  float64(2),
+						"pubType":     float64(1),
+					},
+				},
+			},
+		},
+	})
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	var uploadBody []byte
+	var uploadContentType string
+	var requestedFileKey string
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			if got := r.URL.Query().Get("platform"); got != "视频号" {
+				t.Fatalf("unexpected platform query: %s", got)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{{"platformAccountId": "acc_shipinhao_1", "name": "视频号账号", "status": 1, "proxyId": "proxy_1"}},
+			})
+		case "/storages/cloud-publish/upload-url":
+			requestedFileKey = r.URL.Query().Get("fileKey")
+			if got := r.URL.Query().Get("contentType"); got != "image/jpeg" {
+				t.Fatalf("unexpected compressed content type query: %s", got)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"serviceUrl": server.URL + "/oss/cover.jpg",
+					"key":        "uploaded/cover.jpg",
+				},
+			})
+		case "/oss/cover.jpg":
+			uploadContentType = r.Header.Get("Content-Type")
+			var err error
+			uploadBody, err = io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_ = r.Body.Close()
+			w.WriteHeader(http.StatusOK)
+		case "/taskSets/v2":
+			publishCalls++
+			if err := json.NewDecoder(r.Body).Decode(&publishBody); err != nil {
+				t.Fatal(err)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{"taskSetId": "task_set_shipinhao_1"},
+			})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "视频号", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if requestedFileKey != "cover.jpg" {
+		t.Fatalf("expected compressed cover upload to use jpg key, got %q", requestedFileKey)
+	}
+	if uploadContentType != "image/jpeg" {
+		t.Fatalf("expected compressed upload content type image/jpeg, got %q", uploadContentType)
+	}
+	if len(uploadBody) > 512*1024 {
+		t.Fatalf("expected compressed upload body <= 512KB, got %d", len(uploadBody))
+	}
+	if publishCalls != 1 {
+		t.Fatalf("expected one publish call, got %d", publishCalls)
+	}
+	args := publishBody["publishArgs"].(map[string]interface{})
+	form := args["accountForms"].([]interface{})[0].(map[string]interface{})
+	cover := form["cover"].(map[string]interface{})
+	if cover["key"] != "uploaded/cover.jpg" {
+		t.Fatalf("expected published cover to use compressed upload key, got %+v", cover)
+	}
+	if cover["size"] != float64(len(uploadBody)) {
+		t.Fatalf("expected published cover size to match compressed upload body, got %+v", cover)
+	}
+	if _, exists := cover["source"]; exists {
+		t.Fatalf("did not expect source helper to reach publish body, got %+v", cover)
+	}
+	if form["coverKey"] != "uploaded/cover.jpg" {
+		t.Fatalf("expected coverKey to follow compressed upload key, got %+v", form["coverKey"])
+	}
+	if publishBody["coverKey"] != "uploaded/cover.jpg" {
+		t.Fatalf("expected top-level coverKey to follow compressed upload key, got %+v", publishBody["coverKey"])
+	}
+}
+
 func TestPublishCommandStopsWhenArticleContentImageMaterializationFails(t *testing.T) {
 	withRepoRoot(t)
 	sourcePath := "/external/blocked.png"
@@ -2313,6 +2446,28 @@ func testPNGBytes(t *testing.T) []byte {
 		0, 0, 0, 0, 73, 69, 78, 68,
 		174, 66, 96, 130,
 	}
+}
+
+func noisyPNGBytes(t *testing.T, width, height int) []byte {
+	t.Helper()
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	seed := uint32(1)
+	for x := 0; x < width; x++ {
+		for y := 0; y < height; y++ {
+			seed = seed*1664525 + 1013904223
+			r := uint8(seed >> 24)
+			seed = seed*1664525 + 1013904223
+			g := uint8(seed >> 24)
+			seed = seed*1664525 + 1013904223
+			b := uint8(seed >> 24)
+			img.Set(x, y, color.RGBA{R: r, G: g, B: b, A: 255})
+		}
+	}
+	var buffer bytes.Buffer
+	if err := png.Encode(&buffer, img); err != nil {
+		t.Fatal(err)
+	}
+	return buffer.Bytes()
 }
 
 func publishTestServer(t *testing.T, accountStatus int, publishCalls *int, publishBody *map[string]interface{}) *httptest.Server {

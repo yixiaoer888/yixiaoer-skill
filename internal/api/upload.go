@@ -22,15 +22,21 @@ const maxRemoteUploadDownloadSize int64 = 5 * 1024 * 1024 * 1024
 var uploadHTTPClient = &http.Client{}
 
 type UploadResult struct {
-	Key         string  `json:"key"`
-	URL         string  `json:"url,omitempty"`
-	ContentType string  `json:"contentType"`
-	Bucket      string  `json:"bucket"`
-	Size        int64   `json:"size,omitempty"`
-	Width       int     `json:"width,omitempty"`
-	Height      int     `json:"height,omitempty"`
-	Duration    float64 `json:"duration,omitempty"`
-	Format      string  `json:"format,omitempty"`
+	Key          string  `json:"key"`
+	URL          string  `json:"url,omitempty"`
+	ContentType  string  `json:"contentType"`
+	Bucket       string  `json:"bucket"`
+	Size         int64   `json:"size,omitempty"`
+	Width        int     `json:"width,omitempty"`
+	Height       int     `json:"height,omitempty"`
+	Duration     float64 `json:"duration,omitempty"`
+	Format       string  `json:"format,omitempty"`
+	Compressed   bool    `json:"compressed,omitempty"`
+	OriginalSize int64   `json:"originalSize,omitempty"`
+}
+
+type UploadOptions struct {
+	MaxImageBytes int64
 }
 
 func InspectUpload(pathOrURL string, autoMeta bool) (UploadResult, string, error) {
@@ -47,10 +53,18 @@ func InspectUpload(pathOrURL string, autoMeta bool) (UploadResult, string, error
 }
 
 func (c *Client) Upload(pathOrURL, bucket string, autoMeta bool) (UploadResult, error) {
+	return c.UploadWithOptions(pathOrURL, bucket, autoMeta, UploadOptions{})
+}
+
+func (c *Client) UploadWithOptions(pathOrURL, bucket string, autoMeta bool, opts UploadOptions) (UploadResult, error) {
 	if bucket == "" {
 		bucket = "cloud-publish"
 	}
 	result, fileName, buffer, err := c.inspectUpload(pathOrURL, autoMeta)
+	if err != nil {
+		return UploadResult{}, err
+	}
+	result, fileName, buffer, err = applyUploadOptions(result, fileName, buffer, opts)
 	if err != nil {
 		return UploadResult{}, err
 	}
@@ -94,6 +108,38 @@ func (c *Client) Upload(pathOrURL, bucket string, autoMeta bool) (UploadResult, 
 	result.Key = key
 	result.Bucket = bucket
 	return result, nil
+}
+
+func applyUploadOptions(result UploadResult, fileName string, buffer []byte, opts UploadOptions) (UploadResult, string, []byte, error) {
+	if opts.MaxImageBytes <= 0 || !strings.HasPrefix(result.ContentType, "image/") || result.Size <= opts.MaxImageBytes {
+		return result, fileName, buffer, nil
+	}
+	compressed, ok, err := media.CompressImageToMaxBytes(buffer, opts.MaxImageBytes)
+	if err != nil {
+		return UploadResult{}, "", nil, yxerrors.Usage("failed to compress image for upload", map[string]interface{}{
+			"fileName": fileName,
+			"limit":    opts.MaxImageBytes,
+			"cause":    err.Error(),
+		}).WithCategory("media_compress").
+			WithHint("请确认封面是可解码的图片文件，支持 jpg/png 等常见格式。")
+	}
+	if !ok {
+		return UploadResult{}, "", nil, yxerrors.Usage("image cannot be compressed below platform limit", map[string]interface{}{
+			"fileName":     fileName,
+			"limitBytes":   opts.MaxImageBytes,
+			"originalSize": result.Size,
+		}).WithCategory("media_compress").
+			WithHint("请改用尺寸更小或内容更简单的封面图后再上传。")
+	}
+	result.OriginalSize = result.Size
+	result.Size = int64(len(compressed.Data))
+	result.Width = compressed.Width
+	result.Height = compressed.Height
+	result.ContentType = compressed.ContentType
+	result.Format = compressed.Format
+	result.Compressed = true
+	fileName = strings.TrimSuffix(fileName, filepath.Ext(fileName)) + ".jpg"
+	return result, fileName, compressed.Data, nil
 }
 
 func (c *Client) inspectUpload(pathOrURL string, autoMeta bool) (UploadResult, string, []byte, error) {

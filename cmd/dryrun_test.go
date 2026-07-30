@@ -39,6 +39,27 @@ func TestUploadDryRunPreviewUsesExplicitFileFlag(t *testing.T) {
 	}
 }
 
+func TestUploadDryRunShowsShipinhaoCoverCompressionLimit(t *testing.T) {
+	var out bytes.Buffer
+	cmd := newUploadCmd()
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"--file", "C:\\tmp\\cover.png", "--platform", "视频号", "--usage", "cover", "--dry-run"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	processing := data["mediaProcessing"].(map[string]interface{})
+	if processing["maxImageBytes"] != float64(512*1024) {
+		t.Fatalf("expected shipinhao cover compression limit, got %#v", processing)
+	}
+}
+
 func TestUploadFlagDefaultEnablesAutoMeta(t *testing.T) {
 	cmd := newUploadCmd()
 	if cmd.Flag("auto-meta").DefValue != "true" {

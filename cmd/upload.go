@@ -4,8 +4,10 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/yixiaoer/yixiaoer-skill/internal/api"
 	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/cmdflow"
+	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
 	uploadflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/upload"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
@@ -20,6 +22,8 @@ type uploadOptions struct {
 	URL      string
 	DryRun   bool
 	AutoMeta bool
+	Platform string
+	Usage    string
 }
 
 func newUploadCmd() *cobra.Command {
@@ -41,6 +45,8 @@ func newUploadCmd() *cobra.Command {
 	cmd.Flags().StringVar(&opts.URL, "url", "", "remote URL to upload")
 	cmd.Flags().BoolVar(&opts.DryRun, "dry-run", false, "preview upload request without performing the write")
 	cmd.Flags().BoolVar(&opts.AutoMeta, "auto-meta", true, "extract media metadata automatically for uploaded assets")
+	cmd.Flags().StringVar(&opts.Platform, "platform", "", "target platform for platform-specific media handling")
+	cmd.Flags().StringVar(&opts.Usage, "usage", "", "resource usage, for example cover or image")
 	return cmd
 }
 
@@ -61,12 +67,10 @@ func runUpload(cmd *cobra.Command, args []string, opts uploadOptions) error {
 			if err != nil {
 				return cmdflow.Result{}, err
 			}
+			uploadOpts := uploadOptionsForPlatform(opts)
 			return cmdflow.Result{
 				Action: "upload.dry-run",
-				Data: map[string]interface{}{
-					"dryRun":  true,
-					"request": result,
-				},
+				Data:   uploadDryRunData(result, uploadOpts),
 			}, nil
 		},
 		Execute: func() (cmdflow.Result, error) {
@@ -74,13 +78,37 @@ func runUpload(cmd *cobra.Command, args []string, opts uploadOptions) error {
 			if err != nil {
 				return cmdflow.Result{}, err
 			}
-			result, err := uploadflow.NewService(rt).Upload(source, opts.Bucket, opts.AutoMeta)
+			result, err := uploadflow.NewService(rt).UploadWithOptions(source, opts.Bucket, opts.AutoMeta, uploadOptionsForPlatform(opts))
 			if err != nil {
 				return cmdflow.Result{}, err
 			}
 			return cmdflow.Result{Action: "upload", Data: result}, nil
 		},
 	})
+}
+
+func uploadDryRunData(result uploadflow.DryRunResult, opts api.UploadOptions) map[string]interface{} {
+	data := map[string]interface{}{
+		"dryRun":  true,
+		"request": result,
+	}
+	if opts.MaxImageBytes > 0 {
+		data["mediaProcessing"] = map[string]interface{}{
+			"maxImageBytes": opts.MaxImageBytes,
+		}
+	}
+	return data
+}
+
+func uploadOptionsForPlatform(opts uploadOptions) api.UploadOptions {
+	usage := strings.ToLower(strings.TrimSpace(opts.Usage))
+	switch platformutil.CanonicalKey(opts.Platform) {
+	case "shipinhao":
+		if usage == "cover" || usage == "image" || usage == "images" {
+			return api.UploadOptions{MaxImageBytes: 512 * 1024}
+		}
+	}
+	return api.UploadOptions{}
 }
 
 func resolveUploadSource(args []string, opts uploadOptions) (string, error) {

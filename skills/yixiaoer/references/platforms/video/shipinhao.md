@@ -24,6 +24,9 @@
 > [!TIP]
 > 示例优先使用“标准请求体”格式：共享资源放在 `publishArgs` 根级，账号差异字段放在 `accountForms[]`。CLI 会在校验阶段自动补齐缺失资源字段。
 
+> [!IMPORTANT]
+> 视频号封面大小不能超过 512KB。上传封面时必须执行 `yxer upload <封面路径或URL> --platform 视频号 --usage cover`；如果原图超限，CLI 会内部压缩后上传，并在返回 JSON 中给出压缩后的 `size`。payload 中使用该上传结果的完整 `cover` 对象和匹配的 `coverKey`。
+
 ## 1. contentPublishForm 参数定义
 
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
