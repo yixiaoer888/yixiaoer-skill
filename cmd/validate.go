@@ -123,6 +123,9 @@ func runValidate(cmd *cobra.Command, args []string, opts validateOptions) error 
 				return err
 			}
 		}
+		if err := publishflow.AssertShoppingCartEntitlements(rt.Client, payload); err != nil {
+			return err
+		}
 	}
 	return output.Success(cmd.OutOrStdout(), "validate", map[string]interface{}{
 		"platform": platform,

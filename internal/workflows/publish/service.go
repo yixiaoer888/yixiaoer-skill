@@ -111,6 +111,9 @@ func (s Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	if err := AssertCloudChannelReady(channel, platforms, accountsByID); err != nil {
 		return nil, err
 	}
+	if err := AssertShoppingCartEntitlements(apiClient, resolvedPayload); err != nil {
+		return nil, err
+	}
 
 	body := BuildPublishBody(resolvedPayload, publishArgs, input.PublishType, platforms, channel, clientID)
 	if err := validateInstagramMediaKeys(platform, input.PublishType, body); err != nil {

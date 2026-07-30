@@ -9,15 +9,15 @@ import (
 )
 
 type PrepareData struct {
-	Platform        string                   `json:"platform"`
-	Type            string                   `json:"type"`
-	Categories      interface{}              `json:"categories"`
-	DefaultFormType string                   `json:"defaultFormType"`
-	Workflow        string                   `json:"workflow"`
-	DocsIndex       string                   `json:"docsIndex"`
-	PlatformDoc     string                   `json:"platformDoc"`
-	Schema          string                   `json:"schema"`
-	RootSchema      string                   `json:"rootSchema"`
+	Platform        string      `json:"platform"`
+	Type            string      `json:"type"`
+	Categories      interface{} `json:"categories"`
+	DefaultFormType string      `json:"defaultFormType"`
+	Workflow        string      `json:"workflow"`
+	DocsIndex       string      `json:"docsIndex"`
+	PlatformDoc     string      `json:"platformDoc"`
+	Schema          string      `json:"schema"`
+	RootSchema      string      `json:"rootSchema"`
 }
 
 func (c *Client) Categories(accountID, publishType string) (interface{}, error) {
@@ -52,6 +52,16 @@ func (c *Client) Goods(accountID, keyword, nextPage string) (interface{}, error)
 		"keyWord":  keyword,
 		"nextPage": nextPage,
 	}))
+}
+
+func (c *Client) GoodsDetail(accountID, productURL string) (interface{}, error) {
+	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/goods-detail", accountID), map[string]string{
+		"url": productURL,
+	}))
+}
+
+func (c *Client) Entitlements(accountID string) (interface{}, error) {
+	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/entitlements", accountID), nil))
 }
 
 func (c *Client) Collections(accountID, publishType string) (interface{}, error) {

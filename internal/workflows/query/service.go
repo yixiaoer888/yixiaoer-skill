@@ -33,6 +33,14 @@ func (s Service) Goods(accountID, keyword, nextPage string) (interface{}, error)
 	return s.rt.Client.Goods(accountID, keyword, nextPage)
 }
 
+func (s Service) GoodsDetail(accountID, productURL string) (interface{}, error) {
+	return s.rt.Client.GoodsDetail(accountID, productURL)
+}
+
+func (s Service) Entitlements(accountID string) (interface{}, error) {
+	return s.rt.Client.Entitlements(accountID)
+}
+
 func (s Service) Collections(accountID, publishType string) (interface{}, error) {
 	return s.rt.Client.Collections(accountID, publishType)
 }

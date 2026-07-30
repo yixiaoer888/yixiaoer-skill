@@ -114,6 +114,9 @@ func (s Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 		return DryRunResult{}, yxerrors.Usage("Publish preflight failed", preflight.Errors).
 			WithHint("请先完成资源上传、账号校验，并确保发布参数中不包含外部 URL。")
 	}
+	if err := AssertShoppingCartEntitlements(s.rt.Client, resolvedPayload); err != nil {
+		return DryRunResult{}, err
+	}
 
 	body, inferredFields := BuildPublishBodyWithInferred(resolvedPayload, publishArgs, input.PublishType, platforms, channel, clientID)
 	if err := validateInstagramMediaKeys(platform, input.PublishType, body); err != nil {
@@ -131,7 +134,7 @@ func (s Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 		PlatformDraft:  isPlatformDraftPublish(body),
 		YixiaoerDraft:  inferYixiaoerDraft(body),
 		SchemaChecked:  true,
-		RemoteChecks:   false,
+		RemoteChecks:   len(ShoppingCartAccountIDs(resolvedPayload)) > 0,
 		Normalizations: normalizations,
 		InferredFields: inferredFields,
 	}, nil
