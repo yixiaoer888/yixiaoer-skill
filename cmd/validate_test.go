@@ -2,13 +2,33 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/config"
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
+
+func TestReadPayloadMissingFileReturnsStructuredFileError(t *testing.T) {
+	_, err := readPayload(filepath.Join(t.TempDir(), "yxer-missing-payload.json"))
+	if err == nil {
+		t.Fatal("expected missing payload error")
+	}
+	var typed *yxerrors.Error
+	if !errors.As(err, &typed) {
+		t.Fatalf("expected structured yxerrors.Error, got %T: %v", err, err)
+	}
+	if typed.Category != "file_not_found" {
+		t.Fatalf("expected file_not_found category, got %+v", typed)
+	}
+	if typed.Hint == "" {
+		t.Fatalf("expected repair hint, got %+v", typed)
+	}
+}
 
 func TestValidateCommandUsesConfiguredLocalClientID(t *testing.T) {
 	withRepoRoot(t)
@@ -26,11 +46,21 @@ func TestValidateCommandUsesConfiguredLocalClientID(t *testing.T) {
 	})
 
 	cmd := newValidateCmd()
-	cmd.SetOut(&bytes.Buffer{})
+	var out bytes.Buffer
+	cmd.SetOut(&out)
 	cmd.SetErr(&bytes.Buffer{})
 	cmd.SetArgs([]string{"抖音", "video", payloadPath})
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
+	}
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	nextStep := data["nextStep"].(string)
+	if !strings.Contains(nextStep, "--publish-channel local") || !strings.Contains(nextStep, "--client-id configured_client_1") {
+		t.Fatalf("expected local publish nextStep, got %q", nextStep)
 	}
 }
 

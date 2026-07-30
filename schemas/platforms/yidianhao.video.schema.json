@@ -54,17 +54,10 @@
         }
       }
     },
-    "type": {
-      "type": "number",
-      "enum": [
-        0,
-        1
-      ],
-      "default": 1
-    },
     "declaration": {
       "type": "number",
       "enum": [
+        0,
         3,
         4,
         5
@@ -144,6 +137,14 @@
       "enum": [
         0,
         1
+      ],
+      "default": 1
+    },
+    "createType": {
+      "type": "number",
+      "enum": [
+        1,
+        2
       ],
       "default": 1
     }

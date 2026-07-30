@@ -142,6 +142,28 @@ func TestSchemaReturnsValidShipinhaoVideoSchema(t *testing.T) {
 	if _, ok := schemaDoc.Properties["pubType"]; !ok {
 		t.Fatalf("expected shipinhao video schema to expose pubType, got %+v", schemaDoc.Properties)
 	}
+	declaration, ok := schemaDoc.Properties["declaration"]
+	if !ok {
+		t.Fatalf("expected shipinhao video schema to expose declaration, got %+v", schemaDoc.Properties)
+	}
+	if declaration.Default != float64(0) {
+		t.Fatalf("expected declaration default 0, got %#v", declaration.Default)
+	}
+}
+
+func TestValidateAcceptsShipinhaoVideoAiDeclaration(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	payload := map[string]interface{}{
+		"formType":    "task",
+		"createType":  float64(2),
+		"declaration": float64(1),
+		"pubType":     float64(1),
+	}
+
+	result := validator.Validate("视频号", "video", payload)
+	if !result.Valid {
+		t.Fatalf("expected shipinhao video AI declaration payload to pass, got %v", result.Errors)
+	}
 }
 
 func TestSchemaResolvesShipinhaoImageTextWithoutLegacyAlias(t *testing.T) {
@@ -335,6 +357,37 @@ func TestValidateAcceptsDouyinFrontendLocationAndGroupShoppingShape(t *testing.T
 	}
 }
 
+func TestValidateAcceptsDouyinVideoDescriptionOverThirtyCharacters(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	payload := map[string]interface{}{
+		"formType":    "task",
+		"title":       "视频标题",
+		"description": strings.Repeat("字", 31),
+	}
+
+	result := validator.Validate("抖音", "video", payload)
+	if !result.Valid {
+		t.Fatalf("expected douyin video description over 30 characters to pass, got %v", result.Errors)
+	}
+}
+
+func TestValidateRejectsDouyinVideoDescriptionOverOneThousandCharacters(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	payload := map[string]interface{}{
+		"formType":    "task",
+		"title":       "视频标题",
+		"description": strings.Repeat("字", 1001),
+	}
+
+	result := validator.Validate("抖音", "video", payload)
+	if result.Valid {
+		t.Fatal("expected douyin video description over 1000 characters to fail")
+	}
+	if !containsError(result.Errors, "description: must NOT have more than 1000 characters") {
+		t.Fatalf("expected description maxLength error, got %v", result.Errors)
+	}
+}
+
 func TestValidateAcceptsFrontendPlatformDataLocationShape(t *testing.T) {
 	validator := NewValidator(filepath.Join("..", "..", "schemas"))
 	payload := map[string]interface{}{
@@ -499,18 +552,40 @@ func TestValidateAcceptsWeixinAccountArticlePlatformForms(t *testing.T) {
 	}
 }
 
-func TestValidateAcceptsXhsImageTextMusicAndScheduledFields(t *testing.T) {
+func TestValidateAcceptsXhsImageTextScheduledFields(t *testing.T) {
 	validator := NewValidator(filepath.Join("..", "..", "schemas"))
 	payload := map[string]interface{}{
 		"formType":      "task",
 		"description":   "<p>小红书图文内容</p>",
 		"visibleType":   float64(0),
+		"createType":    float64(1),
 		"scheduledTime": float64(1760000000000),
+		"images": []interface{}{
+			map[string]interface{}{
+				"key":    "image-key",
+				"size":   float64(100),
+				"width":  float64(10),
+				"height": float64(10),
+				"format": "jpg",
+			},
+		},
+	}
+
+	result := validator.Validate("小红书", "imageText", payload)
+	if !result.Valid {
+		t.Fatalf("expected xiaohongshu imageText scheduled payload to pass, got %v", result.Errors)
+	}
+}
+
+func TestValidateRejectsXhsImageTextMusicField(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	payload := map[string]interface{}{
+		"formType":    "task",
+		"description": "<p>小红书图文内容</p>",
+		"visibleType": float64(0),
 		"music": map[string]interface{}{
 			"yixiaoerId":   "music_1",
 			"yixiaoerName": "背景音乐",
-			"duration":     float64(30),
-			"playUrl":      "https://example.invalid/music.mp3",
 			"raw":          map[string]interface{}{"id": "music_1"},
 		},
 		"images": []interface{}{
@@ -525,8 +600,29 @@ func TestValidateAcceptsXhsImageTextMusicAndScheduledFields(t *testing.T) {
 	}
 
 	result := validator.Validate("小红书", "imageText", payload)
-	if !result.Valid {
-		t.Fatalf("expected xiaohongshu imageText music/scheduled payload to pass, got %v", result.Errors)
+	if result.Valid {
+		t.Fatal("expected xiaohongshu imageText music field to be rejected")
+	}
+	if !containsError(result.Errors, `unexpected field "music"`) {
+		t.Fatalf("expected music additionalProperties error, got %v", result.Errors)
+	}
+}
+
+func TestSchemaExposesXhsImageTextCreateType(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	schemaDoc, err := validator.Schema("小红书", "imageText")
+	if err != nil {
+		t.Fatal(err)
+	}
+	createType, ok := schemaDoc.Properties["createType"]
+	if !ok {
+		t.Fatalf("expected xiaohongshu imageText schema to expose createType, got %+v", schemaDoc.Properties)
+	}
+	if createType.Default != float64(0) {
+		t.Fatalf("expected createType default 0, got %#v", createType.Default)
+	}
+	if len(createType.Enum) != 2 || createType.Enum[0] != float64(0) || createType.Enum[1] != float64(1) {
+		t.Fatalf("expected createType enum [0 1], got %#v", createType.Enum)
 	}
 }
 
@@ -614,6 +710,158 @@ func TestValidateAcceptsToutiaohaoArticleExtendedFields(t *testing.T) {
 	result := validator.Validate("头条号", "article", payload)
 	if !result.Valid {
 		t.Fatalf("expected toutiaohao article extended fields payload to pass, got %v", result.Errors)
+	}
+}
+
+func TestValidateAcceptsWebPushedVideoPlatformFields(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	resource := func(key string) map[string]interface{} {
+		return map[string]interface{}{
+			"key":      key,
+			"size":     float64(100),
+			"width":    float64(10),
+			"height":   float64(10),
+			"duration": float64(10),
+		}
+	}
+	queryItem := func(id string) map[string]interface{} {
+		return map[string]interface{}{
+			"yixiaoerId":   id,
+			"yixiaoerName": id,
+			"raw":          map[string]interface{}{"id": id},
+		}
+	}
+
+	cases := []struct {
+		name     string
+		platform string
+		payload  map[string]interface{}
+	}{
+		{
+			name:     "douyin film and cooperation_info",
+			platform: "抖音",
+			payload: map[string]interface{}{
+				"formType":    "task",
+				"title":       "抖音视频",
+				"description": "视频描述",
+				"film":        queryItem("film_1"),
+				"cooperation_info": []interface{}{
+					map[string]interface{}{
+						"co_type": queryItem("co_type_1"),
+						"user_list": []interface{}{
+							queryItem("friend_1"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:     "kuaishou author service and pk cover",
+			platform: "快手",
+			payload: map[string]interface{}{
+				"formType":            "task",
+				"description":         "快手视频描述",
+				"author_service_type": "shopping_cart",
+				"pk_cover":            resource("pk-cover-key"),
+			},
+		},
+		{
+			name:     "shipinhao shopping_cart",
+			platform: "视频号",
+			payload: map[string]interface{}{
+				"formType":      "task",
+				"createType":    float64(2),
+				"pubType":       float64(1),
+				"shopping_cart": queryItem("goods_1"),
+			},
+		},
+		{
+			name:     "baijiahao statement without legacy title tags",
+			platform: "百家号",
+			payload: map[string]interface{}{
+				"formType":    "task",
+				"description": "百家号视频描述",
+				"pubType":     float64(1),
+				"statement": map[string]interface{}{
+					"type":    float64(1),
+					"subType": float64(2),
+				},
+			},
+		},
+		{
+			name:     "xinlang category and visibleType",
+			platform: "新浪微博",
+			payload: map[string]interface{}{
+				"formType":    "task",
+				"title":       "微博视频",
+				"description": "微博视频描述",
+				"video":       resource("video-key"),
+				"createType":  float64(1),
+				"visibleType": float64(0),
+				"category": []interface{}{
+					queryItem("category_1"),
+				},
+			},
+		},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			result := validator.Validate(tt.platform, "video", tt.payload)
+			if !result.Valid {
+				t.Fatalf("expected %s web-pushed video payload to pass, got %v", tt.platform, result.Errors)
+			}
+		})
+	}
+}
+
+func TestValidateAcceptsWebPushedArticlePlatformFields(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	cover := map[string]interface{}{
+		"key":    "cover-key",
+		"size":   float64(100),
+		"width":  float64(10),
+		"height": float64(10),
+	}
+
+	cases := []struct {
+		name     string
+		platform string
+		payload  map[string]interface{}
+	}{
+		{
+			name:     "douyin description field",
+			platform: "抖音",
+			payload: map[string]interface{}{
+				"formType":    "task",
+				"title":       "抖音文章",
+				"content":     "<p>正文</p>",
+				"covers":      []interface{}{cover},
+				"visibleType": float64(0),
+				"description": "摘要",
+			},
+		},
+		{
+			name:     "baijiahao coverType field",
+			platform: "百家号",
+			payload: map[string]interface{}{
+				"formType":  "task",
+				"title":     "百家号文章",
+				"content":   "<p>正文</p>",
+				"pubType":   float64(1),
+				"coverType": "single",
+				"covers":    []interface{}{cover},
+			},
+		},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			result := validator.Validate(tt.platform, "article", tt.payload)
+			if !result.Valid {
+				t.Fatalf("expected %s web-pushed article payload to pass, got %v", tt.platform, result.Errors)
+			}
+		})
 	}
 }
 

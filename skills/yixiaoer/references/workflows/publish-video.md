@@ -28,7 +28,7 @@ yxer schema get <platform> video
 2. 获取前置数据：`yxer prepare <platform> video`
 3. 先获取字段视图：`yxer schema fields <platform> video`；需要 payload 骨架时再执行 `yxer schema get <platform> video`
 4. 上传视频：`yxer upload <视频路径或URL>`
-5. 上传封面：`yxer upload <封面路径或URL>`
+5. 上传封面：`yxer upload <封面路径或URL>`；视频号封面必须使用 `yxer upload <封面路径或URL> --platform 视频号 --usage cover`，超 512KB 时由 CLI 内部压缩
 6. 按需查询分类、位置、音乐、合集、话题、商品
 7. 根据前置数据、schema 和字段来源纪律填写 `payload.json`
 8. 查阅对应平台文档：`../platforms/video/`

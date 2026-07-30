@@ -5,7 +5,7 @@
     "formType",
     "title",
     "description",
-    "type",
+    "createType",
     "video"
   ],
   "properties": {
@@ -22,15 +22,6 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 2000
-    },
-    "type": {
-      "type": "number",
-      "enum": [
-        1,
-        2,
-        3
-      ],
-      "default": 1
     },
     "video": {
       "type": "object",
@@ -116,6 +107,28 @@
       },
       "additionalProperties": true
     },
+    "category": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "yixiaoerId",
+          "yixiaoerName"
+        ],
+        "properties": {
+          "yixiaoerId": {
+            "type": "string"
+          },
+          "yixiaoerName": {
+            "type": "string"
+          },
+          "raw": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
     "collection": {
       "type": "object",
       "required": [
@@ -144,6 +157,23 @@
       "enum": [
         0,
         1
+      ],
+      "default": 1
+    },
+    "visibleType": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "createType": {
+      "type": "number",
+      "enum": [
+        1,
+        2,
+        3
       ],
       "default": 1
     }

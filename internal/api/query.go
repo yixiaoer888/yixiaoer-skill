@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 
 	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
 )
@@ -11,6 +12,7 @@ import (
 type PrepareData struct {
 	Platform        string                   `json:"platform"`
 	Type            string                   `json:"type"`
+	Accounts        []map[string]interface{} `json:"accounts,omitempty"`
 	Categories      interface{}              `json:"categories"`
 	DefaultFormType string                   `json:"defaultFormType"`
 	Workflow        string                   `json:"workflow"`
@@ -18,12 +20,17 @@ type PrepareData struct {
 	PlatformDoc     string                   `json:"platformDoc"`
 	Schema          string                   `json:"schema"`
 	RootSchema      string                   `json:"rootSchema"`
+	Form            interface{}              `json:"form,omitempty"`
 }
 
 func (c *Client) Categories(accountID, publishType string) (interface{}, error) {
-	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/categories", accountID), map[string]string{
+	result, err := c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/categories", accountID), map[string]string{
 		"publishType": schemaTypeName(publishType),
 	}))
+	if err != nil {
+		return nil, err
+	}
+	return normalizeCategoryTree(result), nil
 }
 
 func (c *Client) Locations(accountID, keyword, locationType, nextPage string) (interface{}, error) {
@@ -108,8 +115,16 @@ func (c *Client) Members(opts MembersOptions) (interface{}, error) {
 	return c.queryData(QueryValues("/members", values))
 }
 
-func (c *Client) AccountGroups() (interface{}, error) {
-	return c.queryData(Query("/groups", nil))
+type AccountGroupOptions struct {
+	Page int
+	Size int
+}
+
+func (c *Client) AccountGroups(opts AccountGroupOptions) (interface{}, error) {
+	values := url.Values{}
+	setIfPositive(values, "page", opts.Page)
+	setIfPositive(values, "size", opts.Size)
+	return c.queryData(QueryValues("/groups", values))
 }
 
 func (c *Client) CreateAccountGroup(body map[string]interface{}) (interface{}, error) {
@@ -264,6 +279,7 @@ func (c *Client) Prepare(platform, publishType string) (PrepareData, error) {
 	return PrepareData{
 		Platform:        platform,
 		Type:            publishType,
+		Accounts:        onlineAccounts,
 		Categories:      categories,
 		DefaultFormType: "task",
 		Workflow:        fmt.Sprintf("workflows/publish-%s.md", publishType),
@@ -302,6 +318,107 @@ func (c *Client) queryData(endpoint string) (interface{}, error) {
 		return DataOrSelf(typed), nil
 	}
 	return result, nil
+}
+
+func normalizeCategoryTree(value interface{}) interface{} {
+	switch typed := value.(type) {
+	case map[string]interface{}:
+		if rawList, ok := typed["dataList"].([]interface{}); ok {
+			tree := buildCategoryTreeFromParentIDs(rawList)
+			if tree != nil {
+				out := cloneInterfaceMap(typed)
+				out["dataList"] = tree
+				return out
+			}
+		}
+	case []interface{}:
+		if tree := buildCategoryTreeFromParentIDs(typed); tree != nil {
+			return tree
+		}
+	}
+	return value
+}
+
+func buildCategoryTreeFromParentIDs(items []interface{}) []interface{} {
+	if len(items) == 0 {
+		return nil
+	}
+	childrenByParent := map[string][]map[string]interface{}{}
+	roots := []map[string]interface{}{}
+	hasParentID := false
+	for _, item := range items {
+		obj, ok := item.(map[string]interface{})
+		if !ok {
+			return nil
+		}
+		id := stringField(obj, "yixiaoerId")
+		if id == "" {
+			return nil
+		}
+		parentID, hasParent := categoryParentID(obj)
+		if hasParent {
+			hasParentID = true
+		}
+		cloned := cloneInterfaceMap(obj)
+		delete(cloned, "child")
+		delete(cloned, "children")
+		if parentID == "" {
+			roots = append(roots, cloned)
+			continue
+		}
+		childrenByParent[parentID] = append(childrenByParent[parentID], cloned)
+	}
+	if !hasParentID {
+		return nil
+	}
+	var attachChildren func(map[string]interface{})
+	attachChildren = func(item map[string]interface{}) {
+		id := stringField(item, "yixiaoerId")
+		children := childrenByParent[id]
+		if len(children) == 0 {
+			return
+		}
+		out := make([]interface{}, 0, len(children))
+		for _, child := range children {
+			attachChildren(child)
+			out = append(out, child)
+		}
+		item["child"] = out
+	}
+	out := make([]interface{}, 0, len(roots))
+	for _, root := range roots {
+		attachChildren(root)
+		out = append(out, root)
+	}
+	return out
+}
+
+func categoryParentID(item map[string]interface{}) (string, bool) {
+	raw, ok := item["raw"].(map[string]interface{})
+	if !ok {
+		return "", false
+	}
+	parent, ok := raw["parentId"]
+	if !ok || parent == nil {
+		return "", ok
+	}
+	return strings.TrimSpace(fmt.Sprint(parent)), true
+}
+
+func stringField(item map[string]interface{}, key string) string {
+	value, ok := item[key]
+	if !ok || value == nil {
+		return ""
+	}
+	return strings.TrimSpace(fmt.Sprint(value))
+}
+
+func cloneInterfaceMap(input map[string]interface{}) map[string]interface{} {
+	out := make(map[string]interface{}, len(input))
+	for key, value := range input {
+		out[key] = value
+	}
+	return out
 }
 
 func filterOnlineAccounts(accounts []map[string]interface{}) []map[string]interface{} {

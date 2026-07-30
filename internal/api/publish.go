@@ -22,8 +22,8 @@ func (c *Client) Publish(body map[string]interface{}) (map[string]interface{}, e
 	if taskSetID == "" {
 		return nil, yxerrors.Remote("publish succeeded over HTTP but the response did not contain a taskSetId", map[string]interface{}{
 			"response": result,
-		}).WithHint("发布请求已发出但未拿到 taskSetId，请用 yxer records list 确认任务集是否真正创建，再决定是否重试。").
-			WithNextCommand("yxer records list")
+		}).WithHint("发布请求已发出但未拿到 taskSetId，请用 yxer query records 确认任务集是否真正创建，再决定是否重试。").
+			WithNextCommand("yxer query records --limit 10 --json")
 	}
 	out := map[string]interface{}{"taskSetId": taskSetID}
 	if data, ok := result["data"]; ok {

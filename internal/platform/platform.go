@@ -5,11 +5,13 @@ import "strings"
 var canonicalChineseNames = map[string]string{
 	"douyin":          "抖音",
 	"kuaishou":        "快手",
+	"kuaishou-open":   "快手-Open",
 	"xhs":             "小红书",
 	"xiaohongshushop": "小红书商家号",
 	"shipinhao":       "视频号",
 	"weixin.account":  "微信公众号",
 	"bilibili":        "哔哩哔哩",
+	"bilibili-open":   "哔哩哔哩-Open",
 	"baijiahao":       "百家号",
 	"toutiaohao":      "头条号",
 	"zhihu":           "知乎",
@@ -47,6 +49,11 @@ var aliasesToCanonicalKeys = map[string]string{
 	"抖音":              "douyin",
 	"kuaishou":        "kuaishou",
 	"快手":              "kuaishou",
+	"kuaishou-open":   "kuaishou-open",
+	"kuaishouopen":    "kuaishou-open",
+	"KuaiShou-Open":   "kuaishou-open",
+	"快手-Open":         "kuaishou-open",
+	"快手-open":         "kuaishou-open",
 	"xhs":             "xhs",
 	"xiaohongshu":     "xhs",
 	"小红书":             "xhs",
@@ -60,6 +67,11 @@ var aliasesToCanonicalKeys = map[string]string{
 	"微信公众号":           "weixin.account",
 	"bilibili":        "bilibili",
 	"哔哩哔哩":            "bilibili",
+	"bilibili-open":   "bilibili-open",
+	"bilibiliopen":    "bilibili-open",
+	"BiLiBiLi-Open":   "bilibili-open",
+	"哔哩哔哩-Open":       "bilibili-open",
+	"哔哩哔哩-open":       "bilibili-open",
 	"baijiahao":       "baijiahao",
 	"百家号":             "baijiahao",
 	"toutiaohao":      "toutiaohao",
@@ -126,12 +138,14 @@ var aliasesToCanonicalKeys = map[string]string{
 var chineseNames = map[string]string{
 	"douyin":          "抖音",
 	"kuaishou":        "快手",
+	"kuaishou-open":   "快手-Open",
 	"xhs":             "小红书",
 	"xiaohongshu":     "小红书",
 	"xiaohongshushop": "小红书商家号",
 	"shipinhao":       "视频号",
 	"weixin.account":  "微信公众号",
 	"bilibili":        "哔哩哔哩",
+	"bilibili-open":   "哔哩哔哩-Open",
 	"baijiahao":       "百家号",
 	"toutiaohao":      "头条号",
 	"zhihu":           "知乎",
@@ -217,4 +231,16 @@ func IsKnown(value string) bool {
 		return true
 	}
 	return chineseNameSet[trimmed]
+}
+
+// ImageTextUsesFirstImageAsCover reports platforms whose image-text forms do
+// not expose an external cover field. The publish flow derives cover/coverKey
+// from images[0] for internal compatibility.
+func ImageTextUsesFirstImageAsCover(value string) bool {
+	switch CanonicalKey(value) {
+	case "xinlang", "xhs", "shipinhao", "zhihu", "toutiaohao":
+		return true
+	default:
+		return false
+	}
 }

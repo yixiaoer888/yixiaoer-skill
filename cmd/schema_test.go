@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -139,31 +140,80 @@ func TestSchemaGetCommandExplainsDuplicatedCoverPlacementForImageText(t *testing
 	}
 }
 
-func TestSchemaGetCommandShipinhaoImageTextTemplateIncludesAccountCover(t *testing.T) {
+func TestSchemaGetCommandPlacesHorizontalCoverInContentPublishForm(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)
-	var out bytes.Buffer
-	cmd := newSchemaGetCmd()
-	cmd.SetOut(&out)
-	cmd.SetArgs([]string{"shipinhao", "imageText"})
 
-	if err := cmd.Execute(); err != nil {
-		t.Fatal(err)
-	}
+	for _, platform := range []string{"抖音", "视频号", "大鱼号"} {
+		t.Run(platform, func(t *testing.T) {
+			var out bytes.Buffer
+			cmd := newSchemaGetCmd()
+			cmd.SetOut(&out)
+			cmd.SetArgs([]string{platform, "video"})
 
-	var response map[string]interface{}
-	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
-		t.Fatal(err)
+			if err := cmd.Execute(); err != nil {
+				t.Fatal(err)
+			}
+
+			var response map[string]interface{}
+			if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+				t.Fatal(err)
+			}
+			data := response["data"].(map[string]interface{})
+			fieldPlacements := data["fieldPlacements"].(map[string]interface{})
+			horizontalPlacement := fieldPlacements["horizontalCover"].(map[string]interface{})
+			horizontalPaths := horizontalPlacement["inputPaths"].([]interface{})
+			if len(horizontalPaths) != 2 ||
+				horizontalPaths[0] != "publishArgs.horizontalCover" ||
+				horizontalPaths[1] != "publishArgs.accountForms[].contentPublishForm.horizontalCover" {
+				t.Fatalf("expected horizontalCover placement with shared and contentPublishForm paths, got %#v", horizontalPlacement)
+			}
+
+			template := data["minimalTemplate"].(map[string]interface{})
+			form := template["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+			if _, exists := form["horizontalCover"]; exists {
+				t.Fatalf("did not expect horizontalCover at account form level in minimalTemplate, got %#v", form)
+			}
+			cpf := form["contentPublishForm"].(map[string]interface{})
+			if _, exists := cpf["horizontalCover"]; exists {
+				t.Fatalf("did not expect optional horizontalCover in minimalTemplate, got %#v", cpf)
+			}
+		})
 	}
-	data := response["data"].(map[string]interface{})
-	template := data["minimalTemplate"].(map[string]interface{})
-	form := template["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
-	if form["coverKey"] == nil {
-		t.Fatalf("expected shipinhao imageText minimalTemplate to include coverKey, got %#v", form)
-	}
-	cover, ok := form["cover"].(map[string]interface{})
-	if !ok || cover["key"] == nil {
-		t.Fatalf("expected shipinhao imageText minimalTemplate to include cover object, got %#v", form)
+}
+
+func TestSchemaGetCommandImageTextFirstImageCoverPlatformsOmitExternalCover(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+
+	for _, platform := range []string{"新浪微博", "小红书", "视频号", "知乎", "头条号"} {
+		t.Run(platform, func(t *testing.T) {
+			var out bytes.Buffer
+			cmd := newSchemaGetCmd()
+			cmd.SetOut(&out)
+			cmd.SetArgs([]string{platform, "imageText"})
+
+			if err := cmd.Execute(); err != nil {
+				t.Fatal(err)
+			}
+
+			var response map[string]interface{}
+			if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+				t.Fatal(err)
+			}
+			data := response["data"].(map[string]interface{})
+			template := data["minimalTemplate"].(map[string]interface{})
+			form := template["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+			if _, exists := form["cover"]; exists {
+				t.Fatalf("did not expect %s imageText minimalTemplate to include cover, got %#v", platform, form)
+			}
+			if _, exists := form["coverKey"]; exists {
+				t.Fatalf("did not expect %s imageText minimalTemplate to include coverKey, got %#v", platform, form)
+			}
+			if images, _ := form["images"].([]interface{}); len(images) != 1 {
+				t.Fatalf("expected %s imageText minimalTemplate to include images, got %#v", platform, form)
+			}
+		})
 	}
 }
 
@@ -222,7 +272,50 @@ func TestSchemaCatalogCommandOutputsRootSchemasAndPlatforms(t *testing.T) {
 	}
 }
 
-func TestSchemaFieldsCommandOutputsFieldView(t *testing.T) {
+func TestSchemaFieldsCommandOutputsHorizontalCoverFieldView(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	for _, platform := range []string{"抖音", "视频号", "大鱼号"} {
+		t.Run(platform, func(t *testing.T) {
+			var out bytes.Buffer
+			cmd := newSchemaFieldsCmd()
+			cmd.SetOut(&out)
+			cmd.SetArgs([]string{platform, "video"})
+
+			if err := cmd.Execute(); err != nil {
+				t.Fatal(err)
+			}
+
+			var response map[string]interface{}
+			if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+				t.Fatal(err)
+			}
+			data := response["data"].(map[string]interface{})
+			if data["recommendedResponse"] != "required + optional（按需查看 complex）" {
+				t.Fatalf("expected grouped recommended response, got %#v", data["recommendedResponse"])
+			}
+			flatFields := data["flatFields"].([]interface{})
+			foundHorizontalCover := false
+			for _, entry := range flatFields {
+				item := entry.(map[string]interface{})
+				if item["path"] == "publishArgs.accountForms[].contentPublishForm.horizontalCover" {
+					foundHorizontalCover = true
+					if item["required"] == true {
+						t.Fatalf("expected horizontalCover to be optional contentPublishForm field, got %#v", item)
+					}
+				}
+				if item["path"] == "publishArgs.accountForms[].horizontalCover" {
+					t.Fatalf("did not expect account-level horizontalCover field, got %#v", item)
+				}
+			}
+			if !foundHorizontalCover {
+				t.Fatal("expected contentPublishForm.horizontalCover in flatFields")
+			}
+		})
+	}
+}
+
+func TestSchemaFieldsCommandExposesDouyinVideoDescriptionLimit(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
@@ -239,49 +332,35 @@ func TestSchemaFieldsCommandOutputsFieldView(t *testing.T) {
 		t.Fatal(err)
 	}
 	data := response["data"].(map[string]interface{})
-	if data["key"] != "douyin/video" {
-		t.Fatalf("unexpected schema key: %#v", data["key"])
-	}
-	if data["recommendedResponse"] != "required + optional（按需查看 complex）" {
-		t.Fatalf("expected grouped recommended response, got %#v", data["recommendedResponse"])
-	}
-	flatFields := data["flatFields"].([]interface{})
-	if len(flatFields) == 0 {
-		t.Fatal("expected compact flatFields view")
-	}
-	first := flatFields[0].(map[string]interface{})
-	if first["path"] != "action" || first["required"] != true {
-		t.Fatalf("expected required root field first in flatFields, got %#v", first)
-	}
-	foundTitle := false
-	foundVideo := false
-	for _, entry := range flatFields {
-		item := entry.(map[string]interface{})
-		if item["path"] == "publishArgs.accountForms[].contentPublishForm.title" {
-			foundTitle = true
-			if item["type"] != "string" || item["required"] != true {
-				t.Fatalf("expected title in flatFields to be required string, got %#v", item)
-			}
-		}
-		if item["path"] == "publishArgs.accountForms[].video" {
-			foundVideo = true
-			if item["required"] != true {
-				t.Fatalf("expected account-level video to be required, got %#v", item)
-			}
-		}
-	}
-	if !foundTitle {
-		t.Fatal("expected contentPublishForm.title in flatFields")
-	}
-	if !foundVideo {
-		t.Fatal("expected account-level video in flatFields")
-	}
 	fields := data["fields"].(map[string]interface{})
 	publishArgs := fields["publishArgs"].(map[string]interface{})
 	accountForms := publishArgs["properties"].(map[string]interface{})["accountForms"].(map[string]interface{})
-	title := accountForms["items"].(map[string]interface{})["properties"].(map[string]interface{})["contentPublishForm"].(map[string]interface{})["properties"].(map[string]interface{})["title"].(map[string]interface{})
-	if title["required"] != true {
-		t.Fatalf("expected title to be required, got %#v", title)
+	contentPublishForm := accountForms["items"].(map[string]interface{})["properties"].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	description := contentPublishForm["properties"].(map[string]interface{})["description"].(map[string]interface{})
+	if description["required"] != true || description["maxLength"] != float64(1000) {
+		t.Fatalf("expected douyin video description to be required with maxLength=1000, got %#v", description)
+	}
+	if _, ok := contentPublishForm["properties"].(map[string]interface{})["accountForms"]; ok {
+		t.Fatalf("did not expect nested accountForms inside contentPublishForm: %#v", contentPublishForm)
+	}
+
+	for _, item := range data["flatFields"].([]interface{}) {
+		field := item.(map[string]interface{})
+		path, _ := field["path"].(string)
+		if strings.Contains(path, ".contentPublishForm.accountForms") {
+			t.Fatalf("did not expect recursive accountForms path in flatFields: %s", path)
+		}
+	}
+
+	notes := data["platformNotes"].([]interface{})
+	foundLimitNote := false
+	for _, note := range notes {
+		if note == "标题最大长度为30字符，描述最大长度为1000字符" {
+			foundLimitNote = true
+		}
+	}
+	if !foundLimitNote {
+		t.Fatalf("expected douyin video platformNotes to mention frontend title/description limits, got %#v", notes)
 	}
 }
 
@@ -426,7 +505,7 @@ func TestSchemaFieldsCommandPlacesArticleContentUnderPublishArgs(t *testing.T) {
 	}
 }
 
-func TestSchemaFieldsCommandUsesArticleDescFieldName(t *testing.T) {
+func TestSchemaFieldsCommandExposesDouyinArticleDescriptionAlias(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)
 	var out bytes.Buffer
@@ -445,17 +524,21 @@ func TestSchemaFieldsCommandUsesArticleDescFieldName(t *testing.T) {
 	data := response["data"].(map[string]interface{})
 	flatFields := data["flatFields"].([]interface{})
 	foundDesc := false
+	foundDescription := false
 	for _, entry := range flatFields {
 		item := entry.(map[string]interface{})
 		if item["path"] == "publishArgs.accountForms[].contentPublishForm.desc" {
 			foundDesc = true
 		}
 		if item["path"] == "publishArgs.accountForms[].contentPublishForm.description" {
-			t.Fatalf("did not expect article description field name, got %#v", item)
+			foundDescription = true
 		}
 	}
 	if !foundDesc {
-		t.Fatal("expected article desc field in contentPublishForm")
+		t.Fatal("expected legacy article desc field in contentPublishForm")
+	}
+	if !foundDescription {
+		t.Fatal("expected douyin article description field in contentPublishForm")
 	}
 }
 

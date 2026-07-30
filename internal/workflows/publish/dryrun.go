@@ -1,25 +1,31 @@
 package publish
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+
 	publishmod "github.com/yixiaoer/yixiaoer-skill/internal/modules/publish"
-	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
-	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
 type DryRunResult struct {
-	Platform       string                          `json:"platform"`
-	PublishType    string                          `json:"publishType"`
-	PublishBody    map[string]interface{}          `json:"request"`
-	PublishArgs    map[string]interface{}          `json:"publishArgs,omitempty"`
-	PublishMode    string                          `json:"publishChannel"`
-	ClientID       string                          `json:"clientId,omitempty"`
-	AccountIDs     []string                        `json:"accountIds,omitempty"`
-	PlatformDraft  bool                            `json:"platformDraft"`
-	YixiaoerDraft  bool                            `json:"yixiaoerDraft"`
-	SchemaChecked  bool                            `json:"schemaChecked"`
-	RemoteChecks   bool                            `json:"remoteChecks"`
-	Normalizations []publishmod.NormalizationEvent `json:"normalizations,omitempty"`
-	InferredFields map[string]InferredField        `json:"inferredFields,omitempty"`
+	Platform          string                               `json:"platform"`
+	PublishType       string                               `json:"publishType"`
+	PublishBody       map[string]interface{}               `json:"request"`
+	PublishArgs       map[string]interface{}               `json:"publishArgs,omitempty"`
+	PublishMode       string                               `json:"publishChannel"`
+	PublishModeSource string                               `json:"publishChannelSource"`
+	ClientID          string                               `json:"clientId,omitempty"`
+	ClientIDSource    string                               `json:"clientIdSource"`
+	RequestHash       string                               `json:"requestHash"`
+	AccountIDs        []string                             `json:"accountIds,omitempty"`
+	PlatformDraft     bool                                 `json:"platformDraft"`
+	YixiaoerDraft     bool                                 `json:"yixiaoerDraft"`
+	SchemaChecked     bool                                 `json:"schemaChecked"`
+	RemoteChecks      bool                                 `json:"remoteChecks"`
+	Normalizations    []publishmod.NormalizationEvent      `json:"normalizations,omitempty"`
+	InferredFields    map[string]InferredField             `json:"inferredFields,omitempty"`
+	ContentImages     []ArticleContentImageMaterialization `json:"contentImageMaterialization,omitempty"`
 }
 
 func (s Service) DryRunEnvelope(input ExecuteInput) (EnvelopeResult, error) {
@@ -37,17 +43,22 @@ func (s Service) wrapDryRunEnvelope(result DryRunResult, err error) (EnvelopeRes
 			"dryRun":  true,
 			"request": result.PublishBody,
 			"meta": map[string]interface{}{
-				"platform":       result.Platform,
-				"publishType":    result.PublishType,
-				"publishChannel": result.PublishMode,
-				"clientId":       result.ClientID,
-				"accountIds":     result.AccountIDs,
-				"platformDraft":  result.PlatformDraft,
-				"yixiaoerDraft":  result.YixiaoerDraft,
-				"schemaChecked":  result.SchemaChecked,
-				"remoteChecks":   result.RemoteChecks,
-				"normalizations": normalizationsForMeta(result.Normalizations),
-				"inferredFields": inferredFieldsForMeta(result.InferredFields),
+				"platform":                    result.Platform,
+				"publishType":                 result.PublishType,
+				"publishChannel":              result.PublishMode,
+				"effectivePublishChannel":     result.PublishMode,
+				"publishChannelSource":        result.PublishModeSource,
+				"clientId":                    result.ClientID,
+				"clientIdSource":              result.ClientIDSource,
+				"requestHash":                 result.RequestHash,
+				"accountIds":                  result.AccountIDs,
+				"platformDraft":               result.PlatformDraft,
+				"yixiaoerDraft":               result.YixiaoerDraft,
+				"schemaChecked":               result.SchemaChecked,
+				"remoteChecks":                result.RemoteChecks,
+				"normalizations":              normalizationsForMeta(result.Normalizations),
+				"inferredFields":              inferredFieldsForMeta(result.InferredFields),
+				"contentImageMaterialization": contentImageMaterializationForMeta(result.ContentImages),
 			},
 		},
 	}, nil
@@ -67,74 +78,47 @@ func inferredFieldsForMeta(fields map[string]InferredField) map[string]InferredF
 	return fields
 }
 
+func contentImageMaterializationForMeta(events []ArticleContentImageMaterialization) []ArticleContentImageMaterialization {
+	if events == nil {
+		return []ArticleContentImageMaterialization{}
+	}
+	return events
+}
+
 func (s Service) DryRun(input ExecuteInput) (DryRunResult, error) {
-	input.PublishType = publishmod.NormalizePublishType(input.PublishType)
-	platform, err := SinglePlatform(input.PlatformInput)
+	prepared, err := s.Prepare(input, PrepareOptions{TraceNormalizations: true, RemoteChecks: RemoteChecksCloudWithKey})
 	if err != nil {
-		return DryRunResult{}, err
-	}
-	platforms := []string{platform}
-
-	cfg := s.rt.Config
-	resolvedPayload := cloneMap(input.Payload)
-	channel, clientID, err := ResolvePublishMode(cfg, resolvedPayload, input.PositionalClientID, input.FlagChannel, input.FlagClientID)
-	if err != nil {
-		return DryRunResult{}, err
-	}
-	resolvedPayload["publishChannel"] = channel
-	if clientID != "" {
-		resolvedPayload["clientId"] = clientID
-	} else {
-		delete(resolvedPayload, "clientId")
-	}
-	if err := publishmod.RequireStandardPayload(resolvedPayload); err != nil {
-		return DryRunResult{}, err
-	}
-	if err := publishmod.ResolveStandardPayloadResourceMetadata(resolvedPayload); err != nil {
-		return DryRunResult{}, err
-	}
-	validator := schema.NewValidator(cfg.SchemaDir)
-	topicPolicy := topicHTMLPolicyForPlatforms(validator, platforms, input.PublishType)
-	var normalizations []publishmod.NormalizationEvent
-	publishArgs := publishmod.NormalizeStandardPayloadForSchemaValidationWithTrace(input.PublishType, platforms, resolvedPayload, &normalizations)
-
-	for _, platform := range platforms {
-		result, err := validator.ValidateStrict(platform, input.PublishType, resolvedPayload)
-		if err != nil {
-			return DryRunResult{}, schemaUnavailableError(platform, input.PublishType, cfg.SchemaDir, err)
-		}
-		if !result.Valid {
-			return DryRunResult{}, yxerrors.Usage("Schema validation failed", result.Errors).
-				WithHint(schemaValidationHint(result.Errors)).
-				WithNextCommand("yxer schema fields <platform> <type>")
-		}
-	}
-	preflight := publishmod.PreflightWithTopicHTMLPolicyAndTrace(input.PublishType, platforms, payloadWithPublishMode(resolvedPayload, channel, clientID), topicPolicy, &normalizations)
-	if len(preflight.Errors) > 0 {
-		return DryRunResult{}, yxerrors.Usage("Publish preflight failed", preflight.Errors).
-			WithHint("请先完成资源上传、账号校验，并确保发布参数中不包含外部 URL。")
-	}
-
-	body, inferredFields := BuildPublishBodyWithInferred(resolvedPayload, publishArgs, input.PublishType, platforms, channel, clientID)
-	if err := validateInstagramMediaKeys(platform, input.PublishType, body); err != nil {
 		return DryRunResult{}, err
 	}
 
 	return DryRunResult{
-		Platform:       platform,
-		PublishType:    input.PublishType,
-		PublishBody:    body,
-		PublishArgs:    publishArgs,
-		PublishMode:    channel,
-		ClientID:       clientID,
-		AccountIDs:     preflight.AccountIDs,
-		PlatformDraft:  isPlatformDraftPublish(body),
-		YixiaoerDraft:  inferYixiaoerDraft(body),
-		SchemaChecked:  true,
-		RemoteChecks:   false,
-		Normalizations: normalizations,
-		InferredFields: inferredFields,
+		Platform:          prepared.Platform,
+		PublishType:       prepared.PublishType,
+		PublishBody:       prepared.PublishBody,
+		PublishArgs:       prepared.PublishArgs,
+		PublishMode:       prepared.PublishMode,
+		PublishModeSource: prepared.PublishModeSource,
+		ClientID:          prepared.ClientID,
+		ClientIDSource:    prepared.ClientIDSource,
+		RequestHash:       requestHash(prepared.PublishBody),
+		AccountIDs:        prepared.Preflight.AccountIDs,
+		PlatformDraft:     isPlatformDraftPublish(prepared.PublishBody),
+		YixiaoerDraft:     inferYixiaoerDraft(prepared.PublishBody),
+		SchemaChecked:     true,
+		RemoteChecks:      prepared.RemoteChecked,
+		Normalizations:    prepared.Normalizations,
+		InferredFields:    prepared.InferredFields,
+		ContentImages:     previewArticleContentImageMaterialization(prepared.PublishBody),
 	}, nil
+}
+
+func requestHash(body map[string]interface{}) string {
+	raw, err := json.Marshal(body)
+	if err != nil {
+		return ""
+	}
+	sum := sha256.Sum256(raw)
+	return hex.EncodeToString(sum[:])
 }
 
 func isPlatformDraftPublish(body map[string]interface{}) bool {

@@ -18,17 +18,49 @@ import (
 )
 
 type ExecuteInput struct {
-	PublishType        string
-	PlatformInput      string
-	Payload            map[string]interface{}
-	PositionalClientID string
-	FlagChannel        string
-	FlagClientID       string
-	AutoFallbackLocal  bool
+	PublishType                 string
+	PlatformInput               string
+	PayloadPath                 string
+	Payload                     map[string]interface{}
+	PositionalClientID          string
+	FlagChannel                 string
+	FlagClientID                string
+	AutoFallbackLocal           bool
+	ContinueOnContentImageError bool
 }
 
 type Service struct {
 	rt *app.Runtime
+}
+
+type RemoteCheckMode string
+
+const (
+	RemoteChecksNone         RemoteCheckMode = "none"
+	RemoteChecksRequired     RemoteCheckMode = "required"
+	RemoteChecksCloudWithKey RemoteCheckMode = "cloud_with_api_key"
+)
+
+type PrepareOptions struct {
+	TraceNormalizations bool
+	RemoteChecks        RemoteCheckMode
+}
+
+type PreparedPublish struct {
+	Platform          string
+	Platforms         []string
+	PublishType       string
+	Payload           map[string]interface{}
+	PublishArgs       map[string]interface{}
+	PublishMode       string
+	PublishModeSource string
+	ClientID          string
+	ClientIDSource    string
+	Preflight         publishmod.PreflightResult
+	Normalizations    []publishmod.NormalizationEvent
+	PublishBody       map[string]interface{}
+	InferredFields    map[string]InferredField
+	RemoteChecked     bool
 }
 
 type InferredField struct {
@@ -38,6 +70,106 @@ type InferredField struct {
 
 func NewService(rt *app.Runtime) Service {
 	return Service{rt: rt}
+}
+
+func (s Service) Prepare(input ExecuteInput, opts PrepareOptions) (PreparedPublish, error) {
+	input.PublishType = publishmod.NormalizePublishType(input.PublishType)
+	platform, err := SinglePlatform(input.PlatformInput)
+	if err != nil {
+		return PreparedPublish{}, err
+	}
+	platforms := []string{platform}
+	cfg := s.rt.Config
+	resolvedPayload := cloneMap(input.Payload)
+	mode, err := ResolvePublishModeDetailed(cfg, resolvedPayload, input.PositionalClientID, input.FlagChannel, input.FlagClientID)
+	if err != nil {
+		return PreparedPublish{}, err
+	}
+	channel, clientID := mode.Channel, mode.ClientID
+	resolvedPayload["publishChannel"] = channel
+	if clientID != "" {
+		resolvedPayload["clientId"] = clientID
+	} else {
+		delete(resolvedPayload, "clientId")
+	}
+	if err := publishmod.RequireStandardPayload(resolvedPayload); err != nil {
+		return PreparedPublish{}, err
+	}
+	if err := publishmod.ResolveStandardPayloadResourceMetadata(resolvedPayload); err != nil {
+		return PreparedPublish{}, err
+	}
+	validator := schema.NewValidator(cfg.SchemaDir)
+	topicPolicy := topicHTMLPolicyForPlatforms(validator, platforms, input.PublishType)
+	var normalizations []publishmod.NormalizationEvent
+	publishArgs := publishmod.NormalizeStandardPayloadForSchemaValidationWithTrace(input.PublishType, platforms, resolvedPayload, &normalizations)
+
+	for _, platform := range platforms {
+		result, err := validator.ValidateStrict(platform, input.PublishType, resolvedPayload)
+		if err != nil {
+			return PreparedPublish{}, schemaUnavailableError(platform, input.PublishType, cfg.SchemaDir, err)
+		}
+		if !result.Valid {
+			return PreparedPublish{}, yxerrors.Usage("Schema validation failed", result.Errors).
+				WithHint(schemaValidationHint(result.Errors)).
+				WithNextCommand(fmt.Sprintf("yxer validate %s %s <payload.json>", platform, input.PublishType))
+		}
+	}
+	preflight := publishmod.PreflightWithTopicHTMLPolicyAndTrace(input.PublishType, platforms, payloadWithPublishMode(resolvedPayload, channel, clientID), topicPolicy, &normalizations)
+	if len(preflight.Errors) > 0 {
+		return PreparedPublish{}, yxerrors.Usage("Publish preflight failed", preflight.Errors).
+			WithHint("请先完成资源上传、账号校验，并确保发布参数中不包含外部 URL。")
+	}
+
+	remoteChecked := false
+	if shouldPrepareRemoteCheck(opts.RemoteChecks, channel, cfg, preflight.AccountIDs) {
+		accountsByID, err := ResolveTargetAccounts(s.rt.Client, platforms, preflight.AccountIDs)
+		if err != nil {
+			return PreparedPublish{}, err
+		}
+		if err := AssertCloudChannelReady(channel, platforms, accountsByID); err != nil {
+			return PreparedPublish{}, err
+		}
+		remoteChecked = true
+	}
+
+	body, inferredFields := BuildPublishBodyWithInferred(resolvedPayload, publishArgs, input.PublishType, platforms, channel, clientID)
+	if err := validateInstagramMediaKeys(platform, input.PublishType, body); err != nil {
+		return PreparedPublish{}, err
+	}
+
+	if !opts.TraceNormalizations {
+		normalizations = nil
+	}
+	return PreparedPublish{
+		Platform:          platform,
+		Platforms:         platforms,
+		PublishType:       input.PublishType,
+		Payload:           resolvedPayload,
+		PublishArgs:       publishArgs,
+		PublishMode:       channel,
+		PublishModeSource: mode.ChannelSource,
+		ClientID:          clientID,
+		ClientIDSource:    mode.ClientIDSource,
+		Preflight:         preflight,
+		Normalizations:    normalizations,
+		PublishBody:       body,
+		InferredFields:    inferredFields,
+		RemoteChecked:     remoteChecked,
+	}, nil
+}
+
+func shouldPrepareRemoteCheck(mode RemoteCheckMode, channel string, cfg config.Config, accountIDs []string) bool {
+	if len(accountIDs) == 0 {
+		return false
+	}
+	switch mode {
+	case RemoteChecksRequired:
+		return true
+	case RemoteChecksCloudWithKey:
+		return channel == "cloud" && cfg.APIKey != ""
+	default:
+		return false
+	}
 }
 
 func topicHTMLPolicyForPlatforms(validator schema.Validator, platforms []string, publishType string) publishmod.TopicHTMLPolicy {
@@ -58,85 +190,89 @@ func topicHTMLPolicyForPlatforms(validator schema.Validator, platforms []string,
 }
 
 func (s Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
-	input.PublishType = publishmod.NormalizePublishType(input.PublishType)
-	platform, err := SinglePlatform(input.PlatformInput)
-	if err != nil {
-		return nil, err
-	}
-	platforms := []string{platform}
-	cfg := s.rt.Config
-	resolvedPayload := cloneMap(input.Payload)
-	channel, clientID, err := ResolvePublishMode(cfg, resolvedPayload, input.PositionalClientID, input.FlagChannel, input.FlagClientID)
-	if err != nil {
-		return nil, err
-	}
-	resolvedPayload["publishChannel"] = channel
-	if clientID != "" {
-		resolvedPayload["clientId"] = clientID
-	} else {
-		delete(resolvedPayload, "clientId")
-	}
-	if err := publishmod.RequireStandardPayload(resolvedPayload); err != nil {
-		return nil, err
-	}
-	if err := publishmod.ResolveStandardPayloadResourceMetadata(resolvedPayload); err != nil {
-		return nil, err
-	}
-	validator := schema.NewValidator(cfg.SchemaDir)
-	topicPolicy := topicHTMLPolicyForPlatforms(validator, platforms, input.PublishType)
-	publishArgs := publishmod.NormalizeStandardPayloadForSchemaValidation(input.PublishType, platforms, resolvedPayload)
-
-	for _, platform := range platforms {
-		result, err := validator.ValidateStrict(platform, input.PublishType, resolvedPayload)
-		if err != nil {
-			return nil, schemaUnavailableError(platform, input.PublishType, cfg.SchemaDir, err)
-		}
-		if !result.Valid {
-			return nil, yxerrors.Usage("Schema validation failed", result.Errors).
-				WithHint(schemaValidationHint(result.Errors)).
-				WithNextCommand(fmt.Sprintf("yxer validate %s %s <payload.json>", platform, input.PublishType))
-		}
-	}
-	preflight := publishmod.PreflightWithTopicHTMLPolicy(input.PublishType, platforms, resolvedPayload, topicPolicy)
-	if len(preflight.Errors) > 0 {
-		return nil, yxerrors.Usage("Publish preflight failed", preflight.Errors).
-			WithHint("请先完成资源上传、账号校验，并确保发布参数中不包含外部 URL。")
-	}
-
 	apiClient := s.rt.Client
-	accountsByID, err := ResolveTargetAccounts(apiClient, platforms, preflight.AccountIDs)
+	coverCompressionEvents := []CoverCompressionEvent{}
+	if payload, events, err := materializeShipinhaoCoverCompression(apiClient, input); err != nil {
+		return nil, err
+	} else if len(events) > 0 {
+		input.Payload = payload
+		coverCompressionEvents = events
+	}
+	prepared, err := s.Prepare(input, PrepareOptions{RemoteChecks: RemoteChecksRequired})
 	if err != nil {
 		return nil, err
 	}
-	if err := AssertCloudChannelReady(channel, platforms, accountsByID); err != nil {
-		return nil, err
+	cfg := s.rt.Config
+	if events, err := materializeArticleContentImages(apiClient, prepared.PublishBody, input.ContinueOnContentImageError); err != nil {
+		return nil, contentImageMaterializationPromptError(input, prepared, events, err)
 	}
-
-	body := BuildPublishBody(resolvedPayload, publishArgs, input.PublishType, platforms, channel, clientID)
-	if err := validateInstagramMediaKeys(platform, input.PublishType, body); err != nil {
-		return nil, err
-	}
-	result, err := apiClient.Publish(body)
+	result, err := apiClient.Publish(prepared.PublishBody)
 	if err == nil {
+		attachCoverCompressionEvents(result, coverCompressionEvents)
 		return result, nil
 	}
-	if mapped := mapInstagramMediaFetchError(platform, input.PublishType, err); mapped != nil {
+	if mapped := mapInstagramMediaFetchError(prepared.Platform, prepared.PublishType, err); mapped != nil {
 		return nil, mapped
 	}
-	if !shouldOfferLocalPublishRetry(err, channel) {
+	if !shouldOfferLocalPublishRetry(err, prepared.PublishMode) {
 		return nil, err
 	}
 	if !input.AutoFallbackLocal {
-		return nil, buildLocalFallbackError(platform, input.PublishType, clientID, err)
+		return nil, buildLocalFallbackError(prepared.Platform, prepared.PublishType, prepared.ClientID, err)
 	}
-	localChannel, localClientID, resolveErr := ResolvePublishMode(cfg, resolvedPayload, "", "local", "")
+	localChannel, localClientID, resolveErr := ResolvePublishMode(cfg, prepared.Payload, "", "local", "")
 	if resolveErr != nil {
 		return nil, resolveErr
 	}
-	resolvedPayload["publishChannel"] = localChannel
-	resolvedPayload["clientId"] = localClientID
-	body = BuildPublishBody(resolvedPayload, publishArgs, input.PublishType, platforms, localChannel, localClientID)
-	return apiClient.Publish(body)
+	prepared.Payload["publishChannel"] = localChannel
+	prepared.Payload["clientId"] = localClientID
+	body := BuildPublishBody(prepared.Payload, prepared.PublishArgs, prepared.PublishType, prepared.Platforms, localChannel, localClientID)
+	if events, err := materializeArticleContentImages(apiClient, body, input.ContinueOnContentImageError); err != nil {
+		return nil, contentImageMaterializationPromptError(input, prepared, events, err)
+	}
+	result, err = apiClient.Publish(body)
+	if err == nil {
+		attachCoverCompressionEvents(result, coverCompressionEvents)
+	}
+	return result, err
+}
+
+func attachCoverCompressionEvents(result map[string]interface{}, events []CoverCompressionEvent) {
+	if len(events) == 0 || result == nil {
+		return
+	}
+	result["mediaProcessing"] = map[string]interface{}{
+		"coverCompression": events,
+	}
+}
+
+func contentImageMaterializationPromptError(input ExecuteInput, prepared PreparedPublish, events []ArticleContentImageMaterialization, cause error) error {
+	nextCommand := continueContentImagePublishCommand(input, prepared)
+	return yxerrors.Remote("article content image materialization failed; confirmation is required before publishing", map[string]interface{}{
+		"events": events,
+		"cause":  cause.Error(),
+	}).WithCategory("article_content_image_materialization_confirmation").
+		WithHint("文章正文中的部分图片无法转存为稳定地址。CLI 已中止发布，避免把第三方可能不可访问的图片地址发出去；如确认可以保留原图地址继续发布，请重新执行 nextCommand。").
+		WithNextCommand(nextCommand).
+		WithRetryable(true)
+}
+
+func continueContentImagePublishCommand(input ExecuteInput, prepared PreparedPublish) string {
+	publishType := firstNonEmptyString(input.PublishType, prepared.PublishType, "<type>")
+	platform := firstNonEmptyString(input.PlatformInput, prepared.Platform, "<platform>")
+	payloadPath := firstNonEmptyString(input.PayloadPath, "<payload.json>")
+	parts := []string{"yxer", "publish", publishType, platform, payloadPath}
+	if input.FlagChannel != "" {
+		parts = append(parts, "--publish-channel", input.FlagChannel)
+	}
+	if input.FlagClientID != "" {
+		parts = append(parts, "--client-id", input.FlagClientID)
+	}
+	if input.AutoFallbackLocal {
+		parts = append(parts, "--auto-fallback-local")
+	}
+	parts = append(parts, "--continue-on-content-image-error")
+	return strings.Join(parts, " ")
 }
 
 func (s Service) ExecuteEnvelope(input ExecuteInput) (EnvelopeResult, error) {
@@ -461,20 +597,41 @@ func payloadWithPublishMode(payload map[string]interface{}, channel, clientID st
 	return withMode
 }
 
+type PublishModeResolution struct {
+	Channel        string
+	ClientID       string
+	ChannelSource  string
+	ClientIDSource string
+}
+
 func ResolvePublishMode(cfg config.Config, payload map[string]interface{}, positionalClientID, flagChannel, flagClientID string) (string, string, error) {
+	resolution, err := ResolvePublishModeDetailed(cfg, payload, positionalClientID, flagChannel, flagClientID)
+	if err != nil {
+		return "", "", err
+	}
+	return resolution.Channel, resolution.ClientID, nil
+}
+
+func ResolvePublishModeDetailed(cfg config.Config, payload map[string]interface{}, positionalClientID, flagChannel, flagClientID string) (PublishModeResolution, error) {
 	channel := "cloud"
+	channelSource := "default"
 	clientID := ""
+	clientIDSource := "none"
 	payloadChannel := ""
 	if value, ok := payload["publishChannel"]; ok {
 		payloadChannel = strings.TrimSpace(fmt.Sprint(value))
 		channel = payloadChannel
+		channelSource = "payload"
 	}
 	if value, ok := payload["clientId"]; ok {
 		clientID = strings.TrimSpace(fmt.Sprint(value))
+		if clientID != "" {
+			clientIDSource = "payload"
+		}
 	}
 	if strings.TrimSpace(positionalClientID) != "" {
 		if strings.TrimSpace(flagChannel) != "local" && payloadChannel != "local" {
-			return "", "", yxerrors.Usage("positional clientId requires local publish channel", []string{
+			return PublishModeResolution{}, yxerrors.Usage("positional clientId requires local publish channel", []string{
 				`The fourth positional clientId is deprecated and no longer switches publishChannel implicitly.`,
 				`Use flags: yxer publish video <platform> payload.json --publish-channel local --client-id <clientId>`,
 			}).
@@ -482,38 +639,50 @@ func ResolvePublishMode(cfg config.Config, payload map[string]interface{}, posit
 				WithNextCommand("yxer publish video <platform> payload.json --publish-channel local --client-id <clientId>")
 		}
 		channel = "local"
+		channelSource = "positional"
 		clientID = strings.TrimSpace(positionalClientID)
+		clientIDSource = "positional"
 	}
 	if strings.TrimSpace(flagChannel) != "" {
 		channel = strings.TrimSpace(flagChannel)
+		channelSource = "flag"
 	}
 	if strings.TrimSpace(flagClientID) != "" {
 		clientID = strings.TrimSpace(flagClientID)
+		clientIDSource = "flag"
 	}
 	switch channel {
 	case "", "cloud":
 		channel = "cloud"
 		clientID = ""
+		clientIDSource = "none"
 	case "local":
 		if clientID == "" {
 			clientID = strings.TrimSpace(cfg.LocalClientID)
+			if clientID != "" {
+				clientIDSource = "config"
+			}
 		}
 		if clientID == "" {
-			return "", "", yxerrors.Usage(`clientId is required when publishChannel is "local"`, []string{
+			return PublishModeResolution{}, yxerrors.Usage(`clientId is required when publishChannel is "local"`, []string{
 				`Run: yxer config set-local-client-id <clientId>`,
-				`Or pass a fourth positional argument: yxer publish video <platform> payload.json <clientId>`,
 				`Or pass flags: yxer publish video <platform> payload.json --publish-channel local --client-id <clientId>`,
 			}).
 				WithHint("本机发布必须指定 clientId，可通过配置或命令参数提供。").
 				WithNextCommand("yxer config set-local-client-id <clientId>")
 		}
 	default:
-		return "", "", yxerrors.Usage(`publishChannel must be "cloud" or "local"`, []string{
+		return PublishModeResolution{}, yxerrors.Usage(`publishChannel must be "cloud" or "local"`, []string{
 			fmt.Sprintf("got %q", channel),
 		}).
 			WithHint(`publishChannel 仅支持 "cloud" 或 "local"。`)
 	}
-	return channel, clientID, nil
+	return PublishModeResolution{
+		Channel:        channel,
+		ClientID:       clientID,
+		ChannelSource:  channelSource,
+		ClientIDSource: clientIDSource,
+	}, nil
 }
 
 func shouldOfferLocalPublishRetry(err error, channel string) bool {
@@ -551,7 +720,7 @@ func buildLocalFallbackError(platform, publishType, clientID string, cause error
 	}
 	return yxerrors.Remote("cloud publish failed; local publish fallback is available", cause.Error()).
 		WithCategory("publish_channel_fallback").
-		WithHint("当前账号云发布失败，可改用本机发布；如需自动回退，请显式传入 --auto-fallback-local。").
+		WithHint("当前账号云发布失败，可改用本机发布；CLI 不会默认自动重试，如需授权自动回退，请显式传入 --auto-fallback-local。").
 		WithNextCommand(nextCommand)
 }
 
@@ -615,7 +784,7 @@ func ResolveTargetAccounts(apiClient *api.Client, platforms []string, accountIDs
 	if len(errors) > 0 {
 		return nil, yxerrors.Usage("Account preflight failed", errors).
 			WithHint("请先运行账号查询，确认目标账号存在且状态为在线。").
-			WithNextCommand("yxer accounts <platform>")
+			WithNextCommand("yxer accounts list <platform> --status 1 --json")
 	}
 	return found, nil
 }

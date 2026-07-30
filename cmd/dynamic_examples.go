@@ -17,14 +17,42 @@ type dynamicFieldExample struct {
 
 func buildDynamicFieldExamples(doc schema.Document) map[string]dynamicFieldExample {
 	examples := map[string]dynamicFieldExample{}
+	addDynamicObjectExample(examples, doc, "category", "yxer query categories <account_id> --type <video|article> --json", "分类对象必须完整来自查询结果；有层级分类时保留完整 child 路径。")
 	addDynamicObjectExample(examples, doc, "location", "yxer query locations <account_id> [--query 关键词] --json", "位置对象必须完整来自查询结果，并按 schema 显示的前端表单结构回填。")
 	addDynamicObjectExample(examples, doc, "music", "yxer query music <account_id> [--query 关键词] --json", "音乐对象必须完整来自查询结果，保留播放地址、时长等查询返回字段以及 raw。")
+	addDynamicObjectExample(examples, doc, "collection", "yxer query collections <account_id> --type <video|article> --json", "合集对象必须完整来自查询结果，并保留 raw。")
+	addDynamicObjectExample(examples, doc, "sub_collection", "yxer query collections <account_id> --type <video|article> --json", "子合集对象必须完整来自查询结果，并保留 raw。")
+	addDynamicObjectExample(examples, doc, "challenge", "yxer query challenges <account_id> [--query 关键词] --type video --json", "话题对象必须完整来自查询结果，并保留 raw。")
+	addDynamicObjectExample(examples, doc, "hot_event", "yxer query hot-events <account_id> --type <video|article> --json", "热点对象必须完整来自查询结果，并保留 raw。")
+	addDynamicObjectExample(examples, doc, "mini_app", "yxer query miniapps <account_id> [--query 关键词] --json", "小程序对象必须完整来自查询结果，并保留 raw。")
+	addDynamicObjectExample(examples, doc, "game", "yxer query games <account_id> [--query 关键词] --json", "游戏对象必须完整来自查询结果，并保留 raw。")
+	addDynamicArrayObjectExample(examples, doc, "sync_apps", "yxer query syncapps <account_id> --json", "同步发布应用数组中的每个对象都必须来自查询结果，并保留 raw。")
+	addDynamicObjectExample(examples, doc, "activity", "yxer query activities <account_id> --type <video|article> [--category-id ID] [--query 关键词] --json", "活动对象必须完整来自查询结果，并保留 raw。")
 	addTagsExample(examples, doc)
 	addShoppingCartExample(examples, doc)
 	if len(examples) == 0 {
 		return nil
 	}
 	return examples
+}
+
+func addDynamicArrayObjectExample(examples map[string]dynamicFieldExample, doc schema.Document, field, command, note string) {
+	if _, ok := doc.Properties[field]; !ok {
+		return
+	}
+	item := map[string]interface{}{
+		"yixiaoerId":   "<from query>",
+		"yixiaoerName": "<from query>",
+		"raw":          map[string]interface{}{"...": "copy complete raw object from query result"},
+	}
+	examples[field] = dynamicFieldExample{
+		Field:        field,
+		Path:         "publishArgs.accountForms[].contentPublishForm." + field,
+		Source:       "query",
+		QueryCommand: command,
+		Note:         note,
+		Value:        []interface{}{item},
+	}
 }
 
 func addDynamicObjectExample(examples map[string]dynamicFieldExample, doc schema.Document, field, command, note string) {

@@ -17,9 +17,8 @@
 2. **辅助检索**：
    - 话题：调用 `challenges` 获取标准话题 DTO。
    - 地点：调用 `locations` 获取 POI 数据。
-   - 音乐：若需要，调用 `music` 获取。
 3. **参数装配**：将处理后的字段填入 `accountForms[i].contentPublishForm`。
-4. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
+4. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [--publish-channel local --client-id <clientId>]`。
 
 ## 1. contentPublishForm 参数 definition
 
@@ -30,10 +29,10 @@
 | `description` | `string` | **是** | 笔记描述，支持 HTML (`<p>`, `<topic>`)。最多 1000 字符。 | - |
 | `images` | `Array` | **是** | 图片数组 (`OldImage[]`) | - |
 | `location` | `Object` | 否 | 位置对象 (`PlatformDataItem`) | - |
-| `music` | `Object` | 否 | 音乐对象 (`MusicItem`) | - |
 | `scheduledTime` | `number` | 否 | 定时发布时间 (13 位 Unix 时间戳，单位: 毫秒) | - |
 | `collection` | `Object` | 否 | 合集信息，使用 `Collection` 结构 | - |
 | `visibleType` | `number` | **是** | 可见类型: 0-公开, 1-私密, 3-好友可见 | 0 |
+| `createType` | `number` | 否 | 原创申明: 0-不申明, 1-原创 | 0 |
 
 ## 2. 复杂对象结构说明
 
@@ -48,9 +47,6 @@
 
 ### PlatformDataItem (基础结构)
 包含 `yixiaoerId`, `yixiaoerName`, `raw`。
-
-### MusicItem (音乐)
-包含 `yixiaoerId`, `yixiaoerName`, `duration`, `playUrl`, `raw` 等。
 
 ## 3. Payload 完整示例
 
@@ -70,7 +66,8 @@
           "images": [
             { "key": "img_xhs_01", "size": 1024, "width": 1080, "height": 1440, "format": "jpg" }
           ],
-          "visibleType": 0
+          "visibleType": 0,
+          "createType": 1
         }
       }
     ]

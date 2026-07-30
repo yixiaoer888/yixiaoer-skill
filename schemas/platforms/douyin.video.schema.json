@@ -19,7 +19,7 @@
     "description": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 30
+      "maxLength": 1000
     },
     "horizontalCover": {
       "type": "object",
@@ -163,7 +163,9 @@
         3,
         4,
         5,
-        6
+        6,
+        7,
+        8
       ],
       "default": 0
     },
@@ -319,8 +321,47 @@
         }
       }
     },
+    "film": {
+      "type": "object",
+      "required": [
+        "yixiaoerId",
+        "yixiaoerName",
+        "raw"
+      ],
+      "properties": {
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    },
     "cooperation_info": {
-      "type": "object"
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "co_type",
+          "user_list"
+        ],
+        "properties": {
+          "co_type": {
+            "type": "object"
+          },
+          "user_list": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
     },
     "game": {
       "type": "object",
@@ -375,7 +416,7 @@
               "description": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 30
+                "maxLength": 1000
               },
               "horizontalCover": {
                 "type": "object",
@@ -502,7 +543,9 @@
                   3,
                   4,
                   5,
-                  6
+                  6,
+                  7,
+                  8
                 ],
                 "default": 0
               },
@@ -658,8 +701,47 @@
                   }
                 }
               },
+              "film": {
+                "type": "object",
+                "required": [
+                  "yixiaoerId",
+                  "yixiaoerName",
+                  "raw"
+                ],
+                "properties": {
+                  "yixiaoerId": {
+                    "type": "string"
+                  },
+                  "yixiaoerName": {
+                    "type": "string"
+                  },
+                  "raw": {
+                    "type": "object"
+                  }
+                },
+                "additionalProperties": true
+              },
               "cooperation_info": {
-                "type": "object"
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "co_type",
+                    "user_list"
+                  ],
+                  "properties": {
+                    "co_type": {
+                      "type": "object"
+                    },
+                    "user_list": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "additionalProperties": true
+                }
               },
               "game": {
                 "type": "object",

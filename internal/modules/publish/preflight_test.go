@@ -114,6 +114,49 @@ func TestPreflightAcceptsSharedResourcesUnderPublishArgs(t *testing.T) {
 	}
 }
 
+func TestPreflightCopiesSharedHorizontalCoverIntoVideoContentForm(t *testing.T) {
+	payload := standardPayload("video", []string{"抖音"}, map[string]interface{}{
+		"video":           uploadedResource(),
+		"cover":           uploadedResourceWithKey("vertical-cover-key"),
+		"coverKey":        "vertical-cover-key",
+		"horizontalCover": uploadedResourceWithKey("horizontal-cover-key"),
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_001",
+				"contentPublishForm": map[string]interface{}{
+					"formType":    "task",
+					"title":       "视频",
+					"description": "描述",
+				},
+			},
+		},
+	})
+
+	result := Preflight("video", []string{"抖音"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected shared horizontalCover to normalize, got %v", result.Errors)
+	}
+
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	cpf := form["contentPublishForm"].(map[string]interface{})
+	horizontalCover := cpf["horizontalCover"].(map[string]interface{})
+	if horizontalCover["key"] != "horizontal-cover-key" {
+		t.Fatalf("expected horizontalCover in contentPublishForm, got %+v", cpf)
+	}
+	if form["cover"].(map[string]interface{})["key"] != "vertical-cover-key" || form["coverKey"] != "vertical-cover-key" {
+		t.Fatalf("expected vertical cover to remain the account-level cover, got %+v", form)
+	}
+}
+
+func TestPreflightRejectsAccountLevelHorizontalCover(t *testing.T) {
+	payload := validVideoPayload()
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	form["horizontalCover"] = uploadedResourceWithKey("horizontal-cover-key")
+
+	result := Preflight("video", []string{"抖音"}, payload)
+	assertHasError(t, result.Errors, "accountForms[0].horizontalCover: unexpected field")
+}
+
 func TestPreflightAcceptsArticleContentFromPublishArgs(t *testing.T) {
 	payload := standardPayload("article", []string{"知乎"}, map[string]interface{}{
 		"cover":    uploadedResourceWithKey("cover-key"),
@@ -165,6 +208,40 @@ func TestPreflightAcceptsImageTextImagesInContentPublishForm(t *testing.T) {
 	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
 	if images, _ := form["images"].([]interface{}); len(images) != 1 {
 		t.Fatalf("expected contentPublishForm.images to normalize into account form, got %+v", form)
+	}
+}
+
+func TestPreflightDerivesImageTextCoverFromFirstImageForFirstImageCoverPlatforms(t *testing.T) {
+	for _, platform := range []string{"新浪微博", "小红书", "视频号", "知乎", "头条号"} {
+		t.Run(platform, func(t *testing.T) {
+			payload := standardPayload("imageText", []string{platform}, map[string]interface{}{
+				"accountForms": []interface{}{
+					map[string]interface{}{
+						"platformAccountId": "acc_001",
+						"contentPublishForm": map[string]interface{}{
+							"formType":    "task",
+							"title":       "图文",
+							"description": "正文",
+							"images":      []interface{}{uploadedResourceWithKey("first-image-key")},
+						},
+					},
+				},
+			})
+
+			result := Preflight("imageText", []string{platform}, payload)
+			if len(result.Errors) > 0 {
+				t.Fatalf("expected %s imageText preflight to pass without external cover, got %v", platform, result.Errors)
+			}
+
+			form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+			if form["coverKey"] != "first-image-key" {
+				t.Fatalf("expected %s coverKey derived from first image, got %+v", platform, form)
+			}
+			cover := form["cover"].(map[string]interface{})
+			if cover["key"] != "first-image-key" {
+				t.Fatalf("expected %s cover derived from first image, got %+v", platform, form)
+			}
+		})
 	}
 }
 

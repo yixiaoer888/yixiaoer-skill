@@ -32,6 +32,12 @@
 5. **Key 提取**：获取返回的 `key`，并作为后续发布 Payload 的输入（如 `coverKey`, `video.key`）。
 
 > [!IMPORTANT]
+> **视频号 512KB 图片限制**:
+> 上传视频号视频封面或视频号图文图片时，必须带平台用途参数：
+> `yxer upload <图片路径或URL> --platform 视频号 --usage cover` 或 `--usage image`。
+> 当图片超过 512KB 时，CLI 会在内部压缩后再上传，并在 JSON 返回中标记 `compressed: true`、`originalSize` 和压缩后的 `size`；后续 payload 必须使用这次上传返回的完整对象。
+
+> [!IMPORTANT]
 > **Instagram / Meta 兼容性**:
 > 若后续要发 Instagram 视频，原视频文件名不要使用中文、空格或其它非 ASCII 字符。Meta 会主动回拉蚁小二返回的媒体 URL；若 URL 路径中带中文，Meta 下载器可能直接返回 HTTP 400，导致“创建发布容器失败 / The media could not be fetched from the provided URI”。
 
@@ -51,6 +57,7 @@
 
 ```bash
 yxer upload https://example.com/image.jpg --bucket cloud-publish
+yxer upload ./cover.png --platform 视频号 --usage cover
 ```
 
 > [!IMPORTANT]

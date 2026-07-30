@@ -30,6 +30,14 @@
       ],
       "default": 0
     },
+    "createType": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
     "images": {
       "type": "array",
       "minItems": 1,
@@ -89,31 +97,6 @@
       },
       "additionalProperties": true
     },
-    "music": {
-      "type": "object",
-      "required": [
-        "yixiaoerId",
-        "yixiaoerName",
-        "raw"
-      ],
-      "properties": {
-        "yixiaoerId": {
-          "type": "string"
-        },
-        "yixiaoerName": {
-          "type": "string"
-        },
-        "duration": {
-          "type": "number"
-        },
-        "playUrl": {
-          "type": "string"
-        },
-        "raw": {
-          "type": "object"
-        }
-      }
-    },
     "collection": {
       "type": "object",
       "required": [
@@ -125,6 +108,25 @@
     "scheduledTime": {
       "type": "number",
       "minimum": 0
+    },
+    "group": {
+      "type": "object"
+    },
+    "shopping_cart": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object"
+      }
+    },
+    "declaration": {
+      "type": "number",
+      "enum": [
+        0,
+        1,
+        2
+      ],
+      "default": 0
     }
   },
   "additionalProperties": false

@@ -1,87 +1,59 @@
-# 哔哩哔哩-Open 视频发布
+# 哔哩哔哩-Open 视频发布参数 (BiLiBiLi-Open Video)
 
 > [!IMPORTANT]
-> **前提条件 (Prerequisite)**:
-> 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [视频发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
+> 在使用本平台的特定参数之前，必须先阅读 [视频发布首页](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
 
+## 执行逻辑
 
-## 触发场景 (Trigger)
-- **意图辨析**：用户指定在“Bilibili-open”平台分发视频内容时触发。
-- **典型提示词**：
-  - “把这个视频发布到Bilibili-open”
-  - “同步视频到Bilibili-open”
+1. 查询账号：`yxer accounts list 哔哩哔哩-Open --status 1 --json`。
+2. 查询分类：`yxer query categories <account_id> --type video --json`，分类对象必须完整来自查询结果。
+3. 上传视频和封面后组装 `accountForms[i].contentPublishForm`。
+4. 先执行 `yxer validate 哔哩哔哩-Open video <payload.json>`，再执行 `yxer publish video 哔哩哔哩-Open <payload.json> --dry-run`。
 
-## 执行逻辑 (Logic Flow)
-1. **意图确认**：确认目标平台为Bilibili-open。
-2. **参数装配**：识别并填充标题、描述等平台特定字段至 `contentPublishForm`。
-3. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
-
-
-## 1. contentPublishForm 数据结构
+## contentPublishForm 参数定义
 
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| formType | string | 是 | 固定为 `task` | `task` |
-| title | string | 是 | 视频标题 | - |
-| description | string | 是 | 视频描述 | - |
-| tags | string[] | 是 | 视频标签 | - |
-| category | object[] | 是 | 视频分类，使用 `CascadingPlatformDataItem[]` 结构 | - |
-| declaration | number | 是 | 创作者申明：0-不申明, 1-AI合成, 2-危险行为, 3-仅供娱乐, 4-引人不适, 5-理性适度消费, 6-个人观点 | 0 |
-| type | number | 是 | 类型：1-自制, 2-转载 | 1 |
-| scheduledTime | number | 否 | 定时发布时间戳（13 位 Unix 时间戳，单位：毫秒） | - |
-| contentSourceUrl | string | 否 | 原文url链接，当 `type` 为 2 (转载) 时必填 | - |
-| collection | object | 否 | 合集信息 | - |
+| `formType` | `string` | 是 | 固定为 `task` | `task` |
+| `title` | `string` | 是 | 视频标题 | - |
+| `description` | `string` | 否 | 视频描述 | - |
+| `tags` | `string[]` | 是 | 视频标签，1-12 个，单个最多 20 字 | - |
+| `category` | `Array` | 是 | 视频分类，使用 `CascadingPlatformDataItem[]`，必须来自 `query categories` | - |
+| `allowReprint` | `number` | 否 | 是否允许转载：0-允许，1-不允许 | 0 |
+| `createType` | `number` | 否 | 类型：1-原创，2-转载。CLI 推荐使用该字段 | 1 |
+| `type` | `number` | 否 | 后端 DTO 兼容字段：1-原创，2-转载 | 1 |
+| `reprintSource` | `string` | 否 | 转载来源；转载时填写 | - |
+| `visibleType` | `number` | 否 | 可见类型：0-公开，1-私密 | 0 |
+| `pubType` | `number` | 否 | 发布类型：0-草稿，1-直接发布 | 1 |
+| `scheduledTime` | `number` | 否 | 定时发布时间戳，毫秒 | - |
 
-## 2. 复杂对象结构
-
-### CascadingPlatformDataItem
-| 字段名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| id | string | 是 | 选项ID |
-| text | string | 是 | 选项文本 |
-| children | object[] | 否 | 子级选项列表 (CascadingPlatformDataItem[]) |
-| raw | object | 是 | 平台原始数据 |
-
-## 3. JSON 示例
+## Payload 示例
 
 ```json
 {
+  "action": "publish",
   "publishType": "video",
-  "platforms": ["BilibiliOpen"],
+  "platforms": ["哔哩哔哩-Open"],
   "publishArgs": {
     "accountForms": [
       {
         "platformAccountId": "BILIBILI_OPEN_ACC_ID",
-        "video": {
-          "key": "v_key",
-          "size": 1024000,
-          "width": 1920,
-          "height": 1080,
-          "duration": 60
-        },
+        "video": { "key": "v_key", "size": 1024000, "width": 1920, "height": 1080, "duration": 60 },
+        "cover": { "key": "cover_key", "size": 102400, "width": 960, "height": 600 },
+        "coverKey": "cover_key",
         "contentPublishForm": {
           "formType": "task",
-          "title": "B站Open视频标题示例",
-          "description": "这是关于B站Open版接入视频发布的描述内容。",
-          "tags": ["科技", "极客"],
+          "title": "哔哩哔哩 Open 投稿",
+          "description": "视频简介",
+          "tags": ["生活"],
           "category": [
-            {
-              "id": "1",
-              "text": "生活",
-              "raw": {}
-            }
+            { "yixiaoerId": "cat_001", "yixiaoerName": "生活", "raw": {} }
           ],
-          "declaration": 0,
-          "type": 1
+          "allowReprint": 0,
+          "createType": 1
         }
       }
     ]
   }
 }
 ```
-
-## 相关接口
-
-| 目标数据 | 对应 Action | 相关文档 |
-| :--- | :--- | :--- |
-| `video.key` | `upload` | [资源上传](../../upload-resource.md) |

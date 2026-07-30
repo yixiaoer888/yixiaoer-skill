@@ -3,6 +3,11 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"image"
+	"image/color"
+	"image/png"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -621,6 +626,7 @@ func TestPublishCommandRejectsInstagramVideoKeyWithChineseCharacters(t *testing.
 
 func TestPublishDryRunAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
 	withRepoRoot(t)
+	configureEmptyConfig(t)
 	service := publishflow.NewService(testRuntime(t))
 	result, err := service.DryRun(publishflow.ExecuteInput{
 		PublishType:   "video",
@@ -686,8 +692,48 @@ func TestPublishDryRunAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
 	}
 }
 
+func TestPublishDryRunChecksCloudProxyWhenAPIKeyConfigured(t *testing.T) {
+	withRepoRoot(t)
+	payload := validPublishPayload()
+	payload["platforms"] = []interface{}{"视频号"}
+	form := payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	form["platformAccountId"] = "acc_shipinhao_1"
+	cpf := form["contentPublishForm"].(map[string]interface{})
+	cpf["createType"] = float64(2)
+	cpf["pubType"] = float64(1)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{
+					{"platformAccountId": "acc_shipinhao_1", "name": "视频号账号", "status": 1},
+				},
+			})
+		case "/taskSets/v2":
+			t.Fatal("dry-run should not call publish API")
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	service := publishflow.NewService(testRuntime(t))
+	_, err := service.DryRun(publishflow.ExecuteInput{
+		PublishType:   "video",
+		PlatformInput: "视频号",
+		Payload:       payload,
+	})
+	if err == nil || !strings.Contains(err.Error(), "Cloud publish preflight failed") {
+		t.Fatalf("expected cloud proxy preflight error, got %v", err)
+	}
+}
+
 func TestPublishDryRunMarksPlatformDraftSeparatelyFromYixiaoerDraft(t *testing.T) {
 	withRepoRoot(t)
+	configureEmptyConfig(t)
 	service := publishflow.NewService(testRuntime(t))
 	result, err := service.DryRun(publishflow.ExecuteInput{
 		PublishType:   "imageText",
@@ -1404,6 +1450,7 @@ func TestPublishCommandNormalizesDouyinShoppingCartStructure(t *testing.T) {
 
 func TestPublishDryRunReportsDynamicFieldNormalizations(t *testing.T) {
 	withRepoRoot(t)
+	configureEmptyConfig(t)
 	payload := validPublishPayload()
 	cpf := payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
 	cpf["shoppingCart"] = []interface{}{
@@ -1583,6 +1630,404 @@ func TestPublishCommandKeepsArticleContentOnlyUnderPublishArgs(t *testing.T) {
 	}
 }
 
+func TestPublishCommandMaterializesArticleContentImageURLs(t *testing.T) {
+	withRepoRoot(t)
+	imageBytes := testPNGBytes(t)
+	sourcePath := "/external/photo.png"
+	stableURL := "https://oss-v2.yixiaoer.cn/materialized/photo.png"
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "article",
+		"platforms":      []interface{}{"知乎"},
+		"desc":           "文章任务描述",
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"content": `<p>文章正文配图<img src="SOURCE_URL" alt="配图"></p>`,
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_zhihu_1",
+					"cover": map[string]interface{}{
+						"key":    "cover-key",
+						"size":   float64(512),
+						"width":  float64(1080),
+						"height": float64(1080),
+					},
+					"coverKey": "cover-key",
+					"contentPublishForm": map[string]interface{}{
+						"formType": "task",
+						"title":    "知乎文章标题示例一",
+						"pubType":  float64(1),
+					},
+				},
+			},
+		},
+	})
+
+	var uploadURLCalls int
+	var stableURLCalls int
+	var publishBody map[string]interface{}
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{{"platformAccountId": "acc_zhihu_1", "name": "文章账号", "status": 1}},
+			})
+		case sourcePath:
+			w.Header().Set("Content-Type", "image/png")
+			_, _ = w.Write(imageBytes)
+		case "/storages/material-library/upload-url":
+			uploadURLCalls++
+			if got := r.URL.Query().Get("fileKey"); got != "photo.png" {
+				t.Fatalf("unexpected fileKey: %s", got)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"serviceUrl": server.URL + "/oss/photo.png",
+					"key":        "uploaded/photo.png",
+				},
+			})
+		case "/oss/photo.png":
+			if r.Method != http.MethodPut {
+				t.Fatalf("unexpected upload method: %s", r.Method)
+			}
+			w.WriteHeader(http.StatusOK)
+		case "/storages/material-library/stable-url":
+			stableURLCalls++
+			if got := r.URL.Query().Get("fileKey"); got != "uploaded/photo.png" {
+				t.Fatalf("unexpected stable-url fileKey: %s", got)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"data": stableURL})
+		case "/taskSets/v2":
+			if err := json.NewDecoder(r.Body).Decode(&publishBody); err != nil {
+				t.Fatal(err)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"data": map[string]interface{}{"taskSetId": "task_set_article_1"}})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	replacePayloadFileText(t, payloadPath, "SOURCE_URL", server.URL+sourcePath)
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"article", "知乎", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if uploadURLCalls != 1 || stableURLCalls != 1 {
+		t.Fatalf("expected one upload and one stable-url call, got upload=%d stable=%d", uploadURLCalls, stableURLCalls)
+	}
+	content := publishBody["publishArgs"].(map[string]interface{})["content"].(string)
+	if !strings.Contains(content, `src="`+stableURL+`"`) {
+		t.Fatalf("expected article content img src to be materialized, got %s", content)
+	}
+	if strings.Contains(content, server.URL+sourcePath) {
+		t.Fatalf("expected original external image URL to be replaced, got %s", content)
+	}
+}
+
+func TestPublishCommandAutoCompressesShipinhaoCoverBeforePublish(t *testing.T) {
+	withRepoRoot(t)
+	coverPath := filepath.Join(t.TempDir(), "cover.png")
+	if err := os.WriteFile(coverPath, noisyPNGBytes(t, 1400, 1000), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "video",
+		"platforms":      []interface{}{"视频号"},
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_shipinhao_1",
+					"cover": map[string]interface{}{
+						"key":    "cover-key",
+						"size":   float64(700 * 1024),
+						"width":  float64(1080),
+						"height": float64(1920),
+						"source": coverPath,
+					},
+					"coverKey": "cover-key",
+					"video": map[string]interface{}{
+						"key":      "video-key",
+						"size":     float64(1024),
+						"width":    float64(1080),
+						"height":   float64(1920),
+						"duration": float64(30),
+					},
+					"contentPublishForm": map[string]interface{}{
+						"formType":    "task",
+						"title":       "视频号标题",
+						"description": "视频号正文",
+						"createType":  float64(2),
+						"pubType":     float64(1),
+					},
+				},
+			},
+		},
+	})
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	var uploadBody []byte
+	var uploadContentType string
+	var requestedFileKey string
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			if got := r.URL.Query().Get("platform"); got != "视频号" {
+				t.Fatalf("unexpected platform query: %s", got)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{{"platformAccountId": "acc_shipinhao_1", "name": "视频号账号", "status": 1, "proxyId": "proxy_1"}},
+			})
+		case "/storages/cloud-publish/upload-url":
+			requestedFileKey = r.URL.Query().Get("fileKey")
+			if got := r.URL.Query().Get("contentType"); got != "image/jpeg" {
+				t.Fatalf("unexpected compressed content type query: %s", got)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"serviceUrl": server.URL + "/oss/cover.jpg",
+					"key":        "uploaded/cover.jpg",
+				},
+			})
+		case "/oss/cover.jpg":
+			uploadContentType = r.Header.Get("Content-Type")
+			var err error
+			uploadBody, err = io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_ = r.Body.Close()
+			w.WriteHeader(http.StatusOK)
+		case "/taskSets/v2":
+			publishCalls++
+			if err := json.NewDecoder(r.Body).Decode(&publishBody); err != nil {
+				t.Fatal(err)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{"taskSetId": "task_set_shipinhao_1"},
+			})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "视频号", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if requestedFileKey != "cover.jpg" {
+		t.Fatalf("expected compressed cover upload to use jpg key, got %q", requestedFileKey)
+	}
+	if uploadContentType != "image/jpeg" {
+		t.Fatalf("expected compressed upload content type image/jpeg, got %q", uploadContentType)
+	}
+	if len(uploadBody) > 512*1024 {
+		t.Fatalf("expected compressed upload body <= 512KB, got %d", len(uploadBody))
+	}
+	if publishCalls != 1 {
+		t.Fatalf("expected one publish call, got %d", publishCalls)
+	}
+	args := publishBody["publishArgs"].(map[string]interface{})
+	form := args["accountForms"].([]interface{})[0].(map[string]interface{})
+	cover := form["cover"].(map[string]interface{})
+	if cover["key"] != "uploaded/cover.jpg" {
+		t.Fatalf("expected published cover to use compressed upload key, got %+v", cover)
+	}
+	if cover["size"] != float64(len(uploadBody)) {
+		t.Fatalf("expected published cover size to match compressed upload body, got %+v", cover)
+	}
+	if _, exists := cover["source"]; exists {
+		t.Fatalf("did not expect source helper to reach publish body, got %+v", cover)
+	}
+	if form["coverKey"] != "uploaded/cover.jpg" {
+		t.Fatalf("expected coverKey to follow compressed upload key, got %+v", form["coverKey"])
+	}
+	if publishBody["coverKey"] != "uploaded/cover.jpg" {
+		t.Fatalf("expected top-level coverKey to follow compressed upload key, got %+v", publishBody["coverKey"])
+	}
+}
+
+func TestPublishCommandStopsWhenArticleContentImageMaterializationFails(t *testing.T) {
+	withRepoRoot(t)
+	sourcePath := "/external/blocked.png"
+	payloadPath := writePublishPayload(t, articlePayloadWithContentImage("SOURCE_URL"))
+
+	var publishCalls int
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{{"platformAccountId": "acc_zhihu_1", "name": "文章账号", "status": 1}},
+			})
+		case sourcePath:
+			http.Error(w, "forbidden", http.StatusForbidden)
+		case "/storages/proxy-url":
+			http.Error(w, "proxy failed", http.StatusBadGateway)
+		case "/taskSets/v2":
+			publishCalls++
+			t.Fatal("publish must not continue without explicit confirmation")
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	replacePayloadFileText(t, payloadPath, "SOURCE_URL", server.URL+sourcePath)
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	err := runPublish(testCobraCommand(), []string{"article", "知乎", payloadPath}, publishOptions{})
+	if err == nil {
+		t.Fatal("expected materialization confirmation error")
+	}
+	var typed *yxerrors.Error
+	if !errors.As(err, &typed) {
+		t.Fatalf("expected structured error, got %T: %v", err, err)
+	}
+	if typed.Category != "article_content_image_materialization_confirmation" {
+		t.Fatalf("unexpected error category: %+v", typed)
+	}
+	if !strings.Contains(typed.Hint, "如确认可以保留原图地址继续发布") {
+		t.Fatalf("expected confirmation hint, got %q", typed.Hint)
+	}
+	if !strings.Contains(typed.NextCommand, "--continue-on-content-image-error") {
+		t.Fatalf("expected next command to include confirmation flag, got %q", typed.NextCommand)
+	}
+	if publishCalls != 0 {
+		t.Fatalf("expected publish not to be called, got %d", publishCalls)
+	}
+}
+
+func TestPublishCommandContinuesWhenArticleContentImageMaterializationFailureIsConfirmed(t *testing.T) {
+	withRepoRoot(t)
+	sourcePath := "/external/blocked.png"
+	payloadPath := writePublishPayload(t, articlePayloadWithContentImage("SOURCE_URL"))
+
+	var publishBody map[string]interface{}
+	var uploadURLCalls int
+	var publishCalls int
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{{"platformAccountId": "acc_zhihu_1", "name": "文章账号", "status": 1}},
+			})
+		case sourcePath:
+			http.Error(w, "forbidden", http.StatusForbidden)
+		case "/storages/proxy-url":
+			http.Error(w, "proxy failed", http.StatusBadGateway)
+		case "/storages/material-library/upload-url":
+			uploadURLCalls++
+			t.Fatal("upload-url should not be requested when source and proxy downloads fail")
+		case "/taskSets/v2":
+			publishCalls++
+			if err := json.NewDecoder(r.Body).Decode(&publishBody); err != nil {
+				t.Fatal(err)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"data": map[string]interface{}{"taskSetId": "task_set_article_1"}})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	originalURL := server.URL + sourcePath
+	replacePayloadFileText(t, payloadPath, "SOURCE_URL", originalURL)
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	err := runPublish(testCobraCommand(), []string{"article", "知乎", payloadPath}, publishOptions{ContinueOnContentImageError: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if uploadURLCalls != 0 || publishCalls != 1 {
+		t.Fatalf("expected publish to continue without upload-url, got upload=%d publish=%d", uploadURLCalls, publishCalls)
+	}
+	content := publishBody["publishArgs"].(map[string]interface{})["content"].(string)
+	if !strings.Contains(content, originalURL) {
+		t.Fatalf("expected original image URL to remain when continuing after failure, got %s", content)
+	}
+}
+
+func TestPublishDryRunReportsArticleContentImageMaterializationWithoutUploading(t *testing.T) {
+	withRepoRoot(t)
+	externalURL := "https://example.invalid/photo.png"
+	payload := map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "article",
+		"platforms":      []interface{}{"知乎"},
+		"desc":           "文章任务描述",
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"content": `<p>文章正文配图<img src="` + externalURL + `" alt="配图"></p>`,
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_zhihu_1",
+					"cover": map[string]interface{}{
+						"key":    "cover-key",
+						"size":   float64(512),
+						"width":  float64(1080),
+						"height": float64(1080),
+					},
+					"coverKey": "cover-key",
+					"contentPublishForm": map[string]interface{}{
+						"formType": "task",
+						"title":    "知乎文章标题示例一",
+						"pubType":  float64(1),
+					},
+				},
+			},
+		},
+	}
+
+	uploadURLCalls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{{"platformAccountId": "acc_zhihu_1", "name": "文章账号", "status": 1}},
+			})
+		case "/storages/material-library/upload-url":
+			uploadURLCalls++
+			t.Fatalf("dry-run must not request upload url")
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	service := publishflow.NewService(testRuntime(t))
+	result, err := service.DryRun(publishflow.ExecuteInput{
+		PublishType:   "article",
+		PlatformInput: "知乎",
+		Payload:       payload,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if uploadURLCalls != 0 {
+		t.Fatalf("expected dry-run not to upload, got %d upload calls", uploadURLCalls)
+	}
+	if len(result.ContentImages) != 1 {
+		t.Fatalf("expected one content image materialization preview, got %+v", result.ContentImages)
+	}
+	if result.ContentImages[0].From != externalURL || result.ContentImages[0].Status != "would_materialize" {
+		t.Fatalf("unexpected dry-run materialization event: %+v", result.ContentImages[0])
+	}
+}
+
 func TestPublishCommandSupportsWeixinAccountArticlePlatformForms(t *testing.T) {
 	withRepoRoot(t)
 	payloadPath := writePublishPayload(t, map[string]interface{}{
@@ -1742,6 +2187,60 @@ func TestPublishCommandAcceptsBaijiahaoImageTextPayload(t *testing.T) {
 	}
 	if cpf["scheduledTime"] != float64(1760000000000) {
 		t.Fatalf("expected scheduledTime to remain in milliseconds, got %+v", cpf["scheduledTime"])
+	}
+}
+
+func TestPublishCommandAcceptsFirstImageCoverImageTextPayloadWithoutExternalCover(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "imageText",
+		"platforms":      []interface{}{"小红书"},
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_xhs_1",
+					"contentPublishForm": map[string]interface{}{
+						"formType":    "task",
+						"title":       "小红书图文标题",
+						"description": "小红书图文内容",
+						"visibleType": float64(0),
+						"images": []interface{}{
+							map[string]interface{}{
+								"key":    "first-image-key",
+								"size":   float64(512),
+								"width":  float64(1080),
+								"height": float64(1440),
+								"format": "jpg",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := imageTextPublishTestServer(t, &publishCalls, &publishBody)
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"imageText", "小红书", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if publishCalls != 1 {
+		t.Fatalf("expected one publish call, got %d", publishCalls)
+	}
+	form := publishBody["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	if form["coverKey"] != "first-image-key" {
+		t.Fatalf("expected internal coverKey derived from first image, got %+v", form)
+	}
+	if cover := form["cover"].(map[string]interface{}); cover["key"] != "first-image-key" {
+		t.Fatalf("expected internal cover derived from first image, got %+v", form)
 	}
 }
 
@@ -1949,6 +2448,28 @@ func testPNGBytes(t *testing.T) []byte {
 	}
 }
 
+func noisyPNGBytes(t *testing.T, width, height int) []byte {
+	t.Helper()
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	seed := uint32(1)
+	for x := 0; x < width; x++ {
+		for y := 0; y < height; y++ {
+			seed = seed*1664525 + 1013904223
+			r := uint8(seed >> 24)
+			seed = seed*1664525 + 1013904223
+			g := uint8(seed >> 24)
+			seed = seed*1664525 + 1013904223
+			b := uint8(seed >> 24)
+			img.Set(x, y, color.RGBA{R: r, G: g, B: b, A: 255})
+		}
+	}
+	var buffer bytes.Buffer
+	if err := png.Encode(&buffer, img); err != nil {
+		t.Fatal(err)
+	}
+	return buffer.Bytes()
+}
+
 func publishTestServer(t *testing.T, accountStatus int, publishCalls *int, publishBody *map[string]interface{}) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -2028,6 +2549,48 @@ func writePublishPayload(t *testing.T, payload map[string]interface{}) string {
 	return path
 }
 
+func articlePayloadWithContentImage(imageURL string) map[string]interface{} {
+	return map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "article",
+		"platforms":      []interface{}{"知乎"},
+		"desc":           "文章任务描述",
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"content": `<p>文章正文配图<img src="` + imageURL + `" alt="配图"></p>`,
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_zhihu_1",
+					"cover": map[string]interface{}{
+						"key":    "cover-key",
+						"size":   float64(512),
+						"width":  float64(1080),
+						"height": float64(1080),
+					},
+					"coverKey": "cover-key",
+					"contentPublishForm": map[string]interface{}{
+						"formType": "task",
+						"title":    "知乎文章标题示例一",
+						"pubType":  float64(1),
+					},
+				},
+			},
+		},
+	}
+}
+
+func replacePayloadFileText(t *testing.T, path, old, new string) {
+	t.Helper()
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	updated := strings.ReplaceAll(string(raw), old, new)
+	if err := os.WriteFile(path, []byte(updated), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func configureAPIKey(t *testing.T, apiKey string) {
 	t.Helper()
 	configPath := os.Getenv("YIXIAOER_CONFIG")
@@ -2038,6 +2601,11 @@ func configureAPIKey(t *testing.T, apiKey string) {
 	if _, err := config.SaveAPIKey(apiKey); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func configureEmptyConfig(t *testing.T) {
+	t.Helper()
+	t.Setenv("YIXIAOER_CONFIG", filepath.Join(t.TempDir(), "yxer-config.json"))
 }
 
 func useTestAPIBaseURL(t *testing.T, rawURL string) {

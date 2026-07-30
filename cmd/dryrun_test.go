@@ -34,15 +34,36 @@ func TestUploadDryRunPreviewUsesExplicitFileFlag(t *testing.T) {
 	if request["source"] != "C:\\tmp\\cover.png" || request["sourceType"] != "file" {
 		t.Fatalf("unexpected dry-run upload preview: %#v", request)
 	}
-	if request["autoMeta"] != true {
-		t.Fatalf("expected autoMeta flag in dry-run upload preview, got %#v", request)
+	if _, exists := request["autoMeta"]; exists {
+		t.Fatalf("expected autoMeta to be omitted by default in dry-run upload preview, got %#v", request)
 	}
 }
 
-func TestUploadFlagDefaultEnablesAutoMeta(t *testing.T) {
+func TestUploadDryRunShowsShipinhaoCoverCompressionLimit(t *testing.T) {
+	var out bytes.Buffer
 	cmd := newUploadCmd()
-	if cmd.Flag("auto-meta").DefValue != "true" {
-		t.Fatalf("expected upload --auto-meta default to be true, got %q", cmd.Flag("auto-meta").DefValue)
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"--file", "C:\\tmp\\cover.png", "--platform", "视频号", "--usage", "cover", "--dry-run"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	processing := data["mediaProcessing"].(map[string]interface{})
+	if processing["maxImageBytes"] != float64(512*1024) {
+		t.Fatalf("expected shipinhao cover compression limit, got %#v", processing)
+	}
+}
+
+func TestUploadFlagDefaultDisablesAutoMeta(t *testing.T) {
+	cmd := newUploadCmd()
+	if cmd.Flag("auto-meta").DefValue != "false" {
+		t.Fatalf("expected upload --auto-meta default to be false, got %q", cmd.Flag("auto-meta").DefValue)
 	}
 }
 

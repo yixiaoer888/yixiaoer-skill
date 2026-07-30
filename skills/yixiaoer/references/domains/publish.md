@@ -3,16 +3,21 @@
 适用范围：用户要发布视频、图文、文章，或要修订发布 payload、解释字段归属、确认发布通道。
 
 **CRITICAL - 只要用户意图落在本域，MUST 先读取下方 workflow，再决定是否执行任何 `prepare`、字段查询、`validate` 或 `publish`。**
-**BLOCKING REQUIREMENT - 未完成 `doctor`、账号确认、`prepare`、`schema fields`、`validate`、`publish --dry-run` 前，绝对禁止正式 `publish`。**
+**BLOCKING REQUIREMENT - 未使用同一份 `payload.json` 和同一套发布通道参数完成 `validate`、`publish --dry-run` 前，绝对禁止正式 `publish`。缺账号、字段、资源或动态对象时，必须先完成 `doctor`、账号确认、`prepare/form`、`schema fields`、上传和查询。**
+**AI EXECUTION PROTOCOL - 发布域任务必须先按协议状态机推进，不允许越过 `validated` / `dry_run_passed` 状态直接发布。**
 
 ## 读取顺序
 
-1. [`../workflows/common-rules.md`](../workflows/common-rules.md)
-2. [`../workflows/data-accuracy.md`](../workflows/data-accuracy.md)
-3. [`../workflows/account-selection.md`](../workflows/account-selection.md)
-4. [`../workflows/local-vs-cloud.md`](../workflows/local-vs-cloud.md)
-5. [`../workflows/payload-sourcing.md`](../workflows/payload-sourcing.md)
-6. 按类型继续读取：
+1. [`../protocols/execution.md`](../protocols/execution.md)
+2. [`../protocols/confirmation.md`](../protocols/confirmation.md)
+3. [`../protocols/provenance.md`](../protocols/provenance.md)
+4. [`../protocols/error-recovery.md`](../protocols/error-recovery.md)
+5. [`../workflows/common-rules.md`](../workflows/common-rules.md)
+6. [`../workflows/data-accuracy.md`](../workflows/data-accuracy.md)
+7. [`../workflows/account-selection.md`](../workflows/account-selection.md)
+8. [`../workflows/local-vs-cloud.md`](../workflows/local-vs-cloud.md)
+9. [`../workflows/payload-sourcing.md`](../workflows/payload-sourcing.md)
+10. 按类型继续读取：
    - 图文：[`../workflows/publish-imageText.md`](../workflows/publish-imageText.md)
    - 视频：[`../workflows/publish-video.md`](../workflows/publish-video.md)
    - 文章：[`../workflows/publish-article.md`](../workflows/publish-article.md)
@@ -35,9 +40,11 @@
 
 ## 强制门禁
 
-- 未执行 `yxer doctor` 不进入发布流程
-- 未确认 `accounts list` 中账号 `status=1` 不继续
-- 未执行 `prepare` / `schema fields` 不组装 payload；只有需要 payload 骨架时再补 `schema get`
+- 未进入协议状态机的 `workflow_loaded` 状态不执行 CLI 写操作
+- 已有完整 payload 时，可直接进入 `validate -> publish --dry-run`；但不得跳过正式发布前用户授权
+- 缺账号、字段、资源或动态对象时，未执行 `yxer doctor` 不进入组装流程
+- 缺账号或账号不确定时，未确认 `accounts list` 中账号 `status=1` 不继续
+- 需要组装或补字段时，未执行 `prepare` / `publish form` / `schema fields` 不组装 payload；只有需要 payload 骨架时再补 `schema get`
 - 未按 `data-accuracy.md` 完成动态字段查询和多候选确认，不继续写 payload 或发布
 - 未先 `validate` 与 `publish --dry-run` 不执行正式 `publish`
 

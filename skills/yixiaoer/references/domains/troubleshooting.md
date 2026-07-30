@@ -6,8 +6,11 @@
 
 ## 优先读取
 
-1. [`../workflows/publish-troubleshooting.md`](../workflows/publish-troubleshooting.md)
-2. 必要时回读：
+1. [`../protocols/execution.md`](../protocols/execution.md)
+2. [`../protocols/error-recovery.md`](../protocols/error-recovery.md)
+3. [`../protocols/provenance.md`](../protocols/provenance.md)
+4. [`../workflows/publish-troubleshooting.md`](../workflows/publish-troubleshooting.md)
+5. 必要时回读：
    - [`../workflows/common-rules.md`](../workflows/common-rules.md)
    - [`../workflows/local-vs-cloud.md`](../workflows/local-vs-cloud.md)
    - [`./publish.md`](./publish.md)
@@ -27,4 +30,5 @@ yxer doctor
 - `validate` 失败时，优先回查 `prepare`、`schema get` 和字段来源
 - 云发布报代理问题时，可建议改本机发布
 - 本机发布报客户端不在线时，提示用户启动并登录客户端，或改回云发布
+- 正式发布失败后，先按错误恢复协议判断是否已产生副作用；未确认前不要重复执行正式 `publish`
 - 用户只说“解释下这条报错”时，可先停留在本域做解释和修复建议，不擅自触发新的发布写操作

@@ -157,6 +157,87 @@ func TestMusicCategoriesUsesExpectedEndpoint(t *testing.T) {
 	}
 }
 
+func TestCategoriesBuildsTreeFromBilibiliOpenParentIDs(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/platform-accounts/acc_1/categories" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if got := r.URL.Query().Get("publishType"); got != "video" {
+			t.Fatalf("unexpected publishType query: %s", got)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": map[string]interface{}{
+				"dataList": []map[string]interface{}{
+					{
+						"yixiaoerId":   "root_1",
+						"yixiaoerName": "生活",
+						"raw": map[string]interface{}{
+							"id":       "root_1",
+							"name":     "生活",
+							"parentId": nil,
+						},
+					},
+					{
+						"yixiaoerId":   "child_1",
+						"yixiaoerName": "日常",
+						"raw": map[string]interface{}{
+							"id":       "child_1",
+							"name":     "日常",
+							"parentId": "root_1",
+						},
+					},
+					{
+						"yixiaoerId":   "root_2",
+						"yixiaoerName": "游戏",
+						"raw": map[string]interface{}{
+							"id":       "root_2",
+							"name":     "游戏",
+							"parentId": nil,
+						},
+					},
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.Categories("acc_1", "video")
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, ok := result.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected categories payload map, got %#v", result)
+	}
+	items, ok := payload["dataList"].([]interface{})
+	if !ok {
+		t.Fatalf("expected dataList, got %#v", payload["dataList"])
+	}
+	if len(items) != 2 {
+		t.Fatalf("expected two root categories, got %d", len(items))
+	}
+	first := items[0].(map[string]interface{})
+	if first["yixiaoerId"] != "root_1" {
+		t.Fatalf("unexpected first root category: %#v", first)
+	}
+	children, ok := first["child"].([]interface{})
+	if !ok {
+		t.Fatalf("expected child categories, got %#v", first["child"])
+	}
+	if len(children) != 1 {
+		t.Fatalf("expected one child category, got %d", len(children))
+	}
+	child := children[0].(map[string]interface{})
+	if child["yixiaoerId"] != "child_1" {
+		t.Fatalf("unexpected child category: %#v", child)
+	}
+	raw := child["raw"].(map[string]interface{})
+	if raw["parentId"] != "root_1" {
+		t.Fatalf("expected raw payload to be preserved, got %#v", raw)
+	}
+}
+
 func TestGamesUsesExpectedEndpointAndKeywordQuery(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/platform-accounts/acc_1/games" {
@@ -450,10 +531,16 @@ func TestMembersUsesExpectedEndpointAndFilters(t *testing.T) {
 	}
 }
 
-func TestAccountGroupsUsesExpectedEndpoint(t *testing.T) {
+func TestAccountGroupsUsesExpectedEndpointAndPagination(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/groups" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if got := r.URL.Query().Get("page"); got != "2" {
+			t.Fatalf("unexpected page query: %s", got)
+		}
+		if got := r.URL.Query().Get("size"); got != "20" {
+			t.Fatalf("unexpected size query: %s", got)
 		}
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"data": []map[string]interface{}{
@@ -464,7 +551,7 @@ func TestAccountGroupsUsesExpectedEndpoint(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
-	result, err := client.AccountGroups()
+	result, err := client.AccountGroups(AccountGroupOptions{Page: 2, Size: 20})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -670,5 +757,8 @@ func TestPrepareUsesFirstOnlineAccountAcrossPagesForCategories(t *testing.T) {
 	first := items[0].(map[string]interface{})
 	if first["id"] != "cat_1" {
 		t.Fatalf("unexpected category payload: %#v", first)
+	}
+	if len(result.Accounts) != 2 || result.Accounts[0]["platformAccountId"] != "acc_1" || result.Accounts[1]["platformAccountId"] != "acc_3" {
+		t.Fatalf("expected online accounts in prepare response, got %#v", result.Accounts)
 	}
 }

@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/media"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
@@ -20,17 +19,24 @@ import (
 
 const maxRemoteUploadDownloadSize int64 = 5 * 1024 * 1024 * 1024
 
-var uploadHTTPClient = &http.Client{Timeout: 30 * time.Second}
+var uploadHTTPClient = &http.Client{}
 
 type UploadResult struct {
-	Key         string  `json:"key"`
-	ContentType string  `json:"contentType"`
-	Bucket      string  `json:"bucket"`
-	Size        int64   `json:"size,omitempty"`
-	Width       int     `json:"width,omitempty"`
-	Height      int     `json:"height,omitempty"`
-	Duration    float64 `json:"duration,omitempty"`
-	Format      string  `json:"format,omitempty"`
+	Key          string  `json:"key"`
+	URL          string  `json:"url,omitempty"`
+	ContentType  string  `json:"contentType"`
+	Bucket       string  `json:"bucket"`
+	Size         int64   `json:"size,omitempty"`
+	Width        int     `json:"width,omitempty"`
+	Height       int     `json:"height,omitempty"`
+	Duration     float64 `json:"duration,omitempty"`
+	Format       string  `json:"format,omitempty"`
+	Compressed   bool    `json:"compressed,omitempty"`
+	OriginalSize int64   `json:"originalSize,omitempty"`
+}
+
+type UploadOptions struct {
+	MaxImageBytes int64
 }
 
 func InspectUpload(pathOrURL string, autoMeta bool) (UploadResult, string, error) {
@@ -47,10 +53,18 @@ func InspectUpload(pathOrURL string, autoMeta bool) (UploadResult, string, error
 }
 
 func (c *Client) Upload(pathOrURL, bucket string, autoMeta bool) (UploadResult, error) {
+	return c.UploadWithOptions(pathOrURL, bucket, autoMeta, UploadOptions{})
+}
+
+func (c *Client) UploadWithOptions(pathOrURL, bucket string, autoMeta bool, opts UploadOptions) (UploadResult, error) {
 	if bucket == "" {
 		bucket = "cloud-publish"
 	}
-	result, fileName, err := InspectUpload(pathOrURL, autoMeta)
+	result, fileName, buffer, err := c.inspectUpload(pathOrURL, autoMeta)
+	if err != nil {
+		return UploadResult{}, err
+	}
+	result, fileName, buffer, err = applyUploadOptions(result, fileName, buffer, opts)
 	if err != nil {
 		return UploadResult{}, err
 	}
@@ -75,10 +89,6 @@ func (c *Client) Upload(pathOrURL, bucket string, autoMeta bool) (UploadResult, 
 			WithCategory("remote_response")
 	}
 
-	buffer, _, _, err := readUploadContent(pathOrURL)
-	if err != nil {
-		return UploadResult{}, err
-	}
 	req, err := http.NewRequest(http.MethodPut, serviceURL, bytes.NewReader(buffer))
 	if err != nil {
 		return UploadResult{}, err
@@ -98,6 +108,90 @@ func (c *Client) Upload(pathOrURL, bucket string, autoMeta bool) (UploadResult, 
 	result.Key = key
 	result.Bucket = bucket
 	return result, nil
+}
+
+func applyUploadOptions(result UploadResult, fileName string, buffer []byte, opts UploadOptions) (UploadResult, string, []byte, error) {
+	if opts.MaxImageBytes <= 0 || !strings.HasPrefix(result.ContentType, "image/") || result.Size <= opts.MaxImageBytes {
+		return result, fileName, buffer, nil
+	}
+	compressed, ok, err := media.CompressImageToMaxBytes(buffer, opts.MaxImageBytes)
+	if err != nil {
+		return UploadResult{}, "", nil, yxerrors.Usage("failed to compress image for upload", map[string]interface{}{
+			"fileName": fileName,
+			"limit":    opts.MaxImageBytes,
+			"cause":    err.Error(),
+		}).WithCategory("media_compress").
+			WithHint("请确认封面是可解码的图片文件，支持 jpg/png 等常见格式。")
+	}
+	if !ok {
+		return UploadResult{}, "", nil, yxerrors.Usage("image cannot be compressed below platform limit", map[string]interface{}{
+			"fileName":     fileName,
+			"limitBytes":   opts.MaxImageBytes,
+			"originalSize": result.Size,
+		}).WithCategory("media_compress").
+			WithHint("请改用尺寸更小或内容更简单的封面图后再上传。")
+	}
+	result.OriginalSize = result.Size
+	result.Size = int64(len(compressed.Data))
+	result.Width = compressed.Width
+	result.Height = compressed.Height
+	result.ContentType = compressed.ContentType
+	result.Format = compressed.Format
+	result.Compressed = true
+	fileName = strings.TrimSuffix(fileName, filepath.Ext(fileName)) + ".jpg"
+	return result, fileName, compressed.Data, nil
+}
+
+func (c *Client) inspectUpload(pathOrURL string, autoMeta bool) (UploadResult, string, []byte, error) {
+	contentType := DetectContentType(pathOrURL)
+	buffer, fileName, size, err := c.readUploadContent(pathOrURL)
+	if err != nil {
+		return UploadResult{}, "", nil, err
+	}
+	result, err := buildUploadMetadata(pathOrURL, buffer, fileName, size, contentType, autoMeta)
+	if err != nil {
+		return UploadResult{}, "", nil, err
+	}
+	return result, fileName, buffer, nil
+}
+
+func (c *Client) readUploadContent(pathOrURL string) ([]byte, string, int64, error) {
+	return readUploadContentWithProxy(pathOrURL, baseURL(c.cfg))
+}
+
+func (c *Client) StableURL(bucket, key string) (string, error) {
+	if bucket == "" {
+		bucket = "cloud-publish"
+	}
+	var result interface{}
+	if err := c.Get(Query("/storages/"+bucket+"/stable-url", map[string]string{"fileKey": key}), &result); err != nil {
+		return "", err
+	}
+	if url, ok := stableURLFromValue(result); ok {
+		return url, nil
+	}
+	return "", yxerrors.Remote("invalid stable url response", result).
+		WithCategory("remote_response")
+}
+
+func stableURLFromValue(value interface{}) (string, bool) {
+	switch typed := value.(type) {
+	case string:
+		url := strings.TrimSpace(typed)
+		return url, url != ""
+	case map[string]interface{}:
+		if data, exists := typed["data"]; exists {
+			return stableURLFromValue(data)
+		}
+		for _, key := range []string{"url", "stableUrl", "hostUrl"} {
+			if value, exists := typed[key]; exists {
+				if url, ok := stableURLFromValue(value); ok {
+					return url, true
+				}
+			}
+		}
+	}
+	return "", false
 }
 
 func uploadObjectName(fileName string) string {
@@ -219,34 +313,18 @@ func DetectContentType(pathOrURL string) string {
 }
 
 func readUploadContent(pathOrURL string) ([]byte, string, int64, error) {
+	return readUploadContentWithProxy(pathOrURL, "")
+}
+
+func readUploadContentWithProxy(pathOrURL, proxyBaseURL string) ([]byte, string, int64, error) {
 	if strings.HasPrefix(pathOrURL, "http://") || strings.HasPrefix(pathOrURL, "https://") {
-		resp, err := uploadHTTPClient.Get(pathOrURL)
+		raw, size, err := downloadRemoteUploadContent(pathOrURL, pathOrURL)
+		if err != nil && shouldRetryRemoteUploadViaProxy(pathOrURL, proxyBaseURL) {
+			proxyURL := Query(strings.TrimRight(proxyBaseURL, "/")+"/storages/proxy-url", map[string]string{"url": pathOrURL})
+			raw, size, err = downloadRemoteUploadContent(proxyURL, pathOrURL)
+		}
 		if err != nil {
 			return nil, "", 0, err
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			return nil, "", 0, yxerrors.Remote("HTTP error downloading file during sync upload", map[string]interface{}{
-				"statusCode": resp.StatusCode,
-				"url":        pathOrURL,
-			}).WithCategory("remote_download")
-		}
-		if resp.ContentLength > maxRemoteUploadDownloadSize {
-			return nil, "", 0, yxerrors.Usage("remote file exceeds size limit", map[string]interface{}{
-				"limitBytes":   maxRemoteUploadDownloadSize,
-				"contentBytes": resp.ContentLength,
-				"url":          pathOrURL,
-			}).WithHint("请改用更小的素材文件，或先下载到本地压缩后再上传。")
-		}
-		raw, err := io.ReadAll(io.LimitReader(resp.Body, maxRemoteUploadDownloadSize+1))
-		if err != nil {
-			return nil, "", 0, err
-		}
-		if int64(len(raw)) > maxRemoteUploadDownloadSize {
-			return nil, "", 0, yxerrors.Usage("remote file exceeds size limit", map[string]interface{}{
-				"limitBytes": maxRemoteUploadDownloadSize,
-				"url":        pathOrURL,
-			}).WithHint("请改用更小的素材文件，或先下载到本地压缩后再上传。")
 		}
 		parsed, _ := url.Parse(pathOrURL)
 		fileName := filepath.Base(parsed.Path)
@@ -256,7 +334,7 @@ func readUploadContent(pathOrURL string) ([]byte, string, int64, error) {
 		if filepath.Ext(fileName) == "" {
 			fileName += ".jpg"
 		}
-		return raw, fileName, int64(len(raw)), nil
+		return raw, fileName, size, nil
 	}
 
 	abs, err := filepath.Abs(pathOrURL)
@@ -272,4 +350,48 @@ func readUploadContent(pathOrURL string) ([]byte, string, int64, error) {
 		return nil, "", 0, err
 	}
 	return raw, filepath.Base(abs), stat.Size(), nil
+}
+
+func downloadRemoteUploadContent(fetchURL, sourceURL string) ([]byte, int64, error) {
+	resp, err := uploadHTTPClient.Get(fetchURL)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, 0, yxerrors.Remote("HTTP error downloading file during sync upload", map[string]interface{}{
+			"statusCode": resp.StatusCode,
+			"url":        sourceURL,
+			"fetchUrl":   fetchURL,
+		}).WithCategory("remote_download")
+	}
+	if resp.ContentLength > maxRemoteUploadDownloadSize {
+		return nil, 0, yxerrors.Usage("remote file exceeds size limit", map[string]interface{}{
+			"limitBytes":   maxRemoteUploadDownloadSize,
+			"contentBytes": resp.ContentLength,
+			"url":          sourceURL,
+		}).WithHint("请改用更小的素材文件，或先下载到本地压缩后再上传。")
+	}
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, maxRemoteUploadDownloadSize+1))
+	if err != nil {
+		return nil, 0, err
+	}
+	if int64(len(raw)) > maxRemoteUploadDownloadSize {
+		return nil, 0, yxerrors.Usage("remote file exceeds size limit", map[string]interface{}{
+			"limitBytes": maxRemoteUploadDownloadSize,
+			"url":        sourceURL,
+		}).WithHint("请改用更小的素材文件，或先下载到本地压缩后再上传。")
+	}
+	return raw, int64(len(raw)), nil
+}
+
+func shouldRetryRemoteUploadViaProxy(pathOrURL, proxyBaseURL string) bool {
+	if strings.TrimSpace(proxyBaseURL) == "" {
+		return false
+	}
+	lower := strings.ToLower(pathOrURL)
+	if strings.Contains(lower, "/storages/proxy-url?url=") || strings.HasPrefix(lower, "https://view.yixiaoer.cn/proxy-url?url=") {
+		return false
+	}
+	return strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://")
 }

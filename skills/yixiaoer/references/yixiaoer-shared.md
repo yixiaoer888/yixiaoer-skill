@@ -75,6 +75,14 @@ yxer update --global
 - `publish --dry-run` 成功时，再进入正式发布
 - 不要跳过 `validate` 或 `publish --dry-run`
 
+### 表单会话来源校验
+
+- 使用 `publish form choose` 写动态字段时，必须带 `--source-command` 记录产生候选的 `yxer query ... --json` 命令
+- `publish form set` 只能写 form contract 声明过的路径；不要用未知路径试错
+- `publish form choose` 只用于 `dynamicFieldExamples` 声明的动态字段；普通文本、枚举和值字段使用 `publish form set`
+- 导出前应先执行 `yxer publish form verify <session.json>`；`review` 和 `export` 也会校验来源记录和当前 payload 是否一致
+- 如果 `verify` 报来源缺失、账号不一致或 hash 不匹配，回到对应字段重新执行 `set` / `choose`，不要手改 session 或 payload 绕过
+
 ### 发布结果
 
 - 成功时给出平台、类型、通道和关键结果
@@ -82,14 +90,17 @@ yxer update --global
 
 ## 危险动作协议
 
-- 真正发布前，固定顺序是：
+- 真正发布前，最小固定门禁是：
+  1. 已有或已导出标准 `payload.json`
+  2. `yxer validate`
+  3. `yxer publish --dry-run`
+  4. 用户授权后 `yxer publish`
+- 当 payload 尚未完整、账号未确认、资源未上传或动态字段未查询时，先补完整组装路径：
   1. `yxer doctor`
   2. `yxer accounts list`
-  3. `yxer prepare`
-  4. `yxer schema fields`
-  5. 只有需要 payload 骨架时再补 `yxer schema get`
-  6. `yxer validate`
-  7. `yxer publish --dry-run`
-  8. `yxer publish`
+  3. `yxer prepare` 或 `yxer publish form start/inspect`
+  4. `yxer schema fields`；只有需要完整骨架时再补 `yxer schema get`
+  5. `yxer upload` / `yxer query ...`
+  6. 组装或导出 `payload.json`
 - 不允许跳过 `validate`
 - 不允许把正式 `publish` 当成试错手段

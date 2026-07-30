@@ -54,6 +54,14 @@
         }
       }
     },
+    "coverType": {
+      "type": "string",
+      "enum": [
+        "single",
+        "triple"
+      ],
+      "default": "single"
+    },
     "coverKey": {
       "type": "string"
     },

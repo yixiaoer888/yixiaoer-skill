@@ -1,63 +1,44 @@
-# 快手开放平台 视频发布
+# 快手-Open 视频发布参数 (KuaiShou-Open Video)
 
 > [!IMPORTANT]
-> **前提条件 (Prerequisite)**:
-> 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [视频发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
+> 在使用本平台的特定参数之前，必须先阅读 [视频发布首页](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
 
+## 执行逻辑
 
-## 触发场景 (Trigger)
-- **意图辨析**：用户指定在“快手”平台分发视频内容，且账号为开放平台账号时触发。
-- **典型提示词**：
-  - “把这个视频发布到快手”
-  - “同步视频到快手开放平台账号”
+1. 查询账号：`yxer accounts list 快手-Open --status 1 --json`。
+2. 上传视频和封面后组装 `accountForms[i].contentPublishForm`。
+3. 先执行 `yxer validate 快手-Open video <payload.json>`，再执行 `yxer publish video 快手-Open <payload.json> --dry-run`。
 
-## 执行逻辑 (Logic Flow)
-1. **意图确认**：确认目标平台为快手，并使用对应开放平台账号。
-2. **参数装配**：识别并填充标题、描述等平台特定字段至 `contentPublishForm`。
-3. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
-
-
-## 1. contentPublishForm 数据结构
+## contentPublishForm 参数定义
 
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| formType | string | 是 | 固定为 `task` | `task` |
-| title | string | 否 | 快手标题 | - |
-| description | string | 否 | 快手描述 | - |
-| visibleType | number | 是 | 可见类型：0-公开, 1-私密, 3-好友可见 | 0 |
-| scheduledTime | number | 否 | 定时发布时间戳（13 位 Unix 时间戳，单位：毫秒） | - |
+| `formType` | `string` | 是 | 固定为 `task` | `task` |
+| `description` | `string` | 是 | 视频描述 | - |
+| `visibleType` | `number` | 否 | 可见类型：0-公开，1-私密 | 0 |
+| `pubType` | `number` | 否 | 发布类型：0-草稿，1-直接发布 | 1 |
+| `scheduledTime` | `number` | 否 | 定时发布时间戳，毫秒 | - |
 
-## 2. JSON 示例
+## Payload 示例
 
 ```json
 {
+  "action": "publish",
   "publishType": "video",
-  "platforms": ["快手"],
+  "platforms": ["快手-Open"],
   "publishArgs": {
     "accountForms": [
       {
-        "platformAccountId": "KS_OPEN_ACC_ID",
-        "video": {
-          "key": "v_key",
-          "size": 1024000,
-          "width": 1080,
-          "height": 1920,
-          "duration": 15
-        },
+        "platformAccountId": "KUAISHOU_OPEN_ACC_ID",
+        "video": { "key": "v_key", "size": 1024000, "width": 1080, "height": 1920, "duration": 15 },
+        "cover": { "key": "cover_key", "size": 102400, "width": 1080, "height": 1920 },
+        "coverKey": "cover_key",
         "contentPublishForm": {
           "formType": "task",
-          "title": "快手开放平台视频标题",
-          "description": "通过快手开放平台发布的精彩内容内容描述。",
-          "visibleType": 0
+          "description": "快手 Open 视频描述"
         }
       }
     ]
   }
 }
 ```
-
-## 相关接口
-
-| 目标数据 | 对应 Action | 相关文档 |
-| :--- | :--- | :--- |
-| `video.key` | `upload` | [资源上传](../../upload-resource.md) |

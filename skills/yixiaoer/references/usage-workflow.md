@@ -154,7 +154,7 @@ yxer publish video 抖音 .\payload.json --publish-channel local --client-id <cl
 如果是 AI agent 调用本项目，推荐顺序如下：
 
 1. 读取 `skills/yixiaoer/SKILL.md`
-2. 读取 `references/workflows/common-rules.md`
+2. 读取 `skills/yixiaoer/references/workflows/common-rules.md`
 3. 根据内容类型读取对应 workflow
 4. 调用 `yxer doctor`
 5. 调用 `yxer prepare` 和 `yxer schema get`

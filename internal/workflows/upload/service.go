@@ -16,3 +16,7 @@ func NewService(rt *app.Runtime) Service {
 func (s Service) Upload(pathOrURL, bucket string, autoMeta bool) (api.UploadResult, error) {
 	return s.rt.Client.Upload(pathOrURL, bucket, autoMeta)
 }
+
+func (s Service) UploadWithOptions(pathOrURL, bucket string, autoMeta bool, opts api.UploadOptions) (api.UploadResult, error) {
+	return s.rt.Client.UploadWithOptions(pathOrURL, bucket, autoMeta, opts)
+}

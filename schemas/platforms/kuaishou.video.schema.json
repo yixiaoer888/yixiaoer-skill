@@ -188,6 +188,13 @@
       "type": "number",
       "minimum": 0
     },
+    "author_service_type": {
+      "type": "string",
+      "enum": [
+        "shopping_cart",
+        "mini_app"
+      ]
+    },
     "shopping_cart": {
       "type": "object",
       "required": [
@@ -225,6 +232,30 @@
           "type": "object"
         }
       }
+    },
+    "pk_cover": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": true
     },
     "nearby_show": {
       "type": "boolean",

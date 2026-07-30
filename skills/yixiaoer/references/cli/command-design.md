@@ -246,7 +246,7 @@ yxer <command> ... --dry-run
 当前命令文档分散在：
 
 - `README.md`
-- `references/cli/command-reference.md`
+- `README.md`
 - `skills/yixiaoer/references/cli/command-reference.md`
 
 问题：

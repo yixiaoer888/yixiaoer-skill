@@ -126,6 +126,9 @@ func PreflightWithTopicHTMLPolicyAndTrace(publishType string, platforms []string
 
 		switch publishType {
 		case "video":
+			if _, exists := form["horizontalCover"]; exists {
+				result.Errors = append(result.Errors, formPath+".horizontalCover: unexpected field; use contentPublishForm.horizontalCover or publishArgs.horizontalCover")
+			}
 			video := objectField(form, "video")
 			if video == nil && cpf != nil {
 				video = objectField(cpf, "video")
@@ -136,6 +139,10 @@ func PreflightWithTopicHTMLPolicyAndTrace(publishType string, platforms []string
 				cover = objectField(cpf, "cover")
 			}
 			requireUploadedResource(cover, formPath+".cover", &result.Errors)
+			horizontalCover := objectField(cpf, "horizontalCover")
+			if horizontalCover != nil {
+				requireUploadedResource(horizontalCover, formPath+".contentPublishForm.horizontalCover", &result.Errors)
+			}
 			requireCoverKey(form, cpf, cover, formPath, &result.Errors)
 			requirePlatformConstraints(platforms, cover, formPath, &result.Errors)
 		case "imageText":
@@ -408,12 +415,57 @@ func NormalizeStandardPublishArgs(payload map[string]interface{}, publishType st
 		if cpf == nil {
 			continue
 		}
+		if NormalizePublishType(publishType) == "video" {
+			copyIfMissing(cpf, payload, "horizontalCover")
+		}
 		if allowArticleCovers {
 			copyIfMissing(cpf, payload, "covers")
 		}
 		copyIfMissing(form, cpf, "images")
 		copyIfMissing(form, cpf, "cover")
 		copyIfMissing(form, cpf, "coverKey")
+		if NormalizePublishType(publishType) == "imageText" && imageTextUsesFirstImageAsCover(platforms) {
+			deriveImageTextCoverFromFirstImage(form)
+		}
+	}
+}
+
+func imageTextUsesFirstImageAsCover(platforms []string) bool {
+	for _, platform := range platforms {
+		if platformutil.ImageTextUsesFirstImageAsCover(platform) {
+			return true
+		}
+	}
+	return false
+}
+
+func deriveImageTextCoverFromFirstImage(form map[string]interface{}) {
+	if form == nil {
+		return
+	}
+	if objectField(form, "cover") != nil && stringField(form, "coverKey") != "" {
+		return
+	}
+	images, _ := form["images"].([]interface{})
+	if len(images) == 0 {
+		if cpf, _ := form["contentPublishForm"].(map[string]interface{}); cpf != nil {
+			images, _ = cpf["images"].([]interface{})
+		}
+	}
+	if len(images) == 0 {
+		return
+	}
+	firstImage, _ := images[0].(map[string]interface{})
+	if firstImage == nil {
+		return
+	}
+	if objectField(form, "cover") == nil {
+		form["cover"] = firstImage
+	}
+	if stringField(form, "coverKey") == "" {
+		if key := stringField(firstImage, "key"); key != "" {
+			form["coverKey"] = key
+		}
 	}
 }
 
@@ -1249,7 +1301,9 @@ func requirePlatformImageTextConstraints(platforms []string, images []interface{
 		switch strings.TrimSpace(platform) {
 		case "视频号", "微信视频号", "shipinhao":
 			requireShipinhaoImageSizes(images, formPath, errors)
-			requireShipinhaoCoverSize(cover, formPath, errors)
+			if !platformutil.ImageTextUsesFirstImageAsCover(platform) {
+				requireShipinhaoCoverSize(cover, formPath, errors)
+			}
 		}
 	}
 }
@@ -1571,6 +1625,7 @@ func enrichResourceContainerMetadata(container map[string]interface{}, path stri
 	}
 	enrichResourceObjectMetadata(objectField(container, "video"), path+".video", errors)
 	enrichResourceObjectMetadata(objectField(container, "cover"), path+".cover", errors)
+	enrichResourceObjectMetadata(objectField(container, "horizontalCover"), path+".horizontalCover", errors)
 	if items, _ := container["images"].([]interface{}); len(items) > 0 {
 		for i, item := range items {
 			resource, _ := item.(map[string]interface{})

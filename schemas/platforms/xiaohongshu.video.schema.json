@@ -23,13 +23,14 @@
       "enum": [
         0,
         1,
-        3
+        2
       ],
       "default": 0
     },
     "declaration": {
       "type": "number",
       "enum": [
+        0,
         1,
         2
       ]

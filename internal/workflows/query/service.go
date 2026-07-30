@@ -61,8 +61,8 @@ func (s Service) Members(opts api.MembersOptions) (interface{}, error) {
 	return s.rt.Client.Members(opts)
 }
 
-func (s Service) AccountGroups() (interface{}, error) {
-	return s.rt.Client.AccountGroups()
+func (s Service) AccountGroups(opts api.AccountGroupOptions) (interface{}, error) {
+	return s.rt.Client.AccountGroups(opts)
 }
 
 func (s Service) CreateAccountGroup(body map[string]interface{}) (interface{}, error) {

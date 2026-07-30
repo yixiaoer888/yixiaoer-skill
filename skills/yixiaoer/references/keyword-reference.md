@@ -88,7 +88,7 @@
 | `goods` | 查询商品 |
 | `collections` | 查询合集 |
 | `challenges` | 查询话题 |
-| `records list` | 查询发布记录 |
+| `query records` | 查询发布记录 |
 
 ## 8. 使用场景关键词
 
@@ -109,5 +109,6 @@
 
 - `yxer` 是实际执行工具
 - `yixiaoer skill` 是给 AI 读的规则包
-- 发布前必须先 `prepare`、`schema get`、`validate`
+- 已有完整 payload 时，发布前必须先 `validate`、`publish --dry-run`
+- 缺字段或资源时，先用 `prepare` / `schema fields` / `publish form` 补齐 payload
 - 资源必须先上传，不能直接在 payload 里乱填外链

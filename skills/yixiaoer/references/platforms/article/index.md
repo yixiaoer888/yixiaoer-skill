@@ -21,7 +21,7 @@
    - **微信公众号**：必须单独发布，推荐使用 `platformForms` 结构。
    - **通用平台**（知乎、简书等）：使用 `accountForms` 结构进行分发。
 4. **参数装配**：注入 `action: "publish"` 及其余 DTO 字段。
-5. **指令执行**：先执行 `yxer validate <platform> article <payload.json>`，再执行 `yxer publish article <platform> <payload.json> [clientId]`。
+5. **指令执行**：先执行 `yxer validate <platform> article <payload.json>`，再执行 `yxer publish article <platform> <payload.json> [--publish-channel local --client-id <clientId>]`。
 
 ## 1. 数据结构 (Data Structure)
 
@@ -82,7 +82,7 @@
 > - 推荐优先使用“标准请求体”形态，在 `publishArgs` 中声明共享的 `covers`、`coverKey`、`content`，这些字段都与 `accountForms` 同级。
 > - 文章封面统一使用 `covers` 数组；只有一张封面时也写成 `covers: [{...}]`。`cover` 仅作为旧 payload 兼容输入。
 > - 文章正文推荐直接填写 `publishArgs.content`，不要只在 `contentPublishForm.content` 中单独填写。
-> - CLI 当前仍按**单平台命令**执行：`yxer publish article <platform> <payload.json> [clientId]`。
+> - CLI 当前仍按**单平台命令**执行：`yxer publish article <platform> <payload.json> [--publish-channel local --client-id <clientId>]`。
 > - `yxer validate` 与 `yxer publish` 都接受完整标准请求体；在共享字段存在而账号项缺失时，CLI 会在校验阶段自动补齐到对应 `accountForms[]`。
 
 ### 1.4 账号表单项 (accountForms Item)

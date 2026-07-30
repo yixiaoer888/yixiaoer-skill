@@ -14,7 +14,7 @@
 ## 执行逻辑 (Logic Flow)
 1. **资源校验**：确保所有图片均已上传并获得 Key。
 2. **参数装配**：填充描述及图片列表至 `contentPublishForm`。
-3. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
+3. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [--publish-channel local --client-id <clientId>]`。
 
 > [!TIP]
 > 抖音图文如涉及话题，请先读取 [`../../topic-tags.md`](../../topic-tags.md)。如果要使用 `<topic>`，Agent 必须直接写入最终 `description` HTML。

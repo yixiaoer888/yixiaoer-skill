@@ -21,13 +21,17 @@
 - 必须显式带 `--publish-channel local`
 - 必须确认 `clientId`
 - `validate`、`publish --dry-run`、正式 `publish` 必须保持同一套通道参数
+- 通道只在当前命令执行时解析一次；最终以 CLI 返回的 `publishChannel` 为准，不要根据服务端默认值猜测
 
-## clientId 获取顺序
+## clientId 获取方式
 
-1. payload 中已有 `clientId`
-2. 显式 flags：`--client-id <clientId>`
-3. 第四个位置参数：`yxer publish <type> <platform> <payload.json> <clientId>`
-4. 本地默认配置：`yxer config set-local-client-id <clientId>`
+1. 显式 flags：`--client-id <clientId>`
+2. 本地默认配置：`yxer config set-local-client-id <clientId>`
+3. payload 中已有 `clientId`
+
+第四个位置参数 `yxer publish <type> <platform> <payload.json> <clientId>` 只用于旧版兼容，不再推荐 Agent 使用。
+
+通道和 clientId 的优先级为：显式 flag > 旧版第四位置参数 > payload > 本地配置（仅 local 的 clientId）> 默认 cloud。cloud 发布会主动移除 clientId，避免把本机连接信息误带到云端。
 
 ## 推荐命令
 
@@ -38,10 +42,13 @@ yxer publish video 抖音 .\payload.json --publish-channel local --client-id <cl
 yxer publish video 抖音 .\payload.json --publish-channel local --client-id <clientId>
 ```
 
+`publish --dry-run` 的 `data.meta` 会返回 `effectivePublishChannel`、`publishChannelSource`、`clientIdSource` 和 `requestHash`。正式发布前应确认这些值与授权意图一致；`requestHash` 用于确认 validate、dry-run 和最终 payload 没有被中途替换。
+
 ## 回退策略
 
 - 云发布报“账号代理不存在”：提示检查代理配置，或改走本机发布
 - 本机发布报“客户端不在线”或“获取在线设备列表失败”：提示用户启动并登录客户端，或改回云发布
+- 不默认使用 `--auto-fallback-local`；该参数只在用户明确授权自动切换通道时使用
 
 ## 严禁行为
 

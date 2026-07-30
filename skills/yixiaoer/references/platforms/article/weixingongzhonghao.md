@@ -14,7 +14,7 @@
 ## 执行逻辑 (Logic Flow)
 1. **内容处理**：确保文章正文符合Weixingongzhonghao要求的格式。
 2. **参数装配**：提取标题、正文及封面信息至 `contentPublishForm`。
-3. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
+3. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [--publish-channel local --client-id <clientId>]`。
 
 > [!TIP]
 > 微信公众号仍推荐使用 `platformForms`；同时可以在 `publishArgs` 根级放共享封面或业务扩展字段。CLI 保持单平台执行模型。

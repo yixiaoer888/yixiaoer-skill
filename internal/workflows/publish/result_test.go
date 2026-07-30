@@ -3,6 +3,7 @@ package publish
 import (
 	"testing"
 
+	"github.com/yixiaoer/yixiaoer-skill/internal/config"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
@@ -22,18 +23,45 @@ func TestExecuteEnvelopeWrapsPublishResult(t *testing.T) {
 	}
 }
 
+func TestResolvePublishModeDetailedReportsDecisionSources(t *testing.T) {
+	resolution, err := ResolvePublishModeDetailed(config.Config{}, map[string]interface{}{
+		"publishChannel": "local",
+		"clientId":       "payload-client",
+	}, "", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolution.Channel != "local" || resolution.ChannelSource != "payload" {
+		t.Fatalf("unexpected channel resolution: %+v", resolution)
+	}
+	if resolution.ClientID != "payload-client" || resolution.ClientIDSource != "payload" {
+		t.Fatalf("unexpected client resolution: %+v", resolution)
+	}
+
+	resolution, err = ResolvePublishModeDetailed(config.Config{}, map[string]interface{}{}, "", "local", "flag-client")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolution.ChannelSource != "flag" || resolution.ClientIDSource != "flag" {
+		t.Fatalf("expected flag sources, got %+v", resolution)
+	}
+}
+
 func TestDryRunEnvelopeWrapsDryRunResult(t *testing.T) {
 	svc := Service{}
 	result := DryRunResult{
-		Platform:      "抖音",
-		PublishType:   "video",
-		PublishBody:   map[string]interface{}{"publishType": "video"},
-		PublishMode:   "cloud",
-		ClientID:      "",
-		AccountIDs:    []string{"acc_001"},
-		PlatformDraft: false,
-		YixiaoerDraft: false,
-		SchemaChecked: true,
+		Platform:          "抖音",
+		PublishType:       "video",
+		PublishBody:       map[string]interface{}{"publishType": "video"},
+		PublishMode:       "cloud",
+		PublishModeSource: "default",
+		ClientID:          "",
+		ClientIDSource:    "none",
+		RequestHash:       "abc123",
+		AccountIDs:        []string{"acc_001"},
+		PlatformDraft:     false,
+		YixiaoerDraft:     false,
+		SchemaChecked:     true,
 	}
 
 	got, err := svc.wrapDryRunEnvelope(result, nil)
@@ -55,6 +83,12 @@ func TestDryRunEnvelopeWrapsDryRunResult(t *testing.T) {
 	}
 	if meta["remoteChecks"] != false {
 		t.Fatalf("expected remoteChecks=false for local dry-run, got %#v", meta["remoteChecks"])
+	}
+	if meta["effectivePublishChannel"] != "cloud" || meta["publishChannelSource"] != "default" {
+		t.Fatalf("expected explicit publish channel metadata, got %#v", meta)
+	}
+	if meta["clientIdSource"] != "none" || meta["requestHash"] != "abc123" {
+		t.Fatalf("expected explicit clientId/hash metadata, got %#v", meta)
 	}
 	if fields, ok := meta["inferredFields"].(map[string]InferredField); !ok || len(fields) != 0 {
 		t.Fatalf("expected stable empty inferredFields object, got %#v", meta["inferredFields"])

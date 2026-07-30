@@ -59,7 +59,9 @@ func PathExists(path string) bool {
 }
 
 func hasWorkflowDocs(projectDir string) bool {
-	return PathExists(filepath.Join(projectDir, "workflows")) || PathExists(filepath.Join(projectDir, "references", "workflows"))
+	return PathExists(filepath.Join(projectDir, "workflows")) ||
+		PathExists(filepath.Join(projectDir, "references", "workflows")) ||
+		PathExists(filepath.Join(projectDir, "skills", "yixiaoer", "references", "workflows"))
 }
 
 func workflowDocsPath(projectDir string) string {
@@ -67,5 +69,9 @@ func workflowDocsPath(projectDir string) string {
 	if PathExists(workflowsDir) {
 		return workflowsDir
 	}
-	return filepath.Join(projectDir, "references", "workflows")
+	referencesWorkflowsDir := filepath.Join(projectDir, "references", "workflows")
+	if PathExists(referencesWorkflowsDir) {
+		return referencesWorkflowsDir
+	}
+	return filepath.Join(projectDir, "skills", "yixiaoer", "references", "workflows")
 }

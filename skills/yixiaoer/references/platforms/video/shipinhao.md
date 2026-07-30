@@ -19,10 +19,13 @@
    - 活动：调用 `activities` 获取活动 ID。
    - 商品：调用 `goods` 获取带货商品信息。
 3. **参数装配**：将获取的 `raw` 结构与 `yixiaoerId` 组装进 `accountForms[i].contentPublishForm`。
-4. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [clientId]`。
+4. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [--publish-channel local --client-id <clientId>]`。
 
 > [!TIP]
 > 示例优先使用“标准请求体”格式：共享资源放在 `publishArgs` 根级，账号差异字段放在 `accountForms[]`。CLI 会在校验阶段自动补齐缺失资源字段。
+
+> [!IMPORTANT]
+> 视频号封面大小不能超过 512KB。上传封面时必须执行 `yxer upload <封面路径或URL> --platform 视频号 --usage cover`；如果原图超限，CLI 会内部压缩后上传，并在返回 JSON 中给出压缩后的 `size`。payload 中使用该上传结果的完整 `cover` 对象和匹配的 `coverKey`。
 
 ## 1. contentPublishForm 参数定义
 
@@ -32,8 +35,9 @@
 | `title` | `string` | 否 | 视频标题 (最多 80 字) | - |
 | `short_title` | `string` | 否 | 视频短标题 | - |
 | `description` | `string` | 否 | 视频描述，支持 HTML 格式和 `@` 好友/话题标签 | - |
-| `horizontalCover` | `object` | 否 | 视频横板封面，使用 `OldCover` 结构 | - |
+| `horizontalCover` | `object` | 否 | 视频横版封面，使用 `OldCover` 结构；填写在 `contentPublishForm.horizontalCover`，也可用共享字段 `publishArgs.horizontalCover` 自动补齐 | - |
 | `createType` | `number` | **是** | 创建类型：1-草稿，2-直接发布 | 2 |
+| `declaration` | `number` | 否 | 视频标注：0-无需标注，1-含 AI 生成内容，2-内容包含营销广告，3-内容为虚构剧情仅供娱乐，7-内容为转载，8-个人观点仅供参考 | 0 |
 | `pubType` | `number` | **是** | 发布类型：0-草稿，1-直接发布 | 1 |
 | `location` | `object` | 否 | 视频位置，使用 `PlatformDataItem` 结构 | - |
 | `scheduledTime` | `number` | 否 | 定时发布时间戳 (13 位 Unix 时间戳，单位: 毫秒) | - |
@@ -64,6 +68,7 @@
           "title": "记录美好瞬间",
           "description": "<p>这是我的视频号首发 #生活 #记录</p>",
           "createType": 2,
+          "declaration": 1,
           "pubType": 1,
           "location": {
             "yixiaoerId": "loc_001",

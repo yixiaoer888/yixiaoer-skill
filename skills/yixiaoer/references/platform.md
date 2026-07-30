@@ -9,8 +9,10 @@
 | :--- | :--- |
 | `DouYin` | `抖音` |
 | `KuaiShou` | `快手` |
+| `KuaiShou-Open` | `快手-Open` |
 | `ShiPinHao` | `视频号` |
 | `BiLiBiLi` | `哔哩哔哩` |
+| `BiLiBiLi-Open` | `哔哩哔哩-Open` |
 | `XiaoHongShu` | `小红书` |
 | `BaiJiaHao` | `百家号` |
 | `TouTiaoHao` | `头条号` |
@@ -50,7 +52,6 @@
 | `JianShu` | `简书` |
 | `MeiYou` | `美柚` |
 | `WeiXinGongZhongHao-Open` | `微信公众号-Open` |
-| `BiLiBiLi-Open` | `哔哩哔哩-Open` |
 
 ## 平台类型枚举 (PlatformType)
 

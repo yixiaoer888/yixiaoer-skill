@@ -2,17 +2,15 @@ package cmd
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	publishmod "github.com/yixiaoer/yixiaoer-skill/internal/modules/publish"
 	"github.com/yixiaoer/yixiaoer-skill/internal/output"
-	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
-	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
 	publishflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/publish"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
@@ -50,99 +48,67 @@ func runValidate(cmd *cobra.Command, args []string, opts validateOptions) error 
 	if err != nil {
 		return err
 	}
-	cfg := rt.Config
 	payload, err := readPayload(payloadPath)
 	if err != nil {
 		return err
 	}
 	publishType = publishmod.NormalizePublishType(publishType)
-	channel, clientID, err := publishflow.ResolvePublishMode(cfg, payload, "", opts.Channel, opts.ClientID)
+	service := publishflow.NewService(rt)
+	prepared, err := service.Prepare(publishflow.ExecuteInput{
+		PublishType:   publishType,
+		PlatformInput: platform,
+		Payload:       payload,
+		FlagChannel:   opts.Channel,
+		FlagClientID:  opts.ClientID,
+	}, publishflow.PrepareOptions{TraceNormalizations: true, RemoteChecks: publishflow.RemoteChecksCloudWithKey})
 	if err != nil {
 		return err
-	}
-	// Mirror the publish pipeline exactly: resolve the publish mode onto the
-	// payload, canonicalize the platform name, and apply the shared
-	// normalization BEFORE schema validation so validate, dry-run, and publish
-	// all evaluate the identical normalized payload.
-	payload["publishChannel"] = channel
-	if clientID != "" {
-		payload["clientId"] = clientID
-	} else {
-		delete(payload, "clientId")
-	}
-	canonicalPlatform := platformutil.ChineseName(platform)
-	validator := schema.NewValidator(cfg.SchemaDir)
-	var topicPolicy publishmod.TopicHTMLPolicy
-	if schemaDoc, err := validator.Schema(platform, publishType); err == nil {
-		topicPolicy = publishmod.TopicHTMLPolicyFromSchema(canonicalPlatform, schemaDoc.Properties)
-	}
-	if payload["publishArgs"] != nil {
-		if err := publishmod.ResolveStandardPayloadResourceMetadata(payload); err != nil {
-			return err
-		}
-		publishmod.NormalizeStandardPayloadForSchemaValidation(publishType, []string{canonicalPlatform}, payload)
-	}
-	result, err := validator.ValidateStrict(platform, publishType, payload)
-	if err != nil {
-		return publishflow.SchemaUnavailableForCommand(platform, publishType, cfg.SchemaDir, err)
-	}
-	if !result.Valid {
-		// 增强错误提示
-		suggestions := analyzeValidationErrors(result.Errors, platform, publishType)
-
-		return yxerrors.Usage("Schema validation failed", map[string]interface{}{
-			"errors":      result.Errors,
-			"suggestions": suggestions,
-			"checklist": []string{
-				"✓ 已执行 yxer schema fields " + platform + " " + publishType + "?",
-				"✓ payload 顶层包含 publishArgs?",
-				"✓ 业务字段在 publishArgs.accountForms[].contentPublishForm?",
-				"✓ 资源已通过 yxer upload 上传并使用返回的完整对象?",
-				"✓ 复杂对象（location/music等）已通过查询命令获取?",
-			},
-		}).
-			WithHint("根据上方 suggestions 修正字段，或查看 checklist 确认流程是否正确。").
-			WithNextCommand(fmt.Sprintf("yxer schema fields %s %s", platform, publishType))
-	}
-	if err := requireStandardPublishPayload(payload, platform, publishType); err != nil {
-		return err
-	}
-	if _, hasAccountForms := payload["accountForms"]; hasAccountForms || payload["publishArgs"] != nil {
-		preflight := publishmod.PreflightWithTopicHTMLPolicy(publishType, []string{canonicalPlatform}, payload, topicPolicy)
-		if len(preflight.Errors) > 0 {
-			return yxerrors.Usage("Publish preflight failed", preflight.Errors).
-				WithHint("请先完成资源上传，并确保 payload 中引用的是上传后的 key，而不是外部 URL。").
-				WithNextCommand("yxer upload <file_path_or_url>")
-		}
-		if channel == "cloud" && cfg.APIKey != "" && len(preflight.AccountIDs) > 0 {
-			accountsByID, err := publishflow.ResolveTargetAccounts(rt.Client, []string{canonicalPlatform}, preflight.AccountIDs)
-			if err != nil {
-				return err
-			}
-			if err := publishflow.AssertCloudChannelReady(channel, []string{canonicalPlatform}, accountsByID); err != nil {
-				return err
-			}
-		}
 	}
 	return output.Success(cmd.OutOrStdout(), "validate", map[string]interface{}{
-		"platform": platform,
-		"type":     publishType,
-		"valid":    true,
-		"nextStep": fmt.Sprintf("yxer publish %s %s %s --dry-run", publishType, platform, payloadPath),
+		"platform":     platform,
+		"type":         publishType,
+		"valid":        true,
+		"prepared":     true,
+		"request":      prepared.PublishBody,
+		"remoteChecks": prepared.RemoteChecked,
+		"nextStep":     publishNextCommand(publishType, platform, payloadPath, prepared.PublishMode, prepared.ClientID, true),
 	})
 }
 
-func requireStandardPublishPayload(payload map[string]interface{}, platform, publishType string) error {
-	if _, ok := payload["publishArgs"].(map[string]interface{}); ok {
-		return nil
+func publishNextCommand(publishType, platform, payloadPath, channel, clientID string, dryRun bool) string {
+	parts := []string{"yxer", "publish", publishType, quoteCommandArg(platform), quoteCommandArg(payloadPath)}
+	if strings.TrimSpace(channel) == "local" {
+		parts = append(parts, "--publish-channel", "local")
+		if strings.TrimSpace(clientID) != "" {
+			parts = append(parts, "--client-id", quoteCommandArg(clientID))
+		}
 	}
-	return yxerrors.Usage("Standard publish payload is required", []string{
-		fmt.Sprintf("platform=%s", platform),
-		fmt.Sprintf("type=%s", publishType),
-		"missing publishArgs",
-	}).
-		WithHint("请使用标准请求体：顶层保留 action/publishType/platforms/publishArgs，实际业务字段放到 publishArgs.accountForms[].contentPublishForm。").
-		WithNextCommand(fmt.Sprintf("yxer schema fields %s %s", platform, publishType))
+	if dryRun {
+		parts = append(parts, "--dry-run")
+	}
+	return strings.Join(parts, " ")
+}
+
+func validateNextCommand(platform, publishType, payloadPath, channel, clientID string) string {
+	parts := []string{"yxer", "validate", quoteCommandArg(platform), publishType, quoteCommandArg(payloadPath)}
+	if strings.TrimSpace(channel) == "local" {
+		parts = append(parts, "--publish-channel", "local")
+		if strings.TrimSpace(clientID) != "" {
+			parts = append(parts, "--client-id", quoteCommandArg(clientID))
+		}
+	}
+	return strings.Join(parts, " ")
+}
+
+func quoteCommandArg(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return value
+	}
+	if strings.ContainsAny(value, " \t\"'") {
+		return strconv.Quote(value)
+	}
+	return value
 }
 
 func readPayload(path string) (map[string]interface{}, error) {
@@ -152,6 +118,20 @@ func readPayload(path string) (map[string]interface{}, error) {
 	}
 	raw, err := os.ReadFile(abs)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, yxerrors.Usage("Payload file not found", map[string]interface{}{
+				"path": abs,
+			}).
+				WithCategory("file_not_found").
+				WithHint("请检查 payload 文件路径；相对路径按当前工作目录解析，或先用对应的 init/form export 命令生成文件。")
+		}
+		if os.IsPermission(err) {
+			return nil, yxerrors.Usage("Payload file is not readable", map[string]interface{}{
+				"path": abs,
+			}).
+				WithCategory("file_not_readable").
+				WithHint("请检查文件权限，确认当前用户可以读取该 payload 文件。")
+		}
 		return nil, err
 	}
 	var payload map[string]interface{}
