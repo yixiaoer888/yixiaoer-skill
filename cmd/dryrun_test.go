@@ -34,8 +34,8 @@ func TestUploadDryRunPreviewUsesExplicitFileFlag(t *testing.T) {
 	if request["source"] != "C:\\tmp\\cover.png" || request["sourceType"] != "file" {
 		t.Fatalf("unexpected dry-run upload preview: %#v", request)
 	}
-	if request["autoMeta"] != true {
-		t.Fatalf("expected autoMeta flag in dry-run upload preview, got %#v", request)
+	if _, exists := request["autoMeta"]; exists {
+		t.Fatalf("expected autoMeta to be omitted by default in dry-run upload preview, got %#v", request)
 	}
 }
 
@@ -60,10 +60,10 @@ func TestUploadDryRunShowsShipinhaoCoverCompressionLimit(t *testing.T) {
 	}
 }
 
-func TestUploadFlagDefaultEnablesAutoMeta(t *testing.T) {
+func TestUploadFlagDefaultDisablesAutoMeta(t *testing.T) {
 	cmd := newUploadCmd()
-	if cmd.Flag("auto-meta").DefValue != "true" {
-		t.Fatalf("expected upload --auto-meta default to be true, got %q", cmd.Flag("auto-meta").DefValue)
+	if cmd.Flag("auto-meta").DefValue != "false" {
+		t.Fatalf("expected upload --auto-meta default to be false, got %q", cmd.Flag("auto-meta").DefValue)
 	}
 }
 

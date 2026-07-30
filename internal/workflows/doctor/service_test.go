@@ -82,3 +82,36 @@ func TestCheckSupportsReferencesWorkflowLayout(t *testing.T) {
 		t.Fatalf("unexpected workflowDocsPath: %#v", checks["workflowDocsPath"])
 	}
 }
+
+func TestCheckSupportsSkillsWorkflowLayout(t *testing.T) {
+	projectDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(projectDir, "schemas"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(projectDir, "skills", "yixiaoer", "references", "workflows"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("YIXIAOER_PROJECT_DIR", projectDir)
+	configPath := filepath.Join(t.TempDir(), "yxer-config.json")
+	t.Setenv("YIXIAOER_CONFIG", configPath)
+	if _, err := config.SaveAPIKey("test-api-key"); err != nil {
+		t.Fatal(err)
+	}
+
+	rt, err := app.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	checks, err := NewService(rt).Check()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if checks["workflowsOK"] != true {
+		t.Fatalf("expected workflowsOK true, got %#v", checks["workflowsOK"])
+	}
+	if checks["workflowDocsPath"] != filepath.Join(projectDir, "skills", "yixiaoer", "references", "workflows") {
+		t.Fatalf("unexpected workflowDocsPath: %#v", checks["workflowDocsPath"])
+	}
+}

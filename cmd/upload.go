@@ -29,7 +29,7 @@ type uploadOptions struct {
 func newUploadCmd() *cobra.Command {
 	opts := uploadOptions{
 		Bucket:   "cloud-publish",
-		AutoMeta: true,
+		AutoMeta: false,
 	}
 	cmd := &cobra.Command{
 		Use:   "upload [file_path_or_url]",
@@ -44,7 +44,7 @@ func newUploadCmd() *cobra.Command {
 	cmd.Flags().StringVar(&opts.File, "file", "", "local file path to upload")
 	cmd.Flags().StringVar(&opts.URL, "url", "", "remote URL to upload")
 	cmd.Flags().BoolVar(&opts.DryRun, "dry-run", false, "preview upload request without performing the write")
-	cmd.Flags().BoolVar(&opts.AutoMeta, "auto-meta", true, "extract media metadata automatically for uploaded assets")
+	cmd.Flags().BoolVar(&opts.AutoMeta, "auto-meta", false, "extract media metadata automatically for uploaded assets")
 	cmd.Flags().StringVar(&opts.Platform, "platform", "", "target platform for platform-specific media handling")
 	cmd.Flags().StringVar(&opts.Usage, "usage", "", "resource usage, for example cover or image")
 	return cmd

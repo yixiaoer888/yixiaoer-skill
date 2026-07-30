@@ -2,23 +2,115 @@
   "title": "哔哩哔哩-Open视频发布表单 (Bilibili Open Video)",
   "type": "object",
   "required": [
-    "formType",
-    "title",
-    "tags",
-    "category"
+    "contentPublishForm",
+    "platformAccountId",
+    "video",
+    "cover",
+    "coverKey"
   ],
   "properties": {
-    "formType": {
-      "type": "string",
-      "const": "task"
-    },
-    "title": {
-      "type": "string",
-      "minLength": 1
-    },
-    "description": {
-      "type": "string",
-      "minLength": 0
+    "contentPublishForm": {
+      "type": "object",
+      "required": [
+        "formType",
+        "title",
+        "tags",
+        "category"
+      ],
+      "properties": {
+        "formType": {
+          "type": "string",
+          "const": "task"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 0
+        },
+        "tags": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "items": {
+            "type": "string",
+            "maxLength": 20
+          }
+        },
+        "category": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "yixiaoerId",
+              "yixiaoerName",
+              "raw"
+            ],
+            "properties": {
+              "yixiaoerId": {
+                "type": "string"
+              },
+              "yixiaoerName": {
+                "type": "string"
+              },
+              "raw": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "allowReprint": {
+          "type": "number",
+          "enum": [
+            0,
+            1
+          ],
+          "default": 0
+        },
+        "createType": {
+          "type": "number",
+          "enum": [
+            1,
+            2
+          ],
+          "default": 1
+        },
+        "type": {
+          "type": "number",
+          "enum": [
+            1,
+            2
+          ],
+          "default": 1
+        },
+        "reprintSource": {
+          "type": "string"
+        },
+        "visibleType": {
+          "type": "number",
+          "enum": [
+            0,
+            1
+          ],
+          "default": 0
+        },
+        "pubType": {
+          "type": "number",
+          "enum": [
+            0,
+            1
+          ],
+          "default": 1
+        },
+        "scheduledTime": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
     },
     "video": {
       "type": "object",
@@ -26,7 +118,8 @@
         "key",
         "size",
         "width",
-        "height"
+        "height",
+        "duration"
       ],
       "properties": {
         "key": {
@@ -78,90 +171,17 @@
         },
         "height": {
           "type": "integer"
+        },
+        "format": {
+          "type": "string"
         }
       }
     },
     "coverKey": {
       "type": "string"
     },
-    "tags": {
-      "type": "array",
-      "minItems": 1,
-      "maxItems": 12,
-      "items": {
-        "type": "string",
-        "maxLength": 20
-      }
-    },
-    "category": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "required": [
-          "yixiaoerId",
-          "yixiaoerName",
-          "raw"
-        ],
-        "properties": {
-          "yixiaoerId": {
-            "type": "string"
-          },
-          "yixiaoerName": {
-            "type": "string"
-          },
-          "raw": {
-            "type": "object"
-          }
-        }
-      }
-    },
-    "allowReprint": {
-      "type": "number",
-      "enum": [
-        0,
-        1
-      ],
-      "default": 0
-    },
-    "createType": {
-      "type": "number",
-      "enum": [
-        1,
-        2
-      ],
-      "default": 1
-    },
-    "type": {
-      "type": "number",
-      "enum": [
-        1,
-        2
-      ],
-      "default": 1
-    },
-    "reprintSource": {
+    "platformAccountId": {
       "type": "string"
-    },
-    "visibleType": {
-      "type": "number",
-      "enum": [
-        0,
-        1
-      ],
-      "default": 0
-    },
-    "pubType": {
-      "type": "number",
-      "enum": [
-        0,
-        1
-      ],
-      "default": 1
-    },
-    "scheduledTime": {
-      "type": "number",
-      "minimum": 0
     }
   },
   "additionalProperties": false

@@ -33,30 +33,30 @@ func TestWebParitySchemasExposeCurrentFieldNamesAndEnums(t *testing.T) {
 	tests := []struct {
 		platform string
 		kind     string
-		field    string
+		field    []string
 		values   []float64
 	}{
-		{"快手", "imageText", "visibleType", []float64{0, 1, 2}},
-		{"快手", "imageText", "declaration", []float64{0, 1, 2, 3}},
-		{"快手-Open", "video", "visibleType", []float64{0, 1}},
-		{"快手-Open", "video", "pubType", []float64{0, 1}},
-		{"小红书", "imageText", "visibleType", []float64{0, 1, 3}},
-		{"小红书", "imageText", "declaration", []float64{0, 1, 2}},
-		{"新浪微博", "imageText", "visibleType", []float64{0, 1}},
-		{"新浪微博", "imageText", "declaration", []float64{0, 1, 2, 3, 4}},
-		{"视频号", "video", "declaration", []float64{0, 1, 2, 3, 7, 8}},
-		{"哔哩哔哩-Open", "video", "allowReprint", []float64{0, 1}},
-		{"哔哩哔哩-Open", "video", "createType", []float64{1, 2}},
-		{"哔哩哔哩-Open", "video", "type", []float64{1, 2}},
-		{"哔哩哔哩-Open", "video", "pubType", []float64{0, 1}},
-		{"一点号", "video", "createType", []float64{1, 2}},
+		{"快手", "imageText", []string{"visibleType"}, []float64{0, 1, 2}},
+		{"快手", "imageText", []string{"declaration"}, []float64{0, 1, 2, 3}},
+		{"快手-Open", "video", []string{"visibleType"}, []float64{0, 1}},
+		{"快手-Open", "video", []string{"pubType"}, []float64{0, 1}},
+		{"小红书", "imageText", []string{"visibleType"}, []float64{0, 1, 3}},
+		{"小红书", "imageText", []string{"declaration"}, []float64{0, 1, 2}},
+		{"新浪微博", "imageText", []string{"visibleType"}, []float64{0, 1}},
+		{"新浪微博", "imageText", []string{"declaration"}, []float64{0, 1, 2, 3, 4}},
+		{"视频号", "video", []string{"declaration"}, []float64{0, 1, 2, 3, 7, 8}},
+		{"哔哩哔哩-Open", "video", []string{"contentPublishForm", "allowReprint"}, []float64{0, 1}},
+		{"哔哩哔哩-Open", "video", []string{"contentPublishForm", "createType"}, []float64{1, 2}},
+		{"哔哩哔哩-Open", "video", []string{"contentPublishForm", "type"}, []float64{1, 2}},
+		{"哔哩哔哩-Open", "video", []string{"contentPublishForm", "pubType"}, []float64{0, 1}},
+		{"一点号", "video", []string{"createType"}, []float64{1, 2}},
 	}
 	for _, tc := range tests {
 		doc, err := validator.Schema(tc.platform, tc.kind)
 		if err != nil {
 			t.Fatalf("%s/%s: %v", tc.platform, tc.kind, err)
 		}
-		field, ok := doc.Properties[tc.field]
+		field, ok := schemaField(doc.Properties, tc.field...)
 		if !ok {
 			t.Fatalf("%s/%s missing Web field %q", tc.platform, tc.kind, tc.field)
 		}
@@ -76,12 +76,12 @@ func TestOpenPlatformVideoSchemasUseWebPlatformNames(t *testing.T) {
 		inputPlatform string
 		wantKey       string
 		wantName      string
-		requiredField string
+		requiredField []string
 	}{
-		{"BiLiBiLi-Open", "bilibili-open/video", "哔哩哔哩-Open", "title"},
-		{"哔哩哔哩-Open", "bilibili-open/video", "哔哩哔哩-Open", "tags"},
-		{"KuaiShou-Open", "kuaishou-open/video", "快手-Open", "description"},
-		{"快手-Open", "kuaishou-open/video", "快手-Open", "description"},
+		{"BiLiBiLi-Open", "bilibili-open/video", "哔哩哔哩-Open", []string{"contentPublishForm", "title"}},
+		{"哔哩哔哩-Open", "bilibili-open/video", "哔哩哔哩-Open", []string{"contentPublishForm", "tags"}},
+		{"KuaiShou-Open", "kuaishou-open/video", "快手-Open", []string{"description"}},
+		{"快手-Open", "kuaishou-open/video", "快手-Open", []string{"description"}},
 	}
 	for _, tc := range tests {
 		doc, err := validator.Schema(tc.inputPlatform, "video")
@@ -94,11 +94,28 @@ func TestOpenPlatformVideoSchemasUseWebPlatformNames(t *testing.T) {
 		if got := platformutil.ChineseName(doc.Platform); got != tc.wantName {
 			t.Fatalf("%s/video chinese name = %q, want %q", tc.inputPlatform, got, tc.wantName)
 		}
-		field := doc.Properties[tc.requiredField]
+		field, ok := schemaField(doc.Properties, tc.requiredField...)
+		if !ok {
+			t.Fatalf("%s/video missing required field %q", tc.inputPlatform, tc.requiredField)
+		}
 		if !field.Required {
 			t.Fatalf("%s/video field %s should be required, got %#v", tc.inputPlatform, tc.requiredField, field)
 		}
 	}
+}
+
+func schemaField(properties map[string]schema.PropertyView, path ...string) (schema.PropertyView, bool) {
+	for index, name := range path {
+		field, ok := properties[name]
+		if !ok {
+			return schema.PropertyView{}, false
+		}
+		if index == len(path)-1 {
+			return field, true
+		}
+		properties = field.Properties
+	}
+	return schema.PropertyView{}, false
 }
 
 func containsSchemaEnum(values []interface{}, expected float64) bool {
