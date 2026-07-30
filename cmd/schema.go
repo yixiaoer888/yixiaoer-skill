@@ -832,6 +832,12 @@ func getPlatformSpecificNotes(platform, publishType string) []string {
 			notes = append(notes, "快手视频支持话题(challenge)和位置(location)")
 		}
 
+	case "kuaishou-open", "kuaishouopen", "快手-open", "快手-Open":
+		if publishType == "video" {
+			notes = append(notes, "快手-Open 视频使用开放平台发布，只要求 description；不支持浏览器发布通道")
+			notes = append(notes, "平台草稿使用 contentPublishForm.pubType=0；私密发布使用 visibleType=1")
+		}
+
 	case "xiaohongshu", "xhs", "小红书":
 		if publishType == "imageText" {
 			notes = append(notes, "小红书图文需要1-9张图片，支持话题标签")
@@ -851,6 +857,12 @@ func getPlatformSpecificNotes(platform, publishType string) []string {
 	case "bilibili", "哔哩哔哩":
 		if publishType == "video" {
 			notes = append(notes, "B站视频需要选择分区(category)")
+		}
+
+	case "bilibili-open", "bilibiliopen", "哔哩哔哩-open", "哔哩哔哩-Open":
+		if publishType == "video" {
+			notes = append(notes, "哔哩哔哩-Open 视频需要选择分类(category)，分类对象必须来自 yxer query categories")
+			notes = append(notes, "createType 为 web 表单字段；type 为后端 DTO 兼容字段，二者枚举均为 1-原创、2-转载")
 		}
 
 	case "weixin.account", "微信公众号":

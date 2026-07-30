@@ -142,7 +142,9 @@
 | :--- | :--- | :--- |
 | **头条号** | `Toutiaohao` | [toutiaohao.md](./toutiaohao.md) |
 | **哔哩哔哩** | `Bilibili` | [bilibili.md](./bilibili.md) |
+| **哔哩哔哩-Open** | `Bilibili-Open` | [bilibili-open.md](./bilibili-open.md) |
 | **抖音** | `Douyin` | [douyin.md](./douyin.md) |
+| **快手-Open** | `Kuaishou-Open` | [kuaishou-open.md](./kuaishou-open.md) |
 | **视频号** | `Shipinhao` | [shipinhao.md](./shipinhao.md) |
 | **TikTok** | `Tiktok` | [tiktok.md](./tiktok.md) |
 | **Youtube** | `Youtube` | [youtube.md](./youtube.md) |
