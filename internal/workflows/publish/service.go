@@ -340,7 +340,7 @@ func BuildPublishBodyWithInferred(payload, publishArgs map[string]interface{}, p
 	body["publishType"] = publishType
 	body["platforms"] = platforms
 	applyPublishMode(body, channel, clientID)
-	stripArticleContentFromForms(body)
+	stripArticleContentFromForms(body, platforms)
 	inferred := normalizePublishEnvelope(body, publishArgs, publishType)
 	return body, inferred
 }
@@ -455,8 +455,11 @@ func inferOuterDesc(publishType string, publishArgs, contentPublishForm, weixinA
 	}
 }
 
-func stripArticleContentFromForms(body map[string]interface{}) {
+func stripArticleContentFromForms(body map[string]interface{}, platforms []string) {
 	if publishmod.NormalizePublishType(stringField(body, "publishType")) != "article" {
+		return
+	}
+	if articleKeepsContentInForm(platforms) {
 		return
 	}
 	publishArgs, _ := body["publishArgs"].(map[string]interface{})
@@ -475,6 +478,16 @@ func stripArticleContentFromForms(body map[string]interface{}) {
 		}
 		delete(cpf, "content")
 	}
+}
+
+func articleKeepsContentInForm(platforms []string) bool {
+	for _, platform := range platforms {
+		switch platformutil.CanonicalKey(platform) {
+		case "jianshu":
+			return true
+		}
+	}
+	return false
 }
 
 func firstObject(items []interface{}) map[string]interface{} {

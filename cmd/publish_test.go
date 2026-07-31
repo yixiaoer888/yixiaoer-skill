@@ -1630,6 +1630,71 @@ func TestPublishCommandKeepsArticleContentOnlyUnderPublishArgs(t *testing.T) {
 	}
 }
 
+func TestPublishCommandKeepsJianshuArticleContentInForm(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "article",
+		"platforms":      []interface{}{"简书"},
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"content": "<p>简书正文</p>",
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_jianshu_1",
+					"contentPublishForm": map[string]interface{}{
+						"formType": "task",
+						"title":    "简书文章标题",
+						"pubType":  float64(1),
+					},
+				},
+			},
+		},
+	})
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{
+					{"platformAccountId": "acc_jianshu_1", "name": "简书账号", "status": 1},
+				},
+			})
+		case "/taskSets/v2":
+			publishCalls++
+			if err := json.NewDecoder(r.Body).Decode(&publishBody); err != nil {
+				t.Fatal(err)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{"taskSetId": "task_set_jianshu_1"},
+			})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"article", "简书", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if publishCalls != 1 {
+		t.Fatalf("expected one publish call, got %d", publishCalls)
+	}
+	args := publishBody["publishArgs"].(map[string]interface{})
+	if args["content"] != "<p>简书正文</p>" {
+		t.Fatalf("expected article content under publishArgs, got %#v", args["content"])
+	}
+	cpf := args["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	if cpf["content"] != "<p>简书正文</p>" {
+		t.Fatalf("expected jianshu content inside contentPublishForm, got %+v", cpf)
+	}
+}
+
 func TestPublishCommandMaterializesArticleContentImageURLs(t *testing.T) {
 	withRepoRoot(t)
 	imageBytes := testPNGBytes(t)

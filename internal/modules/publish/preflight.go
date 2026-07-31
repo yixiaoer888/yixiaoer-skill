@@ -507,7 +507,7 @@ func copyArticleContentIntoForms(payload map[string]interface{}, platforms []str
 func articleRequiresCover(platforms []string) bool {
 	for _, platform := range platforms {
 		switch platformutil.CanonicalKey(platform) {
-		case "douban":
+		case "douban", "jianshu":
 			return false
 		}
 	}
@@ -517,7 +517,7 @@ func articleRequiresCover(platforms []string) bool {
 func articleAllowsContentCovers(platforms []string) bool {
 	for _, platform := range platforms {
 		switch platformutil.CanonicalKey(platform) {
-		case "douban":
+		case "douban", "jianshu":
 			return false
 		}
 	}
