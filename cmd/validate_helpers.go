@@ -23,7 +23,7 @@ func analyzeValidationErrors(errors []string, platform, publishType string) []ma
 
 		} else if strings.Contains(err, "location") && strings.Contains(err, "raw") {
 			suggestion["reason"] = "位置对象缺少完整 raw"
-			suggestion["fix"] = "通过位置查询命令获取完整对象，并按 schema 前端表单结构回填；抖音位置是 {isScp,data}，其他位置通常是 {id,text,raw}"
+			suggestion["fix"] = "通过位置查询命令获取完整对象；抖音位置是 {isScp,data}，其中 data 为 {yixiaoerId,yixiaoerName,raw}，其他平台直接使用 {yixiaoerId,yixiaoerName,raw}"
 			suggestion["reference"] = "yxer query locations <account_id> [--query 关键词] --json"
 			suggestion["exampleField"] = "dynamicFieldExamples.location"
 

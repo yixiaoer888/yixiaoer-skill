@@ -2343,9 +2343,9 @@ func TestPublishCommandAcceptsSouhuhaoVideoPayload(t *testing.T) {
 						"pubType":     float64(1),
 						"category": []interface{}{
 							map[string]interface{}{
-								"id":   "1",
-								"text": "科技",
-								"raw":  map[string]interface{}{"id": "1"},
+								"yixiaoerId":   "1",
+								"yixiaoerName": "科技",
+								"raw":          map[string]interface{}{"id": "1"},
 							},
 						},
 					},

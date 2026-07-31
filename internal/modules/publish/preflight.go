@@ -723,7 +723,7 @@ func normalizeDynamicObjectFields(cpf map[string]interface{}, formPath, publishT
 		case field == "location":
 			normalized, changed = normalizeLocationValue(value, fieldPath, publishType, platformSet, normalizations)
 		case field == "category":
-			normalized, changed = normalizePlatformDataValue(value, fieldPath, field, normalizations)
+			normalized, changed = normalizeCategoryValue(value, fieldPath, field, normalizations)
 		default:
 			normalized, changed = normalizeDynamicObjectValue(value, fieldPath, field, normalizations)
 		}
@@ -733,15 +733,61 @@ func normalizeDynamicObjectFields(cpf map[string]interface{}, formPath, publishT
 	}
 }
 
-func isDouyinPlatformSet(platformSet map[string]bool) bool {
-	return platformSet["抖音"] || platformSet["douyin"]
+func normalizeCategoryValue(value interface{}, path, field string, normalizations *[]NormalizationEvent) (interface{}, bool) {
+	normalized, changed := normalizeDynamicObjectValue(value, path, field, normalizations)
+	if stripDynamicFrontendAliases(normalized) {
+		changed = true
+	}
+	return normalized, changed
 }
 
 func normalizeLocationValue(value interface{}, path, publishType string, platformSet map[string]bool, normalizations *[]NormalizationEvent) (interface{}, bool) {
 	if isDouyinPlatformSet(platformSet) {
 		return normalizeDouyinLocationValue(value, path, publishType, normalizations)
 	}
-	return normalizePlatformDataValue(value, path, "location", normalizations)
+	normalized, changed := normalizeDynamicObjectValue(value, path, "location", normalizations)
+	if stripDynamicFrontendAliases(normalized) {
+		changed = true
+	}
+	return normalized, changed
+}
+
+func stripDynamicFrontendAliases(value interface{}) bool {
+	if items, ok := value.([]interface{}); ok {
+		changed := false
+		for _, item := range items {
+			if stripDynamicFrontendAliases(item) {
+				changed = true
+			}
+		}
+		return changed
+	}
+	obj, ok := value.(map[string]interface{})
+	if !ok || obj == nil {
+		return false
+	}
+	changed := false
+	if normalizeDynamicIdentityAliases(obj) {
+		changed = true
+	}
+	for _, key := range []string{"id", "text", "value"} {
+		if _, exists := obj[key]; exists {
+			delete(obj, key)
+			changed = true
+		}
+	}
+	for _, key := range []string{"child", "children"} {
+		if children, ok := obj[key].([]interface{}); ok {
+			if stripDynamicFrontendAliases(children) {
+				changed = true
+			}
+		}
+	}
+	return changed
+}
+
+func isDouyinPlatformSet(platformSet map[string]bool) bool {
+	return platformSet["抖音"] || platformSet["douyin"]
 }
 
 func normalizeDouyinLocationValue(value interface{}, path, publishType string, normalizations *[]NormalizationEvent) (interface{}, bool) {
@@ -749,8 +795,11 @@ func normalizeDouyinLocationValue(value interface{}, path, publishType string, n
 	if !ok || obj == nil {
 		return value, false
 	}
-	if data, _ := obj["data"].(map[string]interface{}); isDynamicQueryObject(data) {
+	if data, _ := obj["data"].(map[string]interface{}); data != nil {
 		changed := false
+		if stripDynamicFrontendAliases(data) {
+			changed = true
+		}
 		if _, exists := obj["isScp"]; !exists {
 			obj["isScp"] = inferDouyinLocationIsScp(data, publishType)
 			changed = true
@@ -759,14 +808,15 @@ func normalizeDouyinLocationValue(value interface{}, path, publishType string, n
 			appendNormalization(normalizations, NormalizationEvent{
 				Field:        "location",
 				Path:         path,
-				Action:       "complete_frontend_shape",
-				Message:      `Completed Douyin frontend location shape with "isScp".`,
+				Action:       "complete_douyin_location_shape",
+				Message:      `Completed Douyin location shape with "isScp" and normalized data identity fields.`,
 				QueryCommand: dynamicObjectQueryCommand("location"),
 			})
 		}
 		return obj, changed
 	}
 	if isDynamicQueryObject(obj) {
+		stripDynamicFrontendAliases(obj)
 		normalized := map[string]interface{}{
 			"isScp": inferDouyinLocationIsScp(obj, publishType),
 			"data":  obj,
@@ -774,8 +824,8 @@ func normalizeDouyinLocationValue(value interface{}, path, publishType string, n
 		appendNormalization(normalizations, NormalizationEvent{
 			Field:        "location",
 			Path:         path,
-			Action:       "wrap_frontend_shape",
-			Message:      `Wrapped location query object into Douyin frontend location shape.`,
+			Action:       "wrap_douyin_location_shape",
+			Message:      `Wrapped location query object into Douyin location shape.`,
 			QueryCommand: dynamicObjectQueryCommand("location"),
 		})
 		return normalized, true

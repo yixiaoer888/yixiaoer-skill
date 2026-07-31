@@ -76,7 +76,8 @@
         "type": "object",
         "required": [
           "yixiaoerId",
-          "yixiaoerName"
+          "yixiaoerName",
+          "raw"
         ],
         "properties": {
           "yixiaoerId": {
@@ -84,6 +85,9 @@
           },
           "yixiaoerName": {
             "type": "string"
+          },
+          "raw": {
+            "type": "object"
           }
         },
         "additionalProperties": false

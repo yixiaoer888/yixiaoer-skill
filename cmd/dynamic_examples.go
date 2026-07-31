@@ -18,7 +18,7 @@ type dynamicFieldExample struct {
 func buildDynamicFieldExamples(doc schema.Document) map[string]dynamicFieldExample {
 	examples := map[string]dynamicFieldExample{}
 	addDynamicObjectExample(examples, doc, "category", "yxer query categories <account_id> --type <video|article> --json", "分类对象必须完整来自查询结果；有层级分类时保留完整 child 路径。")
-	addDynamicObjectExample(examples, doc, "location", "yxer query locations <account_id> [--query 关键词] --json", "位置对象必须完整来自查询结果，并按 schema 显示的前端表单结构回填。")
+	addDynamicObjectExample(examples, doc, "location", "yxer query locations <account_id> [--query 关键词] --json", "位置对象必须完整来自查询结果；抖音按 schema 包装为 {isScp,data}，其他平台直接回填查询对象。")
 	addDynamicObjectExample(examples, doc, "music", "yxer query music <account_id> [--query 关键词] --json", "音乐对象必须完整来自查询结果，保留播放地址、时长等查询返回字段以及 raw。")
 	addDynamicObjectExample(examples, doc, "collection", "yxer query collections <account_id> --type <video|article> --json", "合集对象必须完整来自查询结果，并保留 raw。")
 	addDynamicObjectExample(examples, doc, "sub_collection", "yxer query collections <account_id> --type <video|article> --json", "子合集对象必须完整来自查询结果，并保留 raw。")

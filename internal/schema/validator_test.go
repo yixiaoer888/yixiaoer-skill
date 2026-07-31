@@ -388,21 +388,21 @@ func TestValidateRejectsDouyinVideoDescriptionOverOneThousandCharacters(t *testi
 	}
 }
 
-func TestValidateAcceptsFrontendPlatformDataLocationShape(t *testing.T) {
+func TestValidateAcceptsQueryObjectLocationShape(t *testing.T) {
 	validator := NewValidator(filepath.Join("..", "..", "schemas"))
 	payload := map[string]interface{}{
 		"formType":    "task",
 		"description": "快手视频描述",
 		"location": map[string]interface{}{
-			"id":   "loc_001",
-			"text": "上海",
-			"raw":  map[string]interface{}{"id": "loc_001"},
+			"yixiaoerId":   "loc_001",
+			"yixiaoerName": "上海",
+			"raw":          map[string]interface{}{"id": "loc_001"},
 		},
 	}
 
 	result := validator.Validate("快手", "video", payload)
 	if !result.Valid {
-		t.Fatalf("expected frontend id/text/raw location structure to pass, got %v", result.Errors)
+		t.Fatalf("expected query object location structure to pass, got %v", result.Errors)
 	}
 }
 
@@ -425,10 +425,12 @@ func TestValidateAcceptsBaijiahaoCategoryPathArray(t *testing.T) {
 			map[string]interface{}{
 				"yixiaoerId":   "32",
 				"yixiaoerName": "财经",
+				"raw":          map[string]interface{}{"id": "32"},
 			},
 			map[string]interface{}{
 				"yixiaoerId":   "9",
 				"yixiaoerName": "财经综合",
+				"raw":          map[string]interface{}{"id": "9"},
 			},
 		},
 	}
@@ -645,9 +647,9 @@ func TestValidateAcceptsBaijiahaoImageTextPayload(t *testing.T) {
 			},
 		},
 		"location": map[string]interface{}{
-			"id":   "loc_1",
-			"text": "北京",
-			"raw":  map[string]interface{}{"id": "loc_1"},
+			"yixiaoerId":   "loc_1",
+			"yixiaoerName": "北京",
+			"raw":          map[string]interface{}{"id": "loc_1"},
 		},
 	}
 
@@ -668,9 +670,9 @@ func TestValidateAcceptsSouhuhaoVideoPayload(t *testing.T) {
 		"tags":        []interface{}{"科技"},
 		"category": []interface{}{
 			map[string]interface{}{
-				"id":   "1",
-				"text": "科技",
-				"raw":  map[string]interface{}{"id": "1"},
+				"yixiaoerId":   "1",
+				"yixiaoerName": "科技",
+				"raw":          map[string]interface{}{"id": "1"},
 			},
 		},
 	}
@@ -693,9 +695,9 @@ func TestValidateAcceptsToutiaohaoArticleExtendedFields(t *testing.T) {
 		"declaration":   float64(3),
 		"scheduledTime": float64(1760000000000),
 		"location": map[string]interface{}{
-			"id":   "loc_1",
-			"text": "上海",
-			"raw":  map[string]interface{}{"id": "loc_1"},
+			"yixiaoerId":   "loc_1",
+			"yixiaoerName": "上海",
+			"raw":          map[string]interface{}{"id": "loc_1"},
 		},
 		"covers": []interface{}{
 			map[string]interface{}{

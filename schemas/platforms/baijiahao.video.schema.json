@@ -68,15 +68,15 @@
     "location": {
       "type": "object",
       "required": [
-        "id",
-        "text",
+        "yixiaoerId",
+        "yixiaoerName",
         "raw"
       ],
       "properties": {
-        "id": {
+        "yixiaoerId": {
           "type": "string"
         },
-        "text": {
+        "yixiaoerName": {
           "type": "string"
         },
         "raw": {

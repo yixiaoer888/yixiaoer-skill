@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
 )
 
 func TestPreflightRequiresStandardPayload(t *testing.T) {
@@ -312,11 +314,7 @@ func TestPreflightAcceptsSouhuhaoVideoFields(t *testing.T) {
 					"declaration": float64(2),
 					"pubType":     float64(1),
 					"category": []interface{}{
-						map[string]interface{}{
-							"id":   "1",
-							"text": "科技",
-							"raw":  map[string]interface{}{"id": "1"},
-						},
+						queryCategory("1", "科技"),
 					},
 				},
 			},
@@ -867,7 +865,7 @@ func TestNormalizeDynamicObjectsFollowsFrontendLocationAndMusicShapes(t *testing
 	}
 }
 
-func TestNormalizeLocationMapsFrontendAliasShape(t *testing.T) {
+func TestNormalizeLocationMapsFrontendAliasShapeToQueryObjectShape(t *testing.T) {
 	payload := validVideoPayload()
 	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
 	cpf["location"] = map[string]interface{}{
@@ -880,15 +878,15 @@ func TestNormalizeLocationMapsFrontendAliasShape(t *testing.T) {
 	NormalizeStandardPayloadForSchemaValidationWithTrace("video", []string{"快手"}, payload, &events)
 
 	location := cpf["location"].(map[string]interface{})
-	if location["id"] != "loc_001" || location["text"] != "上海" || location["raw"] == nil {
-		t.Fatalf("expected frontend id/text location to stay in frontend schema, got %+v", location)
+	if location["yixiaoerId"] != "loc_001" || location["yixiaoerName"] != "上海" || location["raw"] == nil {
+		t.Fatalf("expected frontend id/text location aliases to normalize into query object shape, got %+v", location)
 	}
-	if hasNormalizationEvent(events, "map_identity_aliases") {
-		t.Fatalf("did not expect already-frontend location shape to be remapped, got %+v", events)
+	if _, exists := location["id"]; exists {
+		t.Fatalf("did not expect location to keep frontend id/text shape, got %+v", location)
 	}
 }
 
-func TestNormalizeLocationMapsQueryObjectToFrontendShape(t *testing.T) {
+func TestNormalizeLocationKeepsQueryObjectShape(t *testing.T) {
 	payload := validVideoPayload()
 	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
 	cpf["location"] = map[string]interface{}{
@@ -901,11 +899,11 @@ func TestNormalizeLocationMapsQueryObjectToFrontendShape(t *testing.T) {
 	NormalizeStandardPayloadForSchemaValidationWithTrace("video", []string{"快手"}, payload, &events)
 
 	location := cpf["location"].(map[string]interface{})
-	if location["id"] != "loc_001" || location["text"] != "上海" {
-		t.Fatalf("expected query location to map to frontend id/text/raw shape, got %+v", location)
+	if location["yixiaoerId"] != "loc_001" || location["yixiaoerName"] != "上海" || location["raw"] == nil {
+		t.Fatalf("expected query location to stay in query object shape, got %+v", location)
 	}
-	if !hasNormalizationEvent(events, "map_frontend_shape") {
-		t.Fatalf("expected location alias normalization event, got %+v", events)
+	if _, exists := location["id"]; exists {
+		t.Fatalf("did not expect query location to map to frontend id/text shape, got %+v", location)
 	}
 }
 
@@ -936,8 +934,11 @@ func TestNormalizeSupportedQueryFieldsFromDataEnvelope(t *testing.T) {
 	NormalizeStandardPayloadForSchemaValidationWithTrace("video", []string{"抖音"}, payload, &events)
 
 	category := cpf["category"].(map[string]interface{})
-	if category["id"] != "cat_001" || category["text"] != "分类" || category["raw"] == nil {
-		t.Fatalf("expected category query envelope to unwrap into frontend id/text/raw object, got %+v", category)
+	if category["yixiaoerId"] != "cat_001" || category["yixiaoerName"] != "分类" || category["raw"] == nil {
+		t.Fatalf("expected category query envelope to unwrap into yixiaoer query object, got %+v", category)
+	}
+	if _, exists := category["id"]; exists {
+		t.Fatalf("did not expect category to map to frontend id/text shape, got %+v", category)
 	}
 	for _, field := range []string{"collection", "sub_collection", "challenge", "mini_app", "game", "hot_event", "group", "activity"} {
 		obj := cpf[field].(map[string]interface{})
@@ -954,6 +955,91 @@ func TestNormalizeSupportedQueryFieldsFromDataEnvelope(t *testing.T) {
 	}
 	if !hasNormalizationEvent(events, "unwrap_data") {
 		t.Fatalf("expected unwrap_data normalization events, got %+v", events)
+	}
+}
+
+func TestNormalizeBilibiliVideoCategoryKeepsQueryObjectShapeForSchema(t *testing.T) {
+	payload := standardPayload("video", []string{"哔哩哔哩"}, map[string]interface{}{
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_bili_1",
+				"cover":             uploadedResourceWithKey("cover-key"),
+				"coverKey":          "cover-key",
+				"video":             uploadedResource(),
+				"contentPublishForm": map[string]interface{}{
+					"formType":   "task",
+					"title":      "B站视频",
+					"tags":       []interface{}{"科技"},
+					"createType": float64(1),
+					"pubType":    float64(1),
+					"category": []interface{}{
+						queryCategory("1012", "科技数码"),
+					},
+				},
+			},
+		},
+	})
+
+	NormalizeStandardPayloadForSchemaValidation("video", []string{"哔哩哔哩"}, payload)
+
+	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	category := cpf["category"].([]interface{})[0].(map[string]interface{})
+	if category["yixiaoerId"] != "1012" || category["yixiaoerName"] != "科技数码" {
+		t.Fatalf("expected Bilibili category to keep yixiaoer query shape, got %+v", category)
+	}
+	if _, exists := category["id"]; exists {
+		t.Fatalf("did not expect Bilibili category to map to frontend id/text shape, got %+v", category)
+	}
+
+	validator := schema.NewValidator(filepath.Join("..", "..", "..", "schemas"))
+	result, err := validator.ValidateStrict("哔哩哔哩", "video", payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Valid {
+		t.Fatalf("expected normalized Bilibili video payload to pass schema validation, got %v", result.Errors)
+	}
+}
+
+func TestNormalizeBilibiliArticleCategoryKeepsQueryObjectShapeForSchema(t *testing.T) {
+	payload := standardPayload("article", []string{"哔哩哔哩"}, map[string]interface{}{
+		"content": "<p>B站文章正文</p>",
+		"covers":  []interface{}{uploadedResourceWithKey("cover-key")},
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_bili_1",
+				"cover":             uploadedResourceWithKey("cover-key"),
+				"coverKey":          "cover-key",
+				"contentPublishForm": map[string]interface{}{
+					"formType": "task",
+					"title":    "B站文章",
+					"pubType":  float64(1),
+					"category": []interface{}{
+						queryCategory("1012", "科技数码"),
+					},
+				},
+			},
+		},
+	})
+
+	NormalizeStandardPayloadForSchemaValidation("article", []string{"哔哩哔哩"}, payload)
+
+	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	category := cpf["category"].([]interface{})[0].(map[string]interface{})
+	if category["yixiaoerId"] != "1012" || category["yixiaoerName"] != "科技数码" {
+		t.Fatalf("expected Bilibili article category to keep yixiaoer query shape, got %+v", category)
+	}
+	if _, exists := category["id"]; exists {
+		t.Fatalf("did not expect Bilibili article category to map to frontend id/text shape, got %+v", category)
+	}
+
+	validator := schema.NewValidator(filepath.Join("..", "..", "..", "schemas"))
+	result, err := validator.ValidateStrict("哔哩哔哩", "article", payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Valid {
+		t.Fatalf("expected normalized Bilibili article payload to pass schema validation, got %v", result.Errors)
 	}
 }
 
@@ -1069,6 +1155,14 @@ func uploadedResourceWithKey(key string) map[string]interface{} {
 		"width":    float64(1080),
 		"height":   float64(1920),
 		"duration": float64(30),
+	}
+}
+
+func queryCategory(id, name string) map[string]interface{} {
+	return map[string]interface{}{
+		"yixiaoerId":   id,
+		"yixiaoerName": name,
+		"raw":          map[string]interface{}{"id": id, "name": name},
 	}
 }
 

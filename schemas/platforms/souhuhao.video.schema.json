@@ -39,31 +39,31 @@
       "items": {
         "type": "object",
         "required": [
-          "id",
-          "text",
+          "yixiaoerId",
+          "yixiaoerName",
           "raw"
         ],
         "properties": {
-          "id": {
+          "yixiaoerId": {
             "type": "string"
           },
-          "text": {
+          "yixiaoerName": {
             "type": "string"
           },
-          "children": {
+          "child": {
             "type": "array",
             "items": {
               "type": "object",
               "required": [
-                "id",
-                "text",
+                "yixiaoerId",
+                "yixiaoerName",
                 "raw"
               ],
               "properties": {
-                "id": {
+                "yixiaoerId": {
                   "type": "string"
                 },
-                "text": {
+                "yixiaoerName": {
                   "type": "string"
                 },
                 "raw": {
