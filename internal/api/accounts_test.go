@@ -183,7 +183,7 @@ func TestAccountsPageUsesExplicitPageAndSize(t *testing.T) {
 	}
 }
 
-func TestAccountsDoesNotGuessNextPageWithoutPaginationMeta(t *testing.T) {
+func TestAccountsDoesNotFetchNextPageWithoutPaginationMeta(t *testing.T) {
 	requests := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests++
