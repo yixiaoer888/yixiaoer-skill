@@ -70,6 +70,85 @@ func TestClientWrapsInvalidJSONResponseAsRemoteError(t *testing.T) {
 	}
 }
 
+func TestGoodsDetailUsesExpectedEndpointAndPreservesResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("unexpected method: %s", r.Method)
+		}
+		if r.URL.Path != "/platform-accounts/acc_1/goods-detail" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if got := r.URL.Query().Get("url"); got != "https://haohuo.jinritemai.com/views/product/item2?id=1" {
+			t.Fatalf("unexpected url query: %s", got)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": map[string]interface{}{
+				"list": []map[string]interface{}{
+					{"sale_title": "product", "data": map[string]interface{}{"yixiaoerId": "goods_1", "raw": map[string]interface{}{"id": "1"}}},
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.GoodsDetail("acc_1", "https://haohuo.jinritemai.com/views/product/item2?id=1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := result.(map[string]interface{})
+	items := data["list"].([]interface{})
+	if len(items) != 1 || items[0].(map[string]interface{})["sale_title"] != "product" {
+		t.Fatalf("unexpected goods detail data: %#v", data)
+	}
+}
+
+func TestGoodsDetailReturnsStructuredRemoteError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"message": "invalid product link", "code": "INVALID_URL"})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	_, err := client.GoodsDetail("acc_1", "not-a-link")
+	if err == nil {
+		t.Fatal("expected goods detail remote error")
+	}
+	var typed *yxerrors.Error
+	if !errors.As(err, &typed) {
+		t.Fatalf("expected structured yx error, got %T", err)
+	}
+	if typed.Type != yxerrors.RemoteType || typed.Message != "invalid product link" {
+		t.Fatalf("unexpected structured error: %#v", typed)
+	}
+}
+
+func TestEntitlementsUsesExpectedEndpoint(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("unexpected method: %s", r.Method)
+		}
+		if r.URL.Path != "/platform-accounts/acc_1/entitlements" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": map[string]interface{}{"shopping_cart": true, "group_shopping": false},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.Entitlements("acc_1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	entitlements := result.(map[string]interface{})
+	if entitlements["shopping_cart"] != true || entitlements["group_shopping"] != false {
+		t.Fatalf("unexpected entitlements: %#v", entitlements)
+	}
+}
+
 func TestMiniAppsUsesExpectedEndpointAndKeywordQuery(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/platform-accounts/acc_1/mini-apps" {

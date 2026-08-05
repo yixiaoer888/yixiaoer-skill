@@ -1464,6 +1464,28 @@ func TestPublishDryRunReportsDynamicFieldNormalizations(t *testing.T) {
 			},
 		},
 	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			if got := r.URL.Query().Get("platform"); got != "抖音" {
+				t.Fatalf("unexpected platform query: %s", got)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{
+					{"platformAccountId": "acc_001", "name": "账号", "status": 1},
+				},
+			})
+		case "/platform-accounts/acc_001/entitlements":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{"shopping_cart": true},
+			})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
 
 	service := publishflow.NewService(testRuntime(t))
 	result, err := service.DryRun(publishflow.ExecuteInput{
@@ -1473,6 +1495,9 @@ func TestPublishDryRunReportsDynamicFieldNormalizations(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if !result.RemoteChecks {
+		t.Fatal("expected shopping-cart dry-run to perform a remote entitlement check")
 	}
 	for _, action := range []string{"rename_field", "wrap_data", "derive_images"} {
 		if !hasNormalizationAction(result.Normalizations, action) {
@@ -2482,6 +2507,10 @@ func publishTestServer(t *testing.T, accountStatus int, publishCalls *int, publi
 				"data": []map[string]interface{}{
 					{"platformAccountId": "acc_001", "name": "账号", "status": accountStatus},
 				},
+			})
+		case "/platform-accounts/acc_001/entitlements":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{"shopping_cart": true},
 			})
 		case "/taskSets/v2":
 			*publishCalls++

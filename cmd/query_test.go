@@ -39,6 +39,30 @@ func TestGoodsKeywordFlagUsesAliasStorage(t *testing.T) {
 	assertKeywordFlagUsesAliasStorage(t, "goods", "phone")
 }
 
+func TestGoodsDetailRequiresAccountID(t *testing.T) {
+	cmd := newGoodsDetailCmd()
+	if err := cmd.Args(cmd, nil); err == nil {
+		t.Fatal("expected goods-detail to require an account id")
+	}
+}
+
+func TestGoodsDetailRequiresURL(t *testing.T) {
+	err := newGoodsDetailCmd().RunE(testCobraCommand(), []string{"acc_1"})
+	if err == nil {
+		t.Fatal("expected goods-detail to require --url")
+	}
+	if !strings.Contains(err.Error(), "goods detail url must not be empty") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestEntitlementsRequiresAccountID(t *testing.T) {
+	cmd := newEntitlementsCmd()
+	if err := cmd.Args(cmd, nil); err == nil {
+		t.Fatal("expected entitlements to require an account id")
+	}
+}
+
 func TestMiniAppsKeywordFlagUsesAliasStorage(t *testing.T) {
 	assertKeywordFlagUsesAliasStorage(t, "miniapps", "抽奖")
 }
