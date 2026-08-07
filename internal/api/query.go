@@ -334,19 +334,100 @@ func normalizeCategoryTree(value interface{}) interface{} {
 	switch typed := value.(type) {
 	case map[string]interface{}:
 		if rawList, ok := typed["dataList"].([]interface{}); ok {
+			rawList = normalizeCategoryItems(rawList)
 			tree := buildCategoryTreeFromParentIDs(rawList)
 			if tree != nil {
 				out := cloneInterfaceMap(typed)
 				out["dataList"] = tree
 				return out
 			}
+			out := cloneInterfaceMap(typed)
+			out["dataList"] = rawList
+			return out
 		}
 	case []interface{}:
+		typed = normalizeCategoryItems(typed)
 		if tree := buildCategoryTreeFromParentIDs(typed); tree != nil {
 			return tree
 		}
+		return typed
 	}
 	return value
+}
+
+// normalizeCategoryItems exposes the stable query shape. Category endpoints
+// have historically returned either raw {id,name} objects or the frontend
+// {id,text,raw} wrapper; callers should only have to consume the query object
+// {yixiaoerId,yixiaoerName,raw}.
+func normalizeCategoryItems(items []interface{}) []interface{} {
+	out := make([]interface{}, 0, len(items))
+	for _, item := range items {
+		obj, ok := item.(map[string]interface{})
+		if !ok {
+			out = append(out, item)
+			continue
+		}
+		out = append(out, normalizeCategoryItem(obj))
+	}
+	return out
+}
+
+func normalizeCategoryItem(obj map[string]interface{}) map[string]interface{} {
+	if obj == nil {
+		return obj
+	}
+	// Unwrap the publish/frontend representation when its raw value is already
+	// the canonical query object.
+	if raw, ok := obj["raw"].(map[string]interface{}); ok && isCategoryQueryObject(raw) {
+		canonical := cloneInterfaceMap(raw)
+		copyCategoryChildren(obj, canonical)
+		return canonical
+	}
+	if isCategoryQueryObject(obj) {
+		canonical := cloneInterfaceMap(obj)
+		copyCategoryChildren(obj, canonical)
+		return canonical
+	}
+
+	id := stringField(obj, "id")
+	if id == "" {
+		id = stringField(obj, "value")
+	}
+	name := stringField(obj, "name")
+	if name == "" {
+		name = stringField(obj, "text")
+	}
+	if name == "" {
+		name = stringField(obj, "label")
+	}
+	if id == "" || name == "" {
+		return obj
+	}
+	canonical := map[string]interface{}{
+		"yixiaoerId":   id,
+		"yixiaoerName": name,
+		"raw":          cloneInterfaceMap(obj),
+	}
+	copyCategoryChildren(obj, canonical)
+	return canonical
+}
+
+func isCategoryQueryObject(obj map[string]interface{}) bool {
+	if obj == nil {
+		return false
+	}
+	_, hasID := obj["yixiaoerId"]
+	_, hasName := obj["yixiaoerName"]
+	_, hasRaw := obj["raw"]
+	return hasID && hasName && hasRaw
+}
+
+func copyCategoryChildren(from, to map[string]interface{}) {
+	for _, key := range []string{"child", "children"} {
+		if children, ok := from[key].([]interface{}); ok {
+			to[key] = normalizeCategoryItems(children)
+		}
+	}
 }
 
 func buildCategoryTreeFromParentIDs(items []interface{}) []interface{} {

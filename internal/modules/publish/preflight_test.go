@@ -932,6 +932,190 @@ func TestNormalizeSupportedQueryFieldsFromDataEnvelope(t *testing.T) {
 	}
 }
 
+func TestNormalizeBilibiliVideoCategoryKeepsQueryObjectShapeForSchema(t *testing.T) {
+	payload := standardPayload("video", []string{"哔哩哔哩"}, map[string]interface{}{
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_bili_1",
+				"cover":             uploadedResourceWithKey("cover-key"),
+				"coverKey":          "cover-key",
+				"video":             uploadedResource(),
+				"contentPublishForm": map[string]interface{}{
+					"formType":   "task",
+					"title":      "B站视频",
+					"tags":       []interface{}{"科技"},
+					"createType": float64(1),
+					"pubType":    float64(1),
+					"category": []interface{}{
+						queryCategory("1012", "科技数码"),
+					},
+				},
+			},
+		},
+	})
+
+	NormalizeStandardPayloadForSchemaValidation("video", []string{"哔哩哔哩"}, payload)
+
+	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	category := cpf["category"].([]interface{})[0].(map[string]interface{})
+	if category["yixiaoerId"] != "1012" || category["yixiaoerName"] != "科技数码" {
+		t.Fatalf("expected Bilibili category to keep yixiaoer query shape, got %+v", category)
+	}
+	if _, exists := category["id"]; exists {
+		t.Fatalf("did not expect Bilibili category to map to frontend id/text shape, got %+v", category)
+	}
+
+	validator := schema.NewValidator(filepath.Join("..", "..", "..", "schemas"))
+	result, err := validator.ValidateStrict("哔哩哔哩", "video", payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Valid {
+		t.Fatalf("expected normalized Bilibili video payload to pass schema validation, got %v", result.Errors)
+	}
+}
+
+func TestNormalizeBilibiliArticleCategoryKeepsQueryObjectShapeForSchema(t *testing.T) {
+	payload := standardPayload("article", []string{"哔哩哔哩"}, map[string]interface{}{
+		"content": "<p>B站文章正文</p>",
+		"covers":  []interface{}{uploadedResourceWithKey("cover-key")},
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_bili_1",
+				"cover":             uploadedResourceWithKey("cover-key"),
+				"coverKey":          "cover-key",
+				"contentPublishForm": map[string]interface{}{
+					"formType": "task",
+					"title":    "B站文章",
+					"pubType":  float64(1),
+					"category": []interface{}{
+						queryCategory("1012", "科技数码"),
+					},
+				},
+			},
+		},
+	})
+
+	NormalizeStandardPayloadForSchemaValidation("article", []string{"哔哩哔哩"}, payload)
+
+	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	category := cpf["category"].([]interface{})[0].(map[string]interface{})
+	if category["yixiaoerId"] != "1012" || category["yixiaoerName"] != "科技数码" {
+		t.Fatalf("expected Bilibili article category to keep yixiaoer query shape, got %+v", category)
+	}
+	if _, exists := category["id"]; exists {
+		t.Fatalf("did not expect Bilibili article category to map to frontend id/text shape, got %+v", category)
+	}
+
+	validator := schema.NewValidator(filepath.Join("..", "..", "..", "schemas"))
+	result, err := validator.ValidateStrict("哔哩哔哩", "article", payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Valid {
+		t.Fatalf("expected normalized Bilibili article payload to pass schema validation, got %v", result.Errors)
+	}
+}
+
+func TestNormalizeZhihuVideoCategoryKeepsQueryObjectShapeForSchema(t *testing.T) {
+	payload := standardPayload("video", []string{"知乎"}, map[string]interface{}{
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "6a6f1636639a13f305313a4c",
+				"cover":             uploadedResourceWithKey("cover-key"),
+				"coverKey":          "cover-key",
+				"video":             uploadedResource(),
+				"contentPublishForm": map[string]interface{}{
+					"formType":    "task",
+					"title":       "知乎视频",
+					"description": "知乎视频描述",
+					"createType":  float64(1),
+					"pubType":     float64(1),
+					"category": []interface{}{
+						queryCategory("1000013", "科技互联网"),
+					},
+				},
+			},
+		},
+	})
+
+	NormalizeStandardPayloadForSchemaValidation("video", []string{"知乎"}, payload)
+
+	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	category := cpf["category"].([]interface{})[0].(map[string]interface{})
+	if category["yixiaoerId"] != "1000013" || category["yixiaoerName"] != "科技互联网" || category["raw"] == nil {
+		t.Fatalf("expected Zhihu category to keep yixiaoer query shape, got %+v", category)
+	}
+	if _, exists := category["id"]; exists {
+		t.Fatalf("did not expect Zhihu category to map to frontend id/text shape, got %+v", category)
+	}
+
+	validator := schema.NewValidator(filepath.Join("..", "..", "..", "schemas"))
+	result, err := validator.ValidateStrict("知乎", "video", payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Valid {
+		t.Fatalf("expected normalized Zhihu video payload to pass schema validation, got %v", result.Errors)
+	}
+}
+
+func TestNormalizeCategoryKeepsQueryObjectShapeAcrossCategoryPlatforms(t *testing.T) {
+	testCases := []struct {
+		name        string
+		platform    string
+		publishType string
+	}{
+		{name: "acfun article", platform: "acfun", publishType: "article"},
+		{name: "acfun video", platform: "acfun", publishType: "video"},
+		{name: "aiqiyi video", platform: "aiqiyi", publishType: "video"},
+		{name: "baijiahao article", platform: "baijiahao", publishType: "article"},
+		{name: "bilibili article", platform: "bilibili", publishType: "article"},
+		{name: "bilibili video", platform: "bilibili", publishType: "video"},
+		{name: "dayuhao video", platform: "dayuhao", publishType: "video"},
+		{name: "dewu video", platform: "dewu", publishType: "video"},
+		{name: "fengwang video", platform: "fengwang", publishType: "video"},
+		{name: "meipai video", platform: "meipai", publishType: "video"},
+		{name: "qiehao video", platform: "qiehao", publishType: "video"},
+		{name: "souhuhao video", platform: "souhuhao", publishType: "video"},
+		{name: "toutiaohao article", platform: "toutiaohao", publishType: "article"},
+		{name: "wangyihao video", platform: "wangyihao", publishType: "video"},
+		{name: "xinlang video", platform: "xinlang", publishType: "video"},
+		{name: "yidianhao video", platform: "yidianhao", publishType: "video"},
+		{name: "zhihu video", platform: "zhihu", publishType: "video"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			payload := standardPayload(tc.publishType, []string{tc.platform}, map[string]interface{}{
+				"accountForms": []interface{}{
+					map[string]interface{}{
+						"contentPublishForm": map[string]interface{}{
+							"category": []interface{}{
+								queryCategory("1000013", "科技互联网"),
+							},
+						},
+					},
+				},
+			})
+
+			NormalizeStandardPayloadForSchemaValidation(tc.publishType, []string{tc.platform}, payload)
+
+			cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+			category := cpf["category"].([]interface{})[0].(map[string]interface{})
+			if category["yixiaoerId"] != "1000013" || category["yixiaoerName"] != "科技互联网" || category["raw"] == nil {
+				t.Fatalf("expected category query object shape, got %+v", category)
+			}
+			if _, exists := category["id"]; exists {
+				t.Fatalf("category must not be converted to frontend id/text shape: %+v", category)
+			}
+			if _, exists := category["text"]; exists {
+				t.Fatalf("category must not be converted to frontend id/text shape: %+v", category)
+			}
+		})
+	}
+}
+
 func TestPreflightNormalizesFlatShoppingCartDataEnvelopeForNonDouyin(t *testing.T) {
 	payload := validVideoPayload()
 	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
