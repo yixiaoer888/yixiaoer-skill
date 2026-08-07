@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
 )
 
 func TestPreflightRequiresStandardPayload(t *testing.T) {
@@ -929,6 +931,14 @@ func TestNormalizeSupportedQueryFieldsFromDataEnvelope(t *testing.T) {
 	}
 	if !hasNormalizationEvent(events, "unwrap_data") {
 		t.Fatalf("expected unwrap_data normalization events, got %+v", events)
+	}
+}
+
+func queryCategory(id, name string) map[string]interface{} {
+	return map[string]interface{}{
+		"yixiaoerId":   id,
+		"yixiaoerName": name,
+		"raw":          map[string]interface{}{"id": id, "name": name},
 	}
 }
 

@@ -723,7 +723,11 @@ func normalizeDynamicObjectFields(cpf map[string]interface{}, formPath, publishT
 		case field == "location":
 			normalized, changed = normalizeLocationValue(value, fieldPath, publishType, platformSet, normalizations)
 		case field == "category":
-			normalized, changed = normalizePlatformDataValue(value, fieldPath, field, normalizations)
+			if isDouyinPlatformSet(platformSet) {
+				normalized, changed = normalizePlatformDataValue(value, fieldPath, field, normalizations)
+			} else {
+				normalized, changed = normalizeDynamicObjectValue(value, fieldPath, field, normalizations)
+			}
 		default:
 			normalized, changed = normalizeDynamicObjectValue(value, fieldPath, field, normalizations)
 		}
