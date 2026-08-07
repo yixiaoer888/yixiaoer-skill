@@ -14,8 +14,13 @@ import (
 // and surface a remote error when it is missing (e.g. an empty body that the
 // backend still answered with HTTP 200).
 func (c *Client) Publish(body map[string]interface{}) (map[string]interface{}, error) {
+	// The gateway expects the frontend category selection shape. Keep query,
+	// schema validation, and dry-run payloads in their canonical yixiaoer shape;
+	// perform this wire-format conversion only at the actual publish boundary.
+	wireBody, _ := clonePublishValue(body).(map[string]interface{})
+	normalizePublishCategories(wireBody)
 	var result map[string]interface{}
-	if err := c.Post("/taskSets/v2", body, &result); err != nil {
+	if err := c.Post("/taskSets/v2", wireBody, &result); err != nil {
 		return nil, err
 	}
 	taskSetID := extractTaskSetID(result)
@@ -32,6 +37,79 @@ func (c *Client) Publish(body map[string]interface{}) (map[string]interface{}, e
 		out["response"] = result
 	}
 	return out, nil
+}
+
+func clonePublishValue(value interface{}) interface{} {
+	switch typed := value.(type) {
+	case map[string]interface{}:
+		out := make(map[string]interface{}, len(typed))
+		for key, item := range typed {
+			out[key] = clonePublishValue(item)
+		}
+		return out
+	case []interface{}:
+		out := make([]interface{}, len(typed))
+		for i, item := range typed {
+			out[i] = clonePublishValue(item)
+		}
+		return out
+	default:
+		return value
+	}
+}
+
+func normalizePublishCategories(body map[string]interface{}) {
+	if body == nil {
+		return
+	}
+	publishArgs, _ := body["publishArgs"].(map[string]interface{})
+	forms, _ := publishArgs["accountForms"].([]interface{})
+	for _, item := range forms {
+		form, _ := item.(map[string]interface{})
+		cpf, _ := form["contentPublishForm"].(map[string]interface{})
+		if category, ok := cpf["category"]; ok {
+			cpf["category"] = wrapPublishCategoryValue(category)
+		}
+	}
+}
+
+func wrapPublishCategoryValue(value interface{}) interface{} {
+	switch typed := value.(type) {
+	case []interface{}:
+		for i, item := range typed {
+			typed[i] = wrapPublishCategoryValue(item)
+		}
+		return typed
+	case map[string]interface{}:
+		if _, hasID := typed["id"]; hasID {
+			return typed
+		}
+		id, idOK := publishStringField(typed, "yixiaoerId")
+		name, nameOK := publishStringField(typed, "yixiaoerName")
+		if !idOK || !nameOK {
+			return typed
+		}
+		wrapped := map[string]interface{}{
+			"id":   id,
+			"text": name,
+			"raw":  typed,
+		}
+		if children, ok := typed["child"].([]interface{}); ok && len(children) > 0 {
+			wrapped["children"] = children
+		}
+		return wrapped
+	default:
+		return value
+	}
+}
+
+func publishStringField(obj map[string]interface{}, key string) (string, bool) {
+	value, ok := obj[key]
+	if !ok || value == nil {
+		return "", false
+	}
+	text := strings.TrimSpace(fmt.Sprint(value))
+	return text, text != "" && text != "<nil>"
 }
 
 // extractTaskSetID pulls the task set identifier out of the gateway response,

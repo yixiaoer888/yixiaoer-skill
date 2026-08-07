@@ -755,7 +755,7 @@ func TestPrepareUsesFirstOnlineAccountAcrossPagesForCategories(t *testing.T) {
 		t.Fatalf("expected one category, got %d", len(items))
 	}
 	first := items[0].(map[string]interface{})
-	if first["id"] != "cat_1" {
+	if first["yixiaoerId"] != "cat_1" || first["yixiaoerName"] != "分类1" || first["raw"] == nil {
 		t.Fatalf("unexpected category payload: %#v", first)
 	}
 	if len(result.Accounts) != 2 || result.Accounts[0]["platformAccountId"] != "acc_1" || result.Accounts[1]["platformAccountId"] != "acc_3" {

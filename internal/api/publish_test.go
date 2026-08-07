@@ -51,6 +51,50 @@ func TestPublishPostsTaskSetBody(t *testing.T) {
 	}
 }
 
+func TestPublishWrapsCategoryOnlyAtAPIBoundary(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		args := body["publishArgs"].(map[string]interface{})
+		forms := args["accountForms"].([]interface{})
+		form := forms[0].(map[string]interface{})
+		cpf := form["contentPublishForm"].(map[string]interface{})
+		category := cpf["category"].([]interface{})[0].(map[string]interface{})
+		if category["id"] != "1000013" || category["text"] != "科技互联网" {
+			t.Fatalf("expected publish category wrapper, got %#v", category)
+		}
+		raw := category["raw"].(map[string]interface{})
+		if raw["yixiaoerId"] != "1000013" || raw["yixiaoerName"] != "科技互联网" {
+			t.Fatalf("expected canonical query object under raw, got %#v", raw)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"statusCode": 0, "data": "task_1"})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	body := map[string]interface{}{
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{map[string]interface{}{
+				"contentPublishForm": map[string]interface{}{
+					"category": []interface{}{map[string]interface{}{
+						"yixiaoerId": "1000013", "yixiaoerName": "科技互联网",
+						"raw": map[string]interface{}{"id": "1000013", "name": "科技互联网"},
+					}},
+				},
+			}},
+		},
+	}
+	if _, err := client.Publish(body); err != nil {
+		t.Fatal(err)
+	}
+	category := body["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})["category"].([]interface{})[0].(map[string]interface{})
+	if _, exists := category["id"]; exists {
+		t.Fatal("expected caller payload to remain canonical; API conversion should use the wire boundary")
+	}
+}
+
 func TestPublishExtractsTaskSetIDFromStringData(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
