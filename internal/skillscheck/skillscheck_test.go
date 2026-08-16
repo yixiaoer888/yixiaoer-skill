@@ -276,6 +276,15 @@ func TestCheckSkillPackageSuccess(t *testing.T) {
 	}
 }
 
+func TestRepositorySkillPackage(t *testing.T) {
+	skillDir := filepath.Join("..", "..", "skills", "yixiaoer")
+
+	report, err := CheckSkillPackage(skillDir)
+	if err != nil {
+		t.Fatalf("repository skill package is invalid: %v\nreport: %+v", err, report)
+	}
+}
+
 func createValidSkillFixture(t *testing.T) string {
 	t.Helper()
 
