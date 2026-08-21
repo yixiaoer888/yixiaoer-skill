@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://www.yixiaoer.cn/schemas/platforms/weixin.account.imageText.schema.json",
+  "title": "微信公众号图文发布表单 (Weixin Account Image-Text)",
+  "type": "object",
+  "required": [
+    "images"
+  ],
+  "properties": {
+    "formType": {
+      "type": "string",
+      "const": "task"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 20
+    },
+    "desc": {
+      "type": "string"
+    },
+    "images": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "key"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "jpg",
+              "jpeg",
+              "png",
+              "gif",
+              "webp"
+            ]
+          }
+        }
+      }
+    },
+    "notifySubscribers": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "sex": {
+      "type": "number",
+      "enum": [
+        0,
+        1,
+        2
+      ],
+      "default": 0
+    },
+    "scheduledTime": {
+      "type": "integer"
+    },
+    "needOpenComment": {
+      "type": "number",
+      "enum": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "default": 0
+    },
+    "statement": {
+      "type": "number",
+      "enum": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "default": 0
+    },
+    "disableRecommend": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "pubType": {
+      "type": "number",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    }
+  },
+  "additionalProperties": false
+}

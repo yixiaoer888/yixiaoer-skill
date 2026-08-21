@@ -135,6 +135,10 @@ var aliasesToCanonicalKeys = map[string]string{
 	"Instagram":       "instagram",
 }
 
+var additionalAliasesToCanonicalKeys = map[string]string{
+	"weixingongzhonghao": "weixin.account",
+}
+
 var chineseNames = map[string]string{
 	"douyin":          "抖音",
 	"kuaishou":        "快手",
@@ -183,10 +187,17 @@ func CanonicalKey(value string) string {
 	if trimmed == "" {
 		return ""
 	}
-	if key, ok := aliasesToCanonicalKeys[strings.ToLower(trimmed)]; ok {
+	lower := strings.ToLower(trimmed)
+	if key, ok := aliasesToCanonicalKeys[lower]; ok {
+		return key
+	}
+	if key, ok := additionalAliasesToCanonicalKeys[lower]; ok {
 		return key
 	}
 	if key, ok := aliasesToCanonicalKeys[trimmed]; ok {
+		return key
+	}
+	if key, ok := additionalAliasesToCanonicalKeys[trimmed]; ok {
 		return key
 	}
 	return strings.ToLower(trimmed)
@@ -224,10 +235,17 @@ func IsKnown(value string) bool {
 	if trimmed == "" {
 		return false
 	}
-	if _, ok := aliasesToCanonicalKeys[strings.ToLower(trimmed)]; ok {
+	lower := strings.ToLower(trimmed)
+	if _, ok := aliasesToCanonicalKeys[lower]; ok {
+		return true
+	}
+	if _, ok := additionalAliasesToCanonicalKeys[lower]; ok {
 		return true
 	}
 	if _, ok := aliasesToCanonicalKeys[trimmed]; ok {
+		return true
+	}
+	if _, ok := additionalAliasesToCanonicalKeys[trimmed]; ok {
 		return true
 	}
 	return chineseNameSet[trimmed]
@@ -238,7 +256,7 @@ func IsKnown(value string) bool {
 // from images[0] for internal compatibility.
 func ImageTextUsesFirstImageAsCover(value string) bool {
 	switch CanonicalKey(value) {
-	case "xinlang", "xhs", "shipinhao", "zhihu", "toutiaohao":
+	case "xinlang", "xhs", "shipinhao", "weixin.account", "zhihu", "toutiaohao":
 		return true
 	default:
 		return false

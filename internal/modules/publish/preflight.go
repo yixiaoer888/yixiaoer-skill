@@ -5,6 +5,7 @@ import (
 	"math"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/api"
 	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
@@ -82,8 +83,10 @@ func PreflightWithTopicHTMLPolicyAndTrace(publishType string, platforms []string
 	resolveStandardPayloadResourceMetadata(payload, &result.Errors)
 	payload = ValidateAndExtractPublishArgs(publishType, platforms, payload, &result.Errors)
 	NormalizeStandardPublishArgs(payload, publishType, platforms)
+	normalizeWeixinAccountImageTextFields(publishType, platforms, payload)
 	normalizePlatformSpecificFields(publishType, platforms, payload, topicPolicy, true, normalizations)
 	NormalizeScheduledTimes(payload, &result.Errors)
+	validateWeixinAccountImageTextSchedules(publishType, platforms, payload, time.Now(), &result.Errors)
 	rejectTemplatePlaceholders(payload, &result.Errors)
 	if publishType != "video" && publishType != "imageText" && publishType != "article" {
 		result.Errors = append(result.Errors, fmt.Sprintf("publish type %q is not supported; expected video, imageText, or article", publishType))
@@ -161,8 +164,20 @@ func PreflightWithTopicHTMLPolicyAndTrace(publishType string, platforms []string
 			if cover == nil && cpf != nil {
 				cover = objectField(cpf, "cover")
 			}
-			requireUploadedResource(cover, formPath+".cover", &result.Errors)
-			requireCoverKey(form, cpf, cover, formPath, &result.Errors)
+			if imageTextUsesFirstImageAsCover(platforms) {
+				// 微信公众号 may return a platform coverKey without the
+				// corresponding uploaded cover object. When no coverKey is
+				// supplied, normalization derives both fields from images[0].
+				if cover != nil {
+					requireUploadedResource(cover, formPath+".cover", &result.Errors)
+					requireCoverKey(form, cpf, cover, formPath, &result.Errors)
+				} else if len(images) > 0 && stringField(form, "coverKey") == "" && stringField(cpf, "coverKey") == "" {
+					result.Errors = append(result.Errors, formPath+": missing coverKey")
+				}
+			} else {
+				requireUploadedResource(cover, formPath+".cover", &result.Errors)
+				requireCoverKey(form, cpf, cover, formPath, &result.Errors)
+			}
 			requirePlatformImageTextConstraints(platforms, images, cover, formPath, &result.Errors)
 		case "article":
 			if !weixinAccountArticle && stringField(payload, "content") == "" {
@@ -387,6 +402,7 @@ func normalizeStandardPayloadInternal(publishType string, platforms []string, pa
 		return nil
 	}
 	NormalizeStandardPublishArgs(publishArgs, publishType, platforms)
+	normalizeWeixinAccountImageTextFields(publishType, platforms, publishArgs)
 	if copyArticleContentToForm && NormalizePublishType(publishType) == "article" {
 		copyArticleContentIntoForms(publishArgs, platforms)
 	}
@@ -441,6 +457,9 @@ func imageTextUsesFirstImageAsCover(platforms []string) bool {
 
 func deriveImageTextCoverFromFirstImage(form map[string]interface{}) {
 	if form == nil {
+		return
+	}
+	if objectField(form, "cover") == nil && stringField(form, "coverKey") != "" {
 		return
 	}
 	if objectField(form, "cover") != nil && stringField(form, "coverKey") != "" {

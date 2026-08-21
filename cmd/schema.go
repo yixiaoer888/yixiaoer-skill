@@ -235,7 +235,7 @@ func fieldPlacementFor(doc schema.Document, key string) fieldPlacementView {
 			"publishArgs.accountForms[].images",
 			"publishArgs.accountForms[].contentPublishForm.images",
 		}
-		view.Note = "图文图片运行时从 accountForms[] 层读取；CLI 会从 contentPublishForm.images 归一化，但推荐直接填写 accountForms[].images。"
+		view.Note = "图文图片运行时推荐填写 accountForms[].images；CLI 会兼容 contentPublishForm.images，并把账号级图片用于校验。"
 	case "cover":
 		view.InputPaths = []string{
 			"publishArgs.accountForms[].cover",
@@ -865,7 +865,12 @@ func getPlatformSpecificNotes(platform, publishType string) []string {
 			notes = append(notes, "createType 为 web 表单字段；type 为后端 DTO 兼容字段，二者枚举均为 1-原创、2-转载")
 		}
 
-	case "weixin.account", "微信公众号":
+	case "weixin.account", "weixingongzhonghao", "WeiXinGongZhongHao", "微信公众号":
+		if publishType == "imageText" {
+			notes = append(notes, "微信公众号图文使用 accountForms[].contentPublishForm；images 放在 accountForms[].images，必须全部先通过 yxer upload 上传，默认首图为封面")
+			notes = append(notes, "微信公众号图文默认不群发、关闭留言、无需声明、允许平台推荐并直接发布；需要保存平台草稿时设置 pubType=0")
+			notes = append(notes, "微信公众号图文 scheduledTime 必须不早于当前时间 2 小时")
+		}
 		if publishType == "article" {
 			notes = append(notes, "公众号文章使用 publishArgs.platformForms[\"微信公众号\"].articles[] 传递文章包，而不是通用 contentPublishForm")
 			notes = append(notes, "公众号文章必须单平台发布；accountForms 仅用于声明目标账号")
@@ -877,6 +882,11 @@ func getPlatformSpecificNotes(platform, publishType string) []string {
 
 func platformSpecificEnvelopeNotes(doc schema.Document) []string {
 	if doc.Type == "imageText" && platformutil.ImageTextUsesFirstImageAsCover(doc.Platform) {
+		if platformutil.CanonicalKey(doc.Platform) == "weixin.account" {
+			return []string{
+				"微信公众号图文图片放在 accountForms[].images；未提供 coverKey 时 CLI 默认使用首图，若接口已返回 coverKey 可原样保留",
+			}
+		}
 		return []string{
 			platformutil.ChineseName(doc.Platform) + "图文不需要外部传入 cover/coverKey；CLI 会默认使用 images[0] 作为内部封面",
 		}

@@ -217,6 +217,84 @@ func TestSchemaGetCommandImageTextFirstImageCoverPlatformsOmitExternalCover(t *t
 	}
 }
 
+func TestSchemaGetCommandWeixinAccountImageTextUsesStandardFormAndDefaults(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	var out bytes.Buffer
+	cmd := newSchemaGetCmd()
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"WeiXinGongZhongHao", "imageText"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	if data["key"] != "weixin.account/imageText" {
+		t.Fatalf("unexpected schema key: %#v", data["key"])
+	}
+	placements := data["fieldPlacements"].(map[string]interface{})
+	commentPlacement := placements["needOpenComment"].(map[string]interface{})
+	paths := commentPlacement["inputPaths"].([]interface{})
+	if len(paths) != 1 || paths[0] != "publishArgs.accountForms[].contentPublishForm.needOpenComment" {
+		t.Fatalf("unexpected needOpenComment placement: %#v", commentPlacement)
+	}
+	template := data["minimalTemplate"].(map[string]interface{})
+	form := template["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	if _, exists := form["cover"]; exists {
+		t.Fatalf("did not expect a separate cover in WeChat imageText template: %#v", form)
+	}
+	if _, exists := form["coverKey"]; exists {
+		t.Fatalf("did not expect a separate coverKey in WeChat imageText template: %#v", form)
+	}
+	fields := data["businessFields"].(map[string]interface{})
+	for field, want := range map[string]interface{}{"disableRecommend": float64(0), "pubType": float64(1)} {
+		property := fields[field].(map[string]interface{})
+		if property["default"] != want {
+			t.Fatalf("expected %s default in schema, got %#v", field, property)
+		}
+	}
+}
+
+func TestSchemaGetCommandWeixinImageTextKeepsImagesAtAccountLevel(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	var out bytes.Buffer
+	cmd := newSchemaGetCmd()
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"WeiXinGongZhongHao", "imageText"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	form := data["minimalTemplate"].(map[string]interface{})["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	images, ok := form["images"].([]interface{})
+	if !ok || len(images) != 1 {
+		t.Fatalf("expected one account-level image placeholder, got %#v", form["images"])
+	}
+	cpForm := form["contentPublishForm"].(map[string]interface{})
+	if _, exists := cpForm["images"]; exists {
+		t.Fatalf("did not expect an empty CPF images field when images are account-level: %#v", cpForm)
+	}
+	args := data["minimalTemplate"].(map[string]interface{})["publishArgs"].(map[string]interface{})
+	platformForms, ok := args["platformForms"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected the WeChat imageText platformForms skeleton, got %#v", args["platformForms"])
+	}
+	platformForm, ok := platformForms["微信公众号"].(map[string]interface{})
+	if !ok || platformForm["formType"] != "task" || platformForm["images"] == nil {
+		t.Fatalf("expected actual WeChat imageText platform form defaults, got %#v", platformForms)
+	}
+}
+
 func TestSchemaGetCommandVerboseOutputsDebugViews(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)

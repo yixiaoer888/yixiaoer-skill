@@ -2133,6 +2133,77 @@ func TestPublishCommandSupportsWeixinAccountArticlePlatformForms(t *testing.T) {
 	}
 }
 
+func TestPublishCommandWeixinAccountImageTextDryRunAppliesDefaultsAndFirstCover(t *testing.T) {
+	withRepoRoot(t)
+	configureEmptyConfig(t)
+	t.Setenv("YIXIAOER_API_KEY", "")
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "imageText",
+		"platforms":      []interface{}{"WeiXinGongZhongHao"},
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_weixin_image_text_1",
+					"images": []interface{}{
+						map[string]interface{}{"key": "wx-image-1", "size": float64(1024), "width": float64(1080), "height": float64(1440)},
+						map[string]interface{}{"key": "wx-image-2", "size": float64(1024), "width": float64(1080), "height": float64(1440)},
+					},
+					"contentPublishForm": map[string]interface{}{
+						"formType": "task",
+						"title":    "公众号图文标题",
+						"desc":     "<p>公众号图文描述</p>",
+					},
+				},
+			},
+		},
+	})
+
+	var out bytes.Buffer
+	cmd := newPublishCmd()
+	cmd.SetOut(&out)
+	cmd.SetErr(&bytes.Buffer{})
+	cmd.SetArgs([]string{"imageText", "WeiXinGongZhongHao", payloadPath, "--dry-run"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if response["action"] != "publish.dry-run" {
+		t.Fatalf("expected dry-run action, got %#v", response["action"])
+	}
+	data := response["data"].(map[string]interface{})
+	request := data["request"].(map[string]interface{})
+	if request["desc"] != "<p>公众号图文描述</p>" {
+		t.Fatalf("expected top-level desc to be inferred from the WeChat imageText form, got %#v", request["desc"])
+	}
+	args := request["publishArgs"].(map[string]interface{})
+	form := args["accountForms"].([]interface{})[0].(map[string]interface{})
+	cpf := form["contentPublishForm"].(map[string]interface{})
+	for field, want := range map[string]interface{}{
+		"notifySubscribers": float64(0),
+		"sex":               float64(0),
+		"needOpenComment":   float64(0),
+		"statement":         float64(0),
+		"disableRecommend":  float64(0),
+		"pubType":           float64(1),
+	} {
+		if got := cpf[field]; got != want {
+			t.Fatalf("dry-run %s = %#v, want %#v", field, got, want)
+		}
+	}
+	if form["coverKey"] != "wx-image-1" {
+		t.Fatalf("expected first image coverKey in dry-run request, got %#v", form["coverKey"])
+	}
+	if form["cover"].(map[string]interface{})["key"] != "wx-image-1" {
+		t.Fatalf("expected first image cover in dry-run request, got %#v", form["cover"])
+	}
+}
+
 func TestPublishCommandAcceptsBaijiahaoImageTextPayload(t *testing.T) {
 	withRepoRoot(t)
 	payloadPath := writePublishPayload(t, map[string]interface{}{

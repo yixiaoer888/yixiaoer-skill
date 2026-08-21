@@ -443,6 +443,7 @@ func inferOuterDesc(publishType string, publishArgs, contentPublishForm, weixinA
 		})
 	case "video", "imageText":
 		return firstNonEmptyStringCandidate([]fieldCandidate{
+			{value: stringField(contentPublishForm, "desc"), sourcePath: "publishArgs.accountForms[0].contentPublishForm.desc"},
 			{value: stringField(contentPublishForm, "description"), sourcePath: "publishArgs.accountForms[0].contentPublishForm.description"},
 			{value: stringField(contentPublishForm, "title"), sourcePath: "publishArgs.accountForms[0].contentPublishForm.title"},
 			{value: stringField(publishArgs, "content"), sourcePath: "publishArgs.content"},

@@ -49,6 +49,14 @@ func TestPlatformDocFileNameUsesShipinhaoAliasForImageText(t *testing.T) {
 	}
 }
 
+func TestPlatformDocFileNameUsesWeixinAccountImageTextDoc(t *testing.T) {
+	for _, alias := range []string{"WeiXinGongZhongHao", "微信公众号", "weixin.account"} {
+		if got := platformDocFileName(alias, "imageText"); got != "weixingongzhonghao.md" {
+			t.Fatalf("platformDocFileName(%q, imageText) = %q", alias, got)
+		}
+	}
+}
+
 func TestClientWrapsInvalidJSONResponseAsRemoteError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("<html>not json</html>"))
