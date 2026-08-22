@@ -38,6 +38,10 @@ func (c *Client) Get(endpoint string, out interface{}) error {
 	return c.Do(http.MethodGet, endpoint, nil, out)
 }
 
+func (c *Client) GetWithHeaders(endpoint string, headers map[string]string, out interface{}) error {
+	return c.do(http.MethodGet, endpoint, nil, headers, out)
+}
+
 func (c *Client) Post(endpoint string, body interface{}, out interface{}) error {
 	return c.Do(http.MethodPost, endpoint, body, out)
 }
@@ -55,6 +59,10 @@ func (c *Client) Delete(endpoint string, out interface{}) error {
 }
 
 func (c *Client) Do(method, endpoint string, body interface{}, out interface{}) error {
+	return c.do(method, endpoint, body, nil, out)
+}
+
+func (c *Client) do(method, endpoint string, body interface{}, headers map[string]string, out interface{}) error {
 	if err := c.cfg.RequireAPIKey(); err != nil {
 		return err
 	}
@@ -78,6 +86,9 @@ func (c *Client) Do(method, endpoint string, body interface{}, out interface{}) 
 	}
 	req.Header.Set("Authorization", c.cfg.APIKey)
 	req.Header.Set("Content-Type", "application/json")
+	for name, value := range headers {
+		req.Header.Set(name, value)
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

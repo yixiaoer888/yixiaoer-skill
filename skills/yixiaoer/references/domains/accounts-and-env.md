@@ -23,12 +23,15 @@ yxer accounts list [platform] [--name 关键词] [--status 1] [--page 1] [--size
 yxer query members [--page 1] [--size 10] [--status notJoined|pending|joined] [--query 关键词] [--role master|admin|member]
 yxer query account-overviews --platform P [--name 关键词] [--group 分组] [--login-status 1] [--member-id ID] [--page 1] [--size 10]
 yxer query content-overviews [--platform P] [--account-id ID] [--publish-user-id ID] [--type video|article|miniVideo|dynamic] [--title 关键词] [--publish-start-time 毫秒] [--publish-end-time 毫秒]
+yxer query account-increments --start-date YYYY-MM-DD --end-date YYYY-MM-DD [--group-id GROUP_ID]
 yxer query proxies [--size 9999]
 yxer query proxy-areas
 yxer accounts update <account_id> [--proxy-id ID] [--kuaidaili-area CODE] [--remark 文本] [--group ID] --dry-run
 yxer skill show
 yxer skill sync [--global]
 ```
+
+增量查询的 `data` 还包含 `dmMessageStats` 私信收发趋势和 `managedAccounts` 管理账号详情，字段保持蚁小二接口原样。
 
 ## 规则
 

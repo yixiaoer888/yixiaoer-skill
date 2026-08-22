@@ -417,7 +417,10 @@ yxer query goods <account_id> [--query 关键词]
 yxer query collections <account_id> [--type video|article]
 yxer query challenges <account_id> [--query 关键词] [--type video]
 yxer query records [--platform P] [--limit N] [--status S] [--json]
+yxer query account-increments --start-date YYYY-MM-DD --end-date YYYY-MM-DD
 ```
+
+`account-increments` 支持 `--group-id` 按账号分组、`--platform` 按平台和 `--account-name` 按账号名称筛选，同时返回增量数据、`dmMessageStats` 私信收发统计和 `managedAccounts` 管理账号详情。私信总计和逐日趋势均按增量账号列表统计；`data.accounts` 还带每个增量账号的 `dmInCount`、`dmOutCount` 和状态。
 
 说明：
 

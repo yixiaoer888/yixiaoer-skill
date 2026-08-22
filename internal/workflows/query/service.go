@@ -109,6 +109,10 @@ func (s Service) ContentOverviews(opts api.ContentOverviewOptions) (interface{},
 	return s.rt.Client.ContentOverviews(opts)
 }
 
+func (s Service) AccountIncrements(opts api.AccountIncrementOptions) (interface{}, error) {
+	return s.rt.Client.AccountIncrementDashboard(opts)
+}
+
 func (s Service) Proxies(size string) (interface{}, error) {
 	return s.rt.Client.Proxies(size)
 }

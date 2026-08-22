@@ -75,10 +75,13 @@ yxer query collections <account_id> [--type video|article]
 yxer query members [--page 1] [--size 10] [--status notJoined|pending|joined] [--query 关键词] [--role master|admin|member]
 yxer query challenges <account_id> [--query 关键词] [--type video]
 yxer query records [--platform P] [--limit N] [--status S] [--json]
+yxer query account-increments --start-date YYYY-MM-DD --end-date YYYY-MM-DD [--group-id GROUP_ID]
 yxer prepare <platform> <type>
 yxer schema fields <platform> <type>
 yxer schema get <platform> <type>
 ```
+
+该命令的 `data` 保留 `accounts`、`summary`、`trends`，并增加 `dmMessageStats`（私信收发统计）和 `managedAccounts`（负责人、运营人等管理详情）。
 
 入口说明：
 

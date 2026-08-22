@@ -17,6 +17,7 @@
 | 素材库登记 | 已覆盖 | `yxer material create <payload.json>` | `skills/yixiaoer/references/material-resource.md` |
 | 素材上传并登记一体化 | 已覆盖 | `yxer material add --file <文件路径或URL>` | `skills/yixiaoer/references/material-resource.md` |
 | 账号数据概览 | 已覆盖 | `yxer query account-overviews --platform P [--name 关键词] [--group 分组] [--login-status 1] [--member-id ID]` | `skills/yixiaoer/references/get-account-overviews.md` |
+| 账号增量数据 | 已覆盖 | `yxer query account-increments --start-date YYYY-MM-DD --end-date YYYY-MM-DD` | `skills/yixiaoer/references/get-account-increments.md` |
 | 成员列表 | 已覆盖 | `yxer query members [--page 1] [--size 10] [--status joined] [--query 关键词] [--role master|admin|member]` | `skills/yixiaoer/references/get-members.md` |
 | 作品数据概览 | 已覆盖 | `yxer query content-overviews [--platform P] [--account-id ID] [--type video|article|miniVideo|dynamic]` | `skills/yixiaoer/references/get-content-overviews.md` |
 | 征文活动 | 已覆盖 | `yxer query activities <account_id> [--type video|article] [--category-id ID] [--query 关键词]` | `skills/yixiaoer/references/get-publish-activities.md` |

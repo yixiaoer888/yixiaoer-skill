@@ -474,6 +474,199 @@ func TestContentOverviewsUsesExpectedEndpointAndFilters(t *testing.T) {
 	}
 }
 
+func TestAccountIncrementsUsesExpectedEndpointAndMilliseconds(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/overview/incremental" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if got := r.URL.Query().Get("startTime"); got != "1786636800000" {
+			t.Fatalf("unexpected startTime: %s", got)
+		}
+		if got := r.URL.Query().Get("endTime"); got != "1787241599999" {
+			t.Fatalf("unexpected endTime: %s", got)
+		}
+		if got := r.URL.Query().Get("group"); got != "group_1" {
+			t.Fatalf("unexpected group: %s", got)
+		}
+		if got := r.URL.Query().Get("platform"); got != "小红书" {
+			t.Fatalf("unexpected platform: %s", got)
+		}
+		if got := r.URL.Query().Get("name"); got != "皮蛋不圆" {
+			t.Fatalf("unexpected account name: %s", got)
+		}
+		if got := r.Header.Get("Authorization"); got != "test-key" {
+			t.Fatalf("unexpected authorization: %s", got)
+		}
+		if got := r.Header.Get("x-client"); got != "web" {
+			t.Fatalf("unexpected x-client: %s", got)
+		}
+		if got := r.Header.Get("x-platform"); got != "windows" {
+			t.Fatalf("unexpected x-platform: %s", got)
+		}
+		if got := r.Header.Get("x-version"); got != "2.7.3" {
+			t.Fatalf("unexpected x-version: %s", got)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": map[string]interface{}{
+				"overviewData": map[string]interface{}{"newFans": 6},
+				"trend":        []map[string]interface{}{{"date": "2026-08-14", "value": 2}},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	start, end, err := ShanghaiDateRange("2026-08-14", "2026-08-20")
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := client.AccountIncrements(AccountIncrementOptions{StartTime: start, EndTime: end, GroupID: "group_1", Platform: "xhs", Name: "皮蛋不圆"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := result.(map[string]interface{})
+	if data["overviewData"].(map[string]interface{})["newFans"] != float64(6) {
+		t.Fatalf("unexpected incremental data: %#v", data)
+	}
+}
+
+func TestDMMessageStatsUsesExpectedEndpointAndFilters(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/social/dm-stats" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if got := r.URL.Query().Get("startTime"); got != "1786636800000" {
+			t.Fatalf("unexpected startTime: %s", got)
+		}
+		if got := r.URL.Query().Get("endTime"); got != "1787241599999" {
+			t.Fatalf("unexpected endTime: %s", got)
+		}
+		if got := r.URL.Query().Get("platformAccountIds"); got != "a1,a2" {
+			t.Fatalf("unexpected account IDs: %s", got)
+		}
+		if r.Header.Get("Authorization") != "test-key" || r.Header.Get("x-client") != "web" {
+			t.Fatalf("expected API key and web headers")
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": map[string]interface{}{
+				"summary": []map[string]interface{}{{"platformAccountId": "a1", "inCount": 2, "outCount": 1}},
+				"trend":   []map[string]interface{}{{"date": "2026-08-15", "inCount": 2, "outCount": 1}},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.DMMessageStats(DMMessageStatsOptions{
+		StartTime:          1786636800000,
+		EndTime:            1787241599999,
+		PlatformAccountIDs: []string{"a1", "", "a2"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := result.(map[string]interface{})
+	if len(data["trend"].([]interface{})) != 1 {
+		t.Fatalf("unexpected DM trend: %#v", data)
+	}
+}
+
+func TestManagedAccountsUsesExpectedEndpointAndPagination(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/platform/accounts" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if r.URL.Query().Get("page") != "1" || r.URL.Query().Get("size") != "1000" {
+			t.Fatalf("unexpected pagination: %s", r.URL.RawQuery)
+		}
+		if r.Header.Get("Authorization") != "test-key" || r.Header.Get("x-version") != "2.7.3" {
+			t.Fatalf("expected API key and client headers")
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": map[string]interface{}{
+				"totalSize": 1,
+				"data":      []map[string]interface{}{{"id": "a1", "principal": nil, "operators": []interface{}{}}},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.ManagedAccounts(ManagedAccountOptions{Page: 1, Size: 1000})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := result.(map[string]interface{})
+	if data["totalSize"] != float64(1) {
+		t.Fatalf("unexpected managed account data: %#v", data)
+	}
+}
+
+func TestAccountIncrementDashboardPreservesIncrementalKeysAndAddsSections(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/overview/incremental":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"data": map[string]interface{}{
+				"accounts": []map[string]interface{}{{
+					"platformAccountId": "a1", "status": 1, "platformAccountName": "账号一", "overviewUpdatedAt": 1787365834205,
+				}}, "summary": map[string]interface{}{}, "trends": []interface{}{},
+			}})
+		case "/social/dm-stats":
+			if got := r.URL.Query().Get("platformAccountIds"); got != "a1" {
+				t.Fatalf("expected incremental account filter, got %q", got)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"data": map[string]interface{}{
+				"summary": []map[string]interface{}{{"platformAccountId": "a1", "inCount": 4, "outCount": 2}},
+				"trend":   []map[string]interface{}{{"date": "1970-01-01", "inCount": 4, "outCount": 2}},
+			}})
+		case "/v2/platform/accounts":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"data": map[string]interface{}{
+				"page": 1, "size": 1000, "totalSize": 0, "totalPage": 1, "data": []interface{}{},
+			}})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.AccountIncrementDashboard(AccountIncrementOptions{StartTime: 1, EndTime: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := result.(map[string]interface{})
+	for _, key := range []string{"accounts", "summary", "trends", "dmMessageStats", "managedAccounts"} {
+		if _, ok := data[key]; !ok {
+			t.Fatalf("missing dashboard key %q: %#v", key, data)
+		}
+	}
+	account := data["accounts"].([]interface{})[0].(map[string]interface{})
+	if account["dmInCount"] != float64(4) || account["dmOutCount"] != float64(2) || account["statusLabel"] != "正常" || account["dataUpdatedAt"] != int64(1787365834205) || account["dataUpdatedTime"] == "" {
+		t.Fatalf("unexpected enriched account: %#v", account)
+	}
+	dm := data["dmMessageStats"].(map[string]interface{})
+	totals := dm["totals"].(map[string]interface{})
+	if totals["inCount"] != float64(4) || totals["outCount"] != float64(2) {
+		t.Fatalf("unexpected DM totals: %#v", totals)
+	}
+	accountTotals := dm["incrementalAccountTotals"].(map[string]interface{})
+	if accountTotals["inCount"] != float64(4) || accountTotals["outCount"] != float64(2) {
+		t.Fatalf("unexpected incremental account DM totals: %#v", accountTotals)
+	}
+	if len(dm["dailyTrend"].([]interface{})) != 1 {
+		t.Fatalf("unexpected daily DM trend: %#v", dm["dailyTrend"])
+	}
+}
+
+func TestShanghaiDateRangeRejectsInvalidAndReversedDates(t *testing.T) {
+	if _, _, err := ShanghaiDateRange("2026/08/14", "2026-08-20"); err == nil {
+		t.Fatal("expected invalid start date error")
+	}
+	if _, _, err := ShanghaiDateRange("2026-08-21", "2026-08-20"); err == nil {
+		t.Fatal("expected reversed date error")
+	}
+}
+
 func TestProxiesAndProxyAreasUseExpectedEndpoints(t *testing.T) {
 	paths := []string{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

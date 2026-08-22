@@ -239,6 +239,7 @@ func TestVisibleCommandTreeSnapshot(t *testing.T) {
 		"material":      {"add", "create"},
 		"publish":       {"form", "init"},
 		"query": {
+			"account-increments",
 			"account-overviews",
 			"activities",
 			"categories",

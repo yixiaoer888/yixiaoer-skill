@@ -5,8 +5,10 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
 type PrepareData struct {
@@ -236,6 +238,293 @@ type ContentOverviewOptions struct {
 	Size              int
 }
 
+// AccountIncrementOptions describes the date window accepted by the
+// account-data incremental endpoint. The endpoint expects Unix milliseconds.
+type AccountIncrementOptions struct {
+	StartTime int64
+	EndTime   int64
+	GroupID   string
+	Platform  string
+	Name      string
+}
+
+func (c *Client) AccountIncrements(opts AccountIncrementOptions) (interface{}, error) {
+	values := url.Values{}
+	values.Set("startTime", strconv.FormatInt(opts.StartTime, 10))
+	values.Set("endTime", strconv.FormatInt(opts.EndTime, 10))
+	setIfNotEmpty(values, "group", opts.GroupID)
+	setIfNotEmpty(values, "platform", platformutil.ChineseName(opts.Platform))
+	setIfNotEmpty(values, "name", opts.Name)
+	return c.queryDataWithHeaders(QueryValues("/overview/incremental", values), overviewHeaders())
+}
+
+// DMMessageStatsOptions describes the private-message statistics endpoint.
+// Platform account IDs are optional; omitting them requests the team trend.
+type DMMessageStatsOptions struct {
+	StartTime          int64
+	EndTime            int64
+	PlatformAccountIDs []string
+	Platform           string
+}
+
+func (c *Client) DMMessageStats(opts DMMessageStatsOptions) (interface{}, error) {
+	values := url.Values{}
+	values.Set("startTime", strconv.FormatInt(opts.StartTime, 10))
+	values.Set("endTime", strconv.FormatInt(opts.EndTime, 10))
+	ids := make([]string, 0, len(opts.PlatformAccountIDs))
+	for _, id := range opts.PlatformAccountIDs {
+		if strings.TrimSpace(id) != "" {
+			ids = append(ids, strings.TrimSpace(id))
+		}
+	}
+	setIfNotEmpty(values, "platformAccountIds", strings.Join(ids, ","))
+	setIfNotEmpty(values, "platform", platformutil.ChineseName(opts.Platform))
+	return c.queryDataWithHeaders(QueryValues("/social/dm-stats", values), overviewHeaders())
+}
+
+// ManagedAccountOptions controls the all-platform account management detail
+// query used by the overview dashboard.
+type ManagedAccountOptions struct {
+	Platform string
+	Page     int
+	Size     int
+}
+
+func (c *Client) ManagedAccounts(opts ManagedAccountOptions) (interface{}, error) {
+	values := url.Values{}
+	setIfNotEmpty(values, "platform", platformutil.ChineseName(opts.Platform))
+	setIfPositive(values, "page", opts.Page)
+	setIfPositive(values, "size", opts.Size)
+	return c.queryDataWithHeaders(QueryValues("/v2/platform/accounts", values), overviewHeaders())
+}
+
+// AccountIncrementDashboard combines the three read-only sections displayed
+// by the web overview while preserving the existing incremental data keys.
+func (c *Client) AccountIncrementDashboard(opts AccountIncrementOptions) (interface{}, error) {
+	increments, err := c.AccountIncrements(opts)
+	if err != nil {
+		return nil, err
+	}
+	accountIDs := incrementalAccountIDs(increments)
+	var dmStats interface{} = map[string]interface{}{
+		"summary": []interface{}{},
+		"trend":   []interface{}{},
+	}
+	if len(accountIDs) > 0 {
+		dmStats, err = c.DMMessageStats(DMMessageStatsOptions{
+			StartTime:          opts.StartTime,
+			EndTime:            opts.EndTime,
+			PlatformAccountIDs: accountIDs,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+	managed, err := c.ManagedAccounts(ManagedAccountOptions{Page: 1, Size: 1000})
+	if err != nil {
+		return nil, err
+	}
+	data, ok := increments.(map[string]interface{})
+	if !ok {
+		return map[string]interface{}{
+			"incremental":     increments,
+			"dmMessageStats":  dmStats,
+			"managedAccounts": managed,
+		}, nil
+	}
+	enrichIncrementalAccounts(data, dmStats)
+	normalizeDMMessageStats(dmStats, data, opts.StartTime, opts.EndTime)
+	data["dmMessageStats"] = dmStats
+	data["managedAccounts"] = managed
+	return data, nil
+}
+
+func incrementalAccountIDs(value interface{}) []string {
+	data, ok := value.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	accounts, ok := data["accounts"].([]interface{})
+	if !ok {
+		return nil
+	}
+	ids := make([]string, 0, len(accounts))
+	for _, item := range accounts {
+		account, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if id, ok := account["platformAccountId"].(string); ok && id != "" {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
+func enrichIncrementalAccounts(data map[string]interface{}, dmStats interface{}) {
+	statsByAccount := map[string]map[string]interface{}{}
+	if stats, ok := dmStats.(map[string]interface{}); ok {
+		if summary, ok := stats["summary"].([]interface{}); ok {
+			for _, item := range summary {
+				row, ok := item.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				if id, ok := row["platformAccountId"].(string); ok && id != "" {
+					statsByAccount[id] = row
+				}
+			}
+		}
+	}
+	accounts, ok := data["accounts"].([]interface{})
+	if !ok {
+		return
+	}
+	for _, item := range accounts {
+		account, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		id, _ := account["platformAccountId"].(string)
+		stats := statsByAccount[id]
+		account["dmInCount"] = numberOrZero(stats, "inCount")
+		account["dmOutCount"] = numberOrZero(stats, "outCount")
+		if status, ok := account["status"].(float64); ok {
+			if status == 1 {
+				account["statusLabel"] = "正常"
+			} else {
+				account["statusLabel"] = "失效"
+			}
+		}
+		if updatedAt := accountUpdateTimestamp(account); updatedAt > 0 {
+			account["dataUpdatedAt"] = updatedAt
+			account["dataUpdatedTime"] = time.UnixMilli(updatedAt).
+				In(time.FixedZone("Asia/Shanghai", 8*60*60)).
+				Format("2006-01-02 15:04:05")
+		}
+	}
+}
+
+func accountUpdateTimestamp(account map[string]interface{}) int64 {
+	for _, key := range []string{"overviewUpdatedAt", "updatedAt"} {
+		value := numberOrZero(account, key)
+		if value > 0 {
+			return int64(value)
+		}
+	}
+	return 0
+}
+
+func normalizeDMMessageStats(value interface{}, incrementalData map[string]interface{}, startTime, endTime int64) {
+	stats, ok := value.(map[string]interface{})
+	if !ok {
+		return
+	}
+	var received, sent float64
+	if summary, ok := stats["summary"].([]interface{}); ok {
+		for _, item := range summary {
+			row, ok := item.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			received += numberOrZero(row, "inCount")
+			sent += numberOrZero(row, "outCount")
+		}
+	}
+	stats["totals"] = map[string]interface{}{"inCount": received, "outCount": sent}
+	var incrementalReceived, incrementalSent float64
+	if accounts, ok := incrementalData["accounts"].([]interface{}); ok {
+		for _, item := range accounts {
+			row, ok := item.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			incrementalReceived += numberOrZero(row, "dmInCount")
+			incrementalSent += numberOrZero(row, "dmOutCount")
+		}
+	}
+	stats["incrementalAccountTotals"] = map[string]interface{}{
+		"inCount":  incrementalReceived,
+		"outCount": incrementalSent,
+	}
+
+	trendByDate := map[string]map[string]interface{}{}
+	if trend, ok := stats["trend"].([]interface{}); ok {
+		for _, item := range trend {
+			row, ok := item.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			if date, ok := row["date"].(string); ok {
+				trendByDate[date] = row
+			}
+		}
+	}
+	location := time.FixedZone("Asia/Shanghai", 8*60*60)
+	start := time.UnixMilli(startTime).In(location)
+	end := time.UnixMilli(endTime).In(location)
+	start = time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, location)
+	end = time.Date(end.Year(), end.Month(), end.Day(), 0, 0, 0, 0, location)
+	daily := make([]interface{}, 0)
+	for day := start; !day.After(end); day = day.AddDate(0, 0, 1) {
+		date := day.Format("2006-01-02")
+		row := trendByDate[date]
+		daily = append(daily, map[string]interface{}{
+			"date":     date,
+			"inCount":  numberOrZero(row, "inCount"),
+			"outCount": numberOrZero(row, "outCount"),
+		})
+	}
+	stats["dailyTrend"] = daily
+}
+
+func numberOrZero(row map[string]interface{}, key string) float64 {
+	if row == nil {
+		return 0
+	}
+	switch value := row[key].(type) {
+	case float64:
+		return value
+	case float32:
+		return float64(value)
+	case int:
+		return float64(value)
+	case int64:
+		return float64(value)
+	default:
+		return 0
+	}
+}
+
+func overviewHeaders() map[string]string {
+	return map[string]string{
+		"x-client":   "web",
+		"x-platform": "windows",
+		"x-version":  "2.7.3",
+	}
+}
+
+// ShanghaiDateRange converts inclusive YYYY-MM-DD dates into the inclusive
+// millisecond range used by the web endpoint.
+func ShanghaiDateRange(startDate, endDate string) (int64, int64, error) {
+	location := time.FixedZone("Asia/Shanghai", 8*60*60)
+	start, err := time.ParseInLocation("2006-01-02", strings.TrimSpace(startDate), location)
+	if err != nil {
+		return 0, 0, yxerrors.Usage(fmt.Sprintf("invalid start date %q: use YYYY-MM-DD", startDate), nil).
+			WithHint("日期格式必须为 YYYY-MM-DD。")
+	}
+	end, err := time.ParseInLocation("2006-01-02", strings.TrimSpace(endDate), location)
+	if err != nil {
+		return 0, 0, yxerrors.Usage(fmt.Sprintf("invalid end date %q: use YYYY-MM-DD", endDate), nil).
+			WithHint("日期格式必须为 YYYY-MM-DD。")
+	}
+	if start.After(end) {
+		return 0, 0, yxerrors.Usage(fmt.Sprintf("start date %q must not be after end date %q", startDate, endDate), nil).
+			WithHint("开始日期不能晚于结束日期。")
+	}
+	return start.UnixMilli(), end.Add(24*time.Hour - time.Millisecond).UnixMilli(), nil
+}
+
 func (c *Client) ContentOverviews(opts ContentOverviewOptions) (interface{}, error) {
 	values := url.Values{}
 	setIfNotEmpty(values, "platform", platformutil.ChineseName(opts.Platform))
@@ -320,8 +609,12 @@ func platformDocFileName(platform, publishType string) string {
 }
 
 func (c *Client) queryData(endpoint string) (interface{}, error) {
+	return c.queryDataWithHeaders(endpoint, nil)
+}
+
+func (c *Client) queryDataWithHeaders(endpoint string, headers map[string]string) (interface{}, error) {
 	var result interface{}
-	if err := c.Get(endpoint, &result); err != nil {
+	if err := c.GetWithHeaders(endpoint, headers, &result); err != nil {
 		return nil, err
 	}
 	if typed, ok := result.(map[string]interface{}); ok {

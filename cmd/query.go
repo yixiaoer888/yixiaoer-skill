@@ -45,6 +45,7 @@ func newQueryCmd() *cobra.Command {
 	cmd.AddCommand(newDetailsCmd())
 	cmd.AddCommand(newAccountOverviewsCmd())
 	cmd.AddCommand(newContentOverviewsCmd())
+	cmd.AddCommand(newAccountIncrementsCmd())
 	cmd.AddCommand(newProxiesCmd())
 	cmd.AddCommand(newProxyAreasCmd())
 	return cmd

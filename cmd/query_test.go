@@ -261,6 +261,16 @@ func TestAccountOverviewsRequiresPlatform(t *testing.T) {
 	}
 }
 
+func TestAccountIncrementsRequiresDateRange(t *testing.T) {
+	err := newAccountIncrementsCmd().RunE(testCobraCommand(), nil)
+	if err == nil {
+		t.Fatal("expected missing date range error")
+	}
+	if !strings.Contains(err.Error(), "start-date and end-date are required") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestUpdateAccountDryRunOutputsRequestBody(t *testing.T) {
 	var out bytes.Buffer
 	cmd := newAccountsUpdateCmd()
