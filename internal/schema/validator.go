@@ -198,11 +198,13 @@ func sanitizeSchemaDocument(schema map[string]interface{}) {
 func validationTargets(platform, publishType string, payload map[string]interface{}) []validationTarget {
 	if publishArgs, ok := payload["publishArgs"].(map[string]interface{}); ok {
 		normalized := normalizeValidationPayload(platform, publishType, publishArgs)
-		if target := weixinAccountArticlePlatformForm(normalized); target != nil {
-			return []validationTarget{{
-				Value:  target,
-				Prefix: "publishArgs.platformForms.微信公众号: ",
-			}}
+		if TypeKey(publishType) == "article" {
+			if target := weixinAccountArticlePlatformForm(normalized); target != nil {
+				return []validationTarget{{
+					Value:  target,
+					Prefix: "publishArgs.platformForms.微信公众号: ",
+				}}
+			}
 		}
 		return validationTargets(platform, publishType, normalized)
 	}
@@ -214,6 +216,7 @@ func validationTargets(platform, publishType string, payload map[string]interfac
 				continue
 			}
 			if cpf, ok := formMap["contentPublishForm"]; ok {
+				cpf = mergeAccountLevelImageTextResources(publishType, formMap, cpf)
 				targets = append(targets, validationTarget{
 					Value:  cpf,
 					Prefix: fmt.Sprintf("accountForms[%d].contentPublishForm: ", i),
@@ -234,6 +237,34 @@ func validationTargets(platform, publishType string, payload map[string]interfac
 		return []validationTarget{{Value: payload}}
 	}
 	return []validationTarget{{Value: payload}}
+}
+
+// mergeAccountLevelImageTextResources keeps the standard payload placement
+// (accountForms[].images) compatible with platform schemas whose business
+// fields are validated from contentPublishForm. The returned map is a shallow
+// validation copy, so schema validation never changes the publish payload.
+func mergeAccountLevelImageTextResources(publishType string, form map[string]interface{}, contentForm interface{}) interface{} {
+	if TypeKey(publishType) != "imageText" {
+		return contentForm
+	}
+	contentMap, ok := contentForm.(map[string]interface{})
+	if !ok || contentMap == nil {
+		return contentForm
+	}
+	images, exists := form["images"]
+	if !exists {
+		return contentForm
+	}
+	accountImages, ok := images.([]interface{})
+	if !ok || len(accountImages) == 0 {
+		return contentForm
+	}
+	merged := make(map[string]interface{}, len(contentMap)+1)
+	for key, value := range contentMap {
+		merged[key] = value
+	}
+	merged["images"] = images
+	return merged
 }
 
 func normalizeValidationPayload(platform, publishType string, payload map[string]interface{}) map[string]interface{} {

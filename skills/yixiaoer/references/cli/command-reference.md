@@ -168,7 +168,7 @@ yxer upload --url https://example.com/demo.jpg
 
 - 顶层必须有 `publishArgs`
 - 账号列表必须放在 `publishArgs.accountForms[]`
-- 平台业务字段必须放在 `publishArgs.accountForms[].contentPublishForm`
+- 平台业务字段通常放在 `publishArgs.accountForms[].contentPublishForm`；图文图片放在 `accountForms[].images`，微信公众号图文的字段和平台级默认表单以专属文档为准
 - 不再支持顶层 `accountForms`
 - 不再支持直接提交内层业务表单 JSON
 

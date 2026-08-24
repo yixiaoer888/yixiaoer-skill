@@ -1,6 +1,6 @@
 # 图文发布工作流
 
-> 适用范围：抖音图文、小红书笔记、知乎想法、快手图文、微博图文、微信视频号图文等。
+> 适用范围：抖音图文、小红书笔记、知乎想法、快手图文、微博图文、微信视频号图文、微信公众号图文等。
 > 阅读本文档前，请先阅读 [common-rules.md](./common-rules.md)。
 
 ---
@@ -32,7 +32,8 @@ yxer schema get <platform> imageText
 6. 根据前置数据、schema 和字段来源纪律填写 `payload.json`
 7. 查阅对应平台文档：`../platforms/imageText/`
 8. 执行校验：`yxer validate <platform> imageText <payload.json>`
-9. 正式发布：`yxer publish imageText <platform> <payload.json>`
+9. 先执行发布 dry-run：`yxer publish imageText <platform> <payload.json> --dry-run`
+10. 确认请求体后再执行正式发布：`yxer publish imageText <platform> <payload.json>`
 
 ## 关键规则
 
@@ -62,3 +63,5 @@ yxer publish imageText 抖音 .\payload.json --publish-channel local --client-id
 
 - 索引：`../platforms/imageText/index.md`
 - 平台细节：`../platforms/imageText/*.md`
+
+微信公众号图文的专属字段和默认值见 [`../platforms/imageText/weixingongzhonghao.md`](../platforms/imageText/weixingongzhonghao.md)。微信公众号文章仍走 `publish article` 的独立工作流。

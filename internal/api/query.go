@@ -575,6 +575,11 @@ func (c *Client) Prepare(platform, publishType string) (PrepareData, error) {
 		}
 	}
 
+	schemaPlatform := platform
+	if platformutil.CanonicalKey(platform) == "weixin.account" {
+		schemaPlatform = "weixin.account"
+	}
+
 	return PrepareData{
 		Platform:        platform,
 		Type:            publishType,
@@ -584,7 +589,7 @@ func (c *Client) Prepare(platform, publishType string) (PrepareData, error) {
 		Workflow:        fmt.Sprintf("workflows/publish-%s.md", publishType),
 		DocsIndex:       fmt.Sprintf("skills/yixiaoer/references/platforms/%s/index.md", publishType),
 		PlatformDoc:     fmt.Sprintf("skills/yixiaoer/references/platforms/%s/%s", publishType, platformDocFileName(platform, publishType)),
-		Schema:          fmt.Sprintf("schemas/platforms/%s.%s.schema.json", platform, schemaTypeName(publishType)),
+		Schema:          fmt.Sprintf("schemas/platforms/%s.%s.schema.json", schemaPlatform, schemaTypeName(publishType)),
 		RootSchema:      "schemas/publish.schema.json",
 	}, nil
 }
@@ -602,8 +607,13 @@ func setIfPositive(values url.Values, key string, value int) {
 }
 
 func platformDocFileName(platform, publishType string) string {
-	if publishType == "imageText" && platform == "shipinhao" {
-		return "shipinhao.md"
+	if publishType == "imageText" {
+		switch platformutil.CanonicalKey(platform) {
+		case "shipinhao":
+			return "shipinhao.md"
+		case "weixin.account":
+			return "weixingongzhonghao.md"
+		}
 	}
 	return platform + ".md"
 }

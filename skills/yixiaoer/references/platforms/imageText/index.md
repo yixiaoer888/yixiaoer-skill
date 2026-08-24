@@ -19,7 +19,9 @@
 2. **账号确权**：获取目标账号对应的 `platformAccountId`。
 3. **平台细化**：针对小红书等平台，查阅对应文档补齐“话题”、“地点”等字段。
 4. **Payload 装配**：按照 1.1 - 1.3 节结构，构造包含 `action: "publish"` 的 JSON。
-5. **指令交付**：先执行 `yxer validate <platform> imageText <payload.json>`，再执行 `yxer publish imageText <platform> <payload.json> [--publish-channel local --client-id <clientId>]`。
+5. **指令交付**：先执行 `yxer validate <platform> imageText <payload.json>`，再执行 `yxer publish imageText <platform> <payload.json> --dry-run`，确认请求后才正式发布。
+
+> 微信公众号图文是例外：正文/描述写在 `accountForms[].contentPublishForm.desc`，图片写在 `accountForms[].images`；CLI 会自动补齐平台级 `platformForms["微信公众号"]` 默认表单。具体字段以 [`weixingongzhonghao.md`](./weixingongzhonghao.md) 为准。
 
 ## 1. 数据结构 (Data Structure)
 
@@ -61,7 +63,7 @@
 
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
-| `content` | `string` | **是** | **图文描述**: 纯文本格式 | - |
+| `content` | `string` | 否 | 通用平台图文描述；微信公众号图文使用 `contentPublishForm.desc` | - |
 | `accountForms` | `Array` | **是** | 账号发布表单列表 | - |
 
 ### 1.4 账号表单项 (accountForms Item)
@@ -72,7 +74,7 @@
 | `images` | `Array` | **是** | **ImageFormItem[]**: 图文图片列表 (`key`, `width`, `height`, `size`) | - |
 | `cover` | `Object` | 否 | **ImageFormItem**: 主封面对象；仅在平台 schema 暴露单独封面字段时填写 | - |
 | `contentPublishForm`| `Object` | **是** | **透传层**: `{}` | - |
-| `coverKey` | `string` | 否 | 账号级封面 Key；新浪微博、小红书、视频号、知乎、头条号图文由 CLI 从首图派生 | - |
+| `coverKey` | `string` | 否 | 账号级封面 Key；首图封面平台由 CLI 派生，微信公众号若已有接口返回的 `coverKey` 可直接保留 | - |
 
 ## 2. 发布示例 (Payload Example)
 

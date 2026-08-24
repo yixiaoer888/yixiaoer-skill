@@ -27,6 +27,10 @@ func buildPayloadTemplate(doc schema.Document) map[string]interface{} {
 		publishArgs["platformForms"] = map[string]interface{}{
 			"微信公众号": buildTemplateObject(doc.Properties),
 		}
+	} else if isWeixinAccountImageTextDoc(doc) {
+		publishArgs["platformForms"] = map[string]interface{}{
+			"微信公众号": weixinAccountImageTextPlatformFormTemplate(),
+		}
 	} else if doc.Type == "article" {
 		publishArgs["content"] = "<content>"
 	}
@@ -47,7 +51,7 @@ func buildPayloadTemplate(doc schema.Document) map[string]interface{} {
 func buildMinimalPayloadTemplate(doc schema.Document) map[string]interface{} {
 	// 只提取必填字段
 	requiredFields := make(map[string]interface{})
-	for key, prop := range clonePropertyViewsWithoutKeys(doc.Properties, articleContentTemplateExclusion(doc.Type)...) {
+	for key, prop := range clonePropertyViewsWithoutKeys(doc.Properties, append(articleContentTemplateExclusion(doc.Type), accountLevelResourceKeys(doc.Type)...)...) {
 		if prop.Required {
 			value, ok := buildTemplateValue(key, prop)
 			if ok {
@@ -81,6 +85,10 @@ func buildMinimalPayloadTemplate(doc schema.Document) map[string]interface{} {
 			"微信公众号": requiredFields,
 		}
 		template["desc"] = "<任务描述>"
+	} else if isWeixinAccountImageTextDoc(doc) {
+		template["publishArgs"].(map[string]interface{})["platformForms"] = map[string]interface{}{
+			"微信公众号": weixinAccountImageTextPlatformFormTemplate(),
+		}
 	} else if doc.Type == "article" {
 		template["publishArgs"].(map[string]interface{})["content"] = "<从正文生成>"
 		template["desc"] = "<任务描述>"
@@ -186,6 +194,25 @@ func accountLevelResourceKeys(publishType string) []string {
 		return []string{"images", "cover", "coverKey"}
 	default:
 		return nil
+	}
+}
+
+func isWeixinAccountImageTextDoc(doc schema.Document) bool {
+	return doc.Type == "imageText" && platformutil.CanonicalKey(doc.Platform) == "weixin.account"
+}
+
+func weixinAccountImageTextPlatformFormTemplate() map[string]interface{} {
+	return map[string]interface{}{
+		"pubType":           float64(1),
+		"notifySubscribers": float64(0),
+		"sex":               float64(0),
+		"title":             "",
+		"desc":              "",
+		"images":            []interface{}{},
+		"needOpenComment":   float64(0),
+		"statement":         float64(0),
+		"disableRecommend":  float64(0),
+		"formType":          "task",
 	}
 }
 
