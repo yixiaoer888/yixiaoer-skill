@@ -4,6 +4,8 @@ import (
 	"fmt"
 	htmlpkg "html"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -29,8 +31,8 @@ type ArticleContentImageMaterialization struct {
 	Error  string `json:"error,omitempty"`
 }
 
-func materializeArticleContentImages(apiClient *api.Client, body map[string]interface{}, continueOnError bool) ([]ArticleContentImageMaterialization, error) {
-	return rewriteArticleContentImages(body, continueOnError, func(sourceURL string) (string, string, error) {
+func materializeArticleContentImages(apiClient *api.Client, body map[string]interface{}, baseDir string, continueOnError bool) ([]ArticleContentImageMaterialization, error) {
+	return rewriteArticleContentImagesWithBaseDir(body, baseDir, continueOnError, func(sourceURL string) (string, string, error) {
 		uploaded, err := apiClient.Upload(sourceURL, articleImageMaterializeBucket, false)
 		if err != nil {
 			return "", "", articleImageMaterializeError(sourceURL, err)
@@ -43,14 +45,18 @@ func materializeArticleContentImages(apiClient *api.Client, body map[string]inte
 	})
 }
 
-func previewArticleContentImageMaterialization(body map[string]interface{}) []ArticleContentImageMaterialization {
-	events, _ := rewriteArticleContentImages(body, true, func(sourceURL string) (string, string, error) {
+func previewArticleContentImageMaterialization(body map[string]interface{}, baseDir string) []ArticleContentImageMaterialization {
+	events, _ := rewriteArticleContentImagesWithBaseDir(body, baseDir, true, func(sourceURL string) (string, string, error) {
 		return sourceURL, "", nil
 	})
 	return events
 }
 
 func rewriteArticleContentImages(body map[string]interface{}, continueOnError bool, upload func(string) (string, string, error)) ([]ArticleContentImageMaterialization, error) {
+	return rewriteArticleContentImagesWithBaseDir(body, "", continueOnError, upload)
+}
+
+func rewriteArticleContentImagesWithBaseDir(body map[string]interface{}, baseDir string, continueOnError bool, upload func(string) (string, string, error)) ([]ArticleContentImageMaterialization, error) {
 	if body == nil || publishmod.NormalizePublishType(stringField(body, "publishType")) != "article" {
 		return nil, nil
 	}
@@ -59,7 +65,7 @@ func rewriteArticleContentImages(body map[string]interface{}, continueOnError bo
 		return nil, nil
 	}
 	var events []ArticleContentImageMaterialization
-	if err := rewriteStringFieldImages(publishArgs, "content", "publishArgs.content", upload, continueOnError, &events); err != nil {
+	if err := rewriteStringFieldImagesWithBaseDir(publishArgs, "content", "publishArgs.content", baseDir, upload, continueOnError, &events); err != nil {
 		return events, err
 	}
 	if platformForm := weixinAccountArticlePlatformForm(publishArgs); platformForm != nil {
@@ -70,7 +76,7 @@ func rewriteArticleContentImages(body map[string]interface{}, continueOnError bo
 				continue
 			}
 			path := fmt.Sprintf(`publishArgs.platformForms[微信公众号].articles[%d].content`, i)
-			if err := rewriteStringFieldImages(article, "content", path, upload, continueOnError, &events); err != nil {
+			if err := rewriteStringFieldImagesWithBaseDir(article, "content", path, baseDir, upload, continueOnError, &events); err != nil {
 				return events, err
 			}
 		}
@@ -79,11 +85,15 @@ func rewriteArticleContentImages(body map[string]interface{}, continueOnError bo
 }
 
 func rewriteStringFieldImages(container map[string]interface{}, field, path string, upload func(string) (string, string, error), continueOnError bool, events *[]ArticleContentImageMaterialization) error {
+	return rewriteStringFieldImagesWithBaseDir(container, field, path, "", upload, continueOnError, events)
+}
+
+func rewriteStringFieldImagesWithBaseDir(container map[string]interface{}, field, path, baseDir string, upload func(string) (string, string, error), continueOnError bool, events *[]ArticleContentImageMaterialization) error {
 	content := stringField(container, field)
 	if strings.TrimSpace(content) == "" || !strings.Contains(strings.ToLower(content), "<img") {
 		return nil
 	}
-	rewritten, fieldEvents, err := rewriteHTMLImageSources(content, path, upload, continueOnError)
+	rewritten, fieldEvents, err := rewriteHTMLImageSourcesWithBaseDir(content, path, baseDir, upload, continueOnError)
 	if err != nil {
 		*events = append(*events, fieldEvents...)
 		return err
@@ -97,6 +107,10 @@ func rewriteStringFieldImages(container map[string]interface{}, field, path stri
 }
 
 func rewriteHTMLImageSources(content, path string, upload func(string) (string, string, error), continueOnError bool) (string, []ArticleContentImageMaterialization, error) {
+	return rewriteHTMLImageSourcesWithBaseDir(content, path, "", upload, continueOnError)
+}
+
+func rewriteHTMLImageSourcesWithBaseDir(content, path, baseDir string, upload func(string) (string, string, error), continueOnError bool) (string, []ArticleContentImageMaterialization, error) {
 	uploadedBySource := map[string]ArticleContentImageMaterialization{}
 	var ordered []string
 	var firstErr error
@@ -111,12 +125,22 @@ func rewriteHTMLImageSources(content, path string, upload func(string) (string, 
 		}
 		source := strings.TrimSpace(firstNonEmptyString(match[3], match[4], match[5]))
 		source = htmlpkg.UnescapeString(source)
-		if !shouldMaterializeArticleImageSource(source) {
+		resolvedSource, shouldMaterialize, resolveErr := resolveArticleImageSource(source, baseDir)
+		if resolveErr != nil {
+			event := ArticleContentImageMaterialization{Path: path, From: source, Bucket: articleImageMaterializeBucket, Status: "failed", Error: resolveErr.Error()}
+			uploadedBySource[source] = event
+			ordered = append(ordered, source)
+			if !continueOnError {
+				firstErr = resolveErr
+			}
+			return tag
+		}
+		if !shouldMaterialize {
 			return tag
 		}
 		event, exists := uploadedBySource[source]
 		if !exists {
-			targetURL, key, err := upload(source)
+			targetURL, key, err := upload(resolvedSource)
 			if err != nil {
 				event = ArticleContentImageMaterialization{Path: path, From: source, Bucket: articleImageMaterializeBucket, Status: "failed", Error: err.Error()}
 				uploadedBySource[source] = event
@@ -127,8 +151,9 @@ func rewriteHTMLImageSources(content, path string, upload func(string) (string, 
 				return tag
 			}
 			status := "materialized"
-			if targetURL == source {
+			if targetURL == source || targetURL == resolvedSource {
 				status = "would_materialize"
+				targetURL = source
 			}
 			event = ArticleContentImageMaterialization{Path: path, From: source, To: targetURL, Bucket: articleImageMaterializeBucket, Key: key, Status: status}
 			uploadedBySource[source] = event
@@ -143,6 +168,79 @@ func rewriteHTMLImageSources(content, path string, upload func(string) (string, 
 		return content, eventsInOrder(uploadedBySource, ordered), firstErr
 	}
 	return rewritten, eventsInOrder(uploadedBySource, ordered), nil
+}
+
+func resolveArticleImageSource(source, baseDir string) (string, bool, error) {
+	source = strings.TrimSpace(source)
+	if source == "" {
+		return source, false, nil
+	}
+	lower := strings.ToLower(source)
+	if strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") {
+		if !shouldMaterializeArticleImageSource(source) {
+			return source, false, nil
+		}
+		return source, true, nil
+	}
+	if strings.HasPrefix(lower, "data:") || strings.HasPrefix(lower, "cid:") {
+		return source, false, nil
+	}
+
+	localSource := source
+	if strings.HasPrefix(lower, "file://") {
+		parsed, err := url.Parse(source)
+		if err != nil {
+			return "", true, yxerrors.Usage("invalid article content image file URL", map[string]interface{}{
+				"source": source,
+			}).WithCategory("article_content_image_source")
+		}
+		localSource = parsed.Path
+		if parsed.Host != "" && !strings.EqualFold(parsed.Host, "localhost") {
+			localSource = `\\` + parsed.Host + localSource
+		}
+		localSource, err = url.PathUnescape(localSource)
+		if err != nil {
+			return "", true, yxerrors.Usage("invalid encoded article content image file URL", map[string]interface{}{
+				"source": source,
+			}).WithCategory("article_content_image_source")
+		}
+		if len(localSource) >= 3 && localSource[0] == '/' && localSource[2] == ':' {
+			localSource = localSource[1:]
+		}
+	}
+	decodedLocalSource, err := url.PathUnescape(localSource)
+	if err != nil {
+		return "", true, yxerrors.Usage("invalid encoded article content image path", map[string]interface{}{
+			"source": source,
+		}).WithCategory("article_content_image_source")
+	}
+	localSource = decodedLocalSource
+
+	if !filepath.IsAbs(localSource) {
+		if strings.TrimSpace(baseDir) == "" {
+			return "", true, yxerrors.Usage("relative article content image requires a content file", map[string]interface{}{
+				"source": source,
+			}).WithCategory("article_content_image_source").
+				WithHint("请通过 --content-file 提供 Markdown 文件，以便按文档目录解析图片路径。")
+		}
+		localSource = filepath.Join(baseDir, filepath.FromSlash(localSource))
+	}
+	localSource = filepath.Clean(localSource)
+	info, err := os.Stat(localSource)
+	if err != nil {
+		return "", true, yxerrors.Usage("article content image file not found", map[string]interface{}{
+			"source": source,
+			"path":   localSource,
+		}).WithCategory("article_content_image_source").
+			WithHint("请检查 Markdown 图片路径，路径应相对于 Markdown 文件所在目录。")
+	}
+	if info.IsDir() {
+		return "", true, yxerrors.Usage("article content image path is a directory", map[string]interface{}{
+			"source": source,
+			"path":   localSource,
+		}).WithCategory("article_content_image_source")
+	}
+	return localSource, true, nil
 }
 
 func shouldMaterializeArticleImageSource(source string) bool {

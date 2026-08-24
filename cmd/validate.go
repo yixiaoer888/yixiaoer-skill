@@ -20,8 +20,9 @@ func init() {
 }
 
 type validateOptions struct {
-	Channel  string
-	ClientID string
+	Channel     string
+	ClientID    string
+	ContentFile string
 }
 
 func newValidateCmd() *cobra.Command {
@@ -36,6 +37,7 @@ func newValidateCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&opts.Channel, "publish-channel", "", `publish channel: "cloud" or "local"`)
 	cmd.Flags().StringVar(&opts.ClientID, "client-id", "", "client ID for local publish")
+	cmd.Flags().StringVar(&opts.ContentFile, "content-file", "", "Markdown file used as article content source")
 	return cmd
 }
 
@@ -58,6 +60,7 @@ func runValidate(cmd *cobra.Command, args []string, opts validateOptions) error 
 		PublishType:   publishType,
 		PlatformInput: platform,
 		Payload:       payload,
+		ContentFile:   opts.ContentFile,
 		FlagChannel:   opts.Channel,
 		FlagClientID:  opts.ClientID,
 	}, publishflow.PrepareOptions{TraceNormalizations: true, RemoteChecks: publishflow.RemoteChecksCloudWithKey})
@@ -74,12 +77,15 @@ func runValidate(cmd *cobra.Command, args []string, opts validateOptions) error 
 		"prepared":     true,
 		"request":      prepared.PublishBody,
 		"remoteChecks": prepared.RemoteChecked,
-		"nextStep":     publishNextCommand(publishType, platform, payloadPath, prepared.PublishMode, prepared.ClientID, true),
+		"nextStep":     publishNextCommand(publishType, platform, payloadPath, prepared.PublishMode, prepared.ClientID, true, opts.ContentFile),
 	})
 }
 
-func publishNextCommand(publishType, platform, payloadPath, channel, clientID string, dryRun bool) string {
+func publishNextCommand(publishType, platform, payloadPath, channel, clientID string, dryRun bool, contentFile ...string) string {
 	parts := []string{"yxer", "publish", publishType, quoteCommandArg(platform), quoteCommandArg(payloadPath)}
+	if len(contentFile) > 0 && strings.TrimSpace(contentFile[0]) != "" {
+		parts = append(parts, "--content-file", quoteCommandArg(contentFile[0]))
+	}
 	if strings.TrimSpace(channel) == "local" {
 		parts = append(parts, "--publish-channel", "local")
 		if strings.TrimSpace(clientID) != "" {

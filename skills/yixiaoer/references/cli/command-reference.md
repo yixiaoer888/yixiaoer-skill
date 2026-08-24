@@ -43,8 +43,8 @@ yxer upload --url <resource_url> [--bucket cloud-publish|material-library] [--dr
 ### 发布与校验
 
 ```bash
-yxer validate <platform> <type> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>]
-yxer publish <type> <platform> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>] [--dry-run]
+yxer validate <platform> <type> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>] [--content-file <article.md>]
+yxer publish <type> <platform> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>] [--content-file <article.md>] [--dry-run]
 yxer publish form start <platform> <type> [--output publish-form.json] [--dry-run]
 yxer publish form inspect <session.json>
 yxer publish form set <session.json> <payload.path> --value '<json-value-or-text>' [--index N] [--source-command <cmd>] [--dry-run]
@@ -93,11 +93,13 @@ yxer schema get <platform> <type>
 - `publish` 仅支持 `payload.json` 模式
 - 新建或补字段时，先执行 `yxer prepare <platform> <type>` / `yxer publish form start` 和 `yxer schema fields <platform> <type>`；`schema fields` 默认返回扁平路径清单，只有需要完整 payload 骨架时再执行 `yxer schema get <platform> <type>`
 - `payload.json` 只支持标准 `publishArgs` 结构，所有平台统一
+- `article` 发布可通过 `--content-file <article.md>` 指定 Markdown 正文源；CLI 会将 Markdown 渲染为 HTML，并按 Markdown 文件目录解析本地图片
+- `--content-file` 支持 `![alt](path)`、`![[path]]`、`<img src="path">` 和远程图片 URL；正式 `publish` 会上传图片并把 `publishArgs.content` 中的引用替换为稳定可访问 URL
 - CLI 会根据 `publishArgs` 自动补齐最外层 `cover`、`coverKey`、`desc`、`isDraft`、`isAppContent`
 - 云发布是默认模式
 - 本机发布时必须提供 `clientId`
 - `yxer validate`、`yxer publish --dry-run`、`yxer publish` 使用同一套发布通道解析逻辑
-- `yxer publish --dry-run` 不创建发布任务；它返回最终请求预览，并在有 API key 的云发布场景执行账号/代理 preflight。local dry-run 不检测客户端在线状态。
+- `yxer publish --dry-run` 不创建发布任务，也不会上传正文图片；它返回渲染后的正文和图片处理计划，并在有 API key 的云发布场景执行账号/代理 preflight。最终图片 URL 只有正式 `publish` 上传后才能确定。local dry-run 不检测客户端在线状态。
 - 本机发布推荐通过两种方式提供 `clientId`：
   - flags：`yxer publish <type> <platform> <payload.json> --publish-channel local --client-id <clientId>`
   - 预设默认值：`yxer config set-local-client-id <clientId>` 后，再执行 `--publish-channel local`
@@ -182,6 +184,14 @@ yxer schema get 小红书 imageText
 ```bash
 yxer validate 小红书 imageText .\payload.json
 yxer publish imageText 小红书 .\payload.json --dry-run
+```
+
+Markdown 文章正文：
+
+```bash
+yxer validate 知乎 article .\payload.json --content-file .\文章.md
+yxer publish article 知乎 .\payload.json --content-file .\文章.md --dry-run
+yxer publish article 知乎 .\payload.json --content-file .\文章.md
 ```
 
 ### 本机发布校验

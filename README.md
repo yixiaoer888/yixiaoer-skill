@@ -397,8 +397,8 @@ yxer upload --url <resource_url> [--bucket cloud-publish|material-library] [--dr
 yxer prepare <platform> <type>
 yxer schema fields <platform> <type>
 yxer schema get <platform> <type>
-yxer validate <platform> <type> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>]
-yxer publish <type> <platform> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>] [--dry-run]
+yxer validate <platform> <type> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>] [--content-file <article.md>]
+yxer publish <type> <platform> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>] [--content-file <article.md>] [--dry-run]
 ```
 
 推荐的发布类型只有三种：

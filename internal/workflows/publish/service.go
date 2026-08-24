@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -22,6 +23,7 @@ type ExecuteInput struct {
 	PlatformInput               string
 	PayloadPath                 string
 	Payload                     map[string]interface{}
+	ContentFile                 string
 	PositionalClientID          string
 	FlagChannel                 string
 	FlagClientID                string
@@ -59,6 +61,7 @@ type PreparedPublish struct {
 	Preflight         publishmod.PreflightResult
 	Normalizations    []publishmod.NormalizationEvent
 	PublishBody       map[string]interface{}
+	ContentBaseDir    string
 	InferredFields    map[string]InferredField
 	RemoteChecked     bool
 }
@@ -94,6 +97,23 @@ func (s Service) Prepare(input ExecuteInput, opts PrepareOptions) (PreparedPubli
 	}
 	if err := publishmod.RequireStandardPayload(resolvedPayload); err != nil {
 		return PreparedPublish{}, err
+	}
+	contentBaseDir := ""
+	if contentFile := strings.TrimSpace(input.ContentFile); contentFile != "" {
+		if input.PublishType != "article" {
+			return PreparedPublish{}, yxerrors.Usage("content file is only supported for article publish", map[string]interface{}{
+				"publishType": input.PublishType,
+				"path":        contentFile,
+			}).WithCategory("article_content_source").
+				WithHint("--content-file 仅用于 article 发布；视频和图文请继续使用 payload.json 中的资源字段。")
+		}
+		source, err := loadArticleContentSource(contentFile)
+		if err != nil {
+			return PreparedPublish{}, err
+		}
+		publishArgs := objectField(resolvedPayload, "publishArgs")
+		publishArgs["content"] = source.Content
+		contentBaseDir = source.BaseDir
 	}
 	if err := publishmod.ResolveStandardPayloadResourceMetadata(resolvedPayload); err != nil {
 		return PreparedPublish{}, err
@@ -153,6 +173,7 @@ func (s Service) Prepare(input ExecuteInput, opts PrepareOptions) (PreparedPubli
 		Preflight:         preflight,
 		Normalizations:    normalizations,
 		PublishBody:       body,
+		ContentBaseDir:    contentBaseDir,
 		InferredFields:    inferredFields,
 		RemoteChecked:     remoteChecked,
 	}, nil
@@ -206,7 +227,7 @@ func (s Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 		return nil, err
 	}
 	cfg := s.rt.Config
-	if events, err := materializeArticleContentImages(apiClient, prepared.PublishBody, input.ContinueOnContentImageError); err != nil {
+	if events, err := materializeArticleContentImages(apiClient, prepared.PublishBody, prepared.ContentBaseDir, input.ContinueOnContentImageError); err != nil {
 		return nil, contentImageMaterializationPromptError(input, prepared, events, err)
 	}
 	result, err := apiClient.Publish(prepared.PublishBody)
@@ -230,7 +251,7 @@ func (s Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	prepared.Payload["publishChannel"] = localChannel
 	prepared.Payload["clientId"] = localClientID
 	body := BuildPublishBody(prepared.Payload, prepared.PublishArgs, prepared.PublishType, prepared.Platforms, localChannel, localClientID)
-	if events, err := materializeArticleContentImages(apiClient, body, input.ContinueOnContentImageError); err != nil {
+	if events, err := materializeArticleContentImages(apiClient, body, prepared.ContentBaseDir, input.ContinueOnContentImageError); err != nil {
 		return nil, contentImageMaterializationPromptError(input, prepared, events, err)
 	}
 	result, err = apiClient.Publish(body)
@@ -265,6 +286,9 @@ func continueContentImagePublishCommand(input ExecuteInput, prepared PreparedPub
 	platform := firstNonEmptyString(input.PlatformInput, prepared.Platform, "<platform>")
 	payloadPath := firstNonEmptyString(input.PayloadPath, "<payload.json>")
 	parts := []string{"yxer", "publish", publishType, platform, payloadPath}
+	if contentFile := strings.TrimSpace(input.ContentFile); contentFile != "" {
+		parts = append(parts, "--content-file", quotePublishCommandArg(contentFile))
+	}
 	if input.FlagChannel != "" {
 		parts = append(parts, "--publish-channel", input.FlagChannel)
 	}
@@ -276,6 +300,17 @@ func continueContentImagePublishCommand(input ExecuteInput, prepared PreparedPub
 	}
 	parts = append(parts, "--continue-on-content-image-error")
 	return strings.Join(parts, " ")
+}
+
+func quotePublishCommandArg(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return value
+	}
+	if strings.ContainsAny(value, " \t\"'") {
+		return strconv.Quote(value)
+	}
+	return value
 }
 
 func (s Service) ExecuteEnvelope(input ExecuteInput) (EnvelopeResult, error) {
