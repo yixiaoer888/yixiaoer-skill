@@ -32,7 +32,7 @@ func TestNormalizeWeixinAccountImageTextDefaults(t *testing.T) {
 		"pubType":           float64(1),
 	} {
 		if got := cpf[field]; got != want {
-			t.Fatalf("%s default = %#v, want %#v", field, got, want)
+			t.Fatalf("account setting %s default = %#v, want %#v", field, got, want)
 		}
 	}
 	if got := form["coverKey"]; got != "wx-first-image" {
@@ -43,31 +43,83 @@ func TestNormalizeWeixinAccountImageTextDefaults(t *testing.T) {
 		t.Fatalf("expected first image to become cover, got %#v", cover)
 	}
 
-	platformForms, ok := publishArgsOf(payload)["platformForms"].(map[string]interface{})
-	if !ok {
-		t.Fatalf("expected WeChat imageText platformForms to be initialized, got %#v", publishArgsOf(payload)["platformForms"])
+	if _, exists := publishArgsOf(payload)["platformForms"]; exists {
+		t.Fatalf("did not expect a 微信公众号 imageText platform form: %#v", publishArgsOf(payload))
 	}
-	platformForm, ok := platformForms["微信公众号"].(map[string]interface{})
-	if !ok {
-		t.Fatalf("expected 微信公众号 platform form, got %#v", platformForms)
-	}
+}
+
+func TestNormalizeWeixinAccountImageTextConvertsLegacyStatementObject(t *testing.T) {
+	payload := standardPayload("imageText", []string{"微信公众号"}, map[string]interface{}{
+		"accountForms": []interface{}{map[string]interface{}{
+			"platformAccountId": "acc_wx_1",
+			"contentPublishForm": map[string]interface{}{
+				"formType":          "task",
+				"statement":         map[string]interface{}{"type": float64(4)},
+				"notifySubscribers": float64(1),
+				"needOpenComment":   float64(3),
+				"disableRecommend":  float64(0),
+				"pubType":           float64(1),
+			},
+		}},
+	})
+
+	NormalizeStandardPayloadForSchemaValidation("imageText", []string{"微信公众号"}, payload)
+	args := publishArgsOf(payload)
+	contentForm := args["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
 	for field, want := range map[string]interface{}{
-		"pubType":           float64(1),
-		"notifySubscribers": float64(0),
-		"sex":               float64(0),
-		"title":             "",
-		"desc":              "",
-		"needOpenComment":   float64(0),
-		"statement":         float64(0),
+		"statement":         float64(4),
+		"notifySubscribers": float64(1),
+		"needOpenComment":   float64(3),
 		"disableRecommend":  float64(0),
-		"formType":          "task",
+		"pubType":           float64(1),
 	} {
-		if got := platformForm[field]; got != want {
-			t.Fatalf("platform form %s default = %#v, want %#v", field, got, want)
+		if got := contentForm[field]; got != want {
+			t.Fatalf("content form %s = %#v, want %#v", field, got, want)
 		}
 	}
-	if images, ok := platformForm["images"].([]interface{}); !ok || len(images) != 0 {
-		t.Fatalf("expected platform form images to default to an empty array, got %#v", platformForm["images"])
+}
+
+func TestNormalizeWeixinAccountImageTextMigratesLegacyPlatformFormToAccountForm(t *testing.T) {
+	payload := standardPayload("imageText", []string{"微信公众号"}, map[string]interface{}{
+		"accountForms": []interface{}{map[string]interface{}{
+			"platformAccountId": "acc_wx_1",
+			"contentPublishForm": map[string]interface{}{
+				"formType":  "task",
+				"title":     "公众号图文",
+				"statement": float64(4),
+			},
+		}},
+		"platformForms": map[string]interface{}{
+			"微信公众号": map[string]interface{}{
+				"statement":         float64(4),
+				"notifySubscribers": float64(0),
+				"sex":               float64(0),
+				"needOpenComment":   float64(3),
+				"disableRecommend":  float64(0),
+				"pubType":           float64(1),
+			},
+		},
+	})
+	NormalizeStandardPayloadForSchemaValidation("imageText", []string{"微信公众号"}, payload)
+
+	args := publishArgsOf(payload)
+	contentForm := args["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	for field, want := range map[string]interface{}{
+		"notifySubscribers": float64(0),
+		"sex":               float64(0),
+		"needOpenComment":   float64(3),
+		"disableRecommend":  float64(0),
+		"pubType":           float64(1),
+	} {
+		if got := contentForm[field]; got != want {
+			t.Fatalf("contentPublishForm.%s = %#v, want %#v", field, got, want)
+		}
+	}
+	if got := contentForm["statement"]; got != float64(4) {
+		t.Fatalf("contentPublishForm.statement = %#v, want 4", got)
+	}
+	if _, exists := args["platformForms"]; exists {
+		t.Fatalf("legacy platform form must not be sent for imageText: %#v", args)
 	}
 }
 
@@ -134,15 +186,11 @@ func TestPreflightAcceptsRecordedWeixinAccountImageTextShape(t *testing.T) {
 		"platformForms": map[string]interface{}{
 			"微信公众号": map[string]interface{}{
 				"pubType":           float64(1),
-				"notifySubscribers": float64(0),
+				"notifySubscribers": float64(1),
 				"sex":               float64(0),
-				"title":             "",
-				"desc":              "",
-				"images":            []interface{}{},
 				"needOpenComment":   float64(0),
 				"statement":         float64(0),
 				"disableRecommend":  float64(0),
-				"formType":          "task",
 			},
 		},
 	}))
@@ -165,4 +213,20 @@ func TestPreflightRejectsWeixinAccountImageTextScheduleUnderTwoHours(t *testing.
 		},
 	}))
 	assertHasError(t, result.Errors, "scheduledTime must be at least 2 hours")
+}
+
+func TestPreflightRejectsInvalidWeixinAccountImageTextSettings(t *testing.T) {
+	result := Preflight("imageText", []string{"微信公众号"}, standardPayload("imageText", []string{"微信公众号"}, map[string]interface{}{
+		"accountForms": []interface{}{map[string]interface{}{
+			"platformAccountId": "acc_wx_1",
+			"images":            []interface{}{uploadedResourceWithKey("wx-image")},
+			"contentPublishForm": map[string]interface{}{
+				"formType":        "task",
+				"statement":       float64(2),
+				"needOpenComment": float64(4),
+			},
+		}},
+	}))
+	assertHasError(t, result.Errors, `accountForms[0].contentPublishForm.statement: must be one of [0 1 3 4 5 6]`)
+	assertHasError(t, result.Errors, `accountForms[0].contentPublishForm.needOpenComment: must be one of [0 1 2 3]`)
 }

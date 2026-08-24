@@ -2193,8 +2193,11 @@ func TestPublishCommandWeixinAccountImageTextDryRunAppliesDefaultsAndFirstCover(
 		"pubType":           float64(1),
 	} {
 		if got := cpf[field]; got != want {
-			t.Fatalf("dry-run %s = %#v, want %#v", field, got, want)
+			t.Fatalf("dry-run account content form %s = %#v, want %#v", field, got, want)
 		}
+	}
+	if _, exists := args["platformForms"]; exists {
+		t.Fatalf("did not expect a platform form in the dry-run request: %#v", args)
 	}
 	if form["coverKey"] != "wx-image-1" {
 		t.Fatalf("expected first image coverKey in dry-run request, got %#v", form["coverKey"])

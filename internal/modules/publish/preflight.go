@@ -87,6 +87,7 @@ func PreflightWithTopicHTMLPolicyAndTrace(publishType string, platforms []string
 	normalizePlatformSpecificFields(publishType, platforms, payload, topicPolicy, true, normalizations)
 	NormalizeScheduledTimes(payload, &result.Errors)
 	validateWeixinAccountImageTextSchedules(publishType, platforms, payload, time.Now(), &result.Errors)
+	validateWeixinAccountImageTextPlatformSettings(publishType, platforms, payload, &result.Errors)
 	rejectTemplatePlaceholders(payload, &result.Errors)
 	if publishType != "video" && publishType != "imageText" && publishType != "article" {
 		result.Errors = append(result.Errors, fmt.Sprintf("publish type %q is not supported; expected video, imageText, or article", publishType))

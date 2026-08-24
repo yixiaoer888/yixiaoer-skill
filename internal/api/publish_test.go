@@ -51,6 +51,59 @@ func TestPublishPostsTaskSetBody(t *testing.T) {
 	}
 }
 
+func TestPublishPreservesWeixinImageTextAccountSettingsOnWire(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		args := body["publishArgs"].(map[string]interface{})
+		contentForm := args["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+		for field, want := range map[string]interface{}{
+			"statement":         float64(4),
+			"notifySubscribers": float64(1),
+			"needOpenComment":   float64(3),
+			"sex":               float64(0),
+			"disableRecommend":  float64(0),
+			"pubType":           float64(1),
+		} {
+			if got := contentForm[field]; got != want {
+				t.Fatalf("contentPublishForm.%s = %#v, want %#v", field, got, want)
+			}
+		}
+		if _, exists := args["platformForms"]; exists {
+			t.Fatalf("did not expect platformForms for WeChat imageText: %#v", args)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"statusCode": 0, "data": "task_set_weixin_1"})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	_, err := client.Publish(map[string]interface{}{
+		"publishType": "imageText",
+		"platforms":   []string{"微信公众号"},
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{map[string]interface{}{
+				"platformAccountId": "wx-account-1",
+				"contentPublishForm": map[string]interface{}{
+					"formType":          "task",
+					"title":             "公众号图文",
+					"desc":              "正文",
+					"notifySubscribers": float64(1),
+					"needOpenComment":   float64(3),
+					"sex":               float64(0),
+					"disableRecommend":  float64(0),
+					"pubType":           float64(1),
+					"statement":         float64(4),
+				},
+			}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestPublishWrapsCategoryOnlyAtAPIBoundary(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]interface{}

@@ -284,14 +284,44 @@ func TestSchemaGetCommandWeixinImageTextKeepsImagesAtAccountLevel(t *testing.T) 
 	if _, exists := cpForm["images"]; exists {
 		t.Fatalf("did not expect an empty CPF images field when images are account-level: %#v", cpForm)
 	}
-	args := data["minimalTemplate"].(map[string]interface{})["publishArgs"].(map[string]interface{})
-	platformForms, ok := args["platformForms"].(map[string]interface{})
-	if !ok {
-		t.Fatalf("expected the WeChat imageText platformForms skeleton, got %#v", args["platformForms"])
+	if cpForm["statement"] != float64(0) || cpForm["pubType"] != float64(1) {
+		t.Fatalf("expected canonical WeChat imageText account form defaults, got %#v", cpForm)
 	}
-	platformForm, ok := platformForms["微信公众号"].(map[string]interface{})
-	if !ok || platformForm["formType"] != "task" || platformForm["images"] == nil {
-		t.Fatalf("expected actual WeChat imageText platform form defaults, got %#v", platformForms)
+}
+
+func TestSchemaFieldsCommandWeixinImageTextExcludesUnrelatedResources(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	var out bytes.Buffer
+	cmd := newSchemaFieldsCmd()
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"WeiXinGongZhongHao", "imageText"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	paths := map[string]bool{}
+	for _, entry := range data["flatFields"].([]interface{}) {
+		paths[entry.(map[string]interface{})["path"].(string)] = true
+	}
+	for _, field := range []string{
+		"publishArgs.accountForms[].cover",
+		"publishArgs.accountForms[].cover.key",
+		"publishArgs.accountForms[].video",
+		"publishArgs.accountForms[].video.duration",
+		"publishArgs.accountForms[].video.key",
+	} {
+		if paths[field] {
+			t.Fatalf("did not expect unrelated WeChat imageText schema field %q", field)
+		}
+	}
+	if !paths["publishArgs.accountForms[].images[].key"] {
+		t.Fatal("expected the required WeChat image resource key field")
 	}
 }
 

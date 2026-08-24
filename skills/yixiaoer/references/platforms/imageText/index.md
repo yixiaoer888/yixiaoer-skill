@@ -21,7 +21,7 @@
 4. **Payload 装配**：按照 1.1 - 1.3 节结构，构造包含 `action: "publish"` 的 JSON。
 5. **指令交付**：先执行 `yxer validate <platform> imageText <payload.json>`，再执行 `yxer publish imageText <platform> <payload.json> --dry-run`，确认请求后才正式发布。
 
-> 微信公众号图文是例外：正文/描述写在 `accountForms[].contentPublishForm.desc`，图片写在 `accountForms[].images`；CLI 会自动补齐平台级 `platformForms["微信公众号"]` 默认表单。具体字段以 [`weixingongzhonghao.md`](./weixingongzhonghao.md) 为准。
+> 微信公众号图文是例外：正文、发布设置写在 `accountForms[].contentPublishForm`，图片写在 `accountForms[].images`；`statement` 直接传数字枚举值。具体字段以 [`weixingongzhonghao.md`](./weixingongzhonghao.md) 为准。
 
 ## 1. 数据结构 (Data Structure)
 

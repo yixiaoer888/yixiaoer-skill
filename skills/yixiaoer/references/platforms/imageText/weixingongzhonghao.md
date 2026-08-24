@@ -1,7 +1,7 @@
 # 微信公众号图文发布参数 (WeiXinGongZhongHao Image-Text)
 
 > [!IMPORTANT]
-> 使用本平台字段前，先阅读 [图文发布首页](./index.md)。本页描述微信公众号 `imageText` 的账号表单和平台级默认表单；微信公众号 `article` 仍使用原有的 `platformForms` 文章结构。
+> 使用本平台字段前，先阅读 [图文发布首页](./index.md)。微信公众号 `imageText` 的内容、图片和发布设置均属于账号表单 `accountForms[].contentPublishForm`；只有微信公众号 `article` 使用平台级结构。
 
 ## 触发场景
 
@@ -20,21 +20,28 @@
 7. `yxer publish imageText WeiXinGongZhongHao payload.json --dry-run`
 8. 确认 dry-run 请求后再执行正式发布
 
-## 账号表单与平台级默认字段
+## 账号表单字段
 
 | 字段 | 类型 | 必填 | 说明 | 默认值 |
 | --- | --- | --- | --- | --- |
-| `formType` | string | 否 | 平台级表单类型，固定为 `task` | `task` |
+| `formType` | string | 否 | 内容表单类型，固定为 `task` | `task` |
 | `title` | string | 否 | 图文标题，最多 20 个 Unicode 字符 | - |
 | `desc` | string | 否 | 图文正文/描述，支持 HTML | - |
 | `images` | array | 是 | 写在 `accountForms[].images` 的已上传图片对象数组，可多选；至少 1 张 | - |
-| `notifySubscribers` | number | 否 | `0` 不群发，`1` 群发 | `0` |
-| `sex` | number | 否 | `0` 全部，`1` 男，`2` 女 | `0` |
-| `scheduledTime` | integer | 否 | 13 位 Unix 毫秒时间戳；必须不早于当前时间 2 小时 | 立即发布（不传） |
-| `needOpenComment` | number | 否 | `0` 关闭留言，`1` 仅关注用户，`2` 关注 7 天及以上用户，`3` 允许所有留言 | `0` |
-| `statement` | number | 否 | `0` 无需声明，`1` 内容有 AI 生成，`2` 内容剧情演绎仅供娱乐，`3` 个人观点仅供参考，`4` 健康医疗分享仅供参考，`5` 投资观点仅供参考 | `0` |
-| `disableRecommend` | number | 否 | `0` 允许平台推荐，`1` 不允许平台推荐 | `0` |
-| `pubType` | number | 否 | `1` 直接发布，`0` 保存到平台草稿箱 | `1` |
+
+## 账号级发布设置
+
+以下字段填写在 `publishArgs.accountForms[].contentPublishForm`。`statement` 必须直接传数值，网关会将其转换为下游的 `{ "type": 值 }`。
+
+| 字段 | 类型 | 说明 | 默认值 |
+| --- | --- | --- | --- |
+| `notifySubscribers` | number | `0` 不群发，`1` 群发 | `0` |
+| `sex` | number | `0` 全部，`1` 男，`2` 女 | `0` |
+| `scheduledTime` | integer | 13 位 Unix 毫秒时间戳；必须不早于当前时间 2 小时 | 立即发布（不传） |
+| `needOpenComment` | number | `0` 关闭留言，`1` 仅关注用户，`2` 关注满 7 天，`3` 所有人可留言 | `0` |
+| `statement` | number | 内容合规声明：`0` 无需声明，`1` AI 生成，`3` 剧情演绎仅供娱乐，`4` 个人观点仅供参考，`5` 健康医疗分享仅供参考，`6` 投资观点仅供参考 | `0` |
+| `disableRecommend` | number | `0` 允许平台推荐，`1` 不允许平台推荐 | `0` |
+| `pubType` | number | `1` 直接发布，`0` 保存到平台草稿箱 | `1` |
 
 ### 图片和封面
 
@@ -57,31 +64,18 @@
           { "key": "img_key_2", "size": 98304, "width": 1080, "height": 1440, "format": "png" }
         ],
         "contentPublishForm": {
+          "formType": "task",
           "title": "公众号图片文字示例",
           "desc": "<p>这是一条公众号图文描述。</p>",
           "notifySubscribers": 0,
           "sex": 0,
-          "needOpenComment": 0,
-          "statement": 0,
+          "needOpenComment": 3,
+          "statement": 4,
           "disableRecommend": 0,
           "pubType": 1
         }
       }
-    ],
-    "platformForms": {
-      "微信公众号": {
-        "pubType": 1,
-        "notifySubscribers": 0,
-        "sex": 0,
-        "title": "",
-        "desc": "",
-        "images": [],
-        "needOpenComment": 0,
-        "statement": 0,
-        "disableRecommend": 0,
-        "formType": "task"
-      }
-    }
+    ]
   }
 }
 ```
@@ -89,6 +83,7 @@
 ## 重要约束
 
 - 公众号图文与公众号文章是两个发布类型：本页使用 `publish imageText`，不要改成 `publish article`。
+- 不要传 `statement: { "type": 4 }`；图文任务中应传 `statement: 4`。
 - 要群发时设置 `notifySubscribers=1`；`sex` 只表达群发人群性别。
 - 描述字段使用 `desc`；不要把公众号图文写成其他平台通用的 `description`。
 - 设置了 `scheduledTime` 时，CLI 会在本地 preflight 阶段拒绝距离当前不足 2 小时的时间。

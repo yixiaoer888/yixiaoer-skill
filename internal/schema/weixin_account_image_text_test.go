@@ -32,7 +32,7 @@ func TestWeixinAccountImageTextSchemaExposesPublishSettings(t *testing.T) {
 	assertSchemaDefault(t, doc, "disableRecommend", float64(0))
 	assertSchemaDefault(t, doc, "pubType", float64(1))
 	assertSchemaEnum(t, doc, "needOpenComment", 0, 1, 2, 3)
-	assertSchemaEnum(t, doc, "statement", 0, 1, 2, 3, 4, 5)
+	assertSchemaEnum(t, doc, "statement", 0, 1, 3, 4, 5, 6)
 	assertSchemaEnum(t, doc, "disableRecommend", 0, 1)
 	assertSchemaEnum(t, doc, "sex", 0, 1, 2)
 }
@@ -112,13 +112,9 @@ func TestWeixinAccountImageTextSchemaAcceptsRecordedPayloadShape(t *testing.T) {
 					"pubType":           float64(1),
 					"notifySubscribers": float64(0),
 					"sex":               float64(0),
-					"title":             "",
-					"desc":              "",
-					"images":            []interface{}{},
 					"needOpenComment":   float64(0),
 					"statement":         float64(0),
 					"disableRecommend":  float64(0),
-					"formType":          "task",
 				},
 			},
 		},
@@ -140,6 +136,7 @@ func TestWeixinAccountImageTextSchemaRejectsInvalidTitleAndSettings(t *testing.T
 			map[string]interface{}{"key": "uploaded-image"},
 		},
 		"needOpenComment":  float64(4),
+		"statement":        float64(2),
 		"disableRecommend": float64(2),
 	})
 	if err != nil {
@@ -148,7 +145,7 @@ func TestWeixinAccountImageTextSchemaRejectsInvalidTitleAndSettings(t *testing.T
 	if result.Valid {
 		t.Fatal("expected invalid title and settings to fail schema validation")
 	}
-	for _, want := range []string{"title: must NOT", "needOpenComment", "disableRecommend"} {
+	for _, want := range []string{"title: must NOT", "needOpenComment", "statement", "disableRecommend"} {
 		found := false
 		for _, item := range result.Errors {
 			if strings.Contains(item, want) {
@@ -159,6 +156,20 @@ func TestWeixinAccountImageTextSchemaRejectsInvalidTitleAndSettings(t *testing.T
 		if !found {
 			t.Fatalf("expected schema error containing %q, got %v", want, result.Errors)
 		}
+	}
+}
+
+func TestWeixinAccountImageTextSchemaAcceptsPersonalOpinionStatement(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	result, err := validator.ValidateStrict("微信公众号", "imageText", map[string]interface{}{
+		"images":    []interface{}{map[string]interface{}{"key": "uploaded-image"}},
+		"statement": float64(4),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Valid {
+		t.Fatalf("expected personal opinion statement to validate, got %v", result.Errors)
 	}
 }
 
@@ -173,12 +184,8 @@ func assertSchemaDefault(t *testing.T, doc Document, field string, want interfac
 	}
 }
 
-func assertSchemaEnum(t *testing.T, doc Document, field string, wants ...float64) {
+func assertPropertyEnum(t *testing.T, field string, property PropertyView, wants ...float64) {
 	t.Helper()
-	property, ok := doc.Properties[field]
-	if !ok {
-		t.Fatalf("schema is missing %s", field)
-	}
 	for _, want := range wants {
 		found := false
 		for _, value := range property.Enum {
@@ -191,4 +198,13 @@ func assertSchemaEnum(t *testing.T, doc Document, field string, wants ...float64
 			t.Fatalf("%s enum is missing %v: %#v", field, want, property.Enum)
 		}
 	}
+}
+
+func assertSchemaEnum(t *testing.T, doc Document, field string, wants ...float64) {
+	t.Helper()
+	property, ok := doc.Properties[field]
+	if !ok {
+		t.Fatalf("schema is missing %s", field)
+	}
+	assertPropertyEnum(t, field, property, wants...)
 }

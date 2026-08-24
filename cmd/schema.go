@@ -216,7 +216,7 @@ func fieldPlacementFor(doc schema.Document, key string) fieldPlacementView {
 		return fieldPlacementView{
 			SchemaPath: "businessFields." + key,
 			InputPaths: []string{"publishArgs.platformForms.微信公众号." + key},
-			Note:       "微信公众号文章平台字段应填写在 publishArgs.platformForms[\"微信公众号\"] 下，不走 accountForms[].contentPublishForm。",
+			Note:       "微信公众号平台字段应填写在 publishArgs.platformForms[\"微信公众号\"] 下，不走 accountForms[].contentPublishForm。",
 		}
 	}
 	view := fieldPlacementView{
@@ -350,6 +350,51 @@ func buildStandardPublishFieldView(doc schema.Document, businessFields map[strin
 	platformName := platformutil.ChineseName(doc.Platform)
 	contentPublishFields := contentPublishFormFieldsForEnvelope(doc)
 	accountResourceFields := accountResourceFieldViews(doc)
+	accountFormProperties := map[string]schema.PropertyView{
+		"platformAccountId": {
+			Type:     "string",
+			Required: true,
+		},
+		"account_id": {
+			Type: "string",
+		},
+		"contentPublishForm": {
+			Type:       "object",
+			Required:   true,
+			Properties: contentPublishFields,
+		},
+	}
+	if resource, ok := accountResourceFields["video"]; ok {
+		accountFormProperties["video"] = schema.PropertyView{
+			Type:       "object",
+			Required:   resource.Required,
+			Properties: resourceFieldProperties(true),
+		}
+	}
+	if resource, ok := accountResourceFields["images"]; ok {
+		accountFormProperties["images"] = schema.PropertyView{
+			Type:     "array",
+			Required: resource.Required,
+			MinItems: resource.MinItems,
+			Items: &schema.PropertyView{
+				Type:       "object",
+				Properties: resourceFieldProperties(false),
+			},
+		}
+	}
+	if resource, ok := accountResourceFields["cover"]; ok {
+		accountFormProperties["cover"] = schema.PropertyView{
+			Type:       "object",
+			Required:   resource.Required,
+			Properties: resourceFieldProperties(false),
+		}
+	}
+	if resource, ok := accountResourceFields["coverKey"]; ok {
+		accountFormProperties["coverKey"] = schema.PropertyView{
+			Type:     "string",
+			Required: resource.Required,
+		}
+	}
 	publishArgsProperties := map[string]schema.PropertyView{
 		"cover": {
 			Type: "object",
@@ -362,44 +407,8 @@ func buildStandardPublishFieldView(doc schema.Document, businessFields map[strin
 			Required: true,
 			MinItems: intPtr(1),
 			Items: &schema.PropertyView{
-				Type: "object",
-				Properties: map[string]schema.PropertyView{
-					"platformAccountId": {
-						Type:     "string",
-						Required: true,
-					},
-					"account_id": {
-						Type: "string",
-					},
-					"video": {
-						Type:       "object",
-						Required:   accountResourceFields["video"].Required,
-						Properties: resourceFieldProperties(true),
-					},
-					"images": {
-						Type:     "array",
-						Required: accountResourceFields["images"].Required,
-						MinItems: accountResourceFields["images"].MinItems,
-						Items: &schema.PropertyView{
-							Type:       "object",
-							Properties: resourceFieldProperties(false),
-						},
-					},
-					"cover": {
-						Type:       "object",
-						Required:   accountResourceFields["cover"].Required,
-						Properties: resourceFieldProperties(false),
-					},
-					"coverKey": {
-						Type:     "string",
-						Required: accountResourceFields["coverKey"].Required,
-					},
-					"contentPublishForm": {
-						Type:       "object",
-						Required:   true,
-						Properties: contentPublishFields,
-					},
-				},
+				Type:       "object",
+				Properties: accountFormProperties,
 			},
 		},
 	}
@@ -558,9 +567,6 @@ func buildContentPublishFormSchema(doc schema.Document) schema.Document {
 func contentPublishFormFieldsForEnvelope(doc schema.Document) map[string]schema.PropertyView {
 	if isWeixinAccountArticleDoc(doc) {
 		return nil
-	}
-	if doc.Type != "article" {
-		return clonePropertyViewsWithoutKeys(doc.Properties, contentPublishFormExcludedKeys(doc.Type)...)
 	}
 	return clonePropertyViewsWithoutKeys(doc.Properties, contentPublishFormExcludedKeys(doc.Type)...)
 }

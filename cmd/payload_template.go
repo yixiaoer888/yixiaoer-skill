@@ -27,10 +27,6 @@ func buildPayloadTemplate(doc schema.Document) map[string]interface{} {
 		publishArgs["platformForms"] = map[string]interface{}{
 			"微信公众号": buildTemplateObject(doc.Properties),
 		}
-	} else if isWeixinAccountImageTextDoc(doc) {
-		publishArgs["platformForms"] = map[string]interface{}{
-			"微信公众号": weixinAccountImageTextPlatformFormTemplate(),
-		}
 	} else if doc.Type == "article" {
 		publishArgs["content"] = "<content>"
 	}
@@ -56,6 +52,18 @@ func buildMinimalPayloadTemplate(doc schema.Document) map[string]interface{} {
 			value, ok := buildTemplateValue(key, prop)
 			if ok {
 				requiredFields[key] = value
+			}
+		}
+	}
+	if isWeixinAccountImageTextDoc(doc) {
+		for _, key := range []string{"notifySubscribers", "sex", "needOpenComment", "statement", "disableRecommend", "pubType"} {
+			if _, exists := requiredFields[key]; exists {
+				continue
+			}
+			if prop, ok := doc.Properties[key]; ok {
+				if value, ok := buildTemplateValue(key, prop); ok {
+					requiredFields[key] = value
+				}
 			}
 		}
 	}
@@ -85,10 +93,6 @@ func buildMinimalPayloadTemplate(doc schema.Document) map[string]interface{} {
 			"微信公众号": requiredFields,
 		}
 		template["desc"] = "<任务描述>"
-	} else if isWeixinAccountImageTextDoc(doc) {
-		template["publishArgs"].(map[string]interface{})["platformForms"] = map[string]interface{}{
-			"微信公众号": weixinAccountImageTextPlatformFormTemplate(),
-		}
 	} else if doc.Type == "article" {
 		template["publishArgs"].(map[string]interface{})["content"] = "<从正文生成>"
 		template["desc"] = "<任务描述>"
@@ -199,21 +203,6 @@ func accountLevelResourceKeys(publishType string) []string {
 
 func isWeixinAccountImageTextDoc(doc schema.Document) bool {
 	return doc.Type == "imageText" && platformutil.CanonicalKey(doc.Platform) == "weixin.account"
-}
-
-func weixinAccountImageTextPlatformFormTemplate() map[string]interface{} {
-	return map[string]interface{}{
-		"pubType":           float64(1),
-		"notifySubscribers": float64(0),
-		"sex":               float64(0),
-		"title":             "",
-		"desc":              "",
-		"images":            []interface{}{},
-		"needOpenComment":   float64(0),
-		"statement":         float64(0),
-		"disableRecommend":  float64(0),
-		"formType":          "task",
-	}
 }
 
 func addRequiredAccountResources(accountForm map[string]interface{}, doc schema.Document) {
