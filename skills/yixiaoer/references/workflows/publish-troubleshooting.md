@@ -12,8 +12,9 @@
 
 1. 先确认问题属于哪一类：环境、账号、payload、资源、通道、平台返回错误
 2. 执行 `yxer query records [--platform P] [--limit N] [--status S] [--json]`
-3. 结合最近一次 `validate` / `publish` 输出定位错误阶段
-4. 回到对应 workflow：
+3. 需要删除单个平台已发布作品时，执行 `yxer query details <task_set_id>` 获取任务项的 `id`，随后将其作为 `task_id` 执行 `yxer publish delete <task_id> --dry-run` 确认目标。
+4. 结合最近一次 `validate` / `publish` 输出定位错误阶段
+5. 回到对应 workflow：
    - 账号问题：[`account-selection.md`](./account-selection.md)
    - 通道问题：[`local-vs-cloud.md`](./local-vs-cloud.md)
    - payload 结构问题：[`payload-sourcing.md`](./payload-sourcing.md)
@@ -39,6 +40,8 @@
 
 ```bash
 yxer query records --platform 抖音 --limit 10 --json
+yxer query details <task_set_id>
+yxer publish delete <task_id> --dry-run
 yxer doctor
 yxer validate 抖音 video .\payload.json
 ```

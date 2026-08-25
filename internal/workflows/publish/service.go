@@ -72,6 +72,10 @@ func NewService(rt *app.Runtime) Service {
 	return Service{rt: rt}
 }
 
+func (s Service) DeletePublishedTask(taskID string) (map[string]interface{}, error) {
+	return s.rt.Client.DeletePublishedTask(taskID)
+}
+
 func (s Service) Prepare(input ExecuteInput, opts PrepareOptions) (PreparedPublish, error) {
 	input.PublishType = publishmod.NormalizePublishType(input.PublishType)
 	platform, err := SinglePlatform(input.PlatformInput)

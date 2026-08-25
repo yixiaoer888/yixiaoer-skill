@@ -19,6 +19,8 @@
 
 ```bash
 yxer query records [--platform P] [--limit N] [--status S] [--json]
+yxer query details <task_set_id>
+yxer publish delete <task_id> --dry-run
 yxer validate <platform> <type> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>]
 yxer publish <type> <platform> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>] --dry-run
 yxer doctor
@@ -32,3 +34,4 @@ yxer doctor
 - 本机发布报客户端不在线时，提示用户启动并登录客户端，或改回云发布
 - 正式发布失败后，先按错误恢复协议判断是否已产生副作用；未确认前不要重复执行正式 `publish`
 - 用户只说“解释下这条报错”时，可先停留在本域做解释和修复建议，不擅自触发新的发布写操作
+- 删除平台作品时，先从 `query details` 确认单条任务项的 `id`，再将其作为 `task_id` 执行 `publish delete --dry-run`；确认 dry-run 目标无误后，才可执行真实删除。

@@ -36,6 +36,7 @@ func newPublishCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&opts.DryRun, "dry-run", false, "preview the publish request without performing the write")
 	cmd.Flags().BoolVar(&opts.AutoFallbackLocal, "auto-fallback-local", false, "advanced: explicitly authorize retrying with local publish when cloud publish fails due to proxy availability")
 	cmd.Flags().BoolVar(&opts.ContinueOnContentImageError, "continue-on-content-image-error", false, "advanced: continue publishing article content even when some img src URLs cannot be materialized")
+	cmd.AddCommand(newPublishDeleteCmd())
 	cmd.AddCommand(newPublishInitCmd())
 	cmd.AddCommand(newPublishFormCmd())
 	return cmd

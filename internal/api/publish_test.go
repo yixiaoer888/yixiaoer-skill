@@ -51,6 +51,31 @@ func TestPublishPostsTaskSetBody(t *testing.T) {
 	}
 }
 
+func TestDeletePublishedTaskUsesExpectedEndpoint(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("unexpected method: %s", r.Method)
+		}
+		if r.URL.Path != "/tasks/6a8c014836183bc151babafe/publish" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if got := r.Header.Get("Authorization"); got != "test-key" {
+			t.Fatalf("unexpected authorization header: %s", got)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"statusCode": 0})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.DeletePublishedTask("6a8c014836183bc151babafe")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result["statusCode"] != float64(0) {
+		t.Fatalf("unexpected delete result: %#v", result)
+	}
+}
+
 func TestPublishPreservesWeixinImageTextAccountSettingsOnWire(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]interface{}

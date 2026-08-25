@@ -237,7 +237,7 @@ func TestVisibleCommandTreeSnapshot(t *testing.T) {
 		"config":        {"get", "init", "set-api-key", "set-local-client-id"},
 		"draft":         {"save"},
 		"material":      {"add", "create"},
-		"publish":       {"form", "init"},
+		"publish":       {"delete", "form", "init"},
 		"query": {
 			"account-increments",
 			"account-overviews",

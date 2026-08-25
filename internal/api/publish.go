@@ -2,10 +2,21 @@ package api
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
+
+// DeletePublishedTask deletes the published work for one platform task.
+// taskID is the task id returned by `yxer query details`, not a taskSetId.
+func (c *Client) DeletePublishedTask(taskID string) (map[string]interface{}, error) {
+	result := map[string]interface{}{}
+	if err := c.Delete(fmt.Sprintf("/tasks/%s/publish", url.PathEscape(taskID)), &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
 
 // Publish creates a task set on the gateway and returns a normalized result
 // containing the taskSetId. The gateway wraps success as
