@@ -15,6 +15,7 @@ func init() {
 type publishOptions struct {
 	Channel                     string
 	ClientID                    string
+	ContentFile                 string
 	DryRun                      bool
 	AutoFallbackLocal           bool
 	ContinueOnContentImageError bool
@@ -33,6 +34,7 @@ func newPublishCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&opts.Channel, "publish-channel", "", `publish channel: "cloud" or "local"`)
 	cmd.Flags().StringVar(&opts.ClientID, "client-id", "", "client ID for local publish")
+	cmd.Flags().StringVar(&opts.ContentFile, "content-file", "", "Markdown file used as article content source")
 	cmd.Flags().BoolVar(&opts.DryRun, "dry-run", false, "preview the publish request without performing the write")
 	cmd.Flags().BoolVar(&opts.AutoFallbackLocal, "auto-fallback-local", false, "advanced: explicitly authorize retrying with local publish when cloud publish fails due to proxy availability")
 	cmd.Flags().BoolVar(&opts.ContinueOnContentImageError, "continue-on-content-image-error", false, "advanced: continue publishing article content even when some img src URLs cannot be materialized")
@@ -75,6 +77,7 @@ func runPublish(cmd *cobra.Command, args []string, opts publishOptions) error {
 				PlatformInput:               args[1],
 				PayloadPath:                 args[2],
 				Payload:                     payload,
+				ContentFile:                 opts.ContentFile,
 				PositionalClientID:          positionalClientID,
 				FlagChannel:                 opts.Channel,
 				FlagClientID:                opts.ClientID,

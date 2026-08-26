@@ -111,7 +111,7 @@ func (s Service) DryRun(input ExecuteInput) (DryRunResult, error) {
 		RemoteChecks:      prepared.RemoteChecked || len(ShoppingCartAccountIDs(prepared.Payload)) > 0,
 		Normalizations:    prepared.Normalizations,
 		InferredFields:    prepared.InferredFields,
-		ContentImages:     previewArticleContentImageMaterialization(prepared.PublishBody),
+		ContentImages:     previewArticleContentImageMaterialization(prepared.PublishBody, prepared.ContentBaseDir),
 	}, nil
 }
 
