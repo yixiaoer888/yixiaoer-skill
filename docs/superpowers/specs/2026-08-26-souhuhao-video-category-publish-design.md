@@ -107,6 +107,7 @@ stdout 仍然只输出 JSON；不向 stdout 混入纯文本树。同步更新搜
 | 查询结果为空或结构无效 | `sohuhao_category_data_invalid` | `sohuhao_category` | `false` |
 | 分类不存在 | `sohuhao_category_not_found` | `sohuhao_category` | `false` |
 | 分类名称歧义 | `sohuhao_category_ambiguous` | `sohuhao_category` | `false` |
+| 候选身份或父子路径冲突 | `sohuhao_category_invalid` | `sohuhao_category` | `false` |
 
 错误详情至少为：
 

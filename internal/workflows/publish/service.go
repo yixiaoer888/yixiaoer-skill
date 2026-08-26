@@ -98,6 +98,12 @@ func (s Service) Prepare(input ExecuteInput, opts PrepareOptions) (PreparedPubli
 	if err := publishmod.ResolveStandardPayloadResourceMetadata(resolvedPayload); err != nil {
 		return PreparedPublish{}, err
 	}
+	if platformutil.CanonicalKey(platform) == "souhuhao" && input.PublishType == "video" {
+		resolvedPayload, err = s.rt.Client.NormalizeSohuhaoVideoPayloadForPlatform(resolvedPayload, platform)
+		if err != nil {
+			return PreparedPublish{}, err
+		}
+	}
 	validator := schema.NewValidator(cfg.SchemaDir)
 	topicPolicy := topicHTMLPolicyForPlatforms(validator, platforms, input.PublishType)
 	var normalizations []publishmod.NormalizationEvent
@@ -313,9 +319,34 @@ func cloneMap(src map[string]interface{}) map[string]interface{} {
 	}
 	dst := make(map[string]interface{}, len(src))
 	for key, value := range src {
-		dst[key] = value
+		dst[key] = clonePublishValue(value)
 	}
 	return dst
+}
+
+func clonePublishValue(value interface{}) interface{} {
+	switch typed := value.(type) {
+	case map[string]interface{}:
+		out := make(map[string]interface{}, len(typed))
+		for key, item := range typed {
+			out[key] = clonePublishValue(item)
+		}
+		return out
+	case []interface{}:
+		out := make([]interface{}, len(typed))
+		for index, item := range typed {
+			out[index] = clonePublishValue(item)
+		}
+		return out
+	case []map[string]interface{}:
+		out := make([]map[string]interface{}, len(typed))
+		for index, item := range typed {
+			out[index], _ = clonePublishValue(item).(map[string]interface{})
+		}
+		return out
+	default:
+		return value
+	}
 }
 
 func BuildPublishBody(payload, publishArgs map[string]interface{}, publishType string, platforms []string, channel, clientID string) map[string]interface{} {
@@ -587,7 +618,14 @@ func firstNonEmptyString(values ...string) string {
 }
 
 func payloadWithPublishMode(payload map[string]interface{}, channel, clientID string) map[string]interface{} {
-	withMode := cloneMap(payload)
+	// resolvedPayload is already a deep clone of the caller's payload. Keep the
+	// nested publish structures shared here so preflight normalizations (for
+	// example topic HTML) are reflected in the final request body, while mode
+	// fields remain isolated at the outer envelope.
+	withMode := make(map[string]interface{}, len(payload)+2)
+	for key, value := range payload {
+		withMode[key] = value
+	}
 	if channel == "" {
 		channel = "cloud"
 	}
