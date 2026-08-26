@@ -2392,6 +2392,18 @@ func TestPublishCommandAcceptsSouhuhaoVideoPayload(t *testing.T) {
 	var publishBody map[string]interface{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		case "/platform-accounts/acc_sh_1/categories":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"dataList": []map[string]interface{}{
+						{
+							"yixiaoerId":   "1",
+							"yixiaoerName": "科技",
+							"raw":          map[string]interface{}{"id": 1, "name": "科技"},
+						},
+					},
+				},
+			})
 		case "/v2/platform/accounts":
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"data": []map[string]interface{}{
@@ -2424,6 +2436,12 @@ func TestPublishCommandAcceptsSouhuhaoVideoPayload(t *testing.T) {
 	cpf := publishBody["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
 	if cpf["pubType"] != float64(1) || cpf["declaration"] != float64(2) {
 		t.Fatalf("expected souhuhao video fields to survive publish normalization, got %+v", cpf)
+	}
+	category := cpf["category"].([]interface{})[0].(map[string]interface{})
+	canonical := category["raw"].(map[string]interface{})
+	platformRaw := canonical["raw"].(map[string]interface{})
+	if category["id"] != "1" || canonical["yixiaoerId"] != "1" || platformRaw["id"] != float64(1) {
+		t.Fatalf("expected nested Sohu category wire payload, got %#v", category)
 	}
 }
 

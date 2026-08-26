@@ -68,6 +68,12 @@ func clonePublishValue(value interface{}) interface{} {
 			out[i] = clonePublishValue(item)
 		}
 		return out
+	case []map[string]interface{}:
+		out := make([]map[string]interface{}, len(typed))
+		for i, item := range typed {
+			out[i], _ = clonePublishValue(item).(map[string]interface{})
+		}
+		return out
 	default:
 		return value
 	}

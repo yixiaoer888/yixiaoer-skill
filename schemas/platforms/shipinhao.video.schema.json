@@ -141,7 +141,8 @@
         1,
         2
       ],
-      "default": 2
+      "default": 2,
+      "description": "原创声明类型：1-声明原创，2-非原创或转载；默认不声明原创。"
     },
     "declaration": {
       "type": "number",

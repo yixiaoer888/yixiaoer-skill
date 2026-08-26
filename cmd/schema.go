@@ -858,6 +858,7 @@ func getPlatformSpecificNotes(platform, publishType string) []string {
 		}
 		if publishType == "video" {
 			notes = append(notes, "视频号支持位置(location)和话题")
+			notes = append(notes, "视频号原创声明：用户说“勾选原创”“声明原创”“开启原创”或“按原创发布”时，将 contentPublishForm.createType 设为 1；用户未提及原创或明确关闭/转载时设为 2（默认）。pubType 只控制草稿或直接发布。")
 		}
 
 	case "bilibili", "哔哩哔哩":

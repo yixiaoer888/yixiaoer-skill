@@ -42,6 +42,7 @@ yxer schema get <platform> video
 - 用户未提供封面时，必须补问，不要自动截帧
 - 可选复杂对象必须通过查询命令取得完整对象后再填入
 - 话题/标签必须直接按 `../topic-tags.md` 的目标格式传入；不要依赖 CLI 从 `description` 自动改写
+- 视频号原创声明必须按平台文档映射：用户说“勾选原创”“声明原创”或“开启原创”时，在 `publishArgs.accountForms[].contentPublishForm` 写 `createType: 1`；未提及或明确关闭/转载时写 `createType: 2`。不要把 `pubType` 当作原创开关
 - 发布前先看 `prepare` 和 `schema fields` 返回的字段；只有要确认完整骨架时再看 `schema get`
 - `payload.json` 必须使用统一标准结构：顶层 `publishArgs`，业务字段放在 `publishArgs.accountForms[].contentPublishForm`
 - 用户明确要求本机发布时，必须显式传 `--publish-channel local` 和 `--client-id`

@@ -53,18 +53,24 @@ func newQueryCmd() *cobra.Command {
 
 func newCategoriesCmd() *cobra.Command {
 	var publishType string
+	var showPaths bool
 	cmd := &cobra.Command{
 		Use:   "categories <account_id>",
 		Short: "查询分类",
-		Long:  "查询分类。\n\n当前支持平台：百家号、爱奇艺、哔哩哔哩、企鹅号、网易号、一点号、知乎、蜂网、AcFun。",
+		Long:  "查询分类。\n\n搜狐号视频分类支持使用 --paths 查看可直接发布的父子分类路径。\n\n当前支持平台：百家号、爱奇艺、哔哩哔哩、企鹅号、搜狐号、网易号、一点号、知乎、蜂网、AcFun。",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runQuery(cmd, "categories", func(service queryflow.Service) (interface{}, error) {
-				return service.Categories(args[0], publishType)
+				result, err := service.Categories(args[0], publishType)
+				if err != nil || !showPaths {
+					return result, err
+				}
+				return api.CategoryPathView(result)
 			})
 		},
 	}
 	cmd.Flags().StringVar(&publishType, "type", "video", "publish type")
+	cmd.Flags().BoolVar(&showPaths, "paths", false, "show complete root-to-leaf category paths")
 	return cmd
 }
 
