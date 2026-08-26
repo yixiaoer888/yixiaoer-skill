@@ -45,6 +45,8 @@ yxer upload --url <resource_url> [--bucket cloud-publish|material-library] [--dr
 ```bash
 yxer validate <platform> <type> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>]
 yxer publish <type> <platform> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>] [--dry-run]
+yxer publish delete preview <task_set_id>
+yxer publish delete from-record <task_set_id> --index N [--dry-run]
 yxer publish delete <task_id> [--dry-run]
 yxer publish form start <platform> <type> [--output publish-form.json] [--dry-run]
 yxer publish form inspect <session.json>
@@ -106,7 +108,7 @@ yxer schema get <platform> <type>
   - flags：`yxer publish <type> <platform> <payload.json> --publish-channel local --client-id <clientId>`
   - 预设默认值：`yxer config set-local-client-id <clientId>` 后，再执行 `--publish-channel local`
 - 第四个位置参数属于旧版兼容，不再作为 Agent 推荐入口。
-- 删除已发布作品时，`task_id` 使用 `yxer query details <task_set_id>` 返回任务项的 `id`；先执行 `yxer publish delete <task_id> --dry-run` 确认目标，再执行真实删除。
+- 删除已发布作品时，优先执行 `yxer publish delete preview <task_set_id>` 查看平台、账号、类型、标题、封面和状态；随后用 `yxer publish delete from-record <task_set_id> --index N --dry-run` 按作品序号确认目标，再执行真实删除。`delete <task_id>` 仅保留给已有自动化兼容使用。
 - 本机发布校验时，推荐在 `validate` 阶段就显式传入 `--publish-channel local`；若未显式传入但 payload 中已写 `publishChannel=local`，CLI 也会尝试从默认配置读取 `clientId`
 - `yxer draft save` 只处理蚁小二内部草稿，不等同于平台草稿箱
 - `yxer material create` 只做素材登记，前提是资源已经通过 `yxer upload --bucket material-library` 上传

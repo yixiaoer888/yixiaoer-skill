@@ -41,7 +41,7 @@ metadata:
   - 覆盖蚁小二草稿、平台草稿判断、素材上传、素材登记与“上传后立即发布”的切换路径。
 - 发布记录与失败排查
   - 入口：[`./references/domains/troubleshooting.md`](./references/domains/troubleshooting.md)
-  - 覆盖 `query records`、已发布作品删除、校验失败修复、本机/云发布错误分流与回退策略。
+  - 覆盖 `query records`、按作品信息删除已发布内容、校验失败修复、本机/云发布错误分流与回退策略。
 - 安装、升级与分发
   - 入口：[`./references/domains/install-and-sync.md`](./references/domains/install-and-sync.md)
   - 覆盖 skill 安装、同步、升级和宿主侧接入说明。
@@ -54,7 +54,7 @@ metadata:
 | “先别发，只生成/修一下 payload” | [`./references/domains/publish.md`](./references/domains/publish.md) | 强制读取 payload 来源和类型 workflow，只做字段修订，不擅自正式发布 |
 | “查下账号/环境”“怎么配置 clientId”“看看 skill 要不要同步” | [`./references/domains/accounts-and-env.md`](./references/domains/accounts-and-env.md) | 先做环境检查，再决定是否继续业务流程 |
 | “存草稿”“传素材”“放到素材库里” | [`./references/domains/draft-and-material.md`](./references/domains/draft-and-material.md) | 先区分草稿和素材，再判断是否需要回切发布域 |
-| “为什么失败了”“查发布记录”“删除已发布作品”“解释 validate / publish 报错” | [`./references/domains/troubleshooting.md`](./references/domains/troubleshooting.md) | 先定位失败阶段；删除时先通过 `query details` 确认任务项 `id`，再 dry-run |
+| “为什么失败了”“查发布记录”“删除已发布作品”“解释 validate / publish 报错” | [`./references/domains/troubleshooting.md`](./references/domains/troubleshooting.md) | 先定位失败阶段；删除时预览作品信息、按序号 dry-run，再执行 |
 | “安装 skill”“升级后怎么同步”“怎么接入这个技能” | [`./references/domains/install-and-sync.md`](./references/domains/install-and-sync.md) | 优先走 skill 展示、同步和安装说明 |
 
 ## 命令探索

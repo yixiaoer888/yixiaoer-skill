@@ -399,6 +399,8 @@ yxer schema fields <platform> <type>
 yxer schema get <platform> <type>
 yxer validate <platform> <type> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>]
 yxer publish <type> <platform> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>] [--dry-run]
+yxer publish delete preview <task_set_id>
+yxer publish delete from-record <task_set_id> --index N [--dry-run]
 yxer publish delete <task_id> [--dry-run]
 ```
 

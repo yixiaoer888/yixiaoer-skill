@@ -76,6 +76,12 @@ func TestDeletePublishedTaskUsesExpectedEndpoint(t *testing.T) {
 	}
 }
 
+func TestPublishedTaskDeleteEndpointEscapesTaskID(t *testing.T) {
+	if got := PublishedTaskDeleteEndpoint("task/a?b"); got != "/tasks/task%2Fa%3Fb/publish" {
+		t.Fatalf("unexpected endpoint: %s", got)
+	}
+}
+
 func TestPublishPreservesWeixinImageTextAccountSettingsOnWire(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]interface{}

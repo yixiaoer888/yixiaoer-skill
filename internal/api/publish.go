@@ -12,10 +12,14 @@ import (
 // taskID is the task id returned by `yxer query details`, not a taskSetId.
 func (c *Client) DeletePublishedTask(taskID string) (map[string]interface{}, error) {
 	result := map[string]interface{}{}
-	if err := c.Delete(fmt.Sprintf("/tasks/%s/publish", url.PathEscape(taskID)), &result); err != nil {
+	if err := c.Delete(PublishedTaskDeleteEndpoint(taskID), &result); err != nil {
 		return nil, err
 	}
 	return result, nil
+}
+
+func PublishedTaskDeleteEndpoint(taskID string) string {
+	return fmt.Sprintf("/tasks/%s/publish", url.PathEscape(taskID))
 }
 
 // Publish creates a task set on the gateway and returns a normalized result
