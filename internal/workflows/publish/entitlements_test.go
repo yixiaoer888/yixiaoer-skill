@@ -84,6 +84,34 @@ func TestAssertShoppingCartEntitlementsSkipsPayloadWithoutShoppingCart(t *testin
 	}
 }
 
+func TestAssertShoppingCartEntitlementsSkipsDuoduoUnsupportedEndpoint(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatalf("duoduo should not call unsupported entitlements endpoint: %s", r.URL.Path)
+	}))
+	defer server.Close()
+
+	client := api.NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	payload := map[string]interface{}{
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_duoduo",
+					"contentPublishForm": map[string]interface{}{
+						"shopping_cart": map[string]interface{}{
+							"goods_id": "5790884158",
+							"source":   "pdd",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if err := AssertShoppingCartEntitlements(client, payload, "多多视频"); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func entitlementTestPayload(accountID string, includeShoppingCart bool) map[string]interface{} {
 	contentForm := map[string]interface{}{}
 	if includeShoppingCart {

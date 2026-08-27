@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/yixiaoer/yixiaoer-skill/internal/api"
+	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
@@ -43,7 +44,25 @@ func hasShoppingCartValue(value interface{}) bool {
 	}
 }
 
-func AssertShoppingCartEntitlements(apiClient *api.Client, payload map[string]interface{}) error {
+// shoppingCartEntitlementsSupported reports whether the generic entitlement
+// endpoint can be used for the target platform. Duoduo Video accepts the
+// manual goods_id cart object, but does not expose this endpoint.
+func shoppingCartEntitlementsSupported(platforms []string) bool {
+	if len(platforms) == 0 {
+		return true
+	}
+	for _, platform := range platforms {
+		if platformutil.CanonicalKey(platform) == "duoduoshipin" {
+			return false
+		}
+	}
+	return true
+}
+
+func AssertShoppingCartEntitlements(apiClient *api.Client, payload map[string]interface{}, platforms ...string) error {
+	if !shoppingCartEntitlementsSupported(platforms) {
+		return nil
+	}
 	accountIDs := ShoppingCartAccountIDs(payload)
 	for _, accountID := range accountIDs {
 		result, err := apiClient.Entitlements(accountID)

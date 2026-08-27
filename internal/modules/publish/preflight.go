@@ -600,6 +600,9 @@ func normalizePlatformSpecificFields(publishType string, platforms []string, pay
 		if topicTarget != "" {
 			normalizeTopicHTML(cpf, topicTarget, formPath, normalizations)
 		}
+		if publishType == "video" && isDuoduoshipinPlatformSet(platformSet) {
+			normalizeDuoduoshipinVideoDefaults(cpf, formPath, normalizations)
+		}
 		if (publishType == "video" || publishType == "imageText") && isDouyinPlatformSet(platformSet) {
 			normalizeDouyinShoppingCart(cpf, formPath, normalizations)
 			normalizeDouyinGroupShopping(cpf, formPath, normalizations)
@@ -609,6 +612,22 @@ func normalizePlatformSpecificFields(publishType string, platforms []string, pay
 			normalizeFlatShoppingCart(cpf, formPath, normalizations)
 		}
 	}
+}
+
+func normalizeDuoduoshipinVideoDefaults(cpf map[string]interface{}, formPath string, normalizations *[]NormalizationEvent) {
+	if cpf == nil {
+		return
+	}
+	if _, exists := cpf["pubType"]; exists {
+		return
+	}
+	cpf["pubType"] = float64(1)
+	appendNormalization(normalizations, NormalizationEvent{
+		Field:   "pubType",
+		Path:    formPath + ".pubType",
+		Action:  "default_platform_value",
+		Message: "Defaulted Duoduoshipin video publishing to immediate publish (pubType=1).",
+	})
 }
 
 func TopicHTMLPolicyFromSchema(platform string, properties map[string]schema.PropertyView) TopicHTMLPolicy {

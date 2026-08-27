@@ -233,7 +233,7 @@ func (s Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := AssertShoppingCartEntitlements(apiClient, prepared.Payload); err != nil {
+	if err := AssertShoppingCartEntitlements(apiClient, prepared.Payload, prepared.Platforms...); err != nil {
 		return nil, err
 	}
 	cfg := s.rt.Config

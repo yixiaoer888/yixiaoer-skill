@@ -23,7 +23,8 @@
 | :--- | :--- | :--- | :--- | :--- |
 | formType | string | 是 | 固定为 `task` | `task` |
 | description | string | 否 | 多多视频描述 | - |
-| scheduledTime | number | 否 | 定时发布时间戳（13 位 Unix 时间戳，单位：毫秒） | - |
+| scheduledTime | number | 否 | 仅在用户明确要求定时发布时填写；不填写时 CLI 默认立即发布 | - |
+| pubType | number | 否 | 发布方式；CLI 默认设置为 `1`（立即发布） | `1` |
 | shopping_cart | object | 否 | 关联商品信息（购物车）；商品 ID 由用户手工输入 | - |
 
 `shopping_cart` 出现时必须包含以下字段：

@@ -83,6 +83,22 @@ func TestPreflightDefaultsDuoduoshipinShoppingCartSourceFromUserGoodsID(t *testi
 	}
 }
 
+func TestPreflightDefaultsDuoduoshipinVideoToImmediatePublish(t *testing.T) {
+	payload := validVideoPayload()
+	payload["platforms"] = []interface{}{"多多视频"}
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	cpf := form["contentPublishForm"].(map[string]interface{})
+	delete(cpf, "pubType")
+
+	result := Preflight("video", []string{"多多视频"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected Duoduoshipin immediate publish preflight to pass, got %v", result.Errors)
+	}
+	if cpf["pubType"] != float64(1) {
+		t.Fatalf("expected Duoduoshipin pubType to default to immediate publish (1), got %#v", cpf["pubType"])
+	}
+}
+
 func TestPreflightValidatesFullPublishRequestFields(t *testing.T) {
 	payload := map[string]interface{}{
 		"action":         "save",

@@ -34,7 +34,7 @@ yxer query goods-detail YOUR_ACCOUNT_ID --url "商品链接" --json
 
 多多视频不使用 `ShoppingCartItem` 查询对象。多多视频的 `shopping_cart` 是平台业务对象，`goods_id` 必须由用户手工输入，CLI 固定补充 `source: "pdd"`；不要把 `query goods` 返回的 `yixiaoerId` 当作多多视频的 `goods_id`。
 
-发布前可执行 `yxer query entitlements YOUR_ACCOUNT_ID --json` 确认返回的 `shopping_cart` 为 `true`。CLI 在 `shopping_cart` 非空时会在 `validate`、`publish --dry-run` 与正式 `publish` 前执行同一权限检查。
+对于支持该接口的平台，发布前可执行 `yxer query entitlements YOUR_ACCOUNT_ID --json` 确认返回的 `shopping_cart` 为 `true`。CLI 在 `shopping_cart` 非空时会在 `validate`、`publish --dry-run` 与正式 `publish` 前执行同一权限检查；多多视频不支持该通用权限接口，因此会跳过该接口，仅依赖 payload/schema 校验及平台侧发布校验。
 
 ### ShoppingCartItem 结构说明
 | 字段名 | 类型 | 说明 |
