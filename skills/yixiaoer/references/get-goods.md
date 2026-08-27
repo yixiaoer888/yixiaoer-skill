@@ -28,9 +28,11 @@ yxer query goods-detail YOUR_ACCOUNT_ID --url "商品链接" --json
 
 ## 3. 返回数据结构
 
-返回一个包含 `ShoppingCartItem` 对象的数组及分页信息。发布时必须使用 `yxer query goods` 返回的完整对象，不能只保留 `data.yixiaoerId`、`data.yixiaoerName` 或局部字段。
+返回一个包含 `ShoppingCartItem` 对象的数组及分页信息。对于使用 `ShoppingCartItem` 结构的平台，发布时必须使用 `yxer query goods` 返回的完整对象，不能只保留 `data.yixiaoerId`、`data.yixiaoerName` 或局部字段。
 
 `yxer query goods-detail` 返回相同的完整商品对象结构，可将其结果中的商品对象用于抖音 `shopping_cart`；该命令只解析链接，不执行发布。
+
+多多视频不使用 `ShoppingCartItem` 查询对象。多多视频的 `shopping_cart` 是平台业务对象，`goods_id` 必须由用户手工输入，CLI 固定补充 `source: "pdd"`；不要把 `query goods` 返回的 `yixiaoerId` 当作多多视频的 `goods_id`。
 
 发布前可执行 `yxer query entitlements YOUR_ACCOUNT_ID --json` 确认返回的 `shopping_cart` 为 `true`。CLI 在 `shopping_cart` 非空时会在 `validate`、`publish --dry-run` 与正式 `publish` 前执行同一权限检查。
 

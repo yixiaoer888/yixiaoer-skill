@@ -13,9 +13,18 @@ func buildPayloadTemplate(doc schema.Document) map[string]interface{} {
 		contentProperties = clonePropertyViewsWithoutKeys(doc.Properties, "content")
 	}
 	contentProperties = clonePropertyViewsWithoutKeys(contentProperties, accountLevelResourceKeys(doc.Type)...)
+	contentPublishForm := buildTemplateObject(contentProperties)
+	if isDuoduoshipinPlatform(doc.Platform) {
+		if _, ok := doc.Properties["shopping_cart"]; ok {
+			// The product ID is a user business input. Keep the platform source
+			// fixed in the form skeleton instead of asking agents to query goods
+			// and accidentally copy yixiaoerId.
+			contentPublishForm["shopping_cart"] = map[string]interface{}{"source": "pdd"}
+		}
+	}
 	accountForm := map[string]interface{}{
 		"platformAccountId":  "<platformAccountId>",
-		"contentPublishForm": buildTemplateObject(contentProperties),
+		"contentPublishForm": contentPublishForm,
 	}
 	addRequiredAccountResources(accountForm, doc)
 	publishArgs := map[string]interface{}{

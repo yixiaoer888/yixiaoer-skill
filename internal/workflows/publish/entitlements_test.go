@@ -26,6 +26,29 @@ func TestShoppingCartAccountIDsSkipsFormsWithoutShoppingCart(t *testing.T) {
 	}
 }
 
+func TestShoppingCartAccountIDsIncludesSingleObjectShoppingCart(t *testing.T) {
+	payload := map[string]interface{}{
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_duoduo",
+					"contentPublishForm": map[string]interface{}{
+						"shopping_cart": map[string]interface{}{
+							"goods_id": "998877",
+							"source":   "pdd",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ids := ShoppingCartAccountIDs(payload)
+	if len(ids) != 1 || ids[0] != "acc_duoduo" {
+		t.Fatalf("expected single-object shopping_cart account id, got %#v", ids)
+	}
+}
+
 func TestAssertShoppingCartEntitlementsRejectsDeniedAccount(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/platform-accounts/acc_1/entitlements" {

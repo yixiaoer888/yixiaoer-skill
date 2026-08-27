@@ -45,7 +45,7 @@
 - 缺账号、字段、资源或动态对象时，未执行 `yxer doctor` 不进入组装流程
 - 缺账号或账号不确定时，未确认 `accounts list` 中账号 `status=1` 不继续
 - 需要组装或补字段时，未执行 `prepare` / `publish form` / `schema fields` 不组装 payload；只有需要 payload 骨架时再补 `schema get`
-- 未按 `data-accuracy.md` 完成动态字段查询和多候选确认，不继续写 payload 或发布
+- 未按 `data-accuracy.md` 完成需要查询的动态字段和多候选确认，不继续写 payload 或发布；多多视频 `shopping_cart.goods_id` 按平台规则使用用户明确输入
 - 未先 `validate` 与 `publish --dry-run` 不执行正式 `publish`
 
 ## 常用命令
@@ -79,7 +79,7 @@ yxer publish <type> <platform> <payload.json> [--publish-channel cloud|local] [-
 
 - 用户只说“帮我发”时，默认云发布；明确说“本机发布”“客户端发布”时切到本机通道。
 - 用户要“只生成 payload”时，仍要先走 `prepare` / `schema get` 和字段查询纪律。
-- 用户要填分类、位置、音乐、合集、话题、商品时，先查询，再回填完整对象；视频号剧集使用 `yxer query drama-tasks`，只写入查询结果的 `yixiaoerId`、`yixiaoerImageUrl`、`yixiaoerName`，不添加 `raw`。
+- 用户要填分类、位置、音乐、合集、话题、商品时，先查询，再回填完整对象；多多视频的 `shopping_cart.goods_id` 由用户手工提供，固定 `source=pdd`，不使用商品查询返回的 `yixiaoerId`；视频号剧集使用 `yxer query drama-tasks`，只写入查询结果的 `yixiaoerId`、`yixiaoerImageUrl`、`yixiaoerName`，不添加 `raw`。
 - 用户要挂载小程序或选择同步发布应用时，先执行 `yxer query miniapps` / `yxer query syncapps`，再把 CLI 返回对象完整回填到 payload。
 - 用户要挂载游戏、绑定热点或选择群聊时，先执行 `yxer query games` / `yxer query hot-events` / `yxer query groups`，再把 CLI 返回对象完整回填到 payload。
 - 用户要按音乐分类找配乐或参加平台活动时，先执行 `yxer query music-categories` / `yxer query activities`，再把 CLI 返回对象完整回填到 payload。

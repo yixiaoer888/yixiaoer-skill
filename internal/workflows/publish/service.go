@@ -140,7 +140,7 @@ func (s Service) Prepare(input ExecuteInput, opts PrepareOptions) (PreparedPubli
 		}
 		if !result.Valid {
 			return PreparedPublish{}, yxerrors.Usage("Schema validation failed", result.Errors).
-				WithHint(schemaValidationHint(result.Errors)).
+				WithHint(schemaValidationHintForPlatform(platform, result.Errors)).
 				WithNextCommand(fmt.Sprintf("yxer validate %s %s <payload.json>", platform, input.PublishType))
 		}
 	}

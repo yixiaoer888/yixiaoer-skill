@@ -3,6 +3,7 @@ package cmd
 import (
 	"strings"
 
+	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
 	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
 )
 
@@ -131,6 +132,12 @@ func addShoppingCartExample(examples map[string]dynamicFieldExample, doc schema.
 	if !ok {
 		return
 	}
+	if isDuoduoshipinPlatform(doc.Platform) {
+		// Duoduoshipin receives a user-entered business goods_id rather than a
+		// query goods object. Keep it out of dynamicFieldExamples so
+		// publish form choose cannot silently use yixiaoerId.
+		return
+	}
 	item := map[string]interface{}{
 		"yixiaoerId":   "<from query>",
 		"yixiaoerName": "<from query>",
@@ -158,6 +165,10 @@ func addShoppingCartExample(examples map[string]dynamicFieldExample, doc schema.
 		Note:         note,
 		Value:        value,
 	}
+}
+
+func isDuoduoshipinPlatform(platform string) bool {
+	return platformutil.CanonicalKey(platform) == "duoduoshipin"
 }
 
 func shoppingCartField(doc schema.Document) (string, schema.PropertyView, bool) {

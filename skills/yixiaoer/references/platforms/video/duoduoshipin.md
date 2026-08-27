@@ -24,7 +24,14 @@
 | formType | string | 是 | 固定为 `task` | `task` |
 | description | string | 否 | 多多视频描述 | - |
 | scheduledTime | number | 否 | 定时发布时间戳（13 位 Unix 时间戳，单位：毫秒） | - |
-| shopping_cart | object | 否 | 关联商品信息（购物车） | - |
+| shopping_cart | object | 否 | 关联商品信息（购物车）；商品 ID 由用户手工输入 | - |
+
+`shopping_cart` 出现时必须包含以下字段：
+
+| 字段名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `goods_id` | `string` | 是 | 用户输入的多多视频业务商品 ID；不是 `yxer query goods` 返回对象中的 `yixiaoerId` |
+| `source` | `string` | 是 | 固定为 `pdd`，CLI 会自动补齐 |
 
 ## 2. JSON 示例
 
@@ -55,6 +62,12 @@
     ]
   }
 }
+```
+
+使用页面式 CLI 表单时，通过 `publish form set` 填写用户商品 ID，不要使用 `publish form choose`：
+
+```bash
+yxer publish form set publish-form.json publishArgs.accountForms[0].contentPublishForm.shopping_cart.goods_id --value '"998877"'
 ```
 
 ## 相关接口

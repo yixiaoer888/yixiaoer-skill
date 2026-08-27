@@ -144,6 +144,14 @@ func runSchemaGet(cmd *cobra.Command, platform, publishType string, verbose bool
 
 	envelopeSchema := buildStandardPublishSchema(schemaDoc)
 
+	guidance := []string{
+		"1. 优先使用 'yxer schema fields' 查看紧凑字段列表",
+		"2. businessFields 只描述平台字段定义；实际填写位置请看 fieldPlacements，不能默认全部写进 contentPublishForm",
+		"3. 复杂对象（location/music/challenge等）必须通过查询命令获取完整对象；多多视频的 shopping_cart.goods_id 由用户手工输入，source 固定为 pdd",
+		"4. 资源（video/images/cover）必须先通过 'yxer upload' 上传并使用返回的完整对象；图文首图封面平台只需提供 images",
+		"5. minimalTemplate 提供最小可用骨架，实际使用时需填入真实值",
+	}
+
 	// 基础返回结果（简化版）
 	result := map[string]interface{}{
 		"key":      schemaDoc.Key,
@@ -178,13 +186,7 @@ func runSchemaGet(cmd *cobra.Command, platform, publishType string, verbose bool
 		"dynamicFieldExamples": buildDynamicFieldExamples(schemaDoc),
 
 		// 使用指引
-		"guidance": []string{
-			"1. 优先使用 'yxer schema fields' 查看紧凑字段列表",
-			"2. businessFields 只描述平台字段定义；实际填写位置请看 fieldPlacements，不能默认全部写进 contentPublishForm",
-			"3. 复杂对象（location/music/challenge等）必须通过查询命令获取完整对象",
-			"4. 资源（video/images/cover）必须先通过 'yxer upload' 上传并使用返回的完整对象；图文首图封面平台只需提供 images",
-			"5. minimalTemplate 提供最小可用骨架，实际使用时需填入真实值",
-		},
+		"guidance": guidance,
 
 		"recommendedCommand": "yxer schema fields " + platform + " " + publishType,
 	}
@@ -255,6 +257,10 @@ func fieldPlacementFor(doc schema.Document, key string) fieldPlacementView {
 				"publishArgs.accountForms[].contentPublishForm.horizontalCover",
 			}
 			view.Note = "横版封面最终写入 contentPublishForm.horizontalCover；可在 publishArgs.horizontalCover 共享填写，CLI 会自动补齐。"
+		}
+	case "shopping_cart":
+		if isDuoduoshipinPlatform(doc.Platform) {
+			view.Note = "多多视频的 shopping_cart.goods_id 由用户手工输入；CLI 固定 source 为 pdd，不使用 yxer query goods。"
 		}
 	case "content":
 		if doc.Type == "article" {
@@ -707,7 +713,7 @@ func groupFieldsByImportance(flatFields []flatFieldView, platform, publishType s
 		}
 
 		// 复杂对象字段（需要查询命令获取）
-		if isComplexField(field.Path) {
+		if isComplexFieldForPlatform(field.Path, platform) {
 			complex = append(complex, field)
 		} else if field.Required {
 			required = append(required, field)
@@ -753,6 +759,13 @@ func isComplexField(path string) bool {
 	return false
 }
 
+func isComplexFieldForPlatform(path, platform string) bool {
+	if isDuoduoshipinPlatform(platform) && strings.Contains(path, "shopping_cart") {
+		return false
+	}
+	return isComplexField(path)
+}
+
 // buildQueryCommandHints 构建复杂字段的查询命令提示
 func buildQueryCommandHints(complexFields []flatFieldView, platform string) map[string]string {
 	hints := make(map[string]string)
@@ -760,6 +773,9 @@ func buildQueryCommandHints(complexFields []flatFieldView, platform string) map[
 
 	for _, field := range complexFields {
 		path := field.Path
+		if isDuoduoshipinPlatform(platform) && strings.Contains(path, "shopping_cart") {
+			continue
+		}
 
 		// 提取字段类型
 		var fieldType string
@@ -835,6 +851,11 @@ func getPlatformSpecificNotes(platform, publishType string) []string {
 			notes = append(notes, "标题最大长度为30字符，描述最大长度为1000字符")
 		} else if publishType == "imageText" {
 			notes = append(notes, "抖音图文需要1-35张图片")
+		}
+
+	case "duoduoshipin", "多多视频":
+		if publishType == "video" {
+			notes = append(notes, "多多视频推广商品需用户手工填写 shopping_cart.goods_id；CLI 固定 source=pdd，不从 yxer query goods 的 yixiaoerId 映射")
 		}
 
 	case "kuaishou", "快手":

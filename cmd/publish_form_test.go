@@ -79,6 +79,81 @@ func TestPublishFormSessionCanSetNestedAndArrayValues(t *testing.T) {
 	}
 }
 
+func TestPublishFormDuoduoshipinAcceptsManualGoodsID(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	sessionPath := filepath.Join(t.TempDir(), "form.json")
+
+	start := newPublishFormStartCmd()
+	start.SetArgs([]string{"多多视频", "video", "--output", sessionPath})
+	start.SetOut(&bytes.Buffer{})
+	if err := start.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	session, err := readPublishFormSession(sessionPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if candidateExamples, ok := session.Contract["dynamicFieldExamples"].(map[string]interface{}); ok && candidateExamples["shopping_cart"] != nil {
+		t.Fatalf("Duoduoshipin shopping_cart must not use query selection, got %#v", candidateExamples["shopping_cart"])
+	}
+	initialForm := session.Payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	initialCart, ok := initialForm["contentPublishForm"].(map[string]interface{})["shopping_cart"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected Duoduoshipin form template to expose shopping_cart, got %#v", initialForm["contentPublishForm"])
+	}
+	if initialCart["source"] != "pdd" {
+		t.Fatalf("expected form template to fix shopping_cart source to pdd, got %#v", initialCart)
+	}
+
+	set := newPublishFormSetCmd()
+	set.SetArgs([]string{sessionPath, "publishArgs.accountForms[0].contentPublishForm.shopping_cart.goods_id", "--value", `"998877"`})
+	set.SetOut(&bytes.Buffer{})
+	if err := set.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	session, err = readPublishFormSession(sessionPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	form := session.Payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	cart := form["contentPublishForm"].(map[string]interface{})["shopping_cart"].(map[string]interface{})
+	if cart["goods_id"] != "998877" || cart["source"] != "pdd" {
+		t.Fatalf("unexpected manually entered Duoduoshipin shopping_cart: %#v", cart)
+	}
+	if len(session.Sources) != 1 || session.Sources[0].Kind != "manual" || session.Sources[0].Path != "publishArgs.accountForms[0].contentPublishForm.shopping_cart.goods_id" {
+		t.Fatalf("expected manual goods_id source record, got %#v", session.Sources)
+	}
+}
+
+func TestPublishFormChooseRejectsDuoduoshipinGoodsQuery(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	sessionPath := filepath.Join(t.TempDir(), "form.json")
+
+	start := newPublishFormStartCmd()
+	start.SetArgs([]string{"多多视频", "video", "--output", sessionPath})
+	start.SetOut(&bytes.Buffer{})
+	if err := start.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	choose := newPublishFormChooseCmd()
+	choose.SetArgs([]string{
+		sessionPath,
+		"shopping_cart",
+		"--value", `{"items":[{"yixiaoerId":"goods_001","yixiaoerName":"查询商品","raw":{"id":"goods_001"}}]}`,
+		"--source-command", "yxer query goods acc_1 --json",
+	})
+	choose.SetOut(&bytes.Buffer{})
+	err := choose.Execute()
+	if err == nil || !strings.Contains(err.Error(), "form choose field is not query-backed") {
+		t.Fatalf("expected Duoduoshipin goods query selection to be rejected, got %v", err)
+	}
+}
+
 func TestPublishFormStartDryRunDoesNotWrite(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)

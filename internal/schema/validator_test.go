@@ -388,6 +388,60 @@ func TestValidateAcceptsXiaohongshuFlatShoppingCartStructure(t *testing.T) {
 	}
 }
 
+func TestValidateAcceptsDuoduoshipinUserProvidedGoodsID(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	payload := map[string]interface{}{
+		"formType": "task",
+		"shopping_cart": map[string]interface{}{
+			"goods_id": "998877",
+			"source":   "pdd",
+		},
+	}
+
+	result := validator.Validate("多多视频", "video", payload)
+	if !result.Valid {
+		t.Fatalf("expected Duoduoshipin user-provided goods_id to pass, got %v", result.Errors)
+	}
+}
+
+func TestValidateRejectsDuoduoshipinShoppingCartWithoutUserGoodsID(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	payload := map[string]interface{}{
+		"formType": "task",
+		"shopping_cart": map[string]interface{}{
+			"source": "pdd",
+		},
+	}
+
+	result := validator.Validate("多多视频", "video", payload)
+	if result.Valid {
+		t.Fatal("expected Duoduoshipin shopping_cart without goods_id to be rejected")
+	}
+	if !containsError(result.Errors, `missing required field "goods_id"`) {
+		t.Fatalf("expected missing user goods_id error, got %v", result.Errors)
+	}
+}
+
+func TestValidateRejectsDuoduoshipinQueryGoodsObject(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	payload := map[string]interface{}{
+		"formType": "task",
+		"shopping_cart": map[string]interface{}{
+			"yixiaoerId":   "goods_001",
+			"yixiaoerName": "查询商品",
+			"raw":          map[string]interface{}{"id": "goods_001"},
+		},
+	}
+
+	result := validator.Validate("多多视频", "video", payload)
+	if result.Valid {
+		t.Fatal("expected Duoduoshipin query goods object to be rejected")
+	}
+	if !containsError(result.Errors, `unexpected field "yixiaoerId"`) {
+		t.Fatalf("expected query object identity field rejection, got %v", result.Errors)
+	}
+}
+
 func TestValidateAcceptsDouyinNestedShoppingCartStructure(t *testing.T) {
 	validator := NewValidator(filepath.Join("..", "..", "schemas"))
 	payload := map[string]interface{}{

@@ -14,17 +14,21 @@
     },
     "shopping_cart": {
       "type": "object",
+      "required": [
+        "goods_id",
+        "source"
+      ],
       "properties": {
         "goods_id": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "source": {
           "type": "string",
-          "enum": [
-            "pdd"
-          ]
+          "const": "pdd"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "video": {
       "type": "object",

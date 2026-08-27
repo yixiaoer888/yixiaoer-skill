@@ -61,6 +61,28 @@ func TestPreflightAcceptsShipinhaoDramaWithoutRaw(t *testing.T) {
 	}
 }
 
+func TestPreflightDefaultsDuoduoshipinShoppingCartSourceFromUserGoodsID(t *testing.T) {
+	payload := validVideoPayload()
+	payload["platforms"] = []interface{}{"多多视频"}
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	form["contentPublishForm"].(map[string]interface{})["shopping_cart"] = map[string]interface{}{
+		"goods_id": "998877",
+	}
+
+	result := Preflight("video", []string{"多多视频"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected Duoduoshipin user goods_id to pass preflight, got %v", result.Errors)
+	}
+
+	cart := form["contentPublishForm"].(map[string]interface{})["shopping_cart"].(map[string]interface{})
+	if cart["goods_id"] != "998877" {
+		t.Fatalf("expected user-provided goods_id to stay unchanged, got %#v", cart)
+	}
+	if cart["source"] != "pdd" {
+		t.Fatalf("expected Duoduoshipin source to default to pdd, got %#v", cart)
+	}
+}
+
 func TestPreflightValidatesFullPublishRequestFields(t *testing.T) {
 	payload := map[string]interface{}{
 		"action":         "save",

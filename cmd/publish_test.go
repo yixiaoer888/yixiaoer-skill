@@ -692,6 +692,64 @@ func TestPublishDryRunAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
 	}
 }
 
+func TestPublishPrepareNormalizesDuoduoshipinUserGoodsID(t *testing.T) {
+	withRepoRoot(t)
+	configureEmptyConfig(t)
+	payload := validPublishPayload()
+	payload["platforms"] = []interface{}{"多多视频"}
+	form := payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	contentForm := form["contentPublishForm"].(map[string]interface{})
+	delete(contentForm, "title")
+	contentForm["shopping_cart"] = map[string]interface{}{
+		"goods_id": " 998877 ",
+	}
+
+	service := publishflow.NewService(testRuntime(t))
+	prepared, err := service.Prepare(publishflow.ExecuteInput{
+		PublishType:   "video",
+		PlatformInput: "多多视频",
+		Payload:       payload,
+	}, publishflow.PrepareOptions{TraceNormalizations: true, RemoteChecks: publishflow.RemoteChecksNone})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	preparedForm := prepared.PublishBody["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	cart := preparedForm["contentPublishForm"].(map[string]interface{})["shopping_cart"].(map[string]interface{})
+	if cart["goods_id"] != "998877" || cart["source"] != "pdd" {
+		t.Fatalf("expected final Duoduoshipin shopping_cart to use normalized user goods_id and pdd source, got %#v", cart)
+	}
+	if _, exists := cart["yixiaoerId"]; exists {
+		t.Fatalf("must not derive Duoduoshipin goods_id from yixiaoerId, got %#v", cart)
+	}
+	if !hasNormalizationAction(prepared.Normalizations, "default_platform_value") {
+		t.Fatalf("expected source default normalization event, got %#v", prepared.Normalizations)
+	}
+}
+
+func TestPublishPrepareRejectsWhitespaceOnlyDuoduoshipinGoodsID(t *testing.T) {
+	withRepoRoot(t)
+	configureEmptyConfig(t)
+	payload := validPublishPayload()
+	payload["platforms"] = []interface{}{"多多视频"}
+	form := payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	contentForm := form["contentPublishForm"].(map[string]interface{})
+	delete(contentForm, "title")
+	contentForm["shopping_cart"] = map[string]interface{}{
+		"goods_id": "   ",
+	}
+
+	service := publishflow.NewService(testRuntime(t))
+	_, err := service.Prepare(publishflow.ExecuteInput{
+		PublishType:   "video",
+		PlatformInput: "多多视频",
+		Payload:       payload,
+	}, publishflow.PrepareOptions{RemoteChecks: publishflow.RemoteChecksNone})
+	if err == nil || !strings.Contains(err.Error(), "goods_id") {
+		t.Fatalf("expected whitespace-only Duoduoshipin goods_id to be rejected, got %v", err)
+	}
+}
+
 func TestPublishDryRunChecksCloudProxyWhenAPIKeyConfigured(t *testing.T) {
 	withRepoRoot(t)
 	payload := validPublishPayload()
