@@ -740,6 +740,7 @@ func isStandardTopLevelField(path string) bool {
 func isComplexField(path string) bool {
 	complexPatterns := []string{
 		"location", "music", "challenge", "collection", "sub_collection",
+		"drama",
 		"category", "goods", "shopping_cart", "group_shopping", "groupShopping",
 		"mini_app", "hot_event", "game", "sync_apps",
 		"cooperation_info", "friends", "group",
@@ -768,6 +769,8 @@ func buildQueryCommandHints(complexFields []flatFieldView, platform string) map[
 			fieldType = "music"
 		} else if strings.Contains(path, "challenge") {
 			fieldType = "challenge"
+		} else if strings.Contains(path, "drama") {
+			fieldType = "drama"
 		} else if strings.Contains(path, "collection") || strings.Contains(path, "sub_collection") {
 			fieldType = "collection"
 		} else if strings.Contains(path, "category") {
@@ -802,6 +805,7 @@ func getQueryCommand(fieldType string) string {
 		"location":   "yxer query locations <account_id> [--query 关键词]",
 		"music":      "yxer query music <account_id> [--query 关键词]",
 		"challenge":  "yxer query challenges <account_id> [--query 关键词] [--type video]",
+		"drama":      "yxer query drama-tasks <account_id> [--query 关键词]",
 		"collection": "yxer query collections <account_id> [--type video|article]",
 		"category":   "yxer query categories <account_id> [--type video|article]",
 		"goods":      "yxer query goods <account_id> [--query 关键词]",

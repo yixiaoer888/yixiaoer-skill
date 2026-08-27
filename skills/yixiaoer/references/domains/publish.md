@@ -62,6 +62,7 @@ yxer query music <account_id> [--query 关键词] [--category-id ID] [--category
 yxer query music-categories <account_id>
 yxer query goods <account_id> [--query 关键词] [--next-page TOKEN]
 yxer query collections <account_id> [--type video|article]
+yxer query drama-tasks <account_id> [--query 关键词]
 yxer query miniapps <account_id> [--query 关键词]
 yxer query syncapps <account_id>
 yxer query games <account_id> [--query 关键词]
@@ -78,7 +79,7 @@ yxer publish <type> <platform> <payload.json> [--publish-channel cloud|local] [-
 
 - 用户只说“帮我发”时，默认云发布；明确说“本机发布”“客户端发布”时切到本机通道。
 - 用户要“只生成 payload”时，仍要先走 `prepare` / `schema get` 和字段查询纪律。
-- 用户要填分类、位置、音乐、合集、话题、商品时，先查询，再回填完整对象。
+- 用户要填分类、位置、音乐、合集、话题、商品时，先查询，再回填完整对象；视频号剧集使用 `yxer query drama-tasks`，只写入查询结果的 `yixiaoerId`、`yixiaoerImageUrl`、`yixiaoerName`，不添加 `raw`。
 - 用户要挂载小程序或选择同步发布应用时，先执行 `yxer query miniapps` / `yxer query syncapps`，再把 CLI 返回对象完整回填到 payload。
 - 用户要挂载游戏、绑定热点或选择群聊时，先执行 `yxer query games` / `yxer query hot-events` / `yxer query groups`，再把 CLI 返回对象完整回填到 payload。
 - 用户要按音乐分类找配乐或参加平台活动时，先执行 `yxer query music-categories` / `yxer query activities`，再把 CLI 返回对象完整回填到 payload。

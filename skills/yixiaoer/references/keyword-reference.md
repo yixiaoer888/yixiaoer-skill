@@ -87,6 +87,7 @@
 | `music` | 查询音乐 |
 | `goods` | 查询商品 |
 | `collections` | 查询合集 |
+| `drama-tasks` | 查询视频号剧集 |
 | `challenges` | 查询话题 |
 | `query records` | 查询发布记录 |
 

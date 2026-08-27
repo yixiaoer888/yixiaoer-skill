@@ -101,6 +101,76 @@ func TestSchemaGetCommandOutputsSchemaForChinesePlatformAlias(t *testing.T) {
 	}
 }
 
+func TestSchemaFieldsShipinhaoExposesDramaQueryExample(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	var out bytes.Buffer
+	cmd := newSchemaFieldsCmd()
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"视频号", "video"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	queryCommands := data["queryCommands"].(map[string]interface{})
+	if got := queryCommands["drama"]; got != "yxer query drama-tasks <account_id> [--query 关键词]" {
+		t.Fatalf("unexpected drama query command: %#v", got)
+	}
+	examples := data["dynamicFieldExamples"].(map[string]interface{})
+	drama := examples["drama"].(map[string]interface{})
+	if drama["path"] != "publishArgs.accountForms[].contentPublishForm.drama" {
+		t.Fatalf("unexpected drama example path: %#v", drama)
+	}
+	if drama["queryCommand"] != "yxer query drama-tasks <account_id> [--query 关键词] --json" {
+		t.Fatalf("unexpected drama example command: %#v", drama["queryCommand"])
+	}
+	value := drama["value"].(map[string]interface{})
+	if _, ok := value["raw"]; ok {
+		t.Fatalf("drama example must not contain raw: %#v", value)
+	}
+	for _, field := range []string{"yixiaoerId", "yixiaoerImageUrl", "yixiaoerName"} {
+		if _, ok := value[field]; !ok {
+			t.Fatalf("drama example missing %q: %#v", field, value)
+		}
+	}
+}
+
+func TestSchemaGetShipinhaoExposesStrictDramaSchema(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	var out bytes.Buffer
+	cmd := newSchemaGetCmd()
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"视频号", "video"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	fields := data["businessFields"].(map[string]interface{})
+	drama := fields["drama"].(map[string]interface{})
+	if drama["additionalProperties"] != false {
+		t.Fatalf("expected drama additionalProperties=false, got %#v", drama)
+	}
+	properties := drama["properties"].(map[string]interface{})
+	if len(properties) != 3 {
+		t.Fatalf("expected exactly three drama properties, got %#v", properties)
+	}
+	if _, hasRaw := properties["raw"]; hasRaw {
+		t.Fatalf("drama schema must not expose raw: %#v", properties)
+	}
+}
+
 func TestSchemaGetCommandExplainsDuplicatedCoverPlacementForImageText(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)

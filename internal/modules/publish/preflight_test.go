@@ -42,6 +42,25 @@ func TestPreflightAcceptsValidStandardVideoPayload(t *testing.T) {
 	}
 }
 
+func TestPreflightAcceptsShipinhaoDramaWithoutRaw(t *testing.T) {
+	payload := validVideoPayload()
+	payload["platforms"] = []interface{}{"视频号"}
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	form["contentPublishForm"].(map[string]interface{})["drama"] = map[string]interface{}{
+		"yixiaoerId":       "event/1",
+		"yixiaoerImageUrl": "http://wxapp.tc.qq.com/cover",
+		"yixiaoerName":     "风浪过后护妻安康",
+	}
+
+	result := Preflight("video", []string{"视频号"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected shipinhao drama without raw to pass preflight, got %v", result.Errors)
+	}
+	if _, exists := form["contentPublishForm"].(map[string]interface{})["drama"].(map[string]interface{})["raw"]; exists {
+		t.Fatal("preflight must not add drama.raw")
+	}
+}
+
 func TestPreflightValidatesFullPublishRequestFields(t *testing.T) {
 	payload := map[string]interface{}{
 		"action":         "save",

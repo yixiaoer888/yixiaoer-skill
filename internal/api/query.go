@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -77,6 +78,31 @@ func (c *Client) Collections(accountID, publishType string) (interface{}, error)
 	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/collections", accountID), map[string]string{
 		"publishType": schemaTypeName(publishType),
 	}))
+}
+
+// DramaTasks returns the Video号 drama catalogue used by the platform's
+// drama attachment form. The backend expects keyWord even when it is empty.
+func (c *Client) DramaTasks(accountID, keyword string) (interface{}, error) {
+	values := url.Values{}
+	values.Set("keyWord", keyword)
+
+	result, err := c.queryData(QueryValues(fmt.Sprintf("/platform-accounts/%s/drama-tasks", accountID), values))
+	if err != nil {
+		return nil, decorateDramaTasksQueryError(err, accountID)
+	}
+	return result, nil
+}
+
+func decorateDramaTasksQueryError(err error, accountID string) error {
+	var typed *yxerrors.Error
+	if errors.As(err, &typed) {
+		typed.WithHint("剧集查询失败，请确认视频号账号支持剧集，并检查关键词后重试。").
+			WithNextCommand(fmt.Sprintf("yxer query drama-tasks %s --json", accountID))
+		return typed
+	}
+	return yxerrors.Remote("drama tasks query failed", err.Error()).
+		WithHint("剧集查询失败，请确认视频号账号支持剧集，并检查关键词后重试。").
+		WithNextCommand(fmt.Sprintf("yxer query drama-tasks %s --json", accountID))
 }
 
 func (c *Client) MiniApps(accountID, keyword string) (interface{}, error) {

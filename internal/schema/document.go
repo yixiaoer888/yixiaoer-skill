@@ -28,20 +28,21 @@ type Document struct {
 }
 
 type PropertyView struct {
-	Type       string                  `json:"type,omitempty"`
-	Required   bool                    `json:"required,omitempty"`
-	Format     string                  `json:"format,omitempty"`
-	Const      interface{}             `json:"const,omitempty"`
-	Default    interface{}             `json:"default,omitempty"`
-	Enum       []interface{}           `json:"enum,omitempty"`
-	MinLength  *int                    `json:"minLength,omitempty"`
-	MaxLength  *int                    `json:"maxLength,omitempty"`
-	MinItems   *int                    `json:"minItems,omitempty"`
-	MaxItems   *int                    `json:"maxItems,omitempty"`
-	Minimum    *float64                `json:"minimum,omitempty"`
-	Maximum    *float64                `json:"maximum,omitempty"`
-	Properties map[string]PropertyView `json:"properties,omitempty"`
-	Items      *PropertyView           `json:"items,omitempty"`
+	Type                 string                  `json:"type,omitempty"`
+	Required             bool                    `json:"required,omitempty"`
+	Format               string                  `json:"format,omitempty"`
+	Const                interface{}             `json:"const,omitempty"`
+	Default              interface{}             `json:"default,omitempty"`
+	Enum                 []interface{}           `json:"enum,omitempty"`
+	MinLength            *int                    `json:"minLength,omitempty"`
+	MaxLength            *int                    `json:"maxLength,omitempty"`
+	MinItems             *int                    `json:"minItems,omitempty"`
+	MaxItems             *int                    `json:"maxItems,omitempty"`
+	Minimum              *float64                `json:"minimum,omitempty"`
+	Maximum              *float64                `json:"maximum,omitempty"`
+	AdditionalProperties *bool                   `json:"additionalProperties,omitempty"`
+	Properties           map[string]PropertyView `json:"properties,omitempty"`
+	Items                *PropertyView           `json:"items,omitempty"`
 }
 
 type Catalog struct {
@@ -131,18 +132,21 @@ func buildDocument(entry Entry, schemaDoc map[string]interface{}) Document {
 
 func buildPropertyView(schemaDoc map[string]interface{}, required bool) PropertyView {
 	view := PropertyView{
-		Type:     stringValue(schemaDoc["type"]),
-		Required: required,
-		Format:   stringValue(schemaDoc["format"]),
-		Const:    schemaDoc["const"],
-		Default:  schemaDoc["default"],
-		Enum:     interfaceSlice(schemaDoc["enum"]),
+		Type:      stringValue(schemaDoc["type"]),
+		Required:  required,
+		Format:    stringValue(schemaDoc["format"]),
+		Const:     schemaDoc["const"],
+		Default:   schemaDoc["default"],
+		Enum:      interfaceSlice(schemaDoc["enum"]),
 		MinLength: intPointer(numberValue(schemaDoc["minLength"])),
 		MaxLength: intPointer(numberValue(schemaDoc["maxLength"])),
 		MinItems:  intPointer(numberValue(schemaDoc["minItems"])),
 		MaxItems:  intPointer(numberValue(schemaDoc["maxItems"])),
 		Minimum:   floatPointer(numberValue(schemaDoc["minimum"])),
 		Maximum:   floatPointer(numberValue(schemaDoc["maximum"])),
+	}
+	if value, ok := schemaDoc["additionalProperties"].(bool); ok {
+		view.AdditionalProperties = &value
 	}
 	if rawProps, ok := schemaDoc["properties"].(map[string]interface{}); ok {
 		requiredSet := map[string]bool{}

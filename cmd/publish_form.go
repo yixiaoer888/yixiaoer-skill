@@ -153,6 +153,10 @@ func newPublishFormSetCmd() *cobra.Command {
 			if err := validatePublishFormWritePath(session, args[1]); err != nil {
 				return err
 			}
+			if isCanonicalDramaPublishFormPath(args[1]) {
+				return yxerrors.Usage("form set cannot write drama field", map[string]interface{}{"path": args[1]}).
+					WithHint("剧集字段必须使用 form choose 从 yxer query drama-tasks 结果选择，不能手工拼接或直接 set。")
+			}
 			updated := cloneJSONMap(session.Payload)
 			if err := setJSONPath(updated, args[1], parsed); err != nil {
 				return yxerrors.Usage("form path cannot be updated", map[string]interface{}{"path": args[1], "cause": err.Error()}).
@@ -208,7 +212,7 @@ func newPublishFormChooseCmd() *cobra.Command {
 			if err != nil {
 				return yxerrors.Usage("form choose value is not valid JSON", err.Error())
 			}
-			selected, candidates, err := selectPublishFormCandidate(rawValue, index, id)
+			selected, candidates, err := selectPublishFormCandidateForField(rawValue, args[1], index, id)
 			if err != nil {
 				return err
 			}
@@ -227,6 +231,19 @@ func newPublishFormChooseCmd() *cobra.Command {
 			if resolvedPath == "" {
 				resolvedPath, err = resolvePublishFormFieldPath(session, args[1], accountIndex)
 				if err != nil {
+					return err
+				}
+			}
+			if strings.EqualFold(strings.TrimSpace(args[1]), "drama") || isCanonicalDramaPublishFormPath(resolvedPath) {
+				expectedPath, pathErr := resolvePublishFormFieldPath(session, args[1], accountIndex)
+				if pathErr != nil {
+					return pathErr
+				}
+				if strings.TrimSpace(resolvedPath) != strings.TrimSpace(expectedPath) || !isCanonicalDramaPublishFormPath(resolvedPath) {
+					return yxerrors.Usage("drama field path must match contract", map[string]interface{}{"path": resolvedPath, "expected": expectedPath}).
+						WithHint("剧集只能写入 contract.dynamicFieldExamples.drama 声明的 publishArgs.accountForms[].contentPublishForm.drama 路径。")
+				}
+				if err := validateDramaSourceCommand(sourceCommand); err != nil {
 					return err
 				}
 			}
@@ -502,9 +519,24 @@ func readFormValue(raw, file string) (interface{}, error) {
 
 func selectPublishFormCandidate(value interface{}, index int, id string) (interface{}, []interface{}, error) {
 	candidates := publishFormCandidates(value)
+	return selectPublishFormCandidateFromCandidates(value, candidates, index, id)
+}
+
+func selectPublishFormCandidateForField(value interface{}, field string, index int, id string) (interface{}, []interface{}, error) {
+	if strings.EqualFold(strings.TrimSpace(field), "drama") {
+		candidates, err := dramaPublishFormCandidates(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		return selectPublishFormCandidateFromCandidates(value, candidates, index, id)
+	}
+	return selectPublishFormCandidate(value, index, id)
+}
+
+func selectPublishFormCandidateFromCandidates(original interface{}, candidates []interface{}, index int, id string) (interface{}, []interface{}, error) {
 	id = strings.TrimSpace(id)
 	if len(candidates) == 0 {
-		return value, nil, nil
+		return original, nil, nil
 	}
 	if id != "" {
 		for _, candidate := range candidates {
@@ -526,6 +558,77 @@ func selectPublishFormCandidate(value interface{}, index int, id string) (interf
 	}
 	return nil, candidates, yxerrors.Usage("form choose has multiple candidates", map[string]interface{}{"candidateCount": len(candidates), "candidates": previewCandidates(candidates)}).
 		WithHint("请使用 --id 或 --index 明确选择一个候选，避免把错误动态对象写入发布会话。")
+}
+
+func dramaPublishFormCandidates(value interface{}) ([]interface{}, error) {
+	return dramaPublishFormCandidatesAtDepth(value, 0)
+}
+
+func dramaPublishFormCandidatesAtDepth(value interface{}, depth int) ([]interface{}, error) {
+	switch typed := value.(type) {
+	case []interface{}:
+		if len(typed) == 0 {
+			return nil, dramaCandidateError("form choose has no candidates", map[string]interface{}{"reason": "empty array"})
+		}
+		for _, candidate := range typed {
+			if !isExactDramaCandidate(candidate) {
+				return nil, dramaCandidateError("drama query result contains an incomplete or extra-field candidate", map[string]interface{}{"candidate": candidate})
+			}
+		}
+		return typed, nil
+	case map[string]interface{}:
+		knownKeys := []string{"items", "list", "dataList", "records", "results"}
+		present := make([]string, 0, 1)
+		for _, key := range knownKeys {
+			if _, exists := typed[key]; exists {
+				present = append(present, key)
+			}
+		}
+		if len(present) == 1 {
+			if _, hasNestedData := typed["data"]; hasNestedData {
+				return nil, dramaCandidateError("drama query result contains multiple candidate lists", map[string]interface{}{"keys": []string{present[0], "data"}})
+			}
+		}
+		if len(present) > 1 {
+			return nil, dramaCandidateError("drama query result contains multiple candidate lists", map[string]interface{}{"keys": present})
+		}
+		if len(present) == 1 {
+			items, ok := typed[present[0]].([]interface{})
+			if !ok {
+				return nil, dramaCandidateError("drama query result candidate list must be an array", map[string]interface{}{"key": present[0]})
+			}
+			return dramaPublishFormCandidatesAtDepth(items, depth)
+		}
+		if isExactDramaCandidate(typed) {
+			return []interface{}{typed}, nil
+		}
+		if nested, exists := typed["data"]; exists {
+			if depth >= 1 {
+				return nil, dramaCandidateError("drama query result has too many nested data envelopes", nil)
+			}
+			return dramaPublishFormCandidatesAtDepth(nested, depth+1)
+		}
+	}
+	return nil, dramaCandidateError("drama query result is not a recognized candidate envelope", map[string]interface{}{"value": value})
+}
+
+func isExactDramaCandidate(value interface{}) bool {
+	obj, ok := value.(map[string]interface{})
+	if !ok || len(obj) != 3 {
+		return false
+	}
+	for _, key := range []string{"yixiaoerId", "yixiaoerImageUrl", "yixiaoerName"} {
+		text, ok := obj[key].(string)
+		if !ok || strings.TrimSpace(text) == "" {
+			return false
+		}
+	}
+	return true
+}
+
+func dramaCandidateError(message string, details interface{}) error {
+	return yxerrors.Usage(message, details).
+		WithHint("请使用 yxer query drama-tasks <account_id> --json 的完整返回值，并选择只含 yixiaoerId、yixiaoerImageUrl、yixiaoerName 的候选对象。")
 }
 
 func publishFormCandidates(value interface{}) []interface{} {
@@ -801,7 +904,7 @@ func appendPublishFormSource(sources []publishFormSource, source publishFormSour
 	if source.ValueHash == "" && source.Value != nil {
 		source.ValueHash, _ = hashJSONValue(source.Value)
 	}
-	if source.RawHash == "" {
+	if source.RawHash == "" && !isCanonicalDramaPublishFormPath(source.Path) {
 		source.RawHash, _ = hashDynamicRaw(source.Value)
 	}
 	return append(sources, source)
@@ -815,6 +918,9 @@ func validatePublishFormProvenance(session publishFormSession) (map[string]inter
 			detail["index"] = i
 			errors = append(errors, detail)
 		}
+	}
+	for _, missing := range missingDramaSourceErrors(session.Payload, session.Sources) {
+		errors = append(errors, missing)
 	}
 	report := map[string]interface{}{
 		"valid":       len(errors) == 0,
@@ -858,15 +964,73 @@ func validatePublishFormSource(payload map[string]interface{}, source publishFor
 		if strings.TrimSpace(source.FetchedAt) == "" && strings.TrimSpace(source.UpdatedAt) == "" {
 			add("missing_fetched_at", "query source must include fetchedAt or updatedAt")
 		}
-		expectedRawHash := strings.TrimSpace(source.RawHash)
-		if expectedRawHash == "" {
-			expectedRawHash, _ = hashDynamicRaw(source.Value)
+		if isCanonicalDramaPublishFormPath(source.Path) {
+			if err := validateDramaSourceCommand(source.SourceCommand); err != nil {
+				add("invalid_source_command", err.Error())
+			}
+		} else {
+			expectedRawHash := strings.TrimSpace(source.RawHash)
+			if expectedRawHash == "" {
+				expectedRawHash, _ = hashDynamicRaw(source.Value)
+			}
+			currentRawHash, _ := hashDynamicRaw(current)
+			if expectedRawHash == "" {
+				add("missing_raw_hash", "query source must include hashable raw data")
+			} else if currentRawHash != expectedRawHash {
+				add("raw_hash_mismatch", "current payload raw data no longer matches the recorded query raw data")
+			}
 		}
-		currentRawHash, _ := hashDynamicRaw(current)
-		if expectedRawHash == "" {
-			add("missing_raw_hash", "query source must include hashable raw data")
-		} else if currentRawHash != expectedRawHash {
-			add("raw_hash_mismatch", "current payload raw data no longer matches the recorded query raw data")
+	}
+	return errors
+}
+
+func isCanonicalDramaPublishFormPath(path string) bool {
+	return normalizePublishFormPath(path) == "publishArgs.accountForms.[].contentPublishForm.drama"
+}
+
+func validateDramaSourceCommand(command string) error {
+	resource := querySourceCommandResource(command)
+	if resource == "drama-tasks" {
+		return nil
+	}
+	return yxerrors.Usage("drama source must come from yxer query drama-tasks", map[string]interface{}{"sourceCommand": command}).
+		WithHint("请先执行 yxer query drama-tasks <account_id> [--query 关键词] --json，再使用 form choose 选择剧集。")
+}
+
+func querySourceCommandResource(command string) string {
+	parts := strings.Fields(command)
+	for i := 0; i+1 < len(parts); i++ {
+		if parts[i] == "query" || strings.HasSuffix(parts[i], "query") {
+			return strings.TrimSpace(parts[i+1])
+		}
+	}
+	return ""
+}
+
+func missingDramaSourceErrors(payload map[string]interface{}, sources []publishFormSource) []map[string]interface{} {
+	publishArgs, _ := payload["publishArgs"].(map[string]interface{})
+	accountForms, _ := publishArgs["accountForms"].([]interface{})
+	var errors []map[string]interface{}
+	for i, rawForm := range accountForms {
+		form, _ := rawForm.(map[string]interface{})
+		cpf, _ := form["contentPublishForm"].(map[string]interface{})
+		if _, exists := cpf["drama"]; !exists {
+			continue
+		}
+		path := fmt.Sprintf("publishArgs.accountForms[%d].contentPublishForm.drama", i)
+		found := false
+		for _, source := range sources {
+			if source.Kind == "query" && strings.TrimSpace(source.Path) == path {
+				found = true
+				break
+			}
+		}
+		if !found {
+			errors = append(errors, map[string]interface{}{
+				"code":    "missing_drama_source",
+				"path":    path,
+				"message": "drama field must have a matching query source record",
+			})
 		}
 	}
 	return errors

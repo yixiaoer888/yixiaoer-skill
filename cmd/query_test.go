@@ -79,6 +79,10 @@ func TestActivitiesKeywordFlagUsesAliasStorage(t *testing.T) {
 	assertKeywordFlagUsesAliasStorage(t, "activities", "创作")
 }
 
+func TestDramaTasksKeywordFlagUsesAliasStorage(t *testing.T) {
+	assertKeywordFlagUsesAliasStorage(t, "drama-tasks", "护妻")
+}
+
 func assertKeywordFlagUsesAliasStorage(t *testing.T, use, value string) {
 	t.Helper()
 	var query string
@@ -113,6 +117,24 @@ func TestQueryCommandExistsWithLocationsSubcommand(t *testing.T) {
 	}
 	if !found {
 		t.Fatal("expected query command to expose locations subcommand")
+	}
+}
+
+func TestQueryCommandExistsWithDramaTasksSubcommand(t *testing.T) {
+	query := newQueryCmd()
+
+	var dramaTasks *cobra.Command
+	for _, command := range query.Commands() {
+		if command.Name() == "drama-tasks" {
+			dramaTasks = command
+			break
+		}
+	}
+	if dramaTasks == nil {
+		t.Fatal("query command is missing drama-tasks subcommand")
+	}
+	if dramaTasks.Flag("query") == nil || dramaTasks.Flag("keyword") == nil {
+		t.Fatalf("drama-tasks must expose query and keyword flags")
 	}
 }
 

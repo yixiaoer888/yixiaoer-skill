@@ -149,6 +149,97 @@ func TestSchemaReturnsValidShipinhaoVideoSchema(t *testing.T) {
 	if declaration.Default != float64(0) {
 		t.Fatalf("expected declaration default 0, got %#v", declaration.Default)
 	}
+	drama, ok := schemaDoc.Properties["drama"]
+	if !ok {
+		t.Fatalf("expected shipinhao video schema to expose drama, got %+v", schemaDoc.Properties)
+	}
+	if drama.AdditionalProperties == nil || *drama.AdditionalProperties {
+		t.Fatalf("expected drama schema to explicitly reject additional properties, got %#v", drama.AdditionalProperties)
+	}
+	if _, ok := drama.Properties["yixiaoerImageUrl"]; !ok {
+		t.Fatalf("expected drama schema to expose yixiaoerImageUrl, got %+v", drama.Properties)
+	}
+}
+
+func TestValidateAcceptsExactShipinhaoDramaObject(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	payload := map[string]interface{}{
+		"formType":   "task",
+		"createType": float64(2),
+		"pubType":    float64(1),
+		"drama": map[string]interface{}{
+			"yixiaoerId":       "event/1",
+			"yixiaoerImageUrl": "http://wxapp.tc.qq.com/cover",
+			"yixiaoerName":     "风浪过后护妻安康",
+		},
+	}
+
+	result := validator.Validate("视频号", "video", payload)
+	if !result.Valid {
+		t.Fatalf("expected exact shipinhao drama object to pass, got %v", result.Errors)
+	}
+}
+
+func TestValidateRejectsShipinhaoDramaRawAndUnknownFields(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	payload := map[string]interface{}{
+		"formType":   "task",
+		"createType": float64(2),
+		"pubType":    float64(1),
+		"drama": map[string]interface{}{
+			"yixiaoerId":       "event/1",
+			"yixiaoerImageUrl": "http://wxapp.tc.qq.com/cover",
+			"yixiaoerName":     "风浪过后护妻安康",
+			"raw":              map[string]interface{}{"id": "event/1"},
+			"extra":            "must reject",
+		},
+	}
+
+	result := validator.Validate("视频号", "video", payload)
+	if result.Valid {
+		t.Fatal("expected drama raw and unknown fields to be rejected")
+	}
+	if !containsError(result.Errors, `unexpected field "raw"`) || !containsError(result.Errors, `unexpected field "extra"`) {
+		t.Fatalf("expected strict drama field errors, got %v", result.Errors)
+	}
+}
+
+func TestValidateRejectsShipinhaoDramaMissingAndCLICommonFields(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	newPayload := func() map[string]interface{} {
+		return map[string]interface{}{
+			"formType":   "task",
+			"createType": float64(2),
+			"pubType":    float64(1),
+			"drama": map[string]interface{}{
+				"yixiaoerId":       "event/1",
+				"yixiaoerImageUrl": "http://wxapp.tc.qq.com/cover",
+				"yixiaoerName":     "风浪过后护妻安康",
+			},
+		}
+	}
+
+	tests := map[string]func(map[string]interface{}){
+		"missing image": func(payload map[string]interface{}) {
+			delete(payload["drama"].(map[string]interface{}), "yixiaoerImageUrl")
+		},
+		"content": func(payload map[string]interface{}) {
+			payload["drama"].(map[string]interface{})["content"] = "must reject"
+		},
+		"clientId": func(payload map[string]interface{}) {
+			payload["drama"].(map[string]interface{})["clientId"] = "must reject"
+		},
+	}
+	for name, mutate := range tests {
+		t.Run(name, func(t *testing.T) {
+			payload := newPayload()
+			mutate(payload)
+			result := validator.Validate("视频号", "video", payload)
+			if result.Valid {
+				t.Fatalf("expected strict drama rejection: %#v", payload)
+			}
+		})
+	}
 }
 
 func TestValidateAcceptsShipinhaoVideoAiDeclaration(t *testing.T) {

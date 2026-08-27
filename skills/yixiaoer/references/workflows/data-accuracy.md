@@ -36,7 +36,7 @@
 以下情况必须等待用户确认，不能自动选择第一项：
 
 - `accounts list` 返回多个可用账号，且用户没有指定账号。
-- 用户按关键词选择分类、位置、音乐、商品、合集、活动、挑战、群组等，查询结果有多个合理候选。
+- 用户按关键词选择分类、位置、音乐、商品、合集、剧集、活动、挑战、群组等，查询结果有多个合理候选。
 - 用户给出的发布时间、发布通道、草稿类型或平台目标存在歧义。
 - 本机发布需要 `clientId`，但当前 payload、flag 和配置中没有确定值。
 - 查询结果与用户描述不完全匹配，但 Agent 认为可能可用。
@@ -59,7 +59,8 @@
 | 位置 | `yxer query locations` | 使用返回对象，不手写 POI/raw |
 | 音乐 | `yxer query music` / `music-categories` | 保留 playUrl/url 等查询元数据 |
 | 商品 | `yxer query goods` | 使用完整商品对象 |
-| 合集 | `yxer query collections` | 使用完整合集对象 |
+| 合集 | `yxer query collections` | 使用完整合集对象并保留 `raw` |
+| 视频号剧集 | `yxer query drama-tasks` | 使用完整三字段对象：`yixiaoerId`、`yixiaoerImageUrl`、`yixiaoerName`；不添加 `raw` |
 | 话题/挑战 | `yxer query challenges` 或平台文档规定格式 | 不凭热门词手写 raw |
 | 活动/热点 | `yxer query activities` / `hot-events` | 使用完整返回对象 |
 | 小程序/同步应用/游戏/群组 | 对应 `yxer query miniapps/syncapps/games/groups` | 使用 CLI 返回对象 |
@@ -69,7 +70,7 @@
 - 从空白 JSON 猜字段、猜层级、猜枚举。
 - 直接把用户自然语言中的名称写成动态对象。
 - 查询结果为空时编造兜底对象。
-- 只复制查询结果中的 ID，丢弃 CLI 返回的 raw 或配套字段。
+- 只复制查询结果中的 ID，丢弃 CLI 返回的 raw 或配套字段；视频号剧集必须同时保留其三个真实字段。
 - 修改 payload 后跳过 `validate` 或 `publish --dry-run`。
 - `validate` 使用云发布参数，而 `publish` 改成本机发布参数，或反过来。
 - 在用户只要求 dry-run、预览、修 payload 时执行正式写操作。
