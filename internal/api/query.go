@@ -615,7 +615,23 @@ func platformDocFileName(platform, publishType string) string {
 			return "weixingongzhonghao.md"
 		}
 	}
-	return platform + ".md"
+	// Platform docs are stored by their repository key, while callers may use
+	// a Chinese display name, mixed-case alias, or a legacy key (for example
+	// xhs and xinlang). Always resolve the key before constructing the path so
+	// prepare works consistently across platforms and operating systems.
+	key := platformutil.CanonicalKey(platform)
+	switch key {
+	case "xhs":
+		key = "xiaohongshu"
+	case "weixin.account":
+		key = "weixingongzhonghao"
+	case "xinlang":
+		key = "xinlangweibo"
+	}
+	if key == "" {
+		key = strings.TrimSpace(platform)
+	}
+	return key + ".md"
 }
 
 func (c *Client) queryData(endpoint string) (interface{}, error) {

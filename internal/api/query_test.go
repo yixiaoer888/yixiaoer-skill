@@ -57,6 +57,24 @@ func TestPlatformDocFileNameUsesWeixinAccountImageTextDoc(t *testing.T) {
 	}
 }
 
+func TestPlatformDocFileNameUsesCanonicalKeysForOverseasVideoPlatforms(t *testing.T) {
+	tests := map[string]string{
+		"facebook":  "facebook.md",
+		"Facebook":  "facebook.md",
+		"tiktok":    "tiktok.md",
+		"TikTok":    "tiktok.md",
+		"instagram": "instagram.md",
+		"Instagram": "instagram.md",
+		"youtube":   "youtube.md",
+		"YouTube":   "youtube.md",
+	}
+	for platform, want := range tests {
+		if got := platformDocFileName(platform, "video"); got != want {
+			t.Fatalf("platformDocFileName(%q, video) = %q, want %q", platform, got, want)
+		}
+	}
+}
+
 func TestClientWrapsInvalidJSONResponseAsRemoteError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("<html>not json</html>"))

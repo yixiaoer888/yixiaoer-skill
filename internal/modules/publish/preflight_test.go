@@ -1126,6 +1126,72 @@ func TestNormalizeCategoryKeepsQueryObjectShapeAcrossCategoryPlatforms(t *testin
 	}
 }
 
+func TestOverseasVideoPlatformsAcceptStandardPublishPayload(t *testing.T) {
+	tests := []struct {
+		platform string
+		form     map[string]interface{}
+	}{
+		{
+			platform: "Facebook",
+			form: map[string]interface{}{
+				"formType": "task",
+				"title":    "Campaign video",
+			},
+		},
+		{
+			platform: "TikTok",
+			form: map[string]interface{}{
+				"formType":    "task",
+				"description": "A short product demo",
+				"visible":     "public",
+			},
+		},
+		{
+			platform: "Instagram",
+			form: map[string]interface{}{
+				"formType":      "task",
+				"description":   "New reel",
+				"share_to_feed": false,
+			},
+		},
+		{
+			platform: "YouTube",
+			form: map[string]interface{}{
+				"formType": "task",
+				"title":    "Launch recap",
+				"visible":  "public",
+			},
+		},
+	}
+
+	validator := schema.NewValidator(filepath.Join("..", "..", "..", "schemas"))
+	for _, tt := range tests {
+		t.Run(tt.platform, func(t *testing.T) {
+			payload := standardPayload("video", []string{tt.platform}, map[string]interface{}{
+				"accountForms": []interface{}{map[string]interface{}{
+					"platformAccountId":  "overseas-account-1",
+					"video":              uploadedResource(),
+					"cover":              uploadedResourceWithKey("overseas-cover-key"),
+					"coverKey":           "overseas-cover-key",
+					"contentPublishForm": tt.form,
+				}},
+			})
+
+			NormalizeStandardPayloadForSchemaValidation("video", []string{tt.platform}, payload)
+			result, err := validator.ValidateStrict(tt.platform, "video", payload)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !result.Valid {
+				t.Fatalf("expected valid %s video payload, got %v", tt.platform, result.Errors)
+			}
+			if preflight := Preflight("video", []string{tt.platform}, payload); len(preflight.Errors) > 0 {
+				t.Fatalf("expected %s video preflight to pass, got %v", tt.platform, preflight.Errors)
+			}
+		})
+	}
+}
+
 func TestPreflightNormalizesFlatShoppingCartDataEnvelopeForNonDouyin(t *testing.T) {
 	payload := validVideoPayload()
 	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
