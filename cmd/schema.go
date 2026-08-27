@@ -322,6 +322,9 @@ func runSchemaFields(cmd *cobra.Command, platform, publishType string) error {
 		// 复杂字段的查询命令提示
 		"queryCommands": buildQueryCommandHints(grouped.Complex, platform),
 
+		// 字段在标准 payload 中的实际填写位置
+		"fieldPlacements": buildFieldPlacements(doc),
+
 		// 动态字段公共示例（仅包含当前 schema 暴露的字段）
 		"dynamicFieldExamples": buildDynamicFieldExamples(doc),
 

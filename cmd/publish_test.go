@@ -745,9 +745,23 @@ func TestPublishPrepareRejectsWhitespaceOnlyDuoduoshipinGoodsID(t *testing.T) {
 		PlatformInput: "多多视频",
 		Payload:       payload,
 	}, publishflow.PrepareOptions{RemoteChecks: publishflow.RemoteChecksNone})
-	if err == nil || !strings.Contains(err.Error(), "goods_id") {
-		t.Fatalf("expected whitespace-only Duoduoshipin goods_id to be rejected, got %v", err)
+	if err == nil {
+		t.Fatal("expected whitespace-only Duoduoshipin goods_id to be rejected")
 	}
+	var typed *yxerrors.Error
+	if !errors.As(err, &typed) {
+		t.Fatalf("expected structured schema validation error, got %T: %v", err, err)
+	}
+	details, ok := typed.Details.([]string)
+	if !ok {
+		t.Fatalf("expected schema validation details, got %#v", typed.Details)
+	}
+	for _, detail := range details {
+		if strings.Contains(detail, "goods_id") {
+			return
+		}
+	}
+	t.Fatalf("expected schema validation details to mention goods_id, got %#v", details)
 }
 
 func TestPublishDryRunChecksCloudProxyWhenAPIKeyConfigured(t *testing.T) {
