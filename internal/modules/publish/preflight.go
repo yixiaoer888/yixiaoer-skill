@@ -603,6 +603,8 @@ func normalizePlatformSpecificFields(publishType string, platforms []string, pay
 		if (publishType == "video" || publishType == "imageText") && isDouyinPlatformSet(platformSet) {
 			normalizeDouyinShoppingCart(cpf, formPath, normalizations)
 			normalizeDouyinGroupShopping(cpf, formPath, normalizations)
+		} else if isDuoduoshipinPlatformSet(platformSet) {
+			normalizeDuoduoShoppingCart(cpf, formPath, normalizations)
 		} else {
 			normalizeFlatShoppingCart(cpf, formPath, normalizations)
 		}
@@ -759,6 +761,10 @@ func normalizeDynamicObjectFields(cpf map[string]interface{}, formPath, publishT
 
 func isDouyinPlatformSet(platformSet map[string]bool) bool {
 	return platformSet["抖音"] || platformSet["douyin"]
+}
+
+func isDuoduoshipinPlatformSet(platformSet map[string]bool) bool {
+	return platformSet["多多视频"] || platformSet["duoduoshipin"]
 }
 
 func normalizeLocationValue(value interface{}, path, publishType string, platformSet map[string]bool, normalizations *[]NormalizationEvent) (interface{}, bool) {
@@ -1035,6 +1041,48 @@ func normalizeFlatShoppingCart(cpf map[string]interface{}, formPath string, norm
 	if changed {
 		cpf["shopping_cart"] = normalized
 	}
+}
+
+func normalizeDuoduoShoppingCart(cpf map[string]interface{}, formPath string, normalizations *[]NormalizationEvent) {
+	if cpf == nil {
+		return
+	}
+	value, exists := cpf["shopping_cart"]
+	if !exists {
+		return
+	}
+	cart, ok := value.(map[string]interface{})
+	if !ok || cart == nil {
+		return
+	}
+
+	goodsID, ok := cart["goods_id"].(string)
+	if !ok {
+		return
+	}
+	trimmedGoodsID := strings.TrimSpace(goodsID)
+	if trimmedGoodsID != goodsID {
+		cart["goods_id"] = trimmedGoodsID
+		appendNormalization(normalizations, NormalizationEvent{
+			Field:   "shopping_cart.goods_id",
+			Path:    formPath + ".shopping_cart.goods_id",
+			Action:  "trim_user_value",
+			Message: "Trimmed whitespace from user-provided Duoduoshipin goods_id.",
+		})
+	}
+	if trimmedGoodsID == "" {
+		return
+	}
+	if _, exists := cart["source"]; exists {
+		return
+	}
+	cart["source"] = "pdd"
+	appendNormalization(normalizations, NormalizationEvent{
+		Field:   "shopping_cart.source",
+		Path:    formPath + ".shopping_cart.source",
+		Action:  "default_platform_value",
+		Message: `Defaulted Duoduoshipin shopping_cart source to "pdd" for the user-provided goods_id.`,
+	})
 }
 
 func normalizeDouyinShoppingCart(cpf map[string]interface{}, formPath string, normalizations *[]NormalizationEvent) {

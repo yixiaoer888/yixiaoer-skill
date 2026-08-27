@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -75,6 +76,81 @@ func TestPublishFormSessionCanSetNestedAndArrayValues(t *testing.T) {
 	}
 	if form["tags"].([]interface{})[0] != "标签" {
 		t.Fatalf("unexpected tag: %#v", form["tags"])
+	}
+}
+
+func TestPublishFormDuoduoshipinAcceptsManualGoodsID(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	sessionPath := filepath.Join(t.TempDir(), "form.json")
+
+	start := newPublishFormStartCmd()
+	start.SetArgs([]string{"多多视频", "video", "--output", sessionPath})
+	start.SetOut(&bytes.Buffer{})
+	if err := start.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	session, err := readPublishFormSession(sessionPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if candidateExamples, ok := session.Contract["dynamicFieldExamples"].(map[string]interface{}); ok && candidateExamples["shopping_cart"] != nil {
+		t.Fatalf("Duoduoshipin shopping_cart must not use query selection, got %#v", candidateExamples["shopping_cart"])
+	}
+	initialForm := session.Payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	initialCart, ok := initialForm["contentPublishForm"].(map[string]interface{})["shopping_cart"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected Duoduoshipin form template to expose shopping_cart, got %#v", initialForm["contentPublishForm"])
+	}
+	if initialCart["source"] != "pdd" {
+		t.Fatalf("expected form template to fix shopping_cart source to pdd, got %#v", initialCart)
+	}
+
+	set := newPublishFormSetCmd()
+	set.SetArgs([]string{sessionPath, "publishArgs.accountForms[0].contentPublishForm.shopping_cart.goods_id", "--value", `"998877"`})
+	set.SetOut(&bytes.Buffer{})
+	if err := set.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	session, err = readPublishFormSession(sessionPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	form := session.Payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	cart := form["contentPublishForm"].(map[string]interface{})["shopping_cart"].(map[string]interface{})
+	if cart["goods_id"] != "998877" || cart["source"] != "pdd" {
+		t.Fatalf("unexpected manually entered Duoduoshipin shopping_cart: %#v", cart)
+	}
+	if len(session.Sources) != 1 || session.Sources[0].Kind != "manual" || session.Sources[0].Path != "publishArgs.accountForms[0].contentPublishForm.shopping_cart.goods_id" {
+		t.Fatalf("expected manual goods_id source record, got %#v", session.Sources)
+	}
+}
+
+func TestPublishFormChooseRejectsDuoduoshipinGoodsQuery(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	sessionPath := filepath.Join(t.TempDir(), "form.json")
+
+	start := newPublishFormStartCmd()
+	start.SetArgs([]string{"多多视频", "video", "--output", sessionPath})
+	start.SetOut(&bytes.Buffer{})
+	if err := start.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	choose := newPublishFormChooseCmd()
+	choose.SetArgs([]string{
+		sessionPath,
+		"shopping_cart",
+		"--value", `{"items":[{"yixiaoerId":"goods_001","yixiaoerName":"查询商品","raw":{"id":"goods_001"}}]}`,
+		"--source-command", "yxer query goods acc_1 --json",
+	})
+	choose.SetOut(&bytes.Buffer{})
+	err := choose.Execute()
+	if err == nil || !strings.Contains(err.Error(), "form choose field is not query-backed") {
+		t.Fatalf("expected Duoduoshipin goods query selection to be rejected, got %v", err)
 	}
 }
 
@@ -217,6 +293,210 @@ func TestPublishFormChooseSelectsCandidateAndRecordsSource(t *testing.T) {
 	}
 	if session.Sources[0].ValueHash == "" || session.Sources[0].RawHash == "" || session.Sources[0].FetchedAt == "" {
 		t.Fatalf("expected query source hashes and fetchedAt, got %#v", session.Sources[0])
+	}
+}
+
+func TestPublishFormChooseDramaUsesExactShapeAndSkipsRawHash(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	sessionPath := filepath.Join(t.TempDir(), "form.json")
+	candidatesPath := filepath.Join(t.TempDir(), "drama.json")
+
+	start := newPublishFormStartCmd()
+	start.SetArgs([]string{"视频号", "video", "--output", sessionPath})
+	start.SetOut(&bytes.Buffer{})
+	if err := start.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(candidatesPath, []byte(`{"ok":true,"data":{"items":[{"yixiaoerId":"event/1","yixiaoerImageUrl":"http://wxapp.tc.qq.com/cover","yixiaoerName":"风浪过后护妻安康"},{"yixiaoerId":"event/2","yixiaoerImageUrl":"http://wxapp.tc.qq.com/cover-2","yixiaoerName":"另一部剧"}]}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	choose := newPublishFormChooseCmd()
+	choose.SetArgs([]string{sessionPath, "drama", "--value-file", candidatesPath, "--id", "event/1", "--source-command", "yxer query drama-tasks acc_1 --query 护妻 --json"})
+	choose.SetOut(&bytes.Buffer{})
+	if err := choose.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	session, err := readPublishFormSession(sessionPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	form := session.Payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	drama := form["drama"].(map[string]interface{})
+	if drama["yixiaoerId"] != "event/1" || drama["yixiaoerName"] != "风浪过后护妻安康" {
+		t.Fatalf("unexpected drama: %#v", drama)
+	}
+	if _, exists := drama["raw"]; exists {
+		t.Fatalf("drama must not gain raw during choose: %#v", drama)
+	}
+	if len(session.Sources) != 1 {
+		t.Fatalf("expected one drama source, got %#v", session.Sources)
+	}
+	source := session.Sources[0]
+	if source.Path != "publishArgs.accountForms[0].contentPublishForm.drama" || source.ValueHash == "" || source.RawHash != "" || source.FetchedAt == "" {
+		t.Fatalf("unexpected drama source provenance: %#v", source)
+	}
+
+	if _, err := validatePublishFormProvenance(session); err != nil {
+		t.Fatalf("expected raw-free drama provenance to validate, got %v", err)
+	}
+}
+
+func TestPublishFormChooseDramaRequiresRecognizedExactCandidates(t *testing.T) {
+	tests := []struct {
+		name  string
+		value interface{}
+	}{
+		{name: "empty list", value: map[string]interface{}{"items": []interface{}{}}},
+		{name: "wrong list type", value: map[string]interface{}{"items": map[string]interface{}{}}},
+		{name: "multiple list keys", value: map[string]interface{}{"items": []interface{}{}, "results": []interface{}{}}},
+		{name: "list and nested data", value: map[string]interface{}{"items": []interface{}{}, "data": map[string]interface{}{"items": []interface{}{}}}},
+		{name: "scalar", value: "not a candidate"},
+		{name: "extra field", value: map[string]interface{}{
+			"yixiaoerId":       "event/1",
+			"yixiaoerImageUrl": "http://wxapp.tc.qq.com/cover",
+			"yixiaoerName":     "风浪过后护妻安康",
+			"raw":              map[string]interface{}{"id": "event/1"},
+		}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, _, err := selectPublishFormCandidateForField(tt.value, "drama", -1, ""); err == nil {
+				t.Fatal("expected invalid drama candidate result")
+			}
+		})
+	}
+}
+
+func TestPublishFormChooseDramaAcceptsSupportedCandidateEnvelopes(t *testing.T) {
+	candidate := map[string]interface{}{
+		"yixiaoerId":       "event/1",
+		"yixiaoerImageUrl": "http://wxapp.tc.qq.com/cover",
+		"yixiaoerName":     "风浪过后护妻安康",
+	}
+	candidates := []interface{}{candidate}
+	tests := []struct {
+		name  string
+		value interface{}
+	}{
+		{name: "array", value: candidates},
+		{name: "single object", value: candidate},
+		{name: "items", value: map[string]interface{}{"items": candidates}},
+		{name: "list", value: map[string]interface{}{"list": candidates}},
+		{name: "dataList", value: map[string]interface{}{"dataList": candidates}},
+		{name: "records", value: map[string]interface{}{"records": candidates}},
+		{name: "results", value: map[string]interface{}{"results": candidates}},
+		{name: "nested data", value: map[string]interface{}{"data": map[string]interface{}{"items": candidates}}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			selected, got, err := selectPublishFormCandidateForField(tt.value, "drama", -1, "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(got) != 1 || selected.(map[string]interface{})["yixiaoerId"] != "event/1" {
+				t.Fatalf("unexpected selected drama candidate: %#v, candidates=%#v", selected, got)
+			}
+		})
+	}
+}
+
+func TestPublishFormSetCannotWriteDramaField(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	sessionPath := filepath.Join(t.TempDir(), "form.json")
+
+	start := newPublishFormStartCmd()
+	start.SetArgs([]string{"视频号", "video", "--output", sessionPath})
+	start.SetOut(&bytes.Buffer{})
+	if err := start.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	setDrama := newPublishFormSetCmd()
+	setDrama.SetArgs([]string{sessionPath, "publishArgs.accountForms[0].contentPublishForm.drama", "--value", `{"yixiaoerId":"event/1","yixiaoerImageUrl":"http://wxapp.tc.qq.com/cover","yixiaoerName":"风浪过后护妻安康"}`})
+	setDrama.SetOut(&bytes.Buffer{})
+	err := setDrama.Execute()
+	if err == nil || !strings.Contains(err.Error(), "form set cannot write drama field") {
+		t.Fatalf("expected direct drama set rejection, got %v", err)
+	}
+	session, readErr := readPublishFormSession(sessionPath)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	form := session.Payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	if _, exists := form["drama"]; exists || len(session.Sources) != 0 {
+		t.Fatalf("rejected set must not update payload or sources: %#v, %#v", form, session.Sources)
+	}
+}
+
+func TestPublishFormChooseDramaRejectsPathOverrideAndWrongQuery(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	sessionPath := filepath.Join(t.TempDir(), "form.json")
+	value := `{"yixiaoerId":"event/1","yixiaoerImageUrl":"http://wxapp.tc.qq.com/cover","yixiaoerName":"风浪过后护妻安康"}`
+
+	start := newPublishFormStartCmd()
+	start.SetArgs([]string{"视频号", "video", "--output", sessionPath})
+	start.SetOut(&bytes.Buffer{})
+	if err := start.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	wrongQuery := newPublishFormChooseCmd()
+	wrongQuery.SetArgs([]string{sessionPath, "drama", "--value", value, "--source-command", "yxer query collections acc_1 --type video --json"})
+	wrongQuery.SetOut(&bytes.Buffer{})
+	if err := wrongQuery.Execute(); err == nil || !strings.Contains(err.Error(), "drama source must come from yxer query drama-tasks") {
+		t.Fatalf("expected drama query command rejection, got %v", err)
+	}
+
+	wrongPath := newPublishFormChooseCmd()
+	wrongPath.SetArgs([]string{sessionPath, "drama", "--value", value, "--path", "publishArgs.accountForms[0].contentPublishForm.title", "--source-command", "yxer query drama-tasks acc_1 --json"})
+	wrongPath.SetOut(&bytes.Buffer{})
+	if err := wrongPath.Execute(); err == nil || !strings.Contains(err.Error(), "drama field path must match contract") {
+		t.Fatalf("expected drama path rejection, got %v", err)
+	}
+
+	session, err := readPublishFormSession(sessionPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(session.Sources) != 0 {
+		t.Fatalf("rejected drama choices must not record sources: %#v", session.Sources)
+	}
+}
+
+func TestPublishFormProvenanceRequiresDramaQuerySource(t *testing.T) {
+	payload := map[string]interface{}{
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_1",
+					"contentPublishForm": map[string]interface{}{
+						"drama": map[string]interface{}{
+							"yixiaoerId":       "event/1",
+							"yixiaoerImageUrl": "http://wxapp.tc.qq.com/cover",
+							"yixiaoerName":     "风浪过后护妻安康",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	report, err := validatePublishFormProvenance(publishFormSession{Payload: payload})
+	if err == nil {
+		t.Fatal("expected missing drama query source error")
+	}
+	if report["valid"] != false {
+		t.Fatalf("expected invalid provenance report, got %#v", report)
+	}
+	if !strings.Contains(fmt.Sprint(report["errors"]), "drama") {
+		t.Fatalf("expected drama source error, got %#v", report["errors"])
 	}
 }
 

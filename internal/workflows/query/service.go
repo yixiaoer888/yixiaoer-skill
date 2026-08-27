@@ -45,6 +45,10 @@ func (s Service) Collections(accountID, publishType string) (interface{}, error)
 	return s.rt.Client.Collections(accountID, publishType)
 }
 
+func (s Service) DramaTasks(accountID, keyword string) (interface{}, error) {
+	return s.rt.Client.DramaTasks(accountID, keyword)
+}
+
 func (s Service) MiniApps(accountID, keyword string) (interface{}, error) {
 	return s.rt.Client.MiniApps(accountID, keyword)
 }

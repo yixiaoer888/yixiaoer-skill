@@ -42,6 +42,47 @@ func TestPreflightAcceptsValidStandardVideoPayload(t *testing.T) {
 	}
 }
 
+func TestPreflightAcceptsShipinhaoDramaWithoutRaw(t *testing.T) {
+	payload := validVideoPayload()
+	payload["platforms"] = []interface{}{"视频号"}
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	form["contentPublishForm"].(map[string]interface{})["drama"] = map[string]interface{}{
+		"yixiaoerId":       "event/1",
+		"yixiaoerImageUrl": "http://wxapp.tc.qq.com/cover",
+		"yixiaoerName":     "风浪过后护妻安康",
+	}
+
+	result := Preflight("video", []string{"视频号"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected shipinhao drama without raw to pass preflight, got %v", result.Errors)
+	}
+	if _, exists := form["contentPublishForm"].(map[string]interface{})["drama"].(map[string]interface{})["raw"]; exists {
+		t.Fatal("preflight must not add drama.raw")
+	}
+}
+
+func TestPreflightDefaultsDuoduoshipinShoppingCartSourceFromUserGoodsID(t *testing.T) {
+	payload := validVideoPayload()
+	payload["platforms"] = []interface{}{"多多视频"}
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	form["contentPublishForm"].(map[string]interface{})["shopping_cart"] = map[string]interface{}{
+		"goods_id": "998877",
+	}
+
+	result := Preflight("video", []string{"多多视频"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected Duoduoshipin user goods_id to pass preflight, got %v", result.Errors)
+	}
+
+	cart := form["contentPublishForm"].(map[string]interface{})["shopping_cart"].(map[string]interface{})
+	if cart["goods_id"] != "998877" {
+		t.Fatalf("expected user-provided goods_id to stay unchanged, got %#v", cart)
+	}
+	if cart["source"] != "pdd" {
+		t.Fatalf("expected Duoduoshipin source to default to pdd, got %#v", cart)
+	}
+}
+
 func TestPreflightValidatesFullPublishRequestFields(t *testing.T) {
 	payload := map[string]interface{}{
 		"action":         "save",

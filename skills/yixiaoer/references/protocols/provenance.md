@@ -40,6 +40,7 @@
 | 音乐 | 查询命令、音乐 ID、名称、playUrl/url 是否保留 |
 | 商品 | 查询命令、商品 ID、名称、raw 来源 |
 | 合集/活动/话题/群组 | 查询命令、稳定 ID、名称、平台限制 |
+| 视频号剧集 | `drama-tasks` 查询命令、`yixiaoerId`、`yixiaoerImageUrl`、`yixiaoerName`；不要求 `raw` |
 | 发布通道 | `cloud` / `local` 决策依据、`clientId` 来源 |
 | 发布时间 | 用户输入、解析后的 13 位毫秒时间戳 |
 

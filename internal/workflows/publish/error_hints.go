@@ -1,10 +1,22 @@
 package publish
 
-import "strings"
+import (
+	"strings"
+
+	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
+)
 
 func schemaValidationHint(errors []string) string {
+	return schemaValidationHintForPlatform("", errors)
+}
+
+func schemaValidationHintForPlatform(platform string, errors []string) string {
 	joined := strings.Join(errors, "\n")
 	switch {
+	case strings.Contains(joined, "/drama") || strings.Contains(joined, `field "drama"`):
+		return "视频号剧集对象必须先通过 yxer query drama-tasks 查询，并只保留 yixiaoerId、yixiaoerImageUrl、yixiaoerName 三个字段；剧集对象不使用 raw。"
+	case platformutil.CanonicalKey(platform) == "duoduoshipin" && strings.Contains(joined, "shopping_cart"):
+		return "多多视频的 shopping_cart.goods_id 必须由用户手工输入，source 固定为 pdd；不要把 yxer query goods 返回对象中的 yixiaoerId 当作商品 ID。"
 	case strings.Contains(joined, "shopping_cart") || strings.Contains(joined, "group_shopping") || strings.Contains(joined, "shoppingCart") || strings.Contains(joined, "groupShopping"):
 		return "商品相关字段必须使用 schema/dynamicFieldExamples 中的前端表单结构；抖音购物车需要 sale_title、images、data，团购使用 group_shopping，并应从 yxer query goods 返回结果复制。"
 	case strings.Contains(joined, "location") && strings.Contains(joined, "raw"):

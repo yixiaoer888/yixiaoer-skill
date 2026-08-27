@@ -75,6 +75,7 @@ yxer query goods <account_id> [--query 关键词]
 yxer query goods-detail <account_id> --url <product_url>
 yxer query entitlements <account_id>
 yxer query collections <account_id> [--type video|article]
+yxer query drama-tasks <account_id> [--query 关键词] [--keyword 关键词]
 yxer query members [--page 1] [--size 10] [--status notJoined|pending|joined] [--query 关键词] [--role master|admin|member]
 yxer query challenges <account_id> [--query 关键词] [--type video]
 yxer query records [--platform P] [--limit N] [--status S] [--json]
@@ -120,6 +121,8 @@ yxer schema get <platform> <type>
 - 页面式逐步填写可使用 `publish form` 会话；会话只负责本地状态，正式发布路径固定为 `publish form verify -> publish form export -> validate payload.json -> publish payload.json --dry-run -> publish payload.json`
 - `publish form set` 只能写 `prepare` / `schema fields` / `fieldPlacements` 声明过的路径，不能用拼写不确定的路径试错。
 - `publish form choose` 只用于 `dynamicFieldExamples` 声明的动态字段，必须带 `--source-command` 记录产生候选的 `yxer query ... --json` 命令；若 query 账号和目标账号不一致会被拒绝。
+- 多多视频推广商品使用 `publish form set` 手工填写 `publishArgs.accountForms[].contentPublishForm.shopping_cart.goods_id`；CLI 固定 `source=pdd`，不使用 `publish form choose` 或 `yxer query goods` 的 `yixiaoerId`。
+- 视频号剧集使用 `yxer query drama-tasks` 查询，并通过 `publish form choose ... drama` 写入；剧集对象只保留 `yixiaoerId`、`yixiaoerImageUrl`、`yixiaoerName`，不使用 `raw`。合集仍使用 `collections` / `collection`，继续保留完整 `raw`。
 - `publish form verify`、`review`、`export` 会校验会话来源记录和当前 payload 是否一致；如果候选值被手工改写，需要重新执行 `set` 或 `choose`。
 - 所有请求字段都必须来自 schema、平台文档或 CLI 返回结果；严禁虚构字段、乱猜枚举、手写 `raw` 对象或编造资源元数据
 

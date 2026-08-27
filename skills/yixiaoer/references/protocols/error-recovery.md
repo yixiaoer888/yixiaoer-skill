@@ -27,6 +27,7 @@
 | `validate` | 缺少 `platformAccountId` | 重新 `accounts list --status 1` | 是，若多账号 |
 | `validate` | 资源 key、尺寸、时长错误 | 重新 `yxer upload`，使用返回字段 | 否，除非资源要更换 |
 | `validate` | 动态对象 raw 缺失或格式错误 | 重新执行对应 `yxer query ...` | 是，若多候选 |
+| `validate` | 视频号剧集字段缺失或含 `raw` | 重新执行 `yxer query drama-tasks`，只保留三个 schema 字段 | 是，若多候选 |
 | `validate` | payload 含 `<placeholder>` | 回到来源步骤替换占位符 | 视字段而定 |
 | `dry-run` | 请求结构不符合平台要求 | 以 dry-run 错误为准修字段，再 validate | 视字段而定 |
 | `publish` | 本机客户端不在线 | 提示启动客户端，或询问是否切云发布 | 是 |

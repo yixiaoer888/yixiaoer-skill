@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"strings"
+
+	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
 )
 
 // analyzeValidationErrors 分析校验错误并提供修复建议
@@ -15,7 +17,13 @@ func analyzeValidationErrors(errors []string, platform, publishType string) []ma
 		}
 
 		// 分析错误类型并给出建议
-		if strings.Contains(err, "shopping_cart") || strings.Contains(err, "group_shopping") || strings.Contains(err, "shoppingCart") || strings.Contains(err, "groupShopping") {
+		if platformutil.CanonicalKey(platform) == "duoduoshipin" && strings.Contains(err, "shopping_cart") {
+			suggestion["reason"] = "多多视频商品 ID 需要用户手工输入"
+			suggestion["fix"] = "在 shopping_cart.goods_id 填写用户提供的多多视频业务商品 ID；source 固定为 pdd，不要使用 yxer query goods 返回的 yixiaoerId"
+			suggestion["reference"] = fmt.Sprintf("yxer schema fields %s %s", platform, publishType)
+			suggestion["exampleField"] = "publishArgs.accountForms[].contentPublishForm.shopping_cart.goods_id"
+
+		} else if strings.Contains(err, "shopping_cart") || strings.Contains(err, "group_shopping") || strings.Contains(err, "shoppingCart") || strings.Contains(err, "groupShopping") {
 			suggestion["reason"] = "购物车商品结构或来源不正确"
 			suggestion["fix"] = "使用 dynamicFieldExamples 中的前端表单结构，并从 yxer query goods 返回结果复制完整商品对象；抖音购物车必须包含 sale_title、images、data.raw，团购使用 group_shopping"
 			suggestion["reference"] = "yxer query goods <account_id> [--query 关键词] --json"

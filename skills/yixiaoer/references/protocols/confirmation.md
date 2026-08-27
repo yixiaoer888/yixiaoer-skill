@@ -51,6 +51,7 @@ AI Agent 的默认策略是：能确定的自动补齐，影响写操作且不�
 - 用户可以用序号、稳定 ID 或完整名称选择。
 - 如果用户回答仍不唯一，继续追问，不要猜第一项。
 - 一旦用户确认，将所选候选的完整 CLI 返回对象作为字段来源，再按 schema 装配到 payload。
+- 视频号剧集候选通过 `yxer query drama-tasks` 获取；确认后只写入 `yixiaoerId`、`yixiaoerImageUrl`、`yixiaoerName`，不把合集的 `raw` 结构带入 `drama`。
 
 ## 确认后的记录
 

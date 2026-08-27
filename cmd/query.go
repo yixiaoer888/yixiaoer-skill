@@ -33,6 +33,7 @@ func newQueryCmd() *cobra.Command {
 	cmd.AddCommand(newGoodsDetailCmd())
 	cmd.AddCommand(newEntitlementsCmd())
 	cmd.AddCommand(newCollectionsCmd())
+	cmd.AddCommand(newDramaTasksCmd())
 	cmd.AddCommand(newMiniAppsCmd())
 	cmd.AddCommand(newSyncAppsCmd())
 	cmd.AddCommand(newGamesCmd())
@@ -192,6 +193,23 @@ func newCollectionsCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&publishType, "type", "video", "publish type")
+	return cmd
+}
+
+func newDramaTasksCmd() *cobra.Command {
+	var query, keyword string
+	cmd := &cobra.Command{
+		Use:   "drama-tasks <account_id>",
+		Short: "查询视频号剧集",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runQuery(cmd, "drama-tasks", func(service queryflow.Service) (interface{}, error) {
+				return service.DramaTasks(args[0], resolveQueryAlias(query, keyword))
+			})
+		},
+	}
+	cmd.Flags().StringVar(&query, "query", "", "search keyword")
+	cmd.Flags().StringVar(&keyword, "keyword", "", "search keyword (alias for --query)")
 	return cmd
 }
 

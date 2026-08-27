@@ -355,7 +355,7 @@ func validateObject(schema map[string]interface{}, value map[string]interface{},
 	for key, child := range value {
 		childSchema, exists := properties[key]
 		if !exists {
-			if isCLICommonOptionalField(key) {
+			if isCLICommonOptionalFieldAtPath(pathLabel, key) {
 				continue
 			}
 			if additional, ok := schema["additionalProperties"].(bool); ok && !additional {
@@ -395,6 +395,13 @@ func isCLICommonOptionalField(key string) bool {
 	default:
 		return false
 	}
+}
+
+func isCLICommonOptionalFieldAtPath(pathLabel, key string) bool {
+	if strings.TrimRight(pathLabel, "/") == "/drama" {
+		return false
+	}
+	return isCLICommonOptionalField(key)
 }
 
 func validateArray(schema map[string]interface{}, value []interface{}, pathLabel, prefix string) []string {

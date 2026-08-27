@@ -77,7 +77,7 @@ yxer schema get <platform> <type>
 - `prepare`/`publish form`、`schema fields` / `schema get`、workflow、平台文档和 CLI 实际输出，是组装 payload 的唯一依据。
 - `prepare` 返回的 `data.form` 是可恢复的页面式表单契约；新建复杂 payload 时优先使用 `yxer publish form start/inspect/set/choose/verify/review/export`，不要自行发明字段或路径。form 会话不能直接发布，必须先 verify 并 export 成标准 `payload.json`。
 - 图片、视频、封面等资源必须先上传，且只能复用 `yxer upload` 返回的真实字段。
-- `category`、`location`、`music`、`collection`、`challenge`、`goods` 等动态字段必须先通过 `yxer query ...` 查询，不能手写对象。
+- `category`、`location`、`music`、`collection`、`challenge`、`goods`、`drama` 等动态字段必须先通过 `yxer query ...` 查询，不能手写对象；视频号 `drama` 只保留查询结果中的 `yixiaoerId`、`yixiaoerImageUrl`、`yixiaoerName`，不添加 `raw`。多多视频例外：`shopping_cart.goods_id` 是用户手工提供的业务商品 ID，CLI 固定补充 `source=pdd`，不得从 `yxer query goods` 的 `yixiaoerId` 映射。
 - CRITICAL: `validate`、`publish --dry-run`、正式 `publish` 必须使用同一套发布通道参数。
 
 ## 页面式表单会话
@@ -94,4 +94,4 @@ yxer publish form review publish-form.json
 yxer publish form export publish-form.json --output payload.json
 ```
 
-`set` / `choose` / `verify` / `review` 只更新或检查本地会话，不会触发发布；动态字段必须用 `choose` 从 `query` 返回候选中选择，并用 `--source-command` 记录实际执行的 `yxer query ... --json` 命令。`set` 只能写 form contract 声明过的路径；`choose` 只写 `dynamicFieldExamples` 声明的字段，且 query 账号必须匹配目标账号。资源应直接使用 `upload` 返回的完整对象。文本字段可直接传文本，复杂对象使用 JSON。导出前 `verify` / `review` / `export` 会校验来源记录和当前 payload 是否一致；导出后仍必须按同一份 payload 和同一套发布通道参数执行 `validate payload.json -> publish payload.json --dry-run -> 用户授权 -> publish payload.json`。所有写本地文件的会话命令都支持 `--dry-run`。
+`set` / `choose` / `verify` / `review` 只更新或检查本地会话，不会触发发布；动态字段必须用 `choose` 从 `query` 返回候选中选择，并用 `--source-command` 记录实际执行的 `yxer query ... --json` 命令。多多视频 `shopping_cart.goods_id` 不属于动态查询字段，使用 `set` 手工填写，CLI 固定 `source=pdd`。`set` 只能写 form contract 声明过的路径；`choose` 只写 `dynamicFieldExamples` 声明的字段，且 query 账号必须匹配目标账号。资源应直接使用 `upload` 返回的完整对象。文本字段可直接传文本，复杂对象使用 JSON。导出前 `verify` / `review` / `export` 会校验来源记录和当前 payload 是否一致；导出后仍必须按同一份 payload 和同一套发布通道参数执行 `validate payload.json -> publish payload.json --dry-run -> 用户授权 -> publish payload.json`。所有写本地文件的会话命令都支持 `--dry-run`。

@@ -64,8 +64,8 @@
 - `[ ]` 新建或补字段时已拿到最新 `prepare` / `publish form` 结果
 - `[ ]` 新建或补字段时已拿到最新 `schema fields` 结果；如需骨架再补 `schema get`
 - `[ ]` 已完成资源上传，不存在未处理的外部 URL 直填；如果是 Markdown 文章，已在 `validate` / `publish` 中传入 `--content-file`，由 CLI 统一处理正文图片
-- `[ ]` 已查询动态字段，不存在手写 `raw`
-- `[ ]` 多候选账号、分类、位置、音乐、商品、合集、活动等已由用户确认
+- `[ ]` 已查询需要查询的动态字段，不存在手写 `raw`；多多视频 `shopping_cart.goods_id` 使用用户明确输入
+- `[ ]` 多候选账号、分类、位置、音乐、商品、合集、剧集、活动等已由用户确认
 - `[ ]` 当前 payload 不含模板占位符
 - `[ ]` 当前 payload 已先通过 `validate`
 - `[ ]` 当前 payload 已先通过 `publish --dry-run`
@@ -75,7 +75,7 @@
 - Agent 组装请求数据时，必须以 `yxer prepare`、`yxer schema fields` / `schema get`、平台文档和 CLI 返回结果为唯一依据。
 - 严禁自行猜测字段名、层级、枚举、默认值、示例值、`raw` 对象内容或资源元数据。
 - 文档未定义、schema 未声明、CLI 未返回的字段，不得写入 payload。
-- 动态字段和复杂对象必须先查询后填写；查不到时继续查询或向用户确认，不能凭经验编造。
+- 动态字段和复杂对象必须先查询后填写；查不到时继续查询或向用户确认，不能凭经验编造。多多视频 `shopping_cart.goods_id` 是用户输入的业务 ID，不走商品查询。
 - 话题/标签字段必须按 `../topic-tags.md` 的最终格式直接写入 payload。CLI 只兜底归一化 `description` 中的普通 `#话题`，不处理 `content`，也不改变 `tags` / `topics` / `challenge` 字段结构。
 
 ---
@@ -230,19 +230,20 @@ yxer publish <type> <platform> .\payload.json --publish-channel local --client-i
 
 账号选择和 `platformAccountId` 确认，优先遵循 [`account-selection.md`](./account-selection.md)。
 
-以下字段严禁手动构造，必须通过查询命令获取完整 `raw` 对象：
+以下字段严禁手动构造，必须通过查询命令获取完整对象；除视频号 `drama` 外，动态对象按各自 schema 保留完整 `raw`：
 
 | 字段 | 查询命令 | 返回必需字段 |
 | --- | --- | --- |
 | `location` | `yxer query locations <account_id> [--query 关键词]` | 整个 `yxer query locations` 返回对象 |
 | `music` | `yxer query music <account_id> [--query 关键词]` | 整个 `yxer query music` 返回对象 |
 | `collection` / `sub_collection` | `yxer query collections <account_id> [--type video]` | 整个 `yxer query collections` 返回对象 |
+| 视频号 `drama` | `yxer query drama-tasks <account_id> [--query 关键词]` | 只保留 `yixiaoerId`、`yixiaoerImageUrl`、`yixiaoerName`，不使用 `raw` |
 | `challenge` | `yxer query challenges <account_id> [--query 关键词]` | 整个 `yxer query challenges` 返回对象 |
 | `category` | `yxer query categories <account_id> [--type video\|article]` | 整个 `yxer query categories` 返回对象 |
 | `goods` | `yxer query goods <account_id> [--query 关键词]` | 整个 `yxer query goods` 返回对象 |
 
-查询后，将完整返回对象填入 payload 对应字段，不要只填 ID 或名称。
-前置查询对象一律不允许简化，包括 `location`、`goods`、`music`、`collection`、`challenge`、`category` 等；必须使用 CLI 查询返回的完整对象数据。
+查询后，将完整返回对象填入 payload 对应字段，不要只填 ID 或名称。视频号 `drama` 按上表的三个字段例外处理；多多视频 `shopping_cart.goods_id` 使用用户输入并固定 `source=pdd`；`collection` 仍必须保留完整 `raw`。
+前置查询对象一律不允许简化，包括 `location`、`goods`、`music`、`collection`、`challenge`、`category` 等；必须使用 CLI 查询返回的完整对象数据。多多视频不使用 `goods` 查询对象。
 其中 `music` 的 `playUrl` / `url` 属于查询结果元数据，不能因为外链规则手动删除。
 
 ---

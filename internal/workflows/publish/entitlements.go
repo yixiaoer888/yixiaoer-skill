@@ -17,8 +17,7 @@ func ShoppingCartAccountIDs(payload map[string]interface{}) []string {
 	for _, item := range accountForms {
 		form, _ := item.(map[string]interface{})
 		contentForm := objectField(form, "contentPublishForm")
-		shoppingCart, _ := contentForm["shopping_cart"].([]interface{})
-		if len(shoppingCart) == 0 {
+		if !hasShoppingCartValue(contentForm["shopping_cart"]) {
 			continue
 		}
 		accountID := stringField(form, "platformAccountId")
@@ -31,6 +30,17 @@ func ShoppingCartAccountIDs(payload map[string]interface{}) []string {
 		}
 	}
 	return accountIDs
+}
+
+func hasShoppingCartValue(value interface{}) bool {
+	switch typed := value.(type) {
+	case []interface{}:
+		return len(typed) > 0
+	case map[string]interface{}:
+		return len(typed) > 0
+	default:
+		return false
+	}
 }
 
 func AssertShoppingCartEntitlements(apiClient *api.Client, payload map[string]interface{}) error {

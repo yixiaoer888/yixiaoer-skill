@@ -692,6 +692,64 @@ func TestPublishDryRunAutoBuildsOuterEnvelopeFromPublishArgs(t *testing.T) {
 	}
 }
 
+func TestPublishPrepareNormalizesDuoduoshipinUserGoodsID(t *testing.T) {
+	withRepoRoot(t)
+	configureEmptyConfig(t)
+	payload := validPublishPayload()
+	payload["platforms"] = []interface{}{"多多视频"}
+	form := payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	contentForm := form["contentPublishForm"].(map[string]interface{})
+	delete(contentForm, "title")
+	contentForm["shopping_cart"] = map[string]interface{}{
+		"goods_id": " 998877 ",
+	}
+
+	service := publishflow.NewService(testRuntime(t))
+	prepared, err := service.Prepare(publishflow.ExecuteInput{
+		PublishType:   "video",
+		PlatformInput: "多多视频",
+		Payload:       payload,
+	}, publishflow.PrepareOptions{TraceNormalizations: true, RemoteChecks: publishflow.RemoteChecksNone})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	preparedForm := prepared.PublishBody["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	cart := preparedForm["contentPublishForm"].(map[string]interface{})["shopping_cart"].(map[string]interface{})
+	if cart["goods_id"] != "998877" || cart["source"] != "pdd" {
+		t.Fatalf("expected final Duoduoshipin shopping_cart to use normalized user goods_id and pdd source, got %#v", cart)
+	}
+	if _, exists := cart["yixiaoerId"]; exists {
+		t.Fatalf("must not derive Duoduoshipin goods_id from yixiaoerId, got %#v", cart)
+	}
+	if !hasNormalizationAction(prepared.Normalizations, "default_platform_value") {
+		t.Fatalf("expected source default normalization event, got %#v", prepared.Normalizations)
+	}
+}
+
+func TestPublishPrepareRejectsWhitespaceOnlyDuoduoshipinGoodsID(t *testing.T) {
+	withRepoRoot(t)
+	configureEmptyConfig(t)
+	payload := validPublishPayload()
+	payload["platforms"] = []interface{}{"多多视频"}
+	form := payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	contentForm := form["contentPublishForm"].(map[string]interface{})
+	delete(contentForm, "title")
+	contentForm["shopping_cart"] = map[string]interface{}{
+		"goods_id": "   ",
+	}
+
+	service := publishflow.NewService(testRuntime(t))
+	_, err := service.Prepare(publishflow.ExecuteInput{
+		PublishType:   "video",
+		PlatformInput: "多多视频",
+		Payload:       payload,
+	}, publishflow.PrepareOptions{RemoteChecks: publishflow.RemoteChecksNone})
+	if err == nil || !strings.Contains(err.Error(), "goods_id") {
+		t.Fatalf("expected whitespace-only Duoduoshipin goods_id to be rejected, got %v", err)
+	}
+}
+
 func TestPublishDryRunChecksCloudProxyWhenAPIKeyConfigured(t *testing.T) {
 	withRepoRoot(t)
 	payload := validPublishPayload()
@@ -880,6 +938,97 @@ func TestPublishCommandUsesConfiguredLocalClientID(t *testing.T) {
 	}
 	if publishBody["publishChannel"] != "local" || publishBody["clientId"] != "configured_client_1" {
 		t.Fatalf("expected configured local publish metadata in API body, got %+v", publishBody)
+	}
+}
+
+func TestPublishCommandPreservesShipinhaoDramaAcrossCloudLocalAndFallback(t *testing.T) {
+	tests := []struct {
+		name      string
+		args      []string
+		clientID  string
+		failCloud bool
+		wantCalls int
+		wantModes []string
+	}{
+		{name: "cloud", wantCalls: 1, wantModes: []string{"cloud"}},
+		{name: "local", args: []string{"--publish-channel", "local", "--client-id", "flag-client"}, clientID: "flag-client", wantCalls: 1, wantModes: []string{"local"}},
+		{name: "fallback", args: []string{"--auto-fallback-local"}, clientID: "configured-client", failCloud: true, wantCalls: 2, wantModes: []string{"cloud", "local"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			withRepoRoot(t)
+			if tt.clientID != "" {
+				configPath := filepath.Join(t.TempDir(), "yxer-config.json")
+				t.Setenv("YIXIAOER_CONFIG", configPath)
+				if _, err := config.SaveLocalClientID(tt.clientID); err != nil {
+					t.Fatal(err)
+				}
+			}
+			payload := validPublishPayload()
+			payload["platforms"] = []interface{}{"视频号"}
+			form := payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+			cpf := form["contentPublishForm"].(map[string]interface{})
+			cpf["createType"] = float64(2)
+			cpf["pubType"] = float64(1)
+			expected := map[string]interface{}{
+				"yixiaoerId":       "event/1",
+				"yixiaoerImageUrl": "http://wxapp.tc.qq.com/cover",
+				"yixiaoerName":     "风浪过后护妻安康",
+			}
+			cpf["drama"] = expected
+			payloadPath := writePublishPayload(t, payload)
+
+			var calls int
+			var bodies []map[string]interface{}
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case "/v2/platform/accounts":
+					if got := r.URL.Query().Get("platform"); got != "视频号" {
+						t.Fatalf("unexpected platform query: %s", got)
+					}
+					_ = json.NewEncoder(w).Encode(map[string]interface{}{"data": []map[string]interface{}{{
+						"platformAccountId": "acc_001", "name": "视频号账号", "status": 1, "proxyId": "proxy_1",
+					}}})
+				case "/taskSets/v2":
+					calls++
+					var body map[string]interface{}
+					if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+						t.Fatal(err)
+					}
+					bodies = append(bodies, body)
+					if tt.failCloud && calls == 1 {
+						http.Error(w, `{"message":"账号代理不存在"}`, http.StatusBadRequest)
+						return
+					}
+					_ = json.NewEncoder(w).Encode(map[string]interface{}{"data": map[string]interface{}{"taskSetId": "task_drama_1"}})
+				default:
+					t.Fatalf("unexpected path: %s", r.URL.Path)
+				}
+			}))
+			defer server.Close()
+			configureAPIKey(t, "test-key")
+			useTestAPIBaseURL(t, server.URL)
+
+			args := []string{"video", "视频号", payloadPath}
+			args = append(args, tt.args...)
+			cmd := newPublishCmd()
+			cmd.SetOut(&bytes.Buffer{})
+			cmd.SetErr(&bytes.Buffer{})
+			cmd.SetArgs(args)
+			if err := cmd.Execute(); err != nil {
+				t.Fatal(err)
+			}
+			if calls != tt.wantCalls {
+				t.Fatalf("expected %d publish calls, got %d", tt.wantCalls, calls)
+			}
+			for i, body := range bodies {
+				if body["publishChannel"] != tt.wantModes[i] {
+					t.Fatalf("attempt %d publishChannel = %#v, want %q", i, body["publishChannel"], tt.wantModes[i])
+				}
+				assertShipinhaoDramaPreserved(t, body, expected)
+			}
+		})
 	}
 }
 
@@ -2668,6 +2817,35 @@ func writePublishPayload(t *testing.T, payload map[string]interface{}) string {
 		t.Fatal(err)
 	}
 	return path
+}
+
+func assertShipinhaoDramaPreserved(t *testing.T, body map[string]interface{}, expected map[string]interface{}) {
+	t.Helper()
+	args, ok := body["publishArgs"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("publish body missing publishArgs: %#v", body)
+	}
+	forms, ok := args["accountForms"].([]interface{})
+	if !ok || len(forms) != 1 {
+		t.Fatalf("publish body has unexpected accountForms: %#v", args["accountForms"])
+	}
+	form := forms[0].(map[string]interface{})
+	cpForm := form["contentPublishForm"].(map[string]interface{})
+	got := cpForm["drama"].(map[string]interface{})
+	if len(got) != 3 {
+		t.Fatalf("drama object changed shape: %#v", got)
+	}
+	for key, want := range expected {
+		if got[key] != want {
+			t.Fatalf("drama.%s = %#v, want %#v", key, got[key], want)
+		}
+	}
+	if _, exists := got["raw"]; exists {
+		t.Fatalf("drama must not gain raw on wire: %#v", got)
+	}
+	if _, exists := cpForm["collection"]; exists {
+		t.Fatalf("drama publish must not create collection field: %#v", cpForm)
+	}
 }
 
 func articlePayloadWithContentImage(imageURL string) map[string]interface{} {

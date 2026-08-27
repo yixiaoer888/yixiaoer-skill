@@ -5,7 +5,7 @@
 > 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [视频发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。
 
 ## 触发场景 (Trigger)
-- **意图辨析**：用户指定在“微信视频号”平台分发视频内容，且需要执行如“地点标记”、“关联网店商品”、“参加活动”或“存为视频号草稿”等微信生态功能时触发。
+- **意图辨析**：用户指定在“微信视频号”平台分发视频内容，且需要执行如“地点标记”、“关联剧集/合集”、“关联网店商品”、“参加活动”或“存为视频号草稿”等微信生态功能时触发。
 - **典型提示词**：
   - “帮我把这个视频发到我的视频号”
   - “视频号发布，带上我在广州的位置”
@@ -13,12 +13,13 @@
   - “参加视频号最新的创作激励活动”
 
 ## 执行逻辑 (Logic Flow)
-1. **意图解析**：识别是否需要挂载商品 (Goods)、活动 (Activity) 或位置 (Location)。
+1. **意图解析**：识别是否需要挂载商品 (Goods)、活动 (Activity)、位置 (Location)、合集 (Collection) 或剧集 (Drama)。
 2. **多维辅助检索**：
    - 位置：调用 `locations` 获取 POI。
    - 活动：调用 `activities` 获取活动 ID。
    - 商品：调用 `goods` 获取带货商品信息。
-3. **参数装配**：将获取的 `raw` 结构与 `yixiaoerId` 组装进 `accountForms[i].contentPublishForm`。
+   - 剧集：调用 `drama-tasks` 获取当前账号可用剧集。
+3. **参数装配**：将查询结果按 schema 写入 `accountForms[i].contentPublishForm`；剧集只保留三个真实字段，不添加 `raw`。
 4. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [--publish-channel local --client-id <clientId>]`。
 
 > [!TIP]
@@ -43,6 +44,7 @@
 | `scheduledTime` | `number` | 否 | 定时发布时间戳 (13 位 Unix 时间戳，单位: 毫秒) | - |
 | `shoppingCart` | `object` | 否 | 关联商品信息 (`yixiaoerId`, `yixiaoerName`, `raw`) | - |
 | `collection` | `object` | 否 | 合集信息 (`yixiaoerId`, `yixiaoerName`, `raw`) | - |
+| `drama` | `object` | 否 | 剧集信息：仅 `yixiaoerId`、`yixiaoerImageUrl`、`yixiaoerName`，不使用 `raw` | - |
 | `activity` | `object` | 否 | 活动信息 (`yixiaoerId`, `yixiaoerName`, `raw`) | - |
 
 ## 2. Payload 完整示例
@@ -90,6 +92,20 @@
 ### 3.2 PlatformDataItem (位置/商品/合集/活动)
 包含 `yixiaoerId`, `yixiaoerName`, `raw` (必须完整透传)。
 
+### 3.3 Drama (剧集)
+
+剧集不是合集，必须使用 `yxer query drama-tasks <account_id> [--query 关键词] --json` 查询，并通过 `publish form choose` 选择。发布路径为 `publishArgs.accountForms[].contentPublishForm.drama`，对象严格为：
+
+```json
+{
+  "yixiaoerId": "event/<真实剧集标识>",
+  "yixiaoerImageUrl": "<查询结果中的图片地址>",
+  "yixiaoerName": "<查询结果中的剧集名称>"
+}
+```
+
+`drama` 不需要 `raw`；`yixiaoerImageUrl` 是查询返回的剧集元数据地址。不要用 `collections` 查询结果替代，也不要用 `form set` 手工写入剧集。
+
 ## 相关接口
 
 | 目标数据 | 对应 Action | 文档参考 |
@@ -97,6 +113,7 @@
 | `location`  | `locations` | [获取位置信息](../../get-locations.md) |
 | `activity`  | `activities` | [获取活动列表](../../get-publish-activities.md) |
 | `shoppingCart`| `goods`   | [获取商品列表](../../get-goods.md) |
+| `drama` | `drama-tasks` | [获取视频号剧集列表](../../get-drama-tasks.md) |
 | `video.key` | `upload`    | [资源上传](../../upload-resource.md) |
 
 ## 4. 原创声明的自然语言触发

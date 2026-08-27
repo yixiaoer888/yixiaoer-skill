@@ -27,35 +27,39 @@ func buildPublishFormContract(doc schema.Document) map[string]interface{} {
 	}
 	sort.Strings(queries)
 
+	steps := []interface{}{
+		map[string]interface{}{"id": "account", "kind": "account-selection", "required": true, "command": fmt.Sprintf("yxer accounts list %s --status 1 --json", platformutil.ChineseName(doc.Platform))},
+		map[string]interface{}{"id": "resources", "kind": "resource-upload", "fields": resourceFields, "command": "yxer upload --file <path> --json"},
+		map[string]interface{}{"id": "platform-form", "kind": "field-entry", "fields": fields},
+	}
+	if len(dynamic) > 0 {
+		steps = append(steps, map[string]interface{}{
+			"id":      "dynamic-selection",
+			"kind":    "query-selection",
+			"fields":  dynamic,
+			"queries": queries,
+			"command": "yxer publish form choose <session.json> <field> --value-file <query.json> --id <candidate_id> --source-command \"yxer query ... --json\"",
+		})
+	}
+	steps = append(steps, map[string]interface{}{"id": "review", "kind": "validation", "commands": []string{
+		"yxer publish form verify <session.json>",
+		"yxer publish form export <session.json> --output payload.json",
+		fmt.Sprintf("yxer validate %s %s <payload.json>", doc.Platform, doc.Type),
+		fmt.Sprintf("yxer publish %s %s <payload.json> --dry-run", doc.Type, doc.Platform),
+		"yxer publish form review <session.json>",
+	}})
+
 	return map[string]interface{}{
-		"version":      1,
-		"platform":     doc.Platform,
-		"platformName": platformutil.ChineseName(doc.Platform),
-		"type":         doc.Type,
-		"steps": []interface{}{
-			map[string]interface{}{"id": "account", "kind": "account-selection", "required": true, "command": fmt.Sprintf("yxer accounts list %s --status 1 --json", platformutil.ChineseName(doc.Platform))},
-			map[string]interface{}{"id": "resources", "kind": "resource-upload", "fields": resourceFields, "command": "yxer upload --file <path> --json"},
-			map[string]interface{}{"id": "platform-form", "kind": "field-entry", "fields": fields},
-			map[string]interface{}{
-				"id":      "dynamic-selection",
-				"kind":    "query-selection",
-				"fields":  dynamic,
-				"queries": queries,
-				"command": "yxer publish form choose <session.json> <field> --value-file <query.json> --id <candidate_id> --source-command \"yxer query ... --json\"",
-			},
-			map[string]interface{}{"id": "review", "kind": "validation", "commands": []string{
-				"yxer publish form verify <session.json>",
-				"yxer publish form export <session.json> --output payload.json",
-				fmt.Sprintf("yxer validate %s %s <payload.json>", doc.Platform, doc.Type),
-				fmt.Sprintf("yxer publish %s %s <payload.json> --dry-run", doc.Type, doc.Platform),
-				"yxer publish form review <session.json>",
-			}},
-		},
+		"version":              1,
+		"platform":             doc.Platform,
+		"platformName":         platformutil.ChineseName(doc.Platform),
+		"type":                 doc.Type,
+		"steps":                steps,
 		"fields":               fields,
 		"businessFields":       doc.Properties,
 		"fieldPlacements":      buildFieldPlacements(doc),
 		"dynamicFieldExamples": dynamic,
 		"template":             buildPayloadTemplate(doc),
-		"sourceOfTruth":        []string{"prepare", "schema fields", "schema get", "query results", "upload results", "session.sources"},
+		"sourceOfTruth":        []string{"prepare", "schema fields", "schema get", "query results", "user-provided business values", "upload results", "session.sources"},
 	}
 }

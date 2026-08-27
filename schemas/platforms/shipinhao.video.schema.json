@@ -241,6 +241,26 @@
         }
       }
     },
+    "drama": {
+      "type": "object",
+      "required": [
+        "yixiaoerId",
+        "yixiaoerImageUrl",
+        "yixiaoerName"
+      ],
+      "properties": {
+        "yixiaoerId": {
+          "type": "string"
+        },
+        "yixiaoerImageUrl": {
+          "type": "string"
+        },
+        "yixiaoerName": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
     "activity": {
       "type": "object",
       "required": [
