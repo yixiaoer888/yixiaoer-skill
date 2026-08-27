@@ -188,6 +188,82 @@ func TestMiniAppsUsesExpectedEndpointAndKeywordQuery(t *testing.T) {
 	}
 }
 
+func TestDramaTasksAlwaysSendsKeyWordAndPreservesResponse(t *testing.T) {
+	tests := []struct {
+		name    string
+		keyword string
+	}{
+		{name: "empty keyword", keyword: ""},
+		{name: "keyword", keyword: "护妻"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/platform-accounts/acc_1/drama-tasks" {
+					t.Fatalf("unexpected path: %s", r.URL.Path)
+				}
+				values, ok := r.URL.Query()["keyWord"]
+				if !ok || len(values) != 1 || values[0] != tt.keyword {
+					t.Fatalf("unexpected keyWord query: %#v, raw query: %q", values, r.URL.RawQuery)
+				}
+				if tt.keyword == "" && r.URL.RawQuery != "keyWord=" {
+					t.Fatalf("empty keyword must remain explicit in query: %q", r.URL.RawQuery)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"data":[{"yixiaoerId":"event/1","yixiaoerImageUrl":"http://wxapp.tc.qq.com/cover","yixiaoerName":"风浪过后护妻安康"}]}`))
+			}))
+			defer server.Close()
+
+			client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+			result, err := client.DramaTasks("acc_1", tt.keyword)
+			if err != nil {
+				t.Fatalf("DramaTasks() error = %v", err)
+			}
+
+			items, ok := result.([]interface{})
+			if !ok || len(items) != 1 {
+				t.Fatalf("unexpected result: %#v", result)
+			}
+			item, ok := items[0].(map[string]interface{})
+			if !ok || item["yixiaoerName"] != "风浪过后护妻安康" {
+				t.Fatalf("unexpected drama task: %#v", items[0])
+			}
+		})
+	}
+}
+
+func TestDramaTasksReturnsStructuredRemoteErrorWithRecoveryCommand(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"message": "当前账号不支持剧集",
+			"code":    "DRAMA_UNSUPPORTED",
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	_, err := client.DramaTasks("acc_1", "护妻")
+	if err == nil {
+		t.Fatal("expected drama task query error")
+	}
+	var typed *yxerrors.Error
+	if !errors.As(err, &typed) {
+		t.Fatalf("expected structured remote error, got %T", err)
+	}
+	if typed.Type != yxerrors.RemoteType || typed.Category != yxerrors.RemoteType || typed.Retryable {
+		t.Fatalf("unexpected drama query error: %#v", typed)
+	}
+	details, ok := typed.Details.(map[string]interface{})
+	if !ok || details["code"] != "DRAMA_UNSUPPORTED" {
+		t.Fatalf("expected remote code in error details, got %#v", typed.Details)
+	}
+	if typed.Hint == "" || typed.NextCommand != "yxer query drama-tasks acc_1 --json" {
+		t.Fatalf("expected drama recovery guidance, got %#v", typed)
+	}
+}
+
 func TestSyncAppsUsesExpectedEndpoint(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/platform-accounts/acc_1/sync-apps" {

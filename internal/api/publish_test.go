@@ -179,6 +179,46 @@ func TestPublishWrapsCategoryOnlyAtAPIBoundary(t *testing.T) {
 	}
 }
 
+func TestPublishPreservesShipinhaoDramaShapeOnWire(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		args := body["publishArgs"].(map[string]interface{})
+		form := args["accountForms"].([]interface{})[0].(map[string]interface{})
+		cpf := form["contentPublishForm"].(map[string]interface{})
+		drama := cpf["drama"].(map[string]interface{})
+		if len(drama) != 3 || drama["yixiaoerId"] != "event/1" || drama["yixiaoerImageUrl"] != "http://wxapp.tc.qq.com/cover" || drama["yixiaoerName"] != "风浪过后护妻安康" {
+			t.Fatalf("publish must preserve exact drama object, got %#v", drama)
+		}
+		if _, exists := drama["raw"]; exists {
+			t.Fatalf("publish must not add raw to drama object: %#v", drama)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"statusCode": 0, "data": "task_drama_1"})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	_, err := client.Publish(map[string]interface{}{
+		"publishType": "video",
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{map[string]interface{}{
+				"contentPublishForm": map[string]interface{}{
+					"drama": map[string]interface{}{
+						"yixiaoerId":       "event/1",
+						"yixiaoerImageUrl": "http://wxapp.tc.qq.com/cover",
+						"yixiaoerName":     "风浪过后护妻安康",
+					},
+				},
+			}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestPublishExtractsTaskSetIDFromStringData(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{

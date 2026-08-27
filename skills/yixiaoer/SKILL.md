@@ -77,7 +77,7 @@ yxer schema get <platform> <type>
 - `prepare`/`publish form`、`schema fields` / `schema get`、workflow、平台文档和 CLI 实际输出，是组装 payload 的唯一依据。
 - `prepare` 返回的 `data.form` 是可恢复的页面式表单契约；新建复杂 payload 时优先使用 `yxer publish form start/inspect/set/choose/verify/review/export`，不要自行发明字段或路径。form 会话不能直接发布，必须先 verify 并 export 成标准 `payload.json`。
 - 图片、视频、封面等资源必须先上传，且只能复用 `yxer upload` 返回的真实字段。
-- `category`、`location`、`music`、`collection`、`challenge`、`goods` 等动态字段必须先通过 `yxer query ...` 查询，不能手写对象。
+- `category`、`location`、`music`、`collection`、`challenge`、`goods`、`drama` 等动态字段必须先通过 `yxer query ...` 查询，不能手写对象；视频号 `drama` 只保留查询结果中的 `yixiaoerId`、`yixiaoerImageUrl`、`yixiaoerName`，不添加 `raw`。
 - CRITICAL: `validate`、`publish --dry-run`、正式 `publish` 必须使用同一套发布通道参数。
 
 ## 页面式表单会话

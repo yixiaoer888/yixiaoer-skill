@@ -22,6 +22,7 @@ func buildDynamicFieldExamples(doc schema.Document) map[string]dynamicFieldExamp
 	addDynamicObjectExample(examples, doc, "music", "yxer query music <account_id> [--query 关键词] --json", "音乐对象必须完整来自查询结果，保留播放地址、时长等查询返回字段以及 raw。")
 	addDynamicObjectExample(examples, doc, "collection", "yxer query collections <account_id> --type <video|article> --json", "合集对象必须完整来自查询结果，并保留 raw。")
 	addDynamicObjectExample(examples, doc, "sub_collection", "yxer query collections <account_id> --type <video|article> --json", "子合集对象必须完整来自查询结果，并保留 raw。")
+	addDramaExample(examples, doc)
 	addDynamicObjectExample(examples, doc, "challenge", "yxer query challenges <account_id> [--query 关键词] --type video --json", "话题对象必须完整来自查询结果，并保留 raw。")
 	addDynamicObjectExample(examples, doc, "hot_event", "yxer query hot-events <account_id> --type <video|article> --json", "热点对象必须完整来自查询结果，并保留 raw。")
 	addDynamicObjectExample(examples, doc, "mini_app", "yxer query miniapps <account_id> [--query 关键词] --json", "小程序对象必须完整来自查询结果，并保留 raw。")
@@ -34,6 +35,24 @@ func buildDynamicFieldExamples(doc schema.Document) map[string]dynamicFieldExamp
 		return nil
 	}
 	return examples
+}
+
+func addDramaExample(examples map[string]dynamicFieldExample, doc schema.Document) {
+	if _, ok := doc.Properties["drama"]; !ok {
+		return
+	}
+	examples["drama"] = dynamicFieldExample{
+		Field:        "drama",
+		Path:         "publishArgs.accountForms[].contentPublishForm.drama",
+		Source:       "query",
+		QueryCommand: "yxer query drama-tasks <account_id> [--query 关键词] --json",
+		Note:         "视频号剧集对象必须完整来自 yxer query drama-tasks 查询结果，并且只保留 yixiaoerId、yixiaoerImageUrl、yixiaoerName；剧集对象不使用 raw。",
+		Value: map[string]interface{}{
+			"yixiaoerId":       "<from query>",
+			"yixiaoerImageUrl": "<from query>",
+			"yixiaoerName":     "<from query>",
+		},
+	}
 }
 
 func addDynamicArrayObjectExample(examples map[string]dynamicFieldExample, doc schema.Document, field, command, note string) {

@@ -66,6 +66,7 @@ yxer account-group delete <group_id> --dry-run
 `query` 不是资源 CRUD 的兜底入口，而是保留给：
 
 - 发布前置对象查询，如 `locations`、`music`、`groups`
+- 视频号发布前剧集查询，如 `drama-tasks`
 - 远端聚合视图查询，如 `records`、`details`
 - 非标准资源树、但仍然明确只读的接口
 
