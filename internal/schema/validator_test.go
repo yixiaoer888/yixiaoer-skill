@@ -100,6 +100,53 @@ func TestValidateImageTextUsesMappedSchemaFile(t *testing.T) {
 	}
 }
 
+func TestValidateAcceptsYidianhaoVideoUsingCurrentCreateType(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	doc, err := validator.Schema("一点号", "video")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, requiredField := range doc.Required {
+		if requiredField == "type" {
+			t.Fatalf("yidianhao video schema must not require removed type field: %#v", doc.Required)
+		}
+	}
+	if _, ok := doc.Properties["type"]; ok {
+		t.Fatalf("yidianhao video schema must not expose legacy type field: %#v", doc.Properties)
+	}
+	createType, ok := doc.Properties["createType"]
+	if !ok {
+		t.Fatalf("yidianhao video schema must expose createType, got %#v", doc.Properties)
+	}
+	if createType.Required {
+		t.Fatalf("createType should remain optional because it has a default, got %#v", createType)
+	}
+	assertPropertyEnum(t, "一点号.createType", createType, 1, 2)
+
+	payload := map[string]interface{}{
+		"formType":    "task",
+		"title":       "一点号视频标题",
+		"description": "一点号视频描述",
+		"tags":        []interface{}{"生活"},
+		"category": []interface{}{
+			map[string]interface{}{
+				"id":   "6",
+				"text": "美食",
+				"raw":  map[string]interface{}{"id": "6"},
+			},
+		},
+		"createType": float64(1),
+	}
+
+	result, err := validator.ValidateStrict("一点号", "video", payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Valid {
+		t.Fatalf("expected yidianhao video payload with createType to pass, got %v", result.Errors)
+	}
+}
+
 func TestSchemaResolvesVideoAccountAliasesToCanonicalKeys(t *testing.T) {
 	validator := NewValidator(filepath.Join("..", "..", "schemas"))
 

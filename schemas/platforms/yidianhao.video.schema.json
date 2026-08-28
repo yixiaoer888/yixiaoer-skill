@@ -6,8 +6,7 @@
     "title",
     "description",
     "tags",
-    "category",
-    "type"
+    "category"
   ],
   "properties": {
     "formType": {
