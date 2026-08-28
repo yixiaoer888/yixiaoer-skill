@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/url"
 	"strconv"
 )
@@ -20,7 +19,10 @@ func (c *Client) Material(body map[string]interface{}) (map[string]interface{}, 
 
 func (c *Client) MoveMaterial(materialID string, body map[string]interface{}) (map[string]interface{}, error) {
 	var result map[string]interface{}
-	err := c.Patch(fmt.Sprintf("/material/%s", materialID), body, &result)
+	if materialID != "" {
+		body["materialIds"] = []string{materialID}
+	}
+	err := c.Post("/material/batch/set-group", body, &result)
 	return result, err
 }
 

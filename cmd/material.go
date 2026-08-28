@@ -85,7 +85,7 @@ func newMaterialMoveCmd() *cobra.Command {
 							"dryRun":     true,
 							"materialId": materialID,
 							"groupId":    input.GroupID,
-							"request":    materialflow.BuildMoveBody(input),
+							"request":    materialflow.BuildMoveBody(materialID, input),
 						},
 					}, nil
 				},

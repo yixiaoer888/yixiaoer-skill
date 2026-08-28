@@ -47,7 +47,7 @@ func (s Service) Move(materialID string, input MoveInput) (map[string]interface{
 	if err := ValidateMoveInput(input); err != nil {
 		return nil, err
 	}
-	return s.rt.Client.MoveMaterial(materialID, BuildMoveBody(input))
+	return s.rt.Client.MoveMaterial(materialID, BuildMoveBody(materialID, input))
 }
 
 func (s Service) Add(input AddInput) (map[string]interface{}, error) {
@@ -99,8 +99,11 @@ func ValidateMoveInput(input MoveInput) error {
 	return nil
 }
 
-func BuildMoveBody(input MoveInput) map[string]interface{} {
-	return map[string]interface{}{"groupId": strings.TrimSpace(input.GroupID)}
+func BuildMoveBody(materialID string, input MoveInput) map[string]interface{} {
+	return map[string]interface{}{
+		"materialIds": []string{strings.TrimSpace(materialID)},
+		"groupId":     strings.TrimSpace(input.GroupID),
+	}
 }
 
 func detectMaterialType(contentType string) string {

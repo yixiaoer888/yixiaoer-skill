@@ -51,8 +51,12 @@ func TestMaterialMoveDryRunOutputsStableRequest(t *testing.T) {
 		t.Fatalf("unexpected dry-run data: %#v", data)
 	}
 	request := data["request"].(map[string]interface{})
-	if len(request) != 1 || request["groupId"] != "group_1" {
+	if request["groupId"] != "group_1" {
 		t.Fatalf("unexpected move request: %#v", request)
+	}
+	materialIDs, ok := request["materialIds"].([]interface{})
+	if !ok || len(materialIDs) != 1 || materialIDs[0] != "material_1" {
+		t.Fatalf("unexpected move material IDs: %#v", request["materialIds"])
 	}
 }
 

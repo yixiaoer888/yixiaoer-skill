@@ -99,7 +99,7 @@ func TestMoveMaterial(t *testing.T) {
 	var gotBody map[string]interface{}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/material/material_1" {
+		if r.URL.Path != "/material/batch/set-group" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
 		gotMethod = r.Method
@@ -108,8 +108,7 @@ func TestMoveMaterial(t *testing.T) {
 		}
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"data": map[string]interface{}{
-				"id":      "material_1",
-				"groupId": gotBody["groupId"],
+				"movedTotal": 1,
 			},
 		})
 	}))
@@ -120,14 +119,18 @@ func TestMoveMaterial(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if gotMethod != http.MethodPatch {
+	if gotMethod != http.MethodPost {
 		t.Fatalf("unexpected method: %s", gotMethod)
 	}
-	if len(gotBody) != 1 || gotBody["groupId"] != "group_1" {
+	if len(gotBody) != 2 || gotBody["groupId"] != "group_1" {
 		t.Fatalf("unexpected request body: %+v", gotBody)
 	}
+	materialIDs, ok := gotBody["materialIds"].([]interface{})
+	if !ok || len(materialIDs) != 1 || materialIDs[0] != "material_1" {
+		t.Fatalf("unexpected material IDs: %+v", gotBody["materialIds"])
+	}
 	data := DataOrSelf(result).(map[string]interface{})
-	if data["id"] != "material_1" || data["groupId"] != "group_1" {
+	if data["movedTotal"] != float64(1) {
 		t.Fatalf("unexpected response: %+v", result)
 	}
 }
