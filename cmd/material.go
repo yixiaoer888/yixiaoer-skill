@@ -1,10 +1,15 @@
 package cmd
 
 import (
+	"strings"
+
 	"github.com/spf13/cobra"
+	"github.com/yixiaoer/yixiaoer-skill/internal/api"
 	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/cmdflow"
 	materialflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/material"
+	queryflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/query"
+	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
 func init() {
@@ -22,13 +27,84 @@ func newMaterialCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "material",
 		Short: "管理素材库",
-		Long:  "管理素材库资源。\n1. create <payload.json>：提交素材登记 payload\n2. add --file ...：上传资源并登记到素材库",
+		Long:  "管理素材库资源。\n1. create <payload.json>：提交素材登记 payload\n2. add --file ...：上传资源并登记到素材库\n3. move <material_id> --group-id ...：移动素材到指定分组",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()
 		},
 	}
 	cmd.AddCommand(newMaterialCreateCmd())
 	cmd.AddCommand(newMaterialAddCmd())
+	cmd.AddCommand(newMaterialMoveCmd())
+	cmd.AddCommand(newMaterialGroupsCmd())
+	return cmd
+}
+
+func newMaterialGroupsCmd() *cobra.Command {
+	var page, size int
+	cmd := &cobra.Command{
+		Use:     "groups",
+		Aliases: []string{"group-list"},
+		Short:   "查询素材分组列表",
+		Args:    cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runQuery(cmd, "material.groups", func(service queryflow.Service) (interface{}, error) {
+				return service.MaterialGroups(api.MaterialGroupOptions{Page: page, Size: size})
+			})
+		},
+	}
+	cmd.Flags().IntVar(&page, "page", 1, "page number")
+	cmd.Flags().IntVar(&size, "size", 50, "page size")
+	return cmd
+}
+
+func newMaterialMoveCmd() *cobra.Command {
+	var groupID string
+	var dryRun bool
+	cmd := &cobra.Command{
+		Use:   "move <material_id>",
+		Short: "移动素材到指定分组",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var materialID string
+			var input materialflow.MoveInput
+
+			return cmdflow.Run(cmd, dryRun, cmdflow.Flow{
+				Validate: func() error {
+					materialID = strings.TrimSpace(args[0])
+					if materialID == "" {
+						return yxerrors.Usage("material id must not be empty", nil).
+							WithHint("请传入有效素材 ID，例如 yxer material move material_1 --group-id group_1 --dry-run。")
+					}
+					input = materialflow.MoveInput{GroupID: strings.TrimSpace(groupID)}
+					return materialflow.ValidateMoveInput(input)
+				},
+				DryRun: func() (cmdflow.Result, error) {
+					return cmdflow.Result{
+						Action: "material.move.dry-run",
+						Data: map[string]interface{}{
+							"dryRun":     true,
+							"materialId": materialID,
+							"groupId":    input.GroupID,
+							"request":    materialflow.BuildMoveBody(input),
+						},
+					}, nil
+				},
+				Execute: func() (cmdflow.Result, error) {
+					rt, err := app.Load()
+					if err != nil {
+						return cmdflow.Result{}, err
+					}
+					result, err := materialflow.NewService(rt).Move(materialID, input)
+					if err != nil {
+						return cmdflow.Result{}, err
+					}
+					return cmdflow.Result{Action: "material.move", Data: result}, nil
+				},
+			})
+		},
+	}
+	cmd.Flags().StringVar(&groupID, "group-id", "", "destination material group id")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview material move request without performing the write")
 	return cmd
 }
 

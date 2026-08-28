@@ -18,6 +18,10 @@ type AddInput struct {
 	Type      string
 }
 
+type MoveInput struct {
+	GroupID string
+}
+
 func NewService(rt *app.Runtime) Service {
 	return Service{rt: rt}
 }
@@ -37,6 +41,13 @@ func (s Service) Create(payload map[string]interface{}) (map[string]interface{},
 		}
 	}
 	return s.rt.Client.Material(body)
+}
+
+func (s Service) Move(materialID string, input MoveInput) (map[string]interface{}, error) {
+	if err := ValidateMoveInput(input); err != nil {
+		return nil, err
+	}
+	return s.rt.Client.MoveMaterial(materialID, BuildMoveBody(input))
 }
 
 func (s Service) Add(input AddInput) (map[string]interface{}, error) {
@@ -78,6 +89,18 @@ func BuildMaterialBody(payload map[string]interface{}) map[string]interface{} {
 		}
 	}
 	return body
+}
+
+func ValidateMoveInput(input MoveInput) error {
+	if strings.TrimSpace(input.GroupID) == "" {
+		return yxerrors.Usage("material group id must not be empty", nil).
+			WithHint("请传入目标分组 ID，例如 --group-id group_1。")
+	}
+	return nil
+}
+
+func BuildMoveBody(input MoveInput) map[string]interface{} {
+	return map[string]interface{}{"groupId": strings.TrimSpace(input.GroupID)}
 }
 
 func detectMaterialType(contentType string) string {

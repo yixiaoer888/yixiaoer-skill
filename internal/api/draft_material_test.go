@@ -93,3 +93,69 @@ func TestMaterial(t *testing.T) {
 		t.Fatalf("unexpected response: %+v", result)
 	}
 }
+
+func TestMoveMaterial(t *testing.T) {
+	var gotMethod string
+	var gotBody map[string]interface{}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/material/material_1" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		gotMethod = r.Method
+		if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+			t.Fatal(err)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": map[string]interface{}{
+				"id":      "material_1",
+				"groupId": gotBody["groupId"],
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.MoveMaterial("material_1", map[string]interface{}{"groupId": "group_1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotMethod != http.MethodPatch {
+		t.Fatalf("unexpected method: %s", gotMethod)
+	}
+	if len(gotBody) != 1 || gotBody["groupId"] != "group_1" {
+		t.Fatalf("unexpected request body: %+v", gotBody)
+	}
+	data := DataOrSelf(result).(map[string]interface{})
+	if data["id"] != "material_1" || data["groupId"] != "group_1" {
+		t.Fatalf("unexpected response: %+v", result)
+	}
+}
+
+func TestMaterialGroups(t *testing.T) {
+	var gotMethod string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/material/groups" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if r.URL.Query().Get("page") != "2" || r.URL.Query().Get("size") != "25" {
+			t.Fatalf("unexpected query: %s", r.URL.RawQuery)
+		}
+		gotMethod = r.Method
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"data": []interface{}{map[string]interface{}{"id": "group_1"}}})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.MaterialGroups(MaterialGroupOptions{Page: 2, Size: 25})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotMethod != http.MethodGet {
+		t.Fatalf("unexpected method: %s", gotMethod)
+	}
+	items, ok := result.([]interface{})
+	if !ok || len(items) != 1 {
+		t.Fatalf("unexpected response: %#v", result)
+	}
+}

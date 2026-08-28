@@ -7,6 +7,7 @@
 - 用户只想把资源放进素材库，不立即发布
 - 用户要先上传，再登记成素材
 - 用户要批量准备后续可复用素材
+- 用户要把已有素材移动到另一个素材库分组
 
 ## 决策树
 
@@ -22,6 +23,19 @@
 yxer material add --file .\demo.mp4 --type video
 ```
 
+### 移动已有素材
+
+```bash
+yxer material move <material_id> --group-id <group_id> --dry-run
+yxer material move <material_id> --group-id <group_id>
+```
+
+移动前可查询真实分组 ID：
+
+```bash
+yxer material groups --page 1 --size 50
+```
+
 ### 分步素材登记
 
 1. `yxer upload --file <path> --bucket material-library`
@@ -33,6 +47,7 @@ yxer material add --file .\demo.mp4 --type video
 
 - `material add` 优先于手工 `upload + material create`
 - `material create` 前提是资源已经上传到 `material-library`
+- `material move` 只接受真实素材 ID 和目标分组 ID；先 dry-run 确认目标后再执行
 - 素材任务不等同于发布任务；不需要 `prepare` / `schema fields` / `schema get`，除非用户随后要直接发布
 - 若用户要“上传后马上发布”，完成素材任务后切回对应发布 workflow
 

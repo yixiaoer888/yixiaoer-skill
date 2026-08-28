@@ -89,6 +89,10 @@ func (s Service) DeleteAccountGroup(groupID string) (interface{}, error) {
 	return s.rt.Client.DeleteAccountGroup(groupID)
 }
 
+func (s Service) MaterialGroups(opts api.MaterialGroupOptions) (interface{}, error) {
+	return s.rt.Client.MaterialGroups(opts)
+}
+
 func (s Service) Activities(accountID, publishType, categoryID, keyword string) (interface{}, error) {
 	return s.rt.Client.Activities(accountID, publishType, categoryID, keyword)
 }

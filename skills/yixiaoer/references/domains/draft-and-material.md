@@ -22,6 +22,8 @@ yxer material add --file <文件路径或URL> [--thumb <缩略图路径或URL>] 
 yxer upload --file <file_path> --bucket material-library
 yxer upload --url <resource_url> --bucket material-library
 yxer material create <payload.json> [--dry-run]
+yxer material move <material_id> --group-id <group_id> [--dry-run]
+yxer material groups [--page 1] [--size 50]
 ```
 
 ## 决策规则
@@ -29,6 +31,7 @@ yxer material create <payload.json> [--dry-run]
 - 用户只说“保存草稿”时，先区分蚁小二草稿和平台草稿，不要自行猜测
 - 用户只想把资源放进素材库时，优先 `material add`
 - 用户已有上传结果，只差登记素材时，再用 `material create`
+- 用户要移动素材库中的已有素材时，使用 `material move`；先以 `--dry-run` 核对素材 ID 和目标分组 ID
 - 草稿和素材写操作必须先 dry-run；资源字段必须保留上传来源，不能手写 key、尺寸或格式
 - 素材任务不自动进入发布主流程；只有用户明确要“上传后马上发布”时，再切回发布域
 - 用户明确说“先存一下，别发”时，停在本域，不擅自回切发布域

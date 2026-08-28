@@ -63,6 +63,8 @@ yxer publish form export <session.json> [--output payload.json] [--dry-run]
 yxer draft save <payload.json> [--dry-run]
 yxer material create <payload.json> [--dry-run]
 yxer material add --file <文件路径或URL> [--thumb <缩略图路径或URL>] [--type image|video|file] [--dry-run]
+yxer material move <material_id> --group-id <group_id> [--dry-run]
+yxer material groups [--page 1] [--size 50]
 ```
 
 ### 查询类能力
@@ -116,6 +118,8 @@ yxer schema get <platform> <type>
 - `yxer draft save` 只处理蚁小二内部草稿，不等同于平台草稿箱
 - `yxer material create` 只做素材登记，前提是资源已经通过 `yxer upload --bucket material-library` 上传
 - `yxer material add --file ...` 会自动完成上传和素材登记
+- `yxer material move` 将已登记素材移动至目标素材分组；正式移动前先执行 `--dry-run`
+- `yxer material groups` 查询可用于 `material move --group-id` 的真实素材分组 ID
 - 查询类操作可以直接执行
 - 已有完整标准 payload 时，发布类操作遵守“validate -> publish --dry-run -> 用户授权 -> publish”顺序；缺账号、字段、资源或动态对象时，先补“查账号 -> prepare/form/schema -> 上传资源 -> 查询复杂对象 -> 填 payload”。
 - 页面式逐步填写可使用 `publish form` 会话；会话只负责本地状态，正式发布路径固定为 `publish form verify -> publish form export -> validate payload.json -> publish payload.json --dry-run -> publish payload.json`
