@@ -13,7 +13,7 @@
 
 ## 执行逻辑 (Logic Flow)
 1. **内容处理**：确保文章正文符合Jianshu要求的格式。
-2. **参数装配**：提取标题、正文及封面信息至 `contentPublishForm`。
+2. **参数装配**：提取标题、正文至 `contentPublishForm`；简书文章不需要封面。
 3. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [--publish-channel local --client-id <clientId>]`。
 
 
@@ -53,6 +53,4 @@
 
 ## 相关接口
 
-| 目标数据 | 对应 Action | 相关文档 |
-| :--- | :--- | :--- |
-| `covers.key` | `upload` | [资源上传](../../upload-resource.md) |
+简书文章发布不需要上传或传入封面。

@@ -243,6 +243,36 @@ func TestPreflightAcceptsArticleContentFromPublishArgs(t *testing.T) {
 	}
 }
 
+func TestPreflightAcceptsJianshuArticleWithoutCover(t *testing.T) {
+	payload := standardPayload("article", []string{"简书"}, map[string]interface{}{
+		"content": "<p>简书正文</p>",
+		"covers":  []interface{}{uploadedResourceWithKey("unused-cover")},
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_001",
+				"contentPublishForm": map[string]interface{}{
+					"formType": "task",
+					"title":    "简书文章标题",
+					"pubType":  float64(1),
+				},
+			},
+		},
+	})
+
+	NormalizeStandardPayloadForSchemaValidation("article", []string{"简书"}, payload)
+	result := Preflight("article", []string{"简书"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected jianshu article preflight to pass without cover, got %v", result.Errors)
+	}
+	cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	if cpf["content"] != "<p>简书正文</p>" {
+		t.Fatalf("expected publishArgs.content to normalize into jianshu contentPublishForm.content, got %+v", cpf)
+	}
+	if _, exists := cpf["covers"]; exists {
+		t.Fatalf("did not expect jianshu article covers inside contentPublishForm, got %+v", cpf)
+	}
+}
+
 func TestPreflightAcceptsImageTextImagesInContentPublishForm(t *testing.T) {
 	payload := standardPayload("imageText", []string{"抖音"}, map[string]interface{}{
 		"accountForms": []interface{}{
