@@ -93,6 +93,10 @@ func (s Service) MaterialGroups(opts api.MaterialGroupOptions) (interface{}, err
 	return s.rt.Client.MaterialGroups(opts)
 }
 
+func (s Service) Materials(opts api.MaterialListOptions) (interface{}, error) {
+	return s.rt.Client.Materials(opts)
+}
+
 func (s Service) Activities(accountID, publishType, categoryID, keyword string) (interface{}, error) {
 	return s.rt.Client.Activities(accountID, publishType, categoryID, keyword)
 }

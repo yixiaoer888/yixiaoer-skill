@@ -63,7 +63,9 @@ yxer publish form export <session.json> [--output payload.json] [--dry-run]
 yxer draft save <payload.json> [--dry-run]
 yxer material create <payload.json> [--dry-run]
 yxer material add --file <文件路径或URL> [--thumb <缩略图路径或URL>] [--type image|video|file] [--dry-run]
+yxer material list [--name <file_name>] [--type image|video|file] [--page 1] [--size 100]
 yxer material move <material_id> --group-id <group_id> [--dry-run]
+yxer material move-by-name <file_name> --group-id <group_id> [--dry-run]
 yxer material groups [--page 1] [--size 50]
 ```
 
@@ -118,6 +120,8 @@ yxer schema get <platform> <type>
 - `yxer draft save` 只处理蚁小二内部草稿，不等同于平台草稿箱
 - `yxer material create` 只做素材登记，前提是资源已经通过 `yxer upload --bucket material-library` 上传
 - `yxer material add --file ...` 会自动完成上传和素材登记
+- `yxer material list --name <file_name>` 返回匹配素材及其真实 ID；可配合 `--type image` 筛选图片
+- `yxer material move-by-name <file_name>` 只接受精确文件名匹配；重名时返回候选，必须改用稳定 ID 执行 `material move`
 - `yxer material move` 将已登记素材移动至目标素材分组；正式移动前先执行 `--dry-run`
 - `yxer material groups` 查询可用于 `material move --group-id` 的真实素材分组 ID
 - 查询类操作可以直接执行

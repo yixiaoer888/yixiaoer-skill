@@ -389,7 +389,9 @@ yxer accounts list [platform] [--name 关键词] [--status 1] [--json]
 yxer accounts update <account_id> [--proxy-id ID] [--kuaidaili-area CODE] [--remark 文本] [--group ID] [--dry-run]
 yxer upload --file <file_path> [--bucket cloud-publish|material-library] [--dry-run]
 yxer upload --url <resource_url> [--bucket cloud-publish|material-library] [--dry-run]
+yxer material list [--name <file_name>] [--type image|video|file] [--page 1] [--size 100]
 yxer material move <material_id> --group-id <group_id> [--dry-run]
+yxer material move-by-name <file_name> --group-id <group_id> [--dry-run]
 yxer material groups [--page 1] [--size 50]
 ```
 

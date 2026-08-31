@@ -162,3 +162,42 @@ func TestMaterialGroups(t *testing.T) {
 		t.Fatalf("unexpected response: %#v", result)
 	}
 }
+
+func TestMaterials(t *testing.T) {
+	var gotMethod string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/material" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if r.URL.Query().Get("page") != "2" || r.URL.Query().Get("size") != "25" || r.URL.Query().Get("fileName") != "demo.png" || r.URL.Query().Get("type") != "image" || r.URL.Query().Get("groupId") != "group_1" {
+			t.Fatalf("unexpected query: %s", r.URL.RawQuery)
+		}
+		gotMethod = r.Method
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": map[string]interface{}{
+				"records": []interface{}{map[string]interface{}{"id": "material_1", "fileName": "demo.png"}},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.Materials(MaterialListOptions{
+		Page:     2,
+		Size:     25,
+		FileName: "demo.png",
+		Type:     "image",
+		GroupID:  "group_1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotMethod != http.MethodGet {
+		t.Fatalf("unexpected method: %s", gotMethod)
+	}
+	page := result.(map[string]interface{})
+	records := page["records"].([]interface{})
+	if len(records) != 1 {
+		t.Fatalf("unexpected result: %#v", result)
+	}
+}

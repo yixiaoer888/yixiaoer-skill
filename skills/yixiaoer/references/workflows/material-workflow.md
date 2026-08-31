@@ -26,6 +26,11 @@ yxer material add --file .\demo.mp4 --type video
 ### 移动已有素材
 
 ```bash
+yxer material move-by-name demo.png --group-id <group_id> --dry-run
+yxer material move-by-name demo.png --group-id <group_id>
+
+# 文件名重名时，先查询候选并使用真实素材 ID。
+yxer material list --name demo.png --type image
 yxer material move <material_id> --group-id <group_id> --dry-run
 yxer material move <material_id> --group-id <group_id>
 ```
@@ -47,6 +52,7 @@ yxer material groups --page 1 --size 50
 
 - `material add` 优先于手工 `upload + material create`
 - `material create` 前提是资源已经上传到 `material-library`
+- `material move-by-name` 通过精确文件名匹配查询结果中的真实素材 ID；重名时不自动移动，必须由用户从候选 ID 中选择
 - `material move` 只接受真实素材 ID 和目标分组 ID；先 dry-run 确认目标后再执行
 - 素材任务不等同于发布任务；不需要 `prepare` / `schema fields` / `schema get`，除非用户随后要直接发布
 - 若用户要“上传后马上发布”，完成素材任务后切回对应发布 workflow

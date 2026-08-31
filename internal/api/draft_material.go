@@ -31,6 +31,37 @@ type MaterialGroupOptions struct {
 	Size int
 }
 
+// MaterialListOptions describes the filters accepted by the material library.
+// FileName is passed through to the service and is also matched exactly by the
+// higher-level move-by-name workflow before it performs a write.
+type MaterialListOptions struct {
+	Page     int
+	Size     int
+	FileName string
+	Type     string
+	GroupID  string
+}
+
+func (c *Client) Materials(opts MaterialListOptions) (interface{}, error) {
+	values := url.Values{}
+	if opts.Page > 0 {
+		values.Set("page", strconv.Itoa(opts.Page))
+	}
+	if opts.Size > 0 {
+		values.Set("size", strconv.Itoa(opts.Size))
+	}
+	if opts.FileName != "" {
+		values.Set("fileName", opts.FileName)
+	}
+	if opts.Type != "" {
+		values.Set("type", opts.Type)
+	}
+	if opts.GroupID != "" {
+		values.Set("groupId", opts.GroupID)
+	}
+	return c.queryData(QueryValues("/material", values))
+}
+
 func (c *Client) MaterialGroups(opts MaterialGroupOptions) (interface{}, error) {
 	values := url.Values{}
 	if opts.Page > 0 {

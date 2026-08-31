@@ -27,15 +27,46 @@ func newMaterialCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "material",
 		Short: "管理素材库",
-		Long:  "管理素材库资源。\n1. create <payload.json>：提交素材登记 payload\n2. add --file ...：上传资源并登记到素材库\n3. move <material_id> --group-id ...：移动素材到指定分组",
+		Long:  "管理素材库资源。\n1. create <payload.json>：提交素材登记 payload\n2. add --file ...：上传资源并登记到素材库\n3. list --name ...：按文件名查询素材及其 ID\n4. move <material_id> --group-id ...：移动素材到指定分组\n5. move-by-name <file_name> --group-id ...：按文件名匹配后移动素材",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()
 		},
 	}
 	cmd.AddCommand(newMaterialCreateCmd())
 	cmd.AddCommand(newMaterialAddCmd())
+	cmd.AddCommand(newMaterialListCmd())
 	cmd.AddCommand(newMaterialMoveCmd())
+	cmd.AddCommand(newMaterialMoveByNameCmd())
 	cmd.AddCommand(newMaterialGroupsCmd())
+	return cmd
+}
+
+func newMaterialListCmd() *cobra.Command {
+	var name, materialType, groupID string
+	var page, size int
+	cmd := &cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls", "search"},
+		Short:   "查询素材列表及素材 ID",
+		Args:    cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			opts := api.MaterialListOptions{
+				Page:     page,
+				Size:     size,
+				FileName: strings.TrimSpace(name),
+				Type:     strings.TrimSpace(materialType),
+				GroupID:  strings.TrimSpace(groupID),
+			}
+			return runQuery(cmd, "material.list", func(service queryflow.Service) (interface{}, error) {
+				return service.Materials(opts)
+			})
+		},
+	}
+	cmd.Flags().StringVar(&name, "name", "", "exact material file name, including extension")
+	cmd.Flags().StringVar(&materialType, "type", "", "material type: image, video, file")
+	cmd.Flags().StringVar(&groupID, "group-id", "", "filter by material group id")
+	cmd.Flags().IntVar(&page, "page", 1, "page number")
+	cmd.Flags().IntVar(&size, "size", 100, "page size")
 	return cmd
 }
 
@@ -105,6 +136,91 @@ func newMaterialMoveCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&groupID, "group-id", "", "destination material group id")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview material move request without performing the write")
+	return cmd
+}
+
+func newMaterialMoveByNameCmd() *cobra.Command {
+	var groupID, materialType string
+	var page, size int
+	var dryRun bool
+	cmd := &cobra.Command{
+		Use:   "move-by-name <file_name>",
+		Short: "按文件名精确匹配素材后移动到指定分组",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var fileName string
+			var input materialflow.MoveInput
+			opts := api.MaterialListOptions{}
+
+			resolve := func() (materialflow.Service, materialflow.MaterialMatch, error) {
+				rt, err := app.Load()
+				if err != nil {
+					return materialflow.Service{}, materialflow.MaterialMatch{}, err
+				}
+				service := materialflow.NewService(rt)
+				match, err := service.ResolveByFileName(fileName, opts)
+				return service, match, err
+			}
+
+			return cmdflow.Run(cmd, dryRun, cmdflow.Flow{
+				Validate: func() error {
+					fileName = strings.TrimSpace(args[0])
+					input = materialflow.MoveInput{GroupID: strings.TrimSpace(groupID)}
+					opts = api.MaterialListOptions{
+						Page: page,
+						Size: size,
+						Type: strings.TrimSpace(materialType),
+					}
+					if err := materialflow.ValidateMoveInput(input); err != nil {
+						return err
+					}
+					if fileName == "" {
+						return yxerrors.Usage("material file name must not be empty", nil).
+							WithHint("请传入素材文件名，例如 yxer material move-by-name demo.png --group-id group_1 --dry-run。")
+					}
+					return nil
+				},
+				DryRun: func() (cmdflow.Result, error) {
+					_, match, err := resolve()
+					if err != nil {
+						return cmdflow.Result{}, err
+					}
+					return cmdflow.Result{
+						Action: "material.move-by-name.dry-run",
+						Data: map[string]interface{}{
+							"dryRun":     true,
+							"fileName":   fileName,
+							"material":   match,
+							"materialId": match.ID,
+							"groupId":    input.GroupID,
+							"request":    materialflow.BuildMoveBody(match.ID, input),
+						},
+					}, nil
+				},
+				Execute: func() (cmdflow.Result, error) {
+					service, match, err := resolve()
+					if err != nil {
+						return cmdflow.Result{}, err
+					}
+					result, err := service.Move(match.ID, input)
+					if err != nil {
+						return cmdflow.Result{}, err
+					}
+					return cmdflow.Result{Action: "material.move-by-name", Data: map[string]interface{}{
+						"fileName":   fileName,
+						"material":   match,
+						"materialId": match.ID,
+						"result":     result,
+					}}, nil
+				},
+			})
+		},
+	}
+	cmd.Flags().StringVar(&groupID, "group-id", "", "destination material group id")
+	cmd.Flags().StringVar(&materialType, "type", "image", "material type used while matching")
+	cmd.Flags().IntVar(&page, "page", 1, "material page to search")
+	cmd.Flags().IntVar(&size, "size", 100, "material page size to search")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "resolve the material id and preview the move request without performing the write")
 	return cmd
 }
 
