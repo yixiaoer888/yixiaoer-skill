@@ -61,6 +61,8 @@
 yxer query music XXX --query 周杰伦 --json
 ```
 
+未指定关键词或榜单时，抖音账号默认查询推荐榜。查询其他榜单时，先执行 `yxer query music-categories XXX --json`，再将返回的 `yixiaoerId` 与 `yixiaoerName` 一并传入 `--category-id` 和 `--category-name`。
+
 ## 注意事项
 - **抖音专用**：`categoryId` 搜索目前仅在抖音平台调用时生效。
 - **透传规则**：`raw` 字段非常关键，某些平台校验严格，必须原样透传。

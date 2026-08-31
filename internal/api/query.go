@@ -26,6 +26,11 @@ type PrepareData struct {
 	Form            interface{}              `json:"form,omitempty"`
 }
 
+const (
+	defaultDouyinMusicCategoryID   = "1_1"
+	defaultDouyinMusicCategoryName = "推荐"
+)
+
 func (c *Client) Categories(accountID, publishType string) (interface{}, error) {
 	result, err := c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/categories", accountID), map[string]string{
 		"publishType": schemaTypeName(publishType),
@@ -45,12 +50,29 @@ func (c *Client) Locations(accountID, keyword, locationType, nextPage string) (i
 }
 
 func (c *Client) Music(accountID, keyword, categoryID, categoryName, nextPage string) (interface{}, error) {
-	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/music", accountID), map[string]string{
-		"keyWord":      keyword,
-		"categoryId":   categoryID,
-		"categoryName": categoryName,
-		"nextPage":     nextPage,
-	}))
+	keyword = strings.TrimSpace(keyword)
+	categoryID = strings.TrimSpace(categoryID)
+	categoryName = strings.TrimSpace(categoryName)
+
+	// The Douyin client opens the recommendation chart when neither a search
+	// keyword nor a chart is selected. Its chart query takes precedence over a
+	// keyword, so mirror that behavior for the API-backed CLI flow.
+	if categoryID == "" && categoryName == "" && keyword == "" {
+		categoryID = defaultDouyinMusicCategoryID
+		categoryName = defaultDouyinMusicCategoryName
+	}
+
+	params := map[string]string{
+		"nextPage": nextPage,
+	}
+	if categoryID != "" || categoryName != "" {
+		params["categoryId"] = categoryID
+		params["categoryName"] = categoryName
+	} else {
+		params["keyWord"] = keyword
+	}
+
+	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/music", accountID), params))
 }
 
 func (c *Client) MusicCategories(accountID string) (interface{}, error) {

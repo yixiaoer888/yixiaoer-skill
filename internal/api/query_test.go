@@ -188,6 +188,69 @@ func TestMiniAppsUsesExpectedEndpointAndKeywordQuery(t *testing.T) {
 	}
 }
 
+func TestMusicUsesDouyinRecommendationChartByDefault(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/platform-accounts/acc_1/music" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if got := r.URL.Query().Get("categoryId"); got != defaultDouyinMusicCategoryID {
+			t.Fatalf("unexpected default category id: %q", got)
+		}
+		if got := r.URL.Query().Get("categoryName"); got != defaultDouyinMusicCategoryName {
+			t.Fatalf("unexpected default category name: %q", got)
+		}
+		if _, ok := r.URL.Query()["keyWord"]; ok {
+			t.Fatalf("default chart query must not include keyWord: %q", r.URL.RawQuery)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"data": []interface{}{}})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	if _, err := client.Music("acc_1", "", "", "", ""); err != nil {
+		t.Fatalf("Music() error = %v", err)
+	}
+}
+
+func TestMusicUsesChartInsteadOfKeywordWhenBothAreProvided(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query().Get("categoryId"); got != "7088298745502646280" {
+			t.Fatalf("unexpected category id: %q", got)
+		}
+		if got := r.URL.Query().Get("categoryName"); got != "热门榜" {
+			t.Fatalf("unexpected category name: %q", got)
+		}
+		if _, ok := r.URL.Query()["keyWord"]; ok {
+			t.Fatalf("chart query must take precedence over keyWord: %q", r.URL.RawQuery)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"data": []interface{}{}})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	if _, err := client.Music("acc_1", "周杰伦", "7088298745502646280", "热门榜", ""); err != nil {
+		t.Fatalf("Music() error = %v", err)
+	}
+}
+
+func TestMusicUsesKeywordSearchWhenNoChartIsSelected(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query().Get("keyWord"); got != "周杰伦" {
+			t.Fatalf("unexpected keyWord: %q", got)
+		}
+		if _, ok := r.URL.Query()["categoryId"]; ok {
+			t.Fatalf("keyword query must not include a chart: %q", r.URL.RawQuery)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"data": []interface{}{}})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	if _, err := client.Music("acc_1", " 周杰伦 ", "", "", ""); err != nil {
+		t.Fatalf("Music() error = %v", err)
+	}
+}
+
 func TestDramaTasksAlwaysSendsKeyWordAndPreservesResponse(t *testing.T) {
 	tests := []struct {
 		name    string

@@ -98,7 +98,9 @@ func newMusicCmd() *cobra.Command {
 	var query, keyword, categoryID, categoryName, nextPage string
 	cmd := &cobra.Command{
 		Use:   "music <account_id>",
-		Short: "查询音乐",
+		Short: "查询音乐（默认查询抖音推荐榜）",
+		Long: "查询音乐。未指定 --query 或榜单参数时，抖音账号默认返回推荐榜。\n\n" +
+			"先用 `yxer query music-categories <account_id>` 查询可用榜单，再将返回的 yixiaoerId 和 yixiaoerName 分别传给 --category-id 和 --category-name。",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runQuery(cmd, "music", func(service queryflow.Service) (interface{}, error) {
@@ -108,8 +110,8 @@ func newMusicCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&query, "query", "", "search keyword")
 	cmd.Flags().StringVar(&keyword, "keyword", "", "search keyword (alias for --query)")
-	cmd.Flags().StringVar(&categoryID, "category-id", "", "music category id")
-	cmd.Flags().StringVar(&categoryName, "category-name", "", "music category name")
+	cmd.Flags().StringVar(&categoryID, "category-id", "", "music chart/category id; use with --category-name")
+	cmd.Flags().StringVar(&categoryName, "category-name", "", "music chart/category name; use with --category-id")
 	cmd.Flags().StringVar(&nextPage, "next-page", "", "pagination token from previous response")
 	return cmd
 }
