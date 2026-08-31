@@ -2,9 +2,7 @@
   "title": "Douyin Video Publish Form (Strict Standards)",
   "type": "object",
   "required": [
-    "formType",
-    "title",
-    "description"
+    "formType"
   ],
   "properties": {
     "formType": {
@@ -399,9 +397,7 @@
           "contentPublishForm": {
             "type": "object",
             "required": [
-              "formType",
-              "title",
-              "description"
+              "formType"
             ],
             "properties": {
               "formType": {

@@ -49,8 +49,14 @@ func TestPublishInitCommandWritesTemplateFile(t *testing.T) {
 		t.Fatalf("expected account-level cover and coverKey placeholders, got %#v", form)
 	}
 	cpf := form["contentPublishForm"].(map[string]interface{})
-	if cpf["formType"] == nil || cpf["title"] == nil {
-		t.Fatalf("expected required schema fields in template, got %#v", cpf)
+	if cpf["formType"] == nil {
+		t.Fatalf("expected formType in template, got %#v", cpf)
+	}
+	if _, exists := cpf["title"]; exists {
+		t.Fatalf("did not expect optional title in minimal template, got %#v", cpf)
+	}
+	if _, exists := cpf["description"]; exists {
+		t.Fatalf("did not expect optional description in minimal template, got %#v", cpf)
 	}
 	if _, exists := cpf["video"]; exists {
 		t.Fatalf("did not expect video resource under contentPublishForm template, got %#v", cpf)

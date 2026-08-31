@@ -31,8 +31,8 @@
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
 | `formType` | `string` | **是** | 固定为 `task` | `task` |
-| `title` | `string` | **是** | 抖音视频标题 (1-30 字) | - |
-| `description` | `string` | **是** | 抖音视频描述 (1-1000 字) | - |
+| `title` | `string` | 否 | 抖音视频标题 (1-30 字) | - |
+| `description` | `string` | 否 | 抖音视频描述 (1-1000 字) | - |
 | `horizontalCover` | `object` | 否 | 抖音视频横版封面，使用 `OldCover` 结构；填写在 `contentPublishForm.horizontalCover`，也可用共享字段 `publishArgs.horizontalCover` 自动补齐 | - |
 | `declaration` | `number` | 否 | 声明: 3-内容从 AI 生成, 4-可能引人不适, 5-虚构演绎, 6-危险行为 | - |
 | `location` | `object` | 否 | 抖音视频位置，使用客户端位置结构 `{ isScp, data }`，其中 `data` 为 `PlatformDataItem` | - |

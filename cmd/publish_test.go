@@ -1177,7 +1177,7 @@ func TestPublishCommandSchemaFailureDoesNotCallAPIs(t *testing.T) {
 	withRepoRoot(t)
 	payload := validPublishPayload()
 	cpf := payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
-	delete(cpf, "title")
+	delete(cpf, "formType")
 	payloadPath := writePublishPayload(t, payload)
 
 	var accountCalls int

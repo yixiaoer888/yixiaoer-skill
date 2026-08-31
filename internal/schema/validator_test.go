@@ -339,25 +339,21 @@ func TestSchemaResolvesSouhuhaoVideoSchema(t *testing.T) {
 	}
 }
 
-func TestValidateFullPayloadPrefixesAccountFormErrors(t *testing.T) {
+func TestValidateDouyinVideoAllowsMissingTitleAndDescription(t *testing.T) {
 	validator := NewValidator(filepath.Join("..", "..", "schemas"))
 	payload := map[string]interface{}{
 		"accountForms": []interface{}{
 			map[string]interface{}{
 				"platformAccountId": "acc_1",
 				"contentPublishForm": map[string]interface{}{
-					"formType":    "task",
-					"description": "缺少标题",
+					"formType": "task",
 				},
 			},
 		},
 	}
 	result := validator.Validate("抖音", "video", payload)
-	if result.Valid {
-		t.Fatal("expected missing title error")
-	}
-	if !containsError(result.Errors, `accountForms[0].contentPublishForm: /: missing required field "title"`) {
-		t.Fatalf("expected prefixed accountForms error, got %v", result.Errors)
+	if !result.Valid {
+		t.Fatalf("expected missing title and description to be accepted for douyin video, got %v", result.Errors)
 	}
 }
 

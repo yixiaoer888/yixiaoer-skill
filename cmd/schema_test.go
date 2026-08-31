@@ -67,8 +67,8 @@ func TestSchemaGetCommandOutputsSchemaForChinesePlatformAlias(t *testing.T) {
 	// businessFields holds the platform-specific content fields directly.
 	businessFields := data["businessFields"].(map[string]interface{})
 	title := businessFields["title"].(map[string]interface{})
-	if title["type"] != "string" || title["required"] != true {
-		t.Fatalf("expected required string title in businessFields, got %#v", title)
+	if title["type"] != "string" || title["required"] == true {
+		t.Fatalf("expected optional string title in businessFields, got %#v", title)
 	}
 	fieldPlacements := data["fieldPlacements"].(map[string]interface{})
 	titlePlacement := fieldPlacements["title"].(map[string]interface{})
@@ -465,8 +465,8 @@ func TestSchemaGetCommandVerboseOutputsDebugViews(t *testing.T) {
 	}
 	contentSchema := data["contentPublishFormSchema"].(map[string]interface{})
 	contentProps := contentSchema["properties"].(map[string]interface{})
-	if contentProps["title"].(map[string]interface{})["required"] != true {
-		t.Fatalf("expected contentPublishFormSchema title to be required, got %#v", contentProps["title"])
+	if contentProps["title"].(map[string]interface{})["required"] == true {
+		t.Fatalf("expected contentPublishFormSchema title to be optional, got %#v", contentProps["title"])
 	}
 }
 
@@ -561,8 +561,8 @@ func TestSchemaFieldsCommandExposesDouyinVideoDescriptionLimit(t *testing.T) {
 	accountForms := publishArgs["properties"].(map[string]interface{})["accountForms"].(map[string]interface{})
 	contentPublishForm := accountForms["items"].(map[string]interface{})["properties"].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
 	description := contentPublishForm["properties"].(map[string]interface{})["description"].(map[string]interface{})
-	if description["required"] != true || description["maxLength"] != float64(1000) {
-		t.Fatalf("expected douyin video description to be required with maxLength=1000, got %#v", description)
+	if description["required"] == true || description["maxLength"] != float64(1000) {
+		t.Fatalf("expected douyin video description to be optional with maxLength=1000, got %#v", description)
 	}
 	if _, ok := contentPublishForm["properties"].(map[string]interface{})["accountForms"]; ok {
 		t.Fatalf("did not expect nested accountForms inside contentPublishForm: %#v", contentPublishForm)
