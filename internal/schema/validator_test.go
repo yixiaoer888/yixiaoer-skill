@@ -901,6 +901,25 @@ func TestValidateAcceptsToutiaohaoArticleExtendedFields(t *testing.T) {
 	}
 }
 
+func TestValidateRejectsToutiaohaoVideoTitleOverPlatformLimit(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	payload := map[string]interface{}{
+		"formType":    "task",
+		"title":       strings.Repeat("头", 31),
+		"description": "头条视频描述",
+		"tags":        []interface{}{"测试"},
+		"visibleType": float64(0),
+		"pubType":     float64(1),
+	}
+	result := validator.Validate("头条号", "video", payload)
+	if result.Valid {
+		t.Fatal("expected 31-character Toutiaohao video title to be rejected")
+	}
+	if !containsError(result.Errors, "title: must NOT have more than 30 characters") {
+		t.Fatalf("expected title maxLength=30 error, got %v", result.Errors)
+	}
+}
+
 func TestValidateAcceptsWebPushedVideoPlatformFields(t *testing.T) {
 	validator := NewValidator(filepath.Join("..", "..", "schemas"))
 	resource := func(key string) map[string]interface{} {

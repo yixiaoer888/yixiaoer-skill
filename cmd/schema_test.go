@@ -141,6 +141,31 @@ func TestSchemaFieldsShipinhaoExposesDramaQueryExample(t *testing.T) {
 	}
 }
 
+func TestSchemaGetToutiaohaoVideoUsesPlatformTitleLimit(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	var out bytes.Buffer
+	cmd := newSchemaGetCmd()
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"头条号", "video"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	fields := data["businessFields"].(map[string]interface{})
+	field, ok := fields["title"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected Toutiaohao video title field, got %#v", fields["title"])
+	}
+	if field["maxLength"] != float64(30) {
+		t.Fatalf("expected Toutiaohao title maxLength=30, got %#v", field["maxLength"])
+	}
+}
+
 func TestSchemaFieldsDuoduoshipinTreatsShoppingCartAsManualGoodsID(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)
