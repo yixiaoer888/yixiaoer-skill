@@ -4,11 +4,114 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestShipinhaoVideoFormRequiresOnlineAccountSelectionBeforeFieldEntry(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	sessionPath := filepath.Join(t.TempDir(), "form.json")
+
+	start := newPublishFormStartCmd()
+	start.SetArgs([]string{"视频号", "video", "--output", sessionPath})
+	start.SetOut(&bytes.Buffer{})
+	if err := start.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	set := newPublishFormSetCmd()
+	set.SetArgs([]string{sessionPath, "publishArgs.accountForms[0].contentPublishForm.title", "--value", `"视频标题"`})
+	set.SetOut(&bytes.Buffer{})
+	if err := set.Execute(); err == nil || !strings.Contains(err.Error(), "shipinhao video account selection is required first") {
+		t.Fatalf("expected account-selection gate, got %v", err)
+	}
+}
+
+func TestShipinhaoVideoFormAccountSelectsOnlyOnlineAccount(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	sessionPath := filepath.Join(t.TempDir(), "form.json")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/platform/accounts" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if got := r.URL.Query().Get("platform"); got != "视频号" {
+			t.Fatalf("unexpected platform: %q", got)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"data": []map[string]interface{}{
+			{"platformAccountId": "offline", "platformAccountName": "失效账号", "status": 0},
+			{"platformAccountId": "online", "platformAccountName": "可用账号", "status": 1},
+		}})
+	}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	start := newPublishFormStartCmd()
+	start.SetArgs([]string{"视频号", "video", "--output", sessionPath})
+	start.SetOut(&bytes.Buffer{})
+	if err := start.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	account := newPublishFormAccountCmd()
+	account.SetArgs([]string{sessionPath, "--id", "online"})
+	account.SetOut(&bytes.Buffer{})
+	if err := account.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	session, err := readPublishFormSession(sessionPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	form := session.Payload["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	if form["platformAccountId"] != "online" {
+		t.Fatalf("expected selected online account, got %#v", form["platformAccountId"])
+	}
+	if len(session.Sources) != 1 || session.Sources[0].Kind != "account" || session.Sources[0].Target != "online" {
+		t.Fatalf("expected account source record, got %#v", session.Sources)
+	}
+
+	set := newPublishFormSetCmd()
+	set.SetArgs([]string{sessionPath, "publishArgs.accountForms[0].contentPublishForm.title", "--value", `"视频标题"`})
+	set.SetOut(&bytes.Buffer{})
+	if err := set.Execute(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestShipinhaoVideoFormAccountRequiresExplicitChoiceForMultipleCandidates(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	sessionPath := filepath.Join(t.TempDir(), "form.json")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"data": []map[string]interface{}{
+			{"platformAccountId": "online_1", "platformAccountName": "账号一", "status": 1},
+			{"platformAccountId": "online_2", "platformAccountName": "账号二", "status": 1},
+		}})
+	}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	start := newPublishFormStartCmd()
+	start.SetArgs([]string{"视频号", "video", "--output", sessionPath})
+	start.SetOut(&bytes.Buffer{})
+	if err := start.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	account := newPublishFormAccountCmd()
+	account.SetArgs([]string{sessionPath})
+	account.SetOut(&bytes.Buffer{})
+	if err := account.Execute(); err == nil || !strings.Contains(err.Error(), "form account selection has multiple candidates") {
+		t.Fatalf("expected explicit-choice error, got %v", err)
+	}
+}
 
 func TestPublishFormSessionCanSetNestedAndArrayValues(t *testing.T) {
 	withRepoRoot(t)

@@ -49,6 +49,7 @@ yxer publish delete preview <task_set_id>
 yxer publish delete from-record <task_set_id> --index N [--dry-run]
 yxer publish delete <task_id> [--dry-run]
 yxer publish form start <platform> <type> [--output publish-form.json] [--dry-run]
+yxer publish form account <session.json> [--id <online_account_id>|--index N] [--dry-run]
 yxer publish form inspect <session.json>
 yxer publish form set <session.json> <payload.path> --value '<json-value-or-text>' [--index N] [--source-command <cmd>] [--dry-run]
 yxer publish form choose <session.json> <field> --value-file <query.json> [--id <candidate_id>|--index N] [--account-id <id>] --source-command "yxer query ... --json" [--dry-run]

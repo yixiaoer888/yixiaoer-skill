@@ -1,5 +1,16 @@
 # 视频号视频发布参数 (WeiXin ShiPinHao Video)
 
+## 账号优先
+
+视频号视频必须先确认账号有效、由用户选择目标账号，再填写视频资料。新建会话时先执行：
+
+```bash
+yxer publish form start 视频号 video --output publish-form.json
+yxer publish form account publish-form.json --id <online_account_id>
+```
+
+`form account` 会查询视频号账号并且只接受 `status=1` 的候选；有多个在线账号时必须由用户明确选择 `--id` 或 `--index`。在选择完成前，CLI 拒绝填写表单字段、review 和 export。
+
 > [!IMPORTANT]
 > **前提条件 (Prerequisite)**:
 > 在使用本平台的特定参数之前，你 **必须** 已经阅读并理解了 [视频发布首页 (Index)](./index.md) 中定义的 Payload 根结构。本页仅描述 `contentPublishForm` 内部的平台差异化字段。

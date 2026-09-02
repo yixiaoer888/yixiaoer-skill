@@ -22,6 +22,8 @@ yxer schema get <platform> video
 - [`payload-sourcing.md`](./payload-sourcing.md)
 - 涉及话题/标签时：[`../topic-tags.md`](../topic-tags.md)
 
+视频号视频有额外的账号门禁：必须先执行 `yxer publish form account <session.json> --id <online_account_id>` 从 `status=1` 账号中完成用户选择，再填写视频、封面和平台资料。未完成账号选择时，CLI 会拒绝继续写入表单。
+
 ## 执行顺序
 
 1. 查询账号：`yxer accounts list [platform] [--status 1] [--json]`

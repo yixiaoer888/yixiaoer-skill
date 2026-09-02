@@ -28,7 +28,7 @@ func buildPublishFormContract(doc schema.Document) map[string]interface{} {
 	sort.Strings(queries)
 
 	steps := []interface{}{
-		map[string]interface{}{"id": "account", "kind": "account-selection", "required": true, "command": fmt.Sprintf("yxer accounts list %s --status 1 --json", platformutil.ChineseName(doc.Platform))},
+		map[string]interface{}{"id": "account", "kind": "account-selection", "required": true, "command": publishFormAccountSelectionCommand(doc)},
 		map[string]interface{}{"id": "resources", "kind": "resource-upload", "fields": resourceFields, "command": "yxer upload --file <path> --json"},
 		map[string]interface{}{"id": "platform-form", "kind": "field-entry", "fields": fields},
 	}
@@ -62,4 +62,11 @@ func buildPublishFormContract(doc schema.Document) map[string]interface{} {
 		"template":             buildPayloadTemplate(doc),
 		"sourceOfTruth":        []string{"prepare", "schema fields", "schema get", "query results", "user-provided business values", "upload results", "session.sources"},
 	}
+}
+
+func publishFormAccountSelectionCommand(doc schema.Document) string {
+	if platformutil.CanonicalKey(doc.Platform) == "shipinhao" && doc.Type == "video" {
+		return "yxer publish form account <session.json> --id <online_account_id>"
+	}
+	return fmt.Sprintf("yxer accounts list %s --status 1 --json", platformutil.ChineseName(doc.Platform))
 }

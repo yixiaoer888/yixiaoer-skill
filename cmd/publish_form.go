@@ -12,9 +12,12 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/yixiaoer/yixiaoer-skill/internal/api"
 	"github.com/yixiaoer/yixiaoer-skill/internal/app"
 	"github.com/yixiaoer/yixiaoer-skill/internal/output"
+	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
 	"github.com/yixiaoer/yixiaoer-skill/internal/schema"
+	accountsflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/accounts"
 	"github.com/yixiaoer/yixiaoer-skill/internal/yxerrors"
 )
 
@@ -55,6 +58,7 @@ type publishFormReview struct {
 func newPublishFormCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "form", Short: "按页面步骤维护可恢复的发布表单会话", Args: cobra.NoArgs}
 	cmd.AddCommand(newPublishFormStartCmd())
+	cmd.AddCommand(newPublishFormAccountCmd())
 	cmd.AddCommand(newPublishFormInspectCmd())
 	cmd.AddCommand(newPublishFormSetCmd())
 	cmd.AddCommand(newPublishFormChooseCmd())
@@ -62,6 +66,107 @@ func newPublishFormCmd() *cobra.Command {
 	cmd.AddCommand(newPublishFormReviewCmd())
 	cmd.AddCommand(newPublishFormExportCmd())
 	return cmd
+}
+
+func newPublishFormAccountCmd() *cobra.Command {
+	var id string
+	var index int
+	var dryRun bool
+	cmd := &cobra.Command{
+		Use:   "account <session.json>",
+		Short: "查询在线账号并选择发布目标账号",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			session, err := readPublishFormSession(args[0])
+			if err != nil {
+				return err
+			}
+			rt, err := app.Load()
+			if err != nil {
+				return err
+			}
+			accounts, err := accountsflow.NewService(rt).ListWithOptions(session.Platform, "", 1, accountsflow.ListOptions{Size: 1000, All: true})
+			if err != nil {
+				return err
+			}
+			if len(accounts) == 0 {
+				return yxerrors.Usage("no online account is available", map[string]interface{}{"platform": session.Platform}).
+					WithHint("请先登录或恢复一个 status=1 的账号，再继续填写视频号发布资料。").
+					WithNextCommand(fmt.Sprintf("yxer accounts list %s --status 1 --json", session.Platform))
+			}
+			selected, err := selectPublishFormAccount(accounts, id, index)
+			if err != nil {
+				return err
+			}
+			forms, err := publishFormAccountForms(session.Payload)
+			if err != nil {
+				return err
+			}
+			if len(forms) != 1 {
+				return yxerrors.Usage("account selection requires a single account form", map[string]interface{}{"accountForms": len(forms)}).
+					WithHint("当前会话包含多个 accountForms，请先拆分会话后再选择账号。")
+			}
+			updated := cloneJSONMap(session.Payload)
+			updatedForms, _ := publishFormAccountForms(updated)
+			updatedForms[0]["platformAccountId"] = api.AccountID(selected)
+			now := time.Now().UTC().Format(time.RFC3339)
+			source := publishFormSource{
+				Path:          "publishArgs.accountForms[0].platformAccountId",
+				Field:         "platformAccountId",
+				Kind:          "account",
+				SourceCommand: fmt.Sprintf("yxer accounts list %s --status 1 --json", session.Platform),
+				Target:        api.AccountID(selected),
+				Value:         selected,
+				UpdatedAt:     now,
+			}
+			session.Payload = updated
+			session.UpdatedAt = now
+			session.Sources = replacePublishFormAccountSource(session.Sources, source)
+			if dryRun {
+				return output.Success(cmd.OutOrStdout(), "publish.form.account.dry-run", map[string]interface{}{"file": filepath.ToSlash(args[0]), "selected": selected, "source": source, "payload": updated})
+			}
+			if err := writePublishFormSession(args[0], session); err != nil {
+				return yxerrors.Internal("failed to write publish form session", err.Error())
+			}
+			return output.Success(cmd.OutOrStdout(), "publish.form.account", map[string]interface{}{"file": filepath.ToSlash(args[0]), "selected": selected, "source": source, "payload": updated})
+		},
+	}
+	cmd.Flags().StringVar(&id, "id", "", "online platform account ID")
+	cmd.Flags().IntVar(&index, "index", -1, "online account index")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview account selection without updating the session")
+	return cmd
+}
+
+func selectPublishFormAccount(accounts []map[string]interface{}, id string, index int) (map[string]interface{}, error) {
+	id = strings.TrimSpace(id)
+	if id != "" {
+		for _, account := range accounts {
+			if api.AccountID(account) == id {
+				return account, nil
+			}
+		}
+		return nil, yxerrors.Usage("online account id was not found", map[string]interface{}{"id": id, "candidateCount": len(accounts)}).
+			WithHint("请使用 accounts list 返回的 status=1 账号 ID。")
+	}
+	if index >= 0 {
+		if index >= len(accounts) {
+			return nil, yxerrors.Usage("online account index is out of range", map[string]interface{}{"index": index, "candidateCount": len(accounts)})
+		}
+		return accounts[index], nil
+	}
+	if len(accounts) == 1 {
+		return accounts[0], nil
+	}
+	return nil, yxerrors.Usage("form account selection has multiple candidates", map[string]interface{}{"candidateCount": len(accounts), "candidates": previewPublishFormAccounts(accounts)}).
+		WithHint("请让用户选择一个在线账号后重试，并传入 --id 或 --index。")
+}
+
+func previewPublishFormAccounts(accounts []map[string]interface{}) []map[string]interface{} {
+	out := make([]map[string]interface{}, 0, len(accounts))
+	for i, account := range accounts {
+		out = append(out, map[string]interface{}{"index": i, "platformAccountId": api.AccountID(account), "platformAccountName": accountsflow.AccountName(account), "status": api.AccountStatus(account)})
+	}
+	return out
 }
 
 func newPublishFormStartCmd() *cobra.Command {
@@ -157,6 +262,9 @@ func newPublishFormSetCmd() *cobra.Command {
 				return yxerrors.Usage("form set cannot write drama field", map[string]interface{}{"path": args[1]}).
 					WithHint("剧集字段必须使用 form choose 从 yxer query drama-tasks 结果选择，不能手工拼接或直接 set。")
 			}
+			if err := requireShipinhaoVideoAccountSelection(session, args[1]); err != nil {
+				return err
+			}
 			updated := cloneJSONMap(session.Payload)
 			if err := setJSONPath(updated, args[1], parsed); err != nil {
 				return yxerrors.Usage("form path cannot be updated", map[string]interface{}{"path": args[1], "cause": err.Error()}).
@@ -218,6 +326,9 @@ func newPublishFormChooseCmd() *cobra.Command {
 			}
 			session, err := readPublishFormSession(args[0])
 			if err != nil {
+				return err
+			}
+			if err := requireShipinhaoVideoAccountSelection(session, args[1]); err != nil {
 				return err
 			}
 			accountIndex, resolvedTarget, err := resolvePublishFormAccountTarget(session.Payload, accountID, target)
@@ -303,6 +414,9 @@ func newPublishFormVerifyCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if err := requireShipinhaoVideoAccountSelection(session, "verify"); err != nil {
+				return err
+			}
 			report, err := validatePublishFormProvenance(session)
 			if err != nil {
 				return err
@@ -327,6 +441,9 @@ func newPublishFormReviewCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			session, err := readPublishFormSession(args[0])
 			if err != nil {
+				return err
+			}
+			if err := requireShipinhaoVideoAccountSelection(session, "review"); err != nil {
 				return err
 			}
 			provenance, err := validatePublishFormProvenance(session)
@@ -378,6 +495,9 @@ func newPublishFormExportCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			session, err := readPublishFormSession(args[0])
 			if err != nil {
+				return err
+			}
+			if err := requireShipinhaoVideoAccountSelection(session, "export"); err != nil {
 				return err
 			}
 			provenance, err := validatePublishFormProvenance(session)
@@ -1048,6 +1168,37 @@ func validatePublishFormSourceAccount(sourceCommand, target string) error {
 			WithNextCommand("yxer query <resource> " + target + " --json")
 	}
 	return nil
+}
+
+func requireShipinhaoVideoAccountSelection(session publishFormSession, path string) error {
+	if platformutil.CanonicalKey(session.Platform) != "shipinhao" || strings.TrimSpace(session.Type) != "video" {
+		return nil
+	}
+	// Drama selection carries its own target account in the query command and
+	// remains compatible with existing query-first sessions.
+	if strings.Contains(strings.ToLower(path), "drama") {
+		return nil
+	}
+	forms, err := publishFormAccountForms(session.Payload)
+	if err != nil {
+		return err
+	}
+	if len(forms) == 1 && !isTemplatePlaceholder(firstNonEmptyAccountFormID(forms[0])) {
+		return nil
+	}
+	return yxerrors.Usage("shipinhao video account selection is required first", map[string]interface{}{"path": path}).
+		WithHint("请先执行 yxer publish form account <session.json> --id <online_account_id>，确认账号有效后再填写视频资料。")
+}
+
+func replacePublishFormAccountSource(sources []publishFormSource, source publishFormSource) []publishFormSource {
+	filtered := sources[:0]
+	for _, existing := range sources {
+		if existing.Kind == "account" && existing.Path == source.Path {
+			continue
+		}
+		filtered = append(filtered, existing)
+	}
+	return appendPublishFormSource(filtered, source)
 }
 
 func querySourceCommandAccountID(command string) string {

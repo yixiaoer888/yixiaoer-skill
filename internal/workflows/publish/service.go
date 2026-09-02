@@ -223,6 +223,9 @@ func topicHTMLPolicyForPlatforms(validator schema.Validator, platforms []string,
 func (s Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 	apiClient := s.rt.Client
 	coverCompressionEvents := []CoverCompressionEvent{}
+	if err := preflightShipinhaoVideoAccount(apiClient, input); err != nil {
+		return nil, err
+	}
 	if payload, events, err := materializeShipinhaoCoverCompression(apiClient, input); err != nil {
 		return nil, err
 	} else if len(events) > 0 {
@@ -269,6 +272,40 @@ func (s Service) Execute(input ExecuteInput) (map[string]interface{}, error) {
 		attachCoverCompressionEvents(result, coverCompressionEvents)
 	}
 	return result, err
+}
+
+func preflightShipinhaoVideoAccount(apiClient *api.Client, input ExecuteInput) error {
+	if apiClient == nil || publishmod.NormalizePublishType(input.PublishType) != "video" {
+		return nil
+	}
+	platform, err := SinglePlatform(input.PlatformInput)
+	if err != nil || platformutil.CanonicalKey(platform) != "shipinhao" {
+		return nil
+	}
+	publishArgs := publishmod.ExtractPublishArgs(input.Payload)
+	if publishArgs == nil {
+		return nil
+	}
+	forms, _ := publishArgs["accountForms"].([]interface{})
+	accountIDs := make([]string, 0, len(forms))
+	for _, item := range forms {
+		form, _ := item.(map[string]interface{})
+		if form == nil {
+			continue
+		}
+		id := stringField(form, "platformAccountId")
+		if id == "" {
+			id = stringField(form, "account_id")
+		}
+		if id != "" && !strings.HasPrefix(id, "<") {
+			accountIDs = append(accountIDs, id)
+		}
+	}
+	if len(accountIDs) == 0 {
+		return nil
+	}
+	_, err = ResolveTargetAccounts(apiClient, []string{platform}, accountIDs)
+	return err
 }
 
 func attachCoverCompressionEvents(result map[string]interface{}, events []CoverCompressionEvent) {
