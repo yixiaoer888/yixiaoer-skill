@@ -27,7 +27,7 @@
 | `formType` | `string` | **是** | 固定值: `task` | `task` |
 | `title` | `string` | 否 | 标题 | - |
 | `description` | `string` | 否 | 图文描述，支持 HTML (`<p>`, `<topic>`)。最多 1000 字符。 | - |
-| `images` | `Array` | **是** | 图片数组 (`OldImage[]`) | - |
+| `images` | `Array` | **是** | 图片数组 (`OldImage[]`)，1-18 张 | - |
 | `location` | `Object` | 否 | 位置对象 (`PlatformDataItem`) | - |
 | `music` | `Object` | 否 | 音乐对象 (`MusicItem`) | - |
 | `scheduledTime` | `number` | 否 | 定时发布时间 (13 位 Unix 时间戳，单位: 毫秒) | - |
