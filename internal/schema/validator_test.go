@@ -2,6 +2,7 @@ package schema
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -314,6 +315,44 @@ func TestSchemaResolvesShipinhaoImageTextWithoutLegacyAlias(t *testing.T) {
 		if !strings.HasSuffix(filepath.ToSlash(schemaDoc.File), "schemas/platforms/shipinhao.imageText.schema.json") {
 			t.Fatalf("%s: expected shipinhao imageText schema path, got %s", platform, schemaDoc.File)
 		}
+	}
+}
+
+func TestShipinhaoImageTextImageCountLimit(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	image := func(index int) map[string]interface{} {
+		return map[string]interface{}{
+			"key":    fmt.Sprintf("image-%d", index),
+			"size":   float64(100),
+			"width":  float64(1080),
+			"height": float64(1440),
+		}
+	}
+
+	images := make([]interface{}, 18)
+	for i := range images {
+		images[i] = image(i)
+	}
+	validPayload := map[string]interface{}{
+		"formType": "task",
+		"images":   images,
+	}
+	result := validator.Validate("视频号", "imageText", validPayload)
+	if !result.Valid {
+		t.Fatalf("expected 18 shipinhao image-text images to pass, got %v", result.Errors)
+	}
+
+	tooManyImages := append(images, image(18))
+	invalidPayload := map[string]interface{}{
+		"formType": "task",
+		"images":   tooManyImages,
+	}
+	result = validator.Validate("视频号", "imageText", invalidPayload)
+	if result.Valid {
+		t.Fatal("expected 19 shipinhao image-text images to be rejected")
+	}
+	if !containsError(result.Errors, "images: must have at most 18 items") {
+		t.Fatalf("expected maxItems=18 error, got %v", result.Errors)
 	}
 }
 
