@@ -1,0 +1,24 @@
+{
+  "action": "publish",
+  "publishType": "imageText",
+  "platforms": ["淘宝光合"],
+  "publishChannel": "cloud",
+  "publishArgs": {
+    "accountForms": [
+      {
+        "platformAccountId": "acc_taobao_image",
+        "images": [
+          {"key": "image.jpg", "size": 12345, "width": 1080, "height": 1440, "format": "jpg"}
+        ],
+        "contentPublishForm": {
+          "formType": "task",
+          "title": "图文标题",
+          "desc": "图文正文",
+          "tags": [],
+          "statement": {"type": 0},
+          "shopping_cart": []
+        }
+      }
+    ]
+  }
+}

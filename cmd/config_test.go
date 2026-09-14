@@ -31,6 +31,29 @@ func TestConfigInitSavesAPIKeyOnly(t *testing.T) {
 	}
 }
 
+func TestConfigGetReportsAPIURLFromEnvironment(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "yxer-config.json")
+	t.Setenv("YIXIAOER_CONFIG", configPath)
+	t.Setenv("YIXIAOER_API_URL", "http://127.0.0.1:8083/api/")
+
+	var out bytes.Buffer
+	cmd := newConfigGetCmd()
+	cmd.SetOut(&out)
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	if got, want := data["apiUrl"], "http://127.0.0.1:8083/api"; got != want {
+		t.Fatalf("apiUrl = %#v, want %q", got, want)
+	}
+}
+
 func TestConfigInitKeepsFlagsCommandLocal(t *testing.T) {
 	first := newConfigInitCmd()
 	if err := first.Flags().Parse([]string{"--api-key", "first-key"}); err != nil {

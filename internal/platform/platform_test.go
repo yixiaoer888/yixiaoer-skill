@@ -2,6 +2,17 @@ package platform
 
 import "testing"
 
+func TestTaobaoGuangheAliasesResolveToCanonicalPlatform(t *testing.T) {
+	for _, alias := range []string{"淘宝光合", "taobaoguanghe", "taobao-guanghe", "TaoBaoGuangHe"} {
+		if got := CanonicalKey(alias); got != "taobaoguanghe" {
+			t.Fatalf("CanonicalKey(%q)=%q", alias, got)
+		}
+		if got := ChineseName(alias); got != "淘宝光合" {
+			t.Fatalf("ChineseName(%q)=%q", alias, got)
+		}
+	}
+}
+
 func TestWeixinAccountAliasesResolveToCanonicalPlatform(t *testing.T) {
 	for _, alias := range []string{"WeiXinGongZhongHao", "weixingongzhonghao", "微信公众号"} {
 		if got := CanonicalKey(alias); got != "weixin.account" {

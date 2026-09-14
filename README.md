@@ -134,6 +134,13 @@ yxer doctor
 yxer config get
 ```
 
+如需连接本地或测试环境，可在当前终端设置 API 地址；末尾的 `/` 会自动去除：
+
+```powershell
+$env:YIXIAOER_API_URL = "http://127.0.0.1:8083/api/"
+yxer config get
+```
+
 ### 3. 查询可用账号
 
 ```bash
@@ -421,6 +428,8 @@ yxer query categories <account_id> [--type video|article]
 yxer query locations <account_id> [--query 关键词]
 yxer query music <account_id> [--query 关键词]
 yxer query goods <account_id> [--query 关键词]
+yxer query taobao-guanghe-goods-tabs <account_id> --type video|imageText
+yxer query taobao-guanghe-goods <account_id> --type video|imageText [--source SOURCE] [--filter-value VALUE] [--second-filter-value VALUE] [--query 关键词] [--next-page TOKEN]
 yxer query collections <account_id> [--type video|article]
 yxer query challenges <account_id> [--query 关键词] [--type video]
 yxer query records [--platform P] [--limit N] [--status S] [--json]

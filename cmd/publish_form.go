@@ -301,6 +301,7 @@ func newPublishFormChooseCmd() *cobra.Command {
 	var value, valueFile string
 	var index int
 	var id, path, accountID, target, sourceCommand string
+	var ids []string
 	var dryRun bool
 	cmd := &cobra.Command{
 		Use:   "choose <session.json> <field>",
@@ -320,11 +321,11 @@ func newPublishFormChooseCmd() *cobra.Command {
 			if err != nil {
 				return yxerrors.Usage("form choose value is not valid JSON", err.Error())
 			}
-			selected, candidates, err := selectPublishFormCandidateForField(rawValue, args[1], index, id)
+			session, err := readPublishFormSession(args[0])
 			if err != nil {
 				return err
 			}
-			session, err := readPublishFormSession(args[0])
+			selected, candidates, err := selectPublishFormCandidatesForSession(session, rawValue, args[1], index, id, ids)
 			if err != nil {
 				return err
 			}
@@ -333,6 +334,9 @@ func newPublishFormChooseCmd() *cobra.Command {
 			}
 			accountIndex, resolvedTarget, err := resolvePublishFormAccountTarget(session.Payload, accountID, target)
 			if err != nil {
+				return err
+			}
+			if err := validateTaobaoGuangheFormSource(session, args[1], sourceCommand, resolvedTarget); err != nil {
 				return err
 			}
 			if err := validatePublishFormSourceAccount(sourceCommand, resolvedTarget); err != nil {
@@ -356,6 +360,13 @@ func newPublishFormChooseCmd() *cobra.Command {
 				}
 				if err := validateDramaSourceCommand(sourceCommand); err != nil {
 					return err
+				}
+			}
+			if isTaobaoGuangheShoppingCart(session, args[1], resolvedPath) {
+				if _, isArray := selected.([]interface{}); isArray {
+					// Multi-selection is already in the account-level cart shape.
+				} else {
+					selected = []interface{}{selected}
 				}
 			}
 			updated := cloneJSONMap(session.Payload)
@@ -396,12 +407,46 @@ func newPublishFormChooseCmd() *cobra.Command {
 	cmd.Flags().StringVar(&valueFile, "value-file", "", "file containing query result JSON")
 	cmd.Flags().IntVar(&index, "index", -1, "candidate index to select when query result has multiple items")
 	cmd.Flags().StringVar(&id, "id", "", "candidate id to select (matches yixiaoerId/id/value/key)")
+	cmd.Flags().StringSliceVar(&ids, "ids", nil, "candidate IDs to select for Taobao Guanghe shopping_cart (repeat or comma-separate; maximum 6)")
 	cmd.Flags().StringVar(&path, "path", "", "override target JSON path; defaults to contract dynamic field path")
 	cmd.Flags().StringVar(&accountID, "account-id", "", "target platformAccountId/account_id when session has multiple accountForms")
 	cmd.Flags().StringVar(&target, "target", "", "target selector, usually <platform>:<accountId> or <accountId>")
 	cmd.Flags().StringVar(&sourceCommand, "source-command", "", "query command that produced this value")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview the selected write without updating the session")
 	return cmd
+}
+
+func selectPublishFormCandidatesForSession(session publishFormSession, value interface{}, field string, index int, id string, ids []string) (interface{}, []interface{}, error) {
+	if len(ids) == 0 {
+		return selectPublishFormCandidateForField(value, field, index, id)
+	}
+	if platformutil.CanonicalKey(session.Platform) != "taobaoguanghe" || !strings.EqualFold(strings.TrimSpace(field), "shopping_cart") {
+		return nil, nil, yxerrors.Usage("--ids is only supported for Taobao Guanghe shopping_cart", map[string]interface{}{"field": field})
+	}
+	if strings.TrimSpace(id) != "" || index >= 0 {
+		return nil, nil, yxerrors.Usage("--ids cannot be combined with --id or --index", nil)
+	}
+	if len(ids) > 6 {
+		return nil, nil, yxerrors.New(yxerrors.ValidationType, "taobao_guanghe_goods_limit", "淘宝光合每个账号最多关联 6 件商品", map[string]interface{}{"count": len(ids)}).
+			WithCategory("taobao_guanghe_goods")
+	}
+	candidates := publishFormCandidates(value)
+	selected := make([]interface{}, 0, len(ids))
+	seen := map[string]bool{}
+	for _, candidateID := range ids {
+		candidateID = strings.TrimSpace(candidateID)
+		if candidateID == "" || seen[candidateID] {
+			return nil, candidates, yxerrors.New(yxerrors.ValidationType, "taobao_guanghe_goods_invalid", "淘宝光合商品 ID 不能为空或重复", map[string]interface{}{"id": candidateID}).
+				WithCategory("taobao_guanghe_goods")
+		}
+		seen[candidateID] = true
+		candidate, _, err := selectPublishFormCandidateFromCandidates(value, candidates, -1, candidateID)
+		if err != nil {
+			return nil, candidates, err
+		}
+		selected = append(selected, candidate)
+	}
+	return selected, candidates, nil
 }
 
 func newPublishFormVerifyCmd() *cobra.Command {
@@ -756,7 +801,7 @@ func publishFormCandidates(value interface{}) []interface{} {
 	case []interface{}:
 		return typed
 	case map[string]interface{}:
-		for _, key := range []string{"items", "list", "records", "results", "data"} {
+		for _, key := range []string{"items", "list", "dataList", "records", "results", "data"} {
 			if items, ok := typed[key].([]interface{}); ok {
 				return items
 			}
@@ -1042,6 +1087,9 @@ func validatePublishFormProvenance(session publishFormSession) (map[string]inter
 	for _, missing := range missingDramaSourceErrors(session.Payload, session.Sources) {
 		errors = append(errors, missing)
 	}
+	for _, missing := range missingTaobaoGuangheGoodsSourceErrors(session) {
+		errors = append(errors, missing)
+	}
 	report := map[string]interface{}{
 		"valid":       len(errors) == 0,
 		"sourceCount": len(session.Sources),
@@ -1099,6 +1147,85 @@ func validatePublishFormSource(payload map[string]interface{}, source publishFor
 			} else if currentRawHash != expectedRawHash {
 				add("raw_hash_mismatch", "current payload raw data no longer matches the recorded query raw data")
 			}
+		}
+	}
+	return errors
+}
+
+func isTaobaoGuangheShoppingCart(session publishFormSession, field, path string) bool {
+	return platformutil.CanonicalKey(session.Platform) == "taobaoguanghe" &&
+		strings.EqualFold(strings.TrimSpace(field), "shopping_cart") &&
+		normalizePublishFormPath(path) == "publishArgs.accountForms.[].contentPublishForm.shopping_cart"
+}
+
+func validateTaobaoGuangheFormSource(session publishFormSession, field, command, target string) error {
+	if platformutil.CanonicalKey(session.Platform) != "taobaoguanghe" || !strings.EqualFold(strings.TrimSpace(field), "shopping_cart") {
+		return nil
+	}
+	if strings.TrimSpace(target) == "" || isTemplatePlaceholder(target) {
+		return yxerrors.New(yxerrors.ValidationType, "taobao_guanghe_goods_account_mismatch", "淘宝光合商品选择前必须先确定目标账号", map[string]interface{}{"targetAccountId": target}).
+			WithCategory("taobao_guanghe_goods_source").
+			WithHint("请先设置或选择真实的 platformAccountId。")
+	}
+	if querySourceCommandResource(command) != "taobao-guanghe-goods" {
+		return yxerrors.New(yxerrors.ValidationType, "taobao_guanghe_goods_invalid", "淘宝光合商品必须来自专属商品查询命令", map[string]interface{}{"sourceCommand": command}).
+			WithCategory("taobao_guanghe_goods_source").
+			WithHint("请先执行 yxer query taobao-guanghe-goods <account_id> --type <video|imageText> --json。")
+	}
+	if sourceAccount := querySourceCommandAccountID(command); sourceAccount == "" || sourceAccount != strings.TrimSpace(target) {
+		return yxerrors.New(yxerrors.ValidationType, "taobao_guanghe_goods_account_mismatch", "淘宝光合商品查询账号与目标账号不一致", map[string]interface{}{"sourceAccountId": sourceAccount, "targetAccountId": target}).
+			WithCategory("taobao_guanghe_goods_source").
+			WithHint("请使用目标账号重新查询淘宝光合商品。")
+	}
+	if sourceType := querySourceCommandFlag(command, "--type"); sourceType != session.Type {
+		return yxerrors.New(yxerrors.ValidationType, "taobao_guanghe_goods_type_mismatch", "淘宝光合商品查询类型与发布类型不一致", map[string]interface{}{"sourceType": sourceType, "publishType": session.Type}).
+			WithCategory("taobao_guanghe_goods_source").
+			WithHint("请使用与当前发布会话相同的 --type 重新查询商品。")
+	}
+	return nil
+}
+
+func querySourceCommandFlag(command, name string) string {
+	parts := strings.Fields(command)
+	for i, part := range parts {
+		if part == name && i+1 < len(parts) {
+			return strings.Trim(strings.TrimSpace(parts[i+1]), `"'`)
+		}
+		if strings.HasPrefix(part, name+"=") {
+			return strings.Trim(strings.TrimSpace(strings.TrimPrefix(part, name+"=")), `"'`)
+		}
+	}
+	return ""
+}
+
+func missingTaobaoGuangheGoodsSourceErrors(session publishFormSession) []map[string]interface{} {
+	if platformutil.CanonicalKey(session.Platform) != "taobaoguanghe" {
+		return nil
+	}
+	forms, err := publishFormAccountForms(session.Payload)
+	if err != nil {
+		return []map[string]interface{}{{"code": "taobao_guanghe_goods_invalid", "message": err.Error()}}
+	}
+	var errors []map[string]interface{}
+	for i, form := range forms {
+		cpf, _ := form["contentPublishForm"].(map[string]interface{})
+		items, _ := cpf["shopping_cart"].([]interface{})
+		if len(items) == 0 {
+			continue
+		}
+		path := fmt.Sprintf("publishArgs.accountForms[%d].contentPublishForm.shopping_cart", i)
+		found := false
+		for _, source := range session.Sources {
+			if source.Kind != "query" || source.Path != path {
+				continue
+			}
+			found = true
+			if err := validateTaobaoGuangheFormSource(session, "shopping_cart", source.SourceCommand, firstNonEmptyAccountFormID(form)); err != nil {
+				errors = append(errors, map[string]interface{}{"code": "invalid_taobao_guanghe_source", "path": path, "message": err.Error()})
+			}
+		}
+		if !found {
+			errors = append(errors, map[string]interface{}{"code": "missing_taobao_guanghe_goods_source", "path": path, "message": "shopping_cart must have a matching Taobao Guanghe goods query source"})
 		}
 	}
 	return errors

@@ -608,10 +608,17 @@ func normalizePlatformSpecificFields(publishType string, platforms []string, pay
 			normalizeDouyinGroupShopping(cpf, formPath, normalizations)
 		} else if isDuoduoshipinPlatformSet(platformSet) {
 			normalizeDuoduoShoppingCart(cpf, formPath, normalizations)
+		} else if isTaobaoGuanghePlatformSet(platformSet) {
+			// Taobao Guanghe requires the complete goods snapshot from its
+			// dedicated query endpoint; never wrap or rewrite it as Douyin data.
 		} else {
 			normalizeFlatShoppingCart(cpf, formPath, normalizations)
 		}
 	}
+}
+
+func isTaobaoGuanghePlatformSet(platformSet map[string]bool) bool {
+	return platformSet["淘宝光合"] || platformSet["taobaoguanghe"]
 }
 
 func normalizeDuoduoshipinVideoDefaults(cpf map[string]interface{}, formPath string, normalizations *[]NormalizationEvent) {

@@ -23,6 +23,22 @@ func TestResolveProjectDirPrefersAncestorOfWorkingDirectory(t *testing.T) {
 	}
 }
 
+func TestResolveAPIURLUsesDefaultWhenEnvironmentIsUnset(t *testing.T) {
+	t.Setenv(apiURLEnv, "")
+
+	if got := resolveAPIURL(); got != DefaultAPIURL {
+		t.Fatalf("resolveAPIURL() = %q, want %q", got, DefaultAPIURL)
+	}
+}
+
+func TestResolveAPIURLUsesEnvironmentOverride(t *testing.T) {
+	t.Setenv(apiURLEnv, " http://127.0.0.1:8083/api/ ")
+
+	if got, want := resolveAPIURL(), "http://127.0.0.1:8083/api"; got != want {
+		t.Fatalf("resolveAPIURL() = %q, want %q", got, want)
+	}
+}
+
 func TestResolveProjectDirFallsBackToExecutableDirectory(t *testing.T) {
 	root := t.TempDir()
 	mustMkdirAll(t, filepath.Join(root, "schemas"))

@@ -86,6 +86,70 @@ func (c *Client) Goods(accountID, keyword, nextPage string) (interface{}, error)
 	}))
 }
 
+type TaobaoGuangheGoodsOptions struct {
+	PublishType       string
+	Keyword           string
+	NextPage          string
+	FilterValue       string
+	SecondFilterValue string
+	Source            string
+}
+
+func TaobaoGuanghePageType(publishType string) (string, error) {
+	switch strings.TrimSpace(publishType) {
+	case "video":
+		return "video", nil
+	case "imageText":
+		return "photo", nil
+	default:
+		return "", yxerrors.New(yxerrors.ValidationType, "taobao_guanghe_invalid_content_type", "淘宝光合商品查询仅支持 video 或 imageText", map[string]interface{}{"type": publishType}).
+			WithCategory("taobao_guanghe_goods").
+			WithHint("请使用 --type video 或 --type imageText。")
+	}
+}
+
+func (c *Client) TaobaoGuangheGoodsTabs(accountID, publishType string) (interface{}, error) {
+	pageType, err := TaobaoGuanghePageType(publishType)
+	if err != nil {
+		return nil, err
+	}
+	result, err := c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/taobao-guanghe/goods-tabs", accountID), map[string]string{"pageType": pageType}))
+	return result, decorateTaobaoGuangheGoodsQueryError(err)
+}
+
+func (c *Client) TaobaoGuangheGoods(accountID string, opts TaobaoGuangheGoodsOptions) (interface{}, error) {
+	pageType, err := TaobaoGuanghePageType(opts.PublishType)
+	if err != nil {
+		return nil, err
+	}
+	result, err := c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/taobao-guanghe/goods", accountID), map[string]string{
+		"pageType":               pageType,
+		"keyword":                opts.Keyword,
+		"nextPage":               opts.NextPage,
+		"filterValue":            opts.FilterValue,
+		"secondLevelFilterValue": opts.SecondFilterValue,
+		"source":                 opts.Source,
+	}))
+	return result, decorateTaobaoGuangheGoodsQueryError(err)
+}
+
+func decorateTaobaoGuangheGoodsQueryError(err error) error {
+	if err == nil {
+		return nil
+	}
+	var typed *yxerrors.Error
+	if !errors.As(err, &typed) {
+		return yxerrors.Remote("淘宝光合商品查询失败", err.Error()).WithCategory("taobao_guanghe_goods_query")
+	}
+	typed.WithCategory("taobao_guanghe_goods_query")
+	if details, ok := typed.Details.(map[string]interface{}); ok {
+		if code := strings.TrimSpace(fmt.Sprint(details["code"])); code != "" && code != "<nil>" {
+			typed.Code = code
+		}
+	}
+	return typed
+}
+
 func (c *Client) GoodsDetail(accountID, productURL string) (interface{}, error) {
 	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/goods-detail", accountID), map[string]string{
 		"url": productURL,
@@ -610,6 +674,10 @@ func (c *Client) UpdateAccount(accountID string, body map[string]interface{}) (i
 }
 
 func (c *Client) Prepare(platform, publishType string) (PrepareData, error) {
+	if platformutil.CanonicalKey(platform) == "taobaoguanghe" && publishType != "video" && publishType != "imageText" {
+		return PrepareData{}, yxerrors.New(yxerrors.ValidationType, "taobao_guanghe_invalid_content_type", "淘宝光合仅支持 video 或 imageText 发布", map[string]interface{}{"type": publishType}).
+			WithCategory("taobao_guanghe_goods").WithHint("请使用 video 或 imageText。")
+	}
 	accounts, err := c.Accounts(platform)
 	if err != nil {
 		return PrepareData{}, err

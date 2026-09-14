@@ -33,6 +33,14 @@ func (s Service) Goods(accountID, keyword, nextPage string) (interface{}, error)
 	return s.rt.Client.Goods(accountID, keyword, nextPage)
 }
 
+func (s Service) TaobaoGuangheGoodsTabs(accountID, publishType string) (interface{}, error) {
+	return s.rt.Client.TaobaoGuangheGoodsTabs(accountID, publishType)
+}
+
+func (s Service) TaobaoGuangheGoods(accountID string, opts api.TaobaoGuangheGoodsOptions) (interface{}, error) {
+	return s.rt.Client.TaobaoGuangheGoods(accountID, opts)
+}
+
 func (s Service) GoodsDetail(accountID, productURL string) (interface{}, error) {
 	return s.rt.Client.GoodsDetail(accountID, productURL)
 }

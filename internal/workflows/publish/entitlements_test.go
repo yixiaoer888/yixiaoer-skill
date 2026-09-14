@@ -112,6 +112,17 @@ func TestAssertShoppingCartEntitlementsSkipsDuoduoUnsupportedEndpoint(t *testing
 	}
 }
 
+func TestAssertShoppingCartEntitlementsSkipsTaobaoGuanghe(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatalf("Taobao Guanghe must not call generic entitlements: %s", r.URL.Path)
+	}))
+	defer server.Close()
+	client := api.NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	if err := AssertShoppingCartEntitlements(client, entitlementTestPayload("acc_taobao", true), "淘宝光合"); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func entitlementTestPayload(accountID string, includeShoppingCart bool) map[string]interface{} {
 	contentForm := map[string]interface{}{}
 	if includeShoppingCart {

@@ -77,6 +77,8 @@ yxer query categories <account_id> [--type video|article]
 yxer query locations <account_id> [--query 关键词] [--type 0|1|2|3]
 yxer query music <account_id> [--query 关键词]
 yxer query goods <account_id> [--query 关键词]
+yxer query taobao-guanghe-goods-tabs <account_id> --type video|imageText
+yxer query taobao-guanghe-goods <account_id> --type video|imageText [--source SOURCE] [--filter-value VALUE] [--second-filter-value VALUE] [--query 关键词] [--next-page TOKEN]
 yxer query goods-detail <account_id> --url <product_url>
 yxer query entitlements <account_id>
 yxer query collections <account_id> [--type video|article]

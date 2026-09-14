@@ -263,6 +263,8 @@ func TestVisibleCommandTreeSnapshot(t *testing.T) {
 			"proxy-areas",
 			"records",
 			"syncapps",
+			"taobao-guanghe-goods",
+			"taobao-guanghe-goods-tabs",
 		},
 		"records": {"list"},
 		"schema":  {"catalog", "fields", "get", "list"},

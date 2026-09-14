@@ -30,6 +30,8 @@ func newQueryCmd() *cobra.Command {
 	cmd.AddCommand(newMusicCmd())
 	cmd.AddCommand(newMusicCategoriesCmd())
 	cmd.AddCommand(newGoodsCmd())
+	cmd.AddCommand(newTaobaoGuangheGoodsTabsCmd())
+	cmd.AddCommand(newTaobaoGuangheGoodsCmd())
 	cmd.AddCommand(newGoodsDetailCmd())
 	cmd.AddCommand(newEntitlementsCmd())
 	cmd.AddCommand(newCollectionsCmd())
@@ -101,7 +103,7 @@ func newMusicCmd() *cobra.Command {
 		Short: "查询音乐（默认查询抖音推荐榜）",
 		Long: "查询音乐。未指定 --query 或榜单参数时，抖音账号默认返回推荐榜。\n\n" +
 			"先用 `yxer query music-categories <account_id>` 查询可用榜单，再将返回的 yixiaoerId 和 yixiaoerName 分别传给 --category-id 和 --category-name。",
-		Args:  cobra.ExactArgs(1),
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runQuery(cmd, "music", func(service queryflow.Service) (interface{}, error) {
 				return service.Music(args[0], resolveQueryAlias(query, keyword), categoryID, categoryName, nextPage)
@@ -145,6 +147,56 @@ func newGoodsCmd() *cobra.Command {
 	cmd.Flags().StringVar(&query, "query", "", "search keyword")
 	cmd.Flags().StringVar(&keyword, "keyword", "", "search keyword (alias for --query)")
 	cmd.Flags().StringVar(&nextPage, "next-page", "", "pagination token from previous response")
+	return cmd
+}
+
+func newTaobaoGuangheGoodsTabsCmd() *cobra.Command {
+	var publishType string
+	cmd := &cobra.Command{
+		Use:   "taobao-guanghe-goods-tabs <account_id>",
+		Short: "查询淘宝光合商品分类",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if _, err := api.TaobaoGuanghePageType(publishType); err != nil {
+				return err
+			}
+			return runQuery(cmd, "taobao-guanghe-goods-tabs", func(service queryflow.Service) (interface{}, error) {
+				return service.TaobaoGuangheGoodsTabs(args[0], publishType)
+			})
+		},
+	}
+	cmd.Flags().StringVar(&publishType, "type", "", "publish type: video or imageText")
+	_ = cmd.MarkFlagRequired("type")
+	return cmd
+}
+
+func newTaobaoGuangheGoodsCmd() *cobra.Command {
+	var publishType, query, keyword, nextPage, filterValue, secondFilterValue, source string
+	cmd := &cobra.Command{
+		Use:   "taobao-guanghe-goods <account_id>",
+		Short: "查询淘宝光合商品",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if _, err := api.TaobaoGuanghePageType(publishType); err != nil {
+				return err
+			}
+			opts := api.TaobaoGuangheGoodsOptions{
+				PublishType: publishType, Keyword: resolveQueryAlias(query, keyword), NextPage: nextPage,
+				FilterValue: filterValue, SecondFilterValue: secondFilterValue, Source: source,
+			}
+			return runQuery(cmd, "taobao-guanghe-goods", func(service queryflow.Service) (interface{}, error) {
+				return service.TaobaoGuangheGoods(args[0], opts)
+			})
+		},
+	}
+	cmd.Flags().StringVar(&publishType, "type", "", "publish type: video or imageText")
+	cmd.Flags().StringVar(&query, "query", "", "search keyword")
+	cmd.Flags().StringVar(&keyword, "keyword", "", "search keyword (alias for --query)")
+	cmd.Flags().StringVar(&nextPage, "next-page", "", "opaque pagination cursor from the previous response")
+	cmd.Flags().StringVar(&filterValue, "filter-value", "", "primary filter value from goods tabs")
+	cmd.Flags().StringVar(&secondFilterValue, "second-filter-value", "", "secondary filter value from goods tabs")
+	cmd.Flags().StringVar(&source, "source", "", "goods source from goods tabs")
+	_ = cmd.MarkFlagRequired("type")
 	return cmd
 }
 

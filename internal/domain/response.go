@@ -1,6 +1,6 @@
 package domain
 
-const SkillVersion = "3.2.15"
+const SkillVersion = "3.2.16"
 
 type SuccessResponse struct {
 	OK      bool        `json:"ok"`

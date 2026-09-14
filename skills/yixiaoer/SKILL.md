@@ -1,6 +1,6 @@
 ---
 name: yixiaoer
-version: 3.2.15
+version: 3.2.16
 description: "通过 yxer CLI 操作蚁小二多平台内容分发：账号查询、资源上传、发布前准备、payload 校验、云发布/本机发布、草稿保存、素材登记、发布记录排查与技能同步。"
 metadata:
   category: "productivity"
@@ -78,6 +78,7 @@ yxer schema get <platform> <type>
 - `prepare` 返回的 `data.form` 是可恢复的页面式表单契约；新建复杂 payload 时优先使用 `yxer publish form start/inspect/set/choose/verify/review/export`，不要自行发明字段或路径。form 会话不能直接发布，必须先 verify 并 export 成标准 `payload.json`。
 - 图片、视频、封面等资源必须先上传，且只能复用 `yxer upload` 返回的真实字段。
 - `category`、`location`、`music`、`collection`、`challenge`、`goods`、`drama` 等动态字段必须先通过 `yxer query ...` 查询，不能手写对象；视频号 `drama` 只保留查询结果中的 `yixiaoerId`、`yixiaoerImageUrl`、`yixiaoerName`，不添加 `raw`。多多视频例外：`shopping_cart.goods_id` 是用户手工提供的业务商品 ID，CLI 固定补充 `source=pdd`，不得从 `yxer query goods` 的 `yixiaoerId` 映射。
+- 淘宝光合 `shopping_cart` 必须来自目标账号、相同发布类型的 `yxer query taobao-guanghe-goods` 结果，完整保留商品对象和 `raw`，每个账号最多 6 件；支持云发布和本机发布。
 - CRITICAL: `validate`、`publish --dry-run`、正式 `publish` 必须使用同一套发布通道参数。
 
 ## 页面式表单会话

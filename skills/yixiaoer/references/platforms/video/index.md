@@ -150,6 +150,7 @@
 | **Youtube** | `Youtube` | [youtube.md](./youtube.md) |
 | **Facebook** | `Facebook` | [facebook.md](./facebook.md) |
 | **Instagram** | `Instagram` | [instagram.md](./instagram.md) |
+| **淘宝光合** | `taobaoguanghe` | [taobaoguanghe.md](./taobaoguanghe.md) |
 | ... | ... | ... |
 
 ## 4. 通用规则 (Common DTO Rules)

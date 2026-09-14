@@ -1,0 +1,27 @@
+{
+  "action": "publish",
+  "publishType": "video",
+  "platforms": ["淘宝光合"],
+  "publishChannel": "cloud",
+  "publishArgs": {
+    "accountForms": [
+      {
+        "platformAccountId": "acc_taobao_video",
+        "video": {"key": "video.mp4", "size": 123456, "width": 1080, "height": 1920, "duration": 20, "format": "mp4"},
+        "cover": {"key": "cover.jpg", "size": 12345, "width": 1080, "height": 1920, "format": "jpg"},
+        "coverKey": "cover.jpg",
+        "contentPublishForm": {
+          "formType": "task",
+          "short_title": "视频短标题",
+          "desc": "视频描述",
+          "tags": [],
+          "allow_download": false,
+          "statement": {"type": 0},
+          "shopping_cart": [
+            {"yixiaoerId": "goods-1", "yixiaoerName": "商品一", "price": 129, "raw": {"id": "goods-1", "source": "fixture"}}
+          ]
+        }
+      }
+    ]
+  }
+}

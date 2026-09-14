@@ -11,6 +11,8 @@ import (
 
 const DefaultAPIURL = "https://www.yixiaoer.cn/api"
 
+const apiURLEnv = "YIXIAOER_API_URL"
+
 type Config struct {
 	APIKey        string
 	APIURL        string
@@ -49,13 +51,20 @@ func Load() (Config, error) {
 	}
 	return Config{
 		APIKey:        strings.TrimSpace(fileCfg.APIKey),
-		APIURL:        DefaultAPIURL,
+		APIURL:        resolveAPIURL(),
 		ProjectDir:    projectDir,
 		SchemaDir:     filepath.Join(projectDir, "schemas"),
 		WorkDir:       cwd,
 		ConfigPath:    configPath,
 		LocalClientID: strings.TrimSpace(fileCfg.LocalClientID),
 	}, nil
+}
+
+func resolveAPIURL() string {
+	if value := strings.TrimSpace(os.Getenv(apiURLEnv)); value != "" {
+		return strings.TrimRight(value, "/")
+	}
+	return DefaultAPIURL
 }
 
 func (c Config) RequireAPIKey() error {

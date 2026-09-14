@@ -330,6 +330,19 @@ func validateValue(schema map[string]interface{}, value interface{}, pathLabel, 
 		errors = append(errors, validateArray(schema, typed, pathLabel, prefix)...)
 	case string:
 		errors = append(errors, validateString(schema, typed, pathLabel, prefix)...)
+	case float64:
+		errors = append(errors, validateNumber(schema, typed, pathLabel, prefix)...)
+	}
+	return errors
+}
+
+func validateNumber(schema map[string]interface{}, value float64, pathLabel, prefix string) []string {
+	var errors []string
+	if minimum, ok := number(schema["minimum"]); ok && value < minimum {
+		errors = append(errors, fmt.Sprintf("%s%s: must be greater than or equal to %v", prefix, pathLabel, minimum))
+	}
+	if maximum, ok := number(schema["maximum"]); ok && value > maximum {
+		errors = append(errors, fmt.Sprintf("%s%s: must be less than or equal to %v", prefix, pathLabel, maximum))
 	}
 	return errors
 }

@@ -23,6 +23,8 @@
 
 > 微信公众号图文是例外：正文、发布设置写在 `accountForms[].contentPublishForm`，图片写在 `accountForms[].images`；`statement` 直接传数字枚举值。具体字段以 [`weixingongzhonghao.md`](./weixingongzhonghao.md) 为准。
 
+淘宝光合图文的平台字段、商品查询和挂车规则见 [`taobaoguanghe.md`](./taobaoguanghe.md)。
+
 ## 1. 数据结构 (Data Structure)
 
 接口要求传入 `CloudTaskPushRequest` 结构。

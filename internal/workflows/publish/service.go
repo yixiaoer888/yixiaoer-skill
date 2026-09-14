@@ -88,6 +88,13 @@ func (s Service) Prepare(input ExecuteInput, opts PrepareOptions) (PreparedPubli
 	platforms := []string{platform}
 	cfg := s.rt.Config
 	resolvedPayload := cloneMap(input.Payload)
+	if platformutil.CanonicalKey(platform) == "taobaoguanghe" {
+		if input.PublishType != "video" && input.PublishType != "imageText" {
+			if err := publishmod.ValidateTaobaoGuanghePublish(platform, input.PublishType, "", resolvedPayload); err != nil {
+				return PreparedPublish{}, err
+			}
+		}
+	}
 	mode, err := ResolvePublishModeDetailed(cfg, resolvedPayload, input.PositionalClientID, input.FlagChannel, input.FlagClientID)
 	if err != nil {
 		return PreparedPublish{}, err
@@ -132,6 +139,9 @@ func (s Service) Prepare(input ExecuteInput, opts PrepareOptions) (PreparedPubli
 	topicPolicy := topicHTMLPolicyForPlatforms(validator, platforms, input.PublishType)
 	var normalizations []publishmod.NormalizationEvent
 	publishArgs := publishmod.NormalizeStandardPayloadForSchemaValidationWithTrace(input.PublishType, platforms, resolvedPayload, &normalizations)
+	if err := publishmod.ValidateTaobaoGuanghePublish(platform, input.PublishType, channel, resolvedPayload); err != nil {
+		return PreparedPublish{}, err
+	}
 
 	for _, platform := range platforms {
 		result, err := validator.ValidateStrict(platform, input.PublishType, resolvedPayload)
@@ -452,7 +462,24 @@ func BuildPublishBodyWithInferred(payload, publishArgs map[string]interface{}, p
 	applyPublishMode(body, channel, clientID)
 	stripArticleContentFromForms(body, platforms)
 	inferred := normalizePublishEnvelope(body, publishArgs, publishType)
+	normalizeTaobaoGuanghePublishBody(body, platforms)
 	return body, inferred
+}
+
+func normalizeTaobaoGuanghePublishBody(body map[string]interface{}, platforms []string) {
+	if len(platforms) != 1 || platformutil.CanonicalKey(platforms[0]) != "taobaoguanghe" {
+		return
+	}
+	publishArgs := objectField(body, "publishArgs")
+	forms, _ := publishArgs["accountForms"].([]interface{})
+	for _, rawForm := range forms {
+		form, _ := rawForm.(map[string]interface{})
+		cpf := objectField(form, "contentPublishForm")
+		if value, exists := cpf["scheduledTime"]; exists {
+			cpf["prePubTime"] = value
+			delete(cpf, "scheduledTime")
+		}
+	}
 }
 
 func applyPublishMode(body map[string]interface{}, channel, clientID string) {

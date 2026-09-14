@@ -42,6 +42,7 @@ var canonicalChineseNames = map[string]string{
 	"youtube":         "Youtube",
 	"facebook":        "Facebook",
 	"instagram":       "Instagram",
+	"taobaoguanghe":   "淘宝光合",
 }
 
 var aliasesToCanonicalKeys = map[string]string{
@@ -133,6 +134,9 @@ var aliasesToCanonicalKeys = map[string]string{
 	"Facebook":        "facebook",
 	"instagram":       "instagram",
 	"Instagram":       "instagram",
+	"taobaoguanghe":   "taobaoguanghe",
+	"taobao-guanghe":  "taobaoguanghe",
+	"淘宝光合":            "taobaoguanghe",
 }
 
 var additionalAliasesToCanonicalKeys = map[string]string{
@@ -180,6 +184,7 @@ var chineseNames = map[string]string{
 	"youtube":         "Youtube",
 	"facebook":        "Facebook",
 	"instagram":       "Instagram",
+	"taobaoguanghe":   "淘宝光合",
 }
 
 func CanonicalKey(value string) string {
@@ -256,7 +261,7 @@ func IsKnown(value string) bool {
 // from images[0] for internal compatibility.
 func ImageTextUsesFirstImageAsCover(value string) bool {
 	switch CanonicalKey(value) {
-	case "xinlang", "xhs", "shipinhao", "weixin.account", "zhihu", "toutiaohao":
+	case "xinlang", "xhs", "shipinhao", "weixin.account", "zhihu", "toutiaohao", "taobaoguanghe":
 		return true
 	default:
 		return false

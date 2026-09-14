@@ -52,7 +52,7 @@ func shoppingCartEntitlementsSupported(platforms []string) bool {
 		return true
 	}
 	for _, platform := range platforms {
-		if platformutil.CanonicalKey(platform) == "duoduoshipin" {
+		if key := platformutil.CanonicalKey(platform); key == "duoduoshipin" || key == "taobaoguanghe" {
 			return false
 		}
 	}
