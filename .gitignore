@@ -6,6 +6,11 @@ bin/**
 .agents/**
 .gomodcache/**
 out/**
+.yxer-online-test/
+goods-video*.json
+payload-*.json
+publish-form*.json
+yxer-local*.exe
 .npmrc-publish
 .npm-cache/**
 skills/yixiaoer-bootstrap/**
