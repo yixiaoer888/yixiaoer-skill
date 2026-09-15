@@ -859,6 +859,7 @@ func getPlatformSpecificNotes(platform, publishType string) []string {
 	case "duoduoshipin", "多多视频":
 		if publishType == "video" {
 			notes = append(notes, "多多视频推广商品需用户手工填写 shopping_cart.goods_id；CLI 固定 source=pdd，不从 yxer query goods 的 yixiaoerId 映射")
+			notes = append(notes, "多多视频声明使用 declaration 数字字段：0=无需声明，1=内容由 AI 生成，3=内容为转载，5=虚构演绎仅供娱乐，7=内容含营销信息，8=个人观点仅供参考；0 不下沉为 statement，非 0 由服务端转换为 statement.type")
 		}
 
 	case "kuaishou", "快手":

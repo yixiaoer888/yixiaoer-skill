@@ -99,6 +99,34 @@ func TestPreflightDefaultsDuoduoshipinVideoToImmediatePublish(t *testing.T) {
 	}
 }
 
+func TestNormalizeDuoduoshipinDeclarationPassesThroughForServerConversion(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		declaration float64
+	}{
+		{name: "no declaration", declaration: 0},
+		{name: "ai generated", declaration: 1},
+		{name: "marketing", declaration: 7},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			payload := validVideoPayload()
+			payload["platforms"] = []interface{}{"多多视频"}
+			cpf := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+			cpf["declaration"] = tc.declaration
+			delete(cpf, "statement")
+
+			NormalizeStandardPayloadForSchemaValidation("video", []string{"多多视频"}, payload)
+
+			if got := cpf["declaration"]; got != tc.declaration {
+				t.Fatalf("expected declaration %v to pass through unchanged, got %#v", tc.declaration, got)
+			}
+			if _, exists := cpf["statement"]; exists {
+				t.Fatalf("CLI must not synthesize statement from declaration=%v: %#v", tc.declaration, cpf["statement"])
+			}
+		})
+	}
+}
+
 func TestPreflightValidatesFullPublishRequestFields(t *testing.T) {
 	payload := map[string]interface{}{
 		"action":         "save",

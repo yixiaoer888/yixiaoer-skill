@@ -23,9 +23,12 @@
 | :--- | :--- | :--- | :--- | :--- |
 | formType | string | 是 | 固定为 `task` | `task` |
 | description | string | 否 | 多多视频描述 | - |
+| declaration | number | 否 | 内容声明：`0` 无需声明，`1` 内容由 AI 生成，`3` 内容为转载，`5` 虚构演绎仅供娱乐，`7` 内容含营销信息，`8` 个人观点仅供参考 | `0` |
 | scheduledTime | number | 否 | 仅在用户明确要求定时发布时填写；不填写时 CLI 默认立即发布 | - |
 | pubType | number | 否 | 发布方式；CLI 默认设置为 `1`（立即发布） | `1` |
 | shopping_cart | object | 否 | 关联商品信息（购物车）；商品 ID 由用户手工输入 | - |
+
+`declaration=0` 表示无需声明，服务端不会将其转换为 `statement: { "type": 0 }`；非 `0` 值由服务端转换为 `statement: { "type": declaration }`。CLI 只传 `contentPublishForm.declaration` 数字字段，不要直接构造旧的 `statement` 对象。
 
 `shopping_cart` 出现时必须包含以下字段：
 
@@ -54,6 +57,7 @@
         "contentPublishForm": {
           "formType": "task",
           "description": "这是多多视频的商品分享推荐内容。",
+          "declaration": 0,
           "shopping_cart": {
             "goods_id": "998877",
             "source": "pdd"

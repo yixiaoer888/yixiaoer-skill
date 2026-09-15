@@ -1061,6 +1061,73 @@ func TestValidateAcceptsWebPushedVideoPlatformFields(t *testing.T) {
 	}
 }
 
+func TestDuoduoshipinVideoSchemaExposesDeclarationContract(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	doc, err := validator.Schema("多多视频", "video")
+	if err != nil {
+		t.Fatal(err)
+	}
+	declaration, ok := doc.Properties["declaration"]
+	if !ok {
+		t.Fatalf("expected Duoduoshipin video schema to expose declaration, got %#v", doc.Properties)
+	}
+	if declaration.Type != "number" || declaration.Required {
+		t.Fatalf("declaration must be an optional number, got %#v", declaration)
+	}
+	assertPropertyEnum(t, "多多视频.declaration", declaration, 0, 1, 3, 5, 7, 8)
+	if declaration.Default != float64(0) {
+		t.Fatalf("expected declaration default 0, got %#v", declaration.Default)
+	}
+	if _, ok := doc.Properties["statement"]; ok {
+		t.Fatalf("Duoduoshipin video schema must not expose the legacy statement object")
+	}
+}
+
+func TestDuoduoshipinVideoDeclarationValidation(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	base := func(declaration interface{}) map[string]interface{} {
+		return map[string]interface{}{
+			"formType":    "task",
+			"declaration": declaration,
+		}
+	}
+
+	for _, declaration := range []float64{0, 1, 3, 5, 7, 8} {
+		result := validator.Validate("多多视频", "video", base(declaration))
+		if !result.Valid {
+			t.Fatalf("expected valid declaration %v, got %v", declaration, result.Errors)
+		}
+	}
+
+	for _, declaration := range []float64{2, 4, 9} {
+		result := validator.Validate("多多视频", "video", base(declaration))
+		if result.Valid || !containsError(result.Errors, "/declaration: must be one of [0 1 3 5 7 8]") {
+			t.Fatalf("expected declaration %v to be rejected, got valid=%v errors=%v", declaration, result.Valid, result.Errors)
+		}
+	}
+
+	legacyStatement := validator.Validate("多多视频", "video", map[string]interface{}{
+		"formType":  "task",
+		"statement": map[string]interface{}{"type": float64(1)},
+	})
+	if legacyStatement.Valid {
+		t.Fatal("expected the legacy statement object to be rejected")
+	}
+}
+
+func TestDuoduoshipinVideoDeclarationValidationKeepsNumberContract(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	for _, declaration := range []interface{}{"1", true, nil} {
+		result := validator.Validate("多多视频", "video", map[string]interface{}{
+			"formType":    "task",
+			"declaration": declaration,
+		})
+		if result.Valid {
+			t.Fatalf("expected non-number declaration %#v to be rejected", declaration)
+		}
+	}
+}
+
 func TestValidateAcceptsWebPushedArticlePlatformFields(t *testing.T) {
 	validator := NewValidator(filepath.Join("..", "..", "schemas"))
 	cover := map[string]interface{}{
