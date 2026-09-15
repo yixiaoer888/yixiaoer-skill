@@ -25,6 +25,7 @@
 | 同步发布应用 | 已覆盖 | `yxer query syncapps <account_id>` | `skills/yixiaoer/references/get-sync-apps.md` |
 | 热点列表 | 已覆盖 | `yxer query hot-events <account_id>` | `skills/yixiaoer/references/get-hot-events.md` |
 | 群聊列表 | 已覆盖 | `yxer query groups <account_id>` | `skills/yixiaoer/references/get-groups.md` |
+| 小红书好友艾特对象 | 已覆盖 | `yxer query friends <account_id> [--red-id 小红书号]` | `skills/yixiaoer/references/get-friends.md` |
 | 账号分组列表 | 已覆盖 | `yxer account-group list [--page 1] [--size 10]` | `skills/yixiaoer/references/get-account-groups.md` |
 | 创建账号分组 | 已覆盖 | `yxer account-group create <name> [--dry-run]` | `skills/yixiaoer/references/create-account-group.md` |
 | 更新账号分组 | 已覆盖 | `yxer account-group update <group_id> <name> [--visible-scope all|specific] [--visible-user USER_ID]... [--dry-run]` | `skills/yixiaoer/references/update-account-group.md` |

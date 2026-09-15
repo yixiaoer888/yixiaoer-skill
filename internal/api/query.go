@@ -217,6 +217,57 @@ func (c *Client) Groups(accountID string) (interface{}, error) {
 	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/group-chats", accountID), nil))
 }
 
+func (c *Client) Friends(accountID string) (interface{}, error) {
+	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/friends", accountID), nil))
+}
+
+// FilterFriendsByRedID filters a friends query result by the platform's
+// public Xiaohongshu identifier stored in raw.red_id.
+func FilterFriendsByRedID(result interface{}, redID string) interface{} {
+	redID = strings.TrimSpace(redID)
+	if redID == "" {
+		return result
+	}
+
+	switch typed := result.(type) {
+	case []interface{}:
+		return filterFriendItemsByRedID(typed, redID)
+	case map[string]interface{}:
+		items, ok := typed["list"].([]interface{})
+		if !ok {
+			return result
+		}
+		filtered := cloneInterfaceMap(typed)
+		filtered["list"] = filterFriendItemsByRedID(items, redID)
+		return filtered
+	default:
+		return result
+	}
+}
+
+func filterFriendItemsByRedID(items []interface{}, redID string) []interface{} {
+	filtered := make([]interface{}, 0, len(items))
+	for _, item := range items {
+		friend, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if friendRedID(friend) == redID {
+			filtered = append(filtered, item)
+		}
+	}
+	return filtered
+}
+
+func friendRedID(friend map[string]interface{}) string {
+	if raw, ok := friend["raw"].(map[string]interface{}); ok {
+		if redID := stringField(raw, "red_id"); redID != "" {
+			return redID
+		}
+	}
+	return stringField(friend, "red_id")
+}
+
 type MembersOptions struct {
 	Page     int
 	Size     int

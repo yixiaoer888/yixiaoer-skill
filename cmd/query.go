@@ -41,6 +41,7 @@ func newQueryCmd() *cobra.Command {
 	cmd.AddCommand(newGamesCmd())
 	cmd.AddCommand(newHotEventsCmd())
 	cmd.AddCommand(newGroupsCmd())
+	cmd.AddCommand(newFriendsCmd())
 	cmd.AddCommand(newMembersCmd())
 	cmd.AddCommand(newActivitiesCmd())
 	cmd.AddCommand(newChallengesCmd())
@@ -342,6 +343,27 @@ func newGroupsCmd() *cobra.Command {
 			})
 		},
 	}
+	return cmd
+}
+
+func newFriendsCmd() *cobra.Command {
+	var redID string
+	cmd := &cobra.Command{
+		Use:   "friends <account_id>",
+		Short: "查询可艾特好友",
+		Long:  "查询账号可用于小红书描述 <friend> 标签的好友对象。可使用 --red-id 按好友小红书号精确筛选。发布时须使用查询结果中的完整对象生成 raw 属性。",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runQuery(cmd, "friends", func(service queryflow.Service) (interface{}, error) {
+				result, err := service.Friends(args[0])
+				if err != nil {
+					return nil, err
+				}
+				return api.FilterFriendsByRedID(result, redID), nil
+			})
+		},
+	}
+	cmd.Flags().StringVar(&redID, "red-id", "", "按好友小红书号筛选（查询结果中的 raw.red_id）")
 	return cmd
 }
 

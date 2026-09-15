@@ -239,6 +239,7 @@ yxer publish <type> <platform> .\payload.json --publish-channel local --client-i
 | `collection` / `sub_collection` | `yxer query collections <account_id> [--type video]` | 整个 `yxer query collections` 返回对象 |
 | 视频号 `drama` | `yxer query drama-tasks <account_id> [--query 关键词]` | 只保留 `yixiaoerId`、`yixiaoerImageUrl`、`yixiaoerName`，不使用 `raw` |
 | `challenge` | `yxer query challenges <account_id> [--query 关键词]` | 整个 `yxer query challenges` 返回对象 |
+| 小红书 `description` 中的 `<friend>` | `yxer query friends <account_id> [--red-id 小红书号]` | 将整个好友对象 JSON 序列化到标签 `raw`，标签正文使用查询结果名称 |
 | `category` | `yxer query categories <account_id> [--type video\|article]` | 整个 `yxer query categories` 返回对象 |
 | `goods` | `yxer query goods <account_id> [--query 关键词]` | 整个 `yxer query goods` 返回对象 |
 

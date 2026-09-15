@@ -138,6 +138,13 @@ func TestQueryCommandExistsWithDramaTasksSubcommand(t *testing.T) {
 	}
 }
 
+func TestFriendsCommandSupportsRedIDFilter(t *testing.T) {
+	cmd := newFriendsCmd()
+	if cmd.Flag("red-id") == nil {
+		t.Fatal("friends command is missing --red-id filter")
+	}
+}
+
 func TestQueryCommandsUseCommandLocalFlagStorage(t *testing.T) {
 	locations := newLocationsCmd()
 	if err := locations.Flags().Parse([]string{"--query", "parks", "--keyword", "alias"}); err != nil {
@@ -189,6 +196,7 @@ func TestQueryCommandExistsWithMiniAppsAndSyncAppsSubcommands(t *testing.T) {
 	foundGames := false
 	foundHotEvents := false
 	foundGroups := false
+	foundFriends := false
 	foundMembers := false
 	foundActivities := false
 	foundMusicCategories := false
@@ -213,6 +221,8 @@ func TestQueryCommandExistsWithMiniAppsAndSyncAppsSubcommands(t *testing.T) {
 				foundHotEvents = true
 			case "groups":
 				foundGroups = true
+			case "friends":
+				foundFriends = true
 			case "members":
 				foundMembers = true
 			case "activities":
@@ -246,6 +256,9 @@ func TestQueryCommandExistsWithMiniAppsAndSyncAppsSubcommands(t *testing.T) {
 	}
 	if !foundGroups {
 		t.Fatal("expected query command to expose groups subcommand")
+	}
+	if !foundFriends {
+		t.Fatal("expected query command to expose friends subcommand")
 	}
 	if !foundMembers {
 		t.Fatal("expected query command to expose members subcommand")

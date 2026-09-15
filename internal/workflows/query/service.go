@@ -77,6 +77,10 @@ func (s Service) Groups(accountID string) (interface{}, error) {
 	return s.rt.Client.Groups(accountID)
 }
 
+func (s Service) Friends(accountID string) (interface{}, error) {
+	return s.rt.Client.Friends(accountID)
+}
+
 func (s Service) Members(opts api.MembersOptions) (interface{}, error) {
 	return s.rt.Client.Members(opts)
 }

@@ -901,6 +901,68 @@ func TestGroupsUsesExpectedEndpoint(t *testing.T) {
 	}
 }
 
+func TestFriendsUsesExpectedEndpoint(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/platform-accounts/acc_1/friends" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": []map[string]interface{}{
+				{"yixiaoerId": "friend_1", "yixiaoerName": "张三", "raw": map[string]interface{}{"nick": "张三"}},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.Friends("acc_1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	items := result.([]interface{})
+	if len(items) != 1 {
+		t.Fatalf("expected one friend, got %d", len(items))
+	}
+	first := items[0].(map[string]interface{})
+	if first["yixiaoerName"] != "张三" {
+		t.Fatalf("unexpected friend payload: %#v", first)
+	}
+}
+
+func TestFilterFriendsByRedID(t *testing.T) {
+	result := map[string]interface{}{
+		"list": []interface{}{
+			map[string]interface{}{
+				"yixiaoerId":   "friend_1",
+				"yixiaoerName": "张三",
+				"raw":          map[string]interface{}{"red_id": "red_1"},
+			},
+			map[string]interface{}{
+				"yixiaoerId":   "friend_2",
+				"yixiaoerName": "李四",
+				"raw":          map[string]interface{}{"red_id": "red_2"},
+			},
+		},
+		"page": 1,
+	}
+
+	filtered, ok := FilterFriendsByRedID(result, " red_2 ").(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected filtered result map, got %#v", filtered)
+	}
+	items, ok := filtered["list"].([]interface{})
+	if !ok || len(items) != 1 {
+		t.Fatalf("expected one matching friend, got %#v", filtered["list"])
+	}
+	friend := items[0].(map[string]interface{})
+	if friend["yixiaoerName"] != "李四" {
+		t.Fatalf("unexpected matching friend: %#v", friend)
+	}
+	if filtered["page"] != 1 {
+		t.Fatalf("expected response metadata to be preserved, got %#v", filtered)
+	}
+}
+
 func TestMembersUsesExpectedEndpointAndFilters(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/members" {

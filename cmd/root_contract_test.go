@@ -249,6 +249,7 @@ func TestVisibleCommandTreeSnapshot(t *testing.T) {
 			"details",
 			"drama-tasks",
 			"entitlements",
+			"friends",
 			"games",
 			"goods",
 			"goods-detail",

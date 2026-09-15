@@ -2513,6 +2513,7 @@ func TestPublishCommandAcceptsBaijiahaoImageTextPayload(t *testing.T) {
 
 func TestPublishCommandAcceptsFirstImageCoverImageTextPayloadWithoutExternalCover(t *testing.T) {
 	withRepoRoot(t)
+	friendDescription := `<p>小红书图文内容 <friend raw='{"yixiaoerId":"friend_1","yixiaoerImageUrl":"https://example.com/avatar.jpg","yixiaoerName":"张三","raw":{"user_id":"user_1","user_nickname":"张三"}}'>@张三</friend></p>`
 	payloadPath := writePublishPayload(t, map[string]interface{}{
 		"action":         "publish",
 		"publishType":    "imageText",
@@ -2525,7 +2526,7 @@ func TestPublishCommandAcceptsFirstImageCoverImageTextPayloadWithoutExternalCove
 					"contentPublishForm": map[string]interface{}{
 						"formType":    "task",
 						"title":       "小红书图文标题",
-						"description": "小红书图文内容",
+						"description": friendDescription,
 						"visibleType": float64(0),
 						"images": []interface{}{
 							map[string]interface{}{
@@ -2562,6 +2563,10 @@ func TestPublishCommandAcceptsFirstImageCoverImageTextPayloadWithoutExternalCove
 	}
 	if cover := form["cover"].(map[string]interface{}); cover["key"] != "first-image-key" {
 		t.Fatalf("expected internal cover derived from first image, got %+v", form)
+	}
+	contentForm := form["contentPublishForm"].(map[string]interface{})
+	if got := contentForm["description"]; got != friendDescription {
+		t.Fatalf("expected friend HTML to be preserved, got %#v", got)
 	}
 }
 
