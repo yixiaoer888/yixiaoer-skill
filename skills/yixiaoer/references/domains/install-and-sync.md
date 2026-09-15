@@ -4,6 +4,22 @@
 
 **CRITICAL - 用户意图是安装、升级或同步时，先完成本域动作，不要跳到发布流程里“顺手再发一次”验证。**
 
+## 读取顺序
+
+1. [`../yixiaoer-shared.md`](../yixiaoer-shared.md)
+2. 环境检查与本机发布配置：[`./accounts-and-env.md`](./accounts-and-env.md)
+
+## 常用命令
+
+```bash
+npm install -g @yixiaoermail/cli@latest
+yxer --version
+yxer skill show
+yxer skill sync [--global]
+yxer update [--global]
+yxer doctor
+```
+
 ## 标准安装流程
 
 ```bash
