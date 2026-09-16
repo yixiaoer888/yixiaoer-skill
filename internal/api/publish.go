@@ -29,9 +29,10 @@ func PublishedTaskDeleteEndpoint(taskID string) string {
 // and surface a remote error when it is missing (e.g. an empty body that the
 // backend still answered with HTTP 200).
 func (c *Client) Publish(body map[string]interface{}) (map[string]interface{}, error) {
-	// The gateway expects the frontend category selection shape. Keep query,
-	// schema validation, and dry-run payloads in their canonical yixiaoer shape;
-	// perform this wire-format conversion only at the actual publish boundary.
+	// The gateway expects the frontend category selection shape. Query results
+	// use the canonical yixiaoer shape; preflight maps platform-specific schema
+	// inputs before validation, and this remains a final wire-format guard for
+	// callers that reach the API client directly.
 	wireBody, _ := clonePublishValue(body).(map[string]interface{})
 	normalizePublishCategories(wireBody)
 	var result map[string]interface{}
@@ -103,6 +104,7 @@ func wrapPublishCategoryValue(value interface{}) interface{} {
 		return typed
 	case map[string]interface{}:
 		if _, hasID := typed["id"]; hasID {
+			normalizePublishCategoryChildren(typed)
 			return typed
 		}
 		id, idOK := publishStringField(typed, "yixiaoerId")
@@ -115,12 +117,27 @@ func wrapPublishCategoryValue(value interface{}) interface{} {
 			"text": name,
 			"raw":  typed,
 		}
-		if children, ok := typed["child"].([]interface{}); ok && len(children) > 0 {
-			wrapped["children"] = children
-		}
+		normalizePublishCategoryChildrenInto(typed, wrapped)
 		return wrapped
 	default:
 		return value
+	}
+}
+
+func normalizePublishCategoryChildren(obj map[string]interface{}) {
+	normalizePublishCategoryChildrenInto(obj, obj)
+	if _, exists := obj["child"]; exists {
+		delete(obj, "child")
+	}
+}
+
+func normalizePublishCategoryChildrenInto(from, to map[string]interface{}) {
+	if children, ok := from["children"].([]interface{}); ok && len(children) > 0 {
+		to["children"] = wrapPublishCategoryValue(children)
+		return
+	}
+	if children, ok := from["child"].([]interface{}); ok && len(children) > 0 {
+		to["children"] = wrapPublishCategoryValue(children)
 	}
 }
 

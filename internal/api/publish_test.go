@@ -153,6 +153,11 @@ func TestPublishWrapsCategoryOnlyAtAPIBoundary(t *testing.T) {
 		if raw["yixiaoerId"] != "1000013" || raw["yixiaoerName"] != "科技互联网" {
 			t.Fatalf("expected canonical query object under raw, got %#v", raw)
 		}
+		children := category["children"].([]interface{})
+		child := children[0].(map[string]interface{})
+		if child["id"] != "1000014" || child["text"] != "互联网" {
+			t.Fatalf("expected nested publish category wrapper, got %#v", child)
+		}
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{"statusCode": 0, "data": "task_1"})
 	}))
 	defer server.Close()
@@ -165,6 +170,10 @@ func TestPublishWrapsCategoryOnlyAtAPIBoundary(t *testing.T) {
 					"category": []interface{}{map[string]interface{}{
 						"yixiaoerId": "1000013", "yixiaoerName": "科技互联网",
 						"raw": map[string]interface{}{"id": "1000013", "name": "科技互联网"},
+						"child": []interface{}{map[string]interface{}{
+							"yixiaoerId": "1000014", "yixiaoerName": "互联网",
+							"raw": map[string]interface{}{"id": "1000014", "name": "互联网"},
+						}},
 					}},
 				},
 			}},

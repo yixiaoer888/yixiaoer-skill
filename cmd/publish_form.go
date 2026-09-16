@@ -116,8 +116,11 @@ func newPublishFormAccountCmd() *cobra.Command {
 				Kind:          "account",
 				SourceCommand: fmt.Sprintf("yxer accounts list %s --status 1 --json", session.Platform),
 				Target:        api.AccountID(selected),
-				Value:         selected,
-				UpdatedAt:     now,
+				// The source path stores the selected account ID, so provenance
+				// must hash that same scalar value rather than the full account
+				// object returned by the accounts query.
+				Value:     api.AccountID(selected),
+				UpdatedAt: now,
 			}
 			session.Payload = updated
 			session.UpdatedAt = now

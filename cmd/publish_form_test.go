@@ -76,6 +76,12 @@ func TestShipinhaoVideoFormAccountSelectsOnlyOnlineAccount(t *testing.T) {
 	if len(session.Sources) != 1 || session.Sources[0].Kind != "account" || session.Sources[0].Target != "online" {
 		t.Fatalf("expected account source record, got %#v", session.Sources)
 	}
+	if session.Sources[0].Value != "online" {
+		t.Fatalf("expected account source value to match payload path, got %#v", session.Sources[0].Value)
+	}
+	if _, err := validatePublishFormProvenance(session); err != nil {
+		t.Fatalf("expected account provenance to validate, got %v", err)
+	}
 
 	set := newPublishFormSetCmd()
 	set.SetArgs([]string{sessionPath, "publishArgs.accountForms[0].contentPublishForm.title", "--value", `"视频标题"`})

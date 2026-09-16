@@ -773,6 +773,8 @@ func normalizeDynamicObjectFields(cpf map[string]interface{}, formPath, publishT
 		case field == "category":
 			if isDouyinPlatformSet(platformSet) {
 				normalized, changed = normalizePlatformDataValue(value, fieldPath, field, normalizations)
+			} else if isYidianhaoPlatformSet(platformSet) {
+				normalized, changed = normalizeYidianhaoCategoryValue(value, fieldPath, normalizations)
 			} else {
 				normalized, changed = normalizeDynamicObjectValue(value, fieldPath, field, normalizations)
 			}
@@ -789,6 +791,10 @@ func isDouyinPlatformSet(platformSet map[string]bool) bool {
 	return platformSet["抖音"] || platformSet["douyin"]
 }
 
+func isYidianhaoPlatformSet(platformSet map[string]bool) bool {
+	return platformSet["一点号"] || platformSet["yidianhao"]
+}
+
 func isDuoduoshipinPlatformSet(platformSet map[string]bool) bool {
 	return platformSet["多多视频"] || platformSet["duoduoshipin"]
 }
@@ -798,6 +804,99 @@ func normalizeLocationValue(value interface{}, path, publishType string, platfor
 		return normalizeDouyinLocationValue(value, path, publishType, normalizations)
 	}
 	return normalizePlatformDataValue(value, path, "location", normalizations)
+}
+
+func normalizeYidianhaoCategoryValue(value interface{}, path string, normalizations *[]NormalizationEvent) (interface{}, bool) {
+	switch typed := value.(type) {
+	case []interface{}:
+		changed := false
+		normalized := make([]interface{}, len(typed))
+		for i, item := range typed {
+			itemPath := fmt.Sprintf("%s[%d]", path, i)
+			mapped, itemChanged := normalizeYidianhaoCategoryValue(item, itemPath, normalizations)
+			normalized[i] = mapped
+			if itemChanged {
+				changed = true
+			}
+		}
+		if !changed {
+			return value, false
+		}
+		return normalized, true
+	case map[string]interface{}:
+		if typed == nil {
+			return value, false
+		}
+		if data, ok := typed["data"].(map[string]interface{}); ok && data != nil {
+			if normalized, changed := normalizeYidianhaoCategoryValue(data, path+".data", normalizations); changed {
+				appendNormalization(normalizations, NormalizationEvent{
+					Field:        "category",
+					Path:         path,
+					Action:       "unwrap_data_to_frontend_shape",
+					Message:      `Unwrapped Yidianhao category query data into id/text/raw shape.`,
+					QueryCommand: dynamicObjectQueryCommand("category"),
+				})
+				return normalized, true
+			}
+		}
+
+		if isPlatformDataObject(typed) {
+			if children, changed := normalizeYidianhaoCategoryChildren(typed, path, normalizations); changed {
+				normalized := cloneObjectExcluding(typed, "child", "children")
+				normalized["children"] = children
+				return normalized, true
+			}
+			return value, false
+		}
+
+		id := stringField(typed, "yixiaoerId")
+		text := stringField(typed, "yixiaoerName")
+		if id == "" || text == "" {
+			return value, false
+		}
+		normalized := map[string]interface{}{
+			"id":   id,
+			"text": text,
+			"raw":  typed,
+		}
+		if children, ok := normalizeYidianhaoCategoryChildren(typed, path, normalizations); ok {
+			normalized["children"] = children
+		}
+		appendNormalization(normalizations, NormalizationEvent{
+			Field:        "category",
+			Path:         path,
+			Action:       "map_frontend_shape",
+			Message:      `Mapped Yidianhao category query object into id/text/raw shape.`,
+			QueryCommand: dynamicObjectQueryCommand("category"),
+		})
+		return normalized, true
+	default:
+		return value, false
+	}
+}
+
+func normalizeYidianhaoCategoryChildren(obj map[string]interface{}, path string, normalizations *[]NormalizationEvent) ([]interface{}, bool) {
+	for _, key := range []string{"child", "children"} {
+		items, ok := obj[key].([]interface{})
+		if !ok || len(items) == 0 {
+			continue
+		}
+		normalized := make([]interface{}, len(items))
+		changed := false
+		for i, item := range items {
+			itemPath := fmt.Sprintf("%s.%s[%d]", path, key, i)
+			mapped, itemChanged := normalizeYidianhaoCategoryValue(item, itemPath, normalizations)
+			normalized[i] = mapped
+			if itemChanged {
+				changed = true
+			}
+		}
+		if changed || key == "child" {
+			return normalized, true
+		}
+		return items, true
+	}
+	return nil, false
 }
 
 func normalizeDouyinLocationValue(value interface{}, path, publishType string, normalizations *[]NormalizationEvent) (interface{}, bool) {

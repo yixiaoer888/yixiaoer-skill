@@ -1206,7 +1206,6 @@ func TestNormalizeCategoryKeepsQueryObjectShapeAcrossCategoryPlatforms(t *testin
 		{name: "toutiaohao article", platform: "toutiaohao", publishType: "article"},
 		{name: "wangyihao video", platform: "wangyihao", publishType: "video"},
 		{name: "xinlang video", platform: "xinlang", publishType: "video"},
-		{name: "yidianhao video", platform: "yidianhao", publishType: "video"},
 		{name: "zhihu video", platform: "zhihu", publishType: "video"},
 	}
 
@@ -1238,6 +1237,60 @@ func TestNormalizeCategoryKeepsQueryObjectShapeAcrossCategoryPlatforms(t *testin
 				t.Fatalf("category must not be converted to frontend id/text shape: %+v", category)
 			}
 		})
+	}
+}
+
+func TestNormalizeYidianhaoVideoCategoryToFrontendPublishShape(t *testing.T) {
+	payload := validVideoPayload()
+	payload["platforms"] = []interface{}{"一点号"}
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	cpf := form["contentPublishForm"].(map[string]interface{})
+	cpf["tags"] = []interface{}{"社会"}
+	cpf["category"] = []interface{}{
+		map[string]interface{}{
+			"yixiaoerId":   "24",
+			"yixiaoerName": "案件",
+			"child": []interface{}{
+				map[string]interface{}{
+					"yixiaoerId":   "1",
+					"yixiaoerName": "法治案件",
+				},
+			},
+		},
+	}
+
+	var events []NormalizationEvent
+	NormalizeStandardPayloadForSchemaValidationWithTrace("video", []string{"一点号"}, payload, &events)
+
+	category := cpf["category"].([]interface{})[0].(map[string]interface{})
+	if category["id"] != "24" || category["text"] != "案件" {
+		t.Fatalf("expected Yidianhao category id/text shape, got %+v", category)
+	}
+	if _, ok := category["raw"].(map[string]interface{}); !ok {
+		t.Fatalf("expected Yidianhao category raw snapshot, got %+v", category)
+	}
+	children, ok := category["children"].([]interface{})
+	if !ok || len(children) != 1 {
+		t.Fatalf("expected Yidianhao category children, got %+v", category)
+	}
+	child := children[0].(map[string]interface{})
+	if child["id"] != "1" || child["text"] != "法治案件" {
+		t.Fatalf("expected Yidianhao child id/text shape, got %+v", child)
+	}
+	if _, ok := child["raw"].(map[string]interface{}); !ok {
+		t.Fatalf("expected Yidianhao child raw snapshot, got %+v", child)
+	}
+	if !hasNormalizationEvent(events, "map_frontend_shape") {
+		t.Fatalf("expected Yidianhao category frontend-shape normalization event, got %+v", events)
+	}
+
+	validator := schema.NewValidator(filepath.Join("..", "..", "..", "schemas"))
+	result, err := validator.ValidateStrict("一点号", "video", payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Valid {
+		t.Fatalf("expected normalized Yidianhao video payload to pass schema validation, got %v", result.Errors)
 	}
 }
 

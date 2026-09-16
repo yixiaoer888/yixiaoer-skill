@@ -464,6 +464,53 @@ func TestCategoriesBuildsTreeFromBilibiliOpenParentIDs(t *testing.T) {
 	}
 }
 
+func TestCategoriesCompletesRawForCanonicalIdentityOnlyItems(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/platform-accounts/acc_1/categories" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": []map[string]interface{}{
+				{
+					"yixiaoerId":   "root_1",
+					"yixiaoerName": "案件",
+					"child": []map[string]interface{}{
+						{"yixiaoerId": "child_1", "yixiaoerName": "法治案件"},
+					},
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.Categories("acc_1", "video")
+	if err != nil {
+		t.Fatal(err)
+	}
+	items, ok := result.([]interface{})
+	if !ok || len(items) != 1 {
+		t.Fatalf("expected one canonical category item, got %#v", result)
+	}
+	root := items[0].(map[string]interface{})
+	if root["yixiaoerId"] != "root_1" || root["yixiaoerName"] != "案件" {
+		t.Fatalf("unexpected root category: %#v", root)
+	}
+	rootRaw, ok := root["raw"].(map[string]interface{})
+	if !ok || rootRaw["yixiaoerId"] != "root_1" || rootRaw["yixiaoerName"] != "案件" {
+		t.Fatalf("expected raw snapshot for root category, got %#v", root["raw"])
+	}
+	children, ok := root["child"].([]interface{})
+	if !ok || len(children) != 1 {
+		t.Fatalf("expected one child category, got %#v", root["child"])
+	}
+	child := children[0].(map[string]interface{})
+	childRaw, ok := child["raw"].(map[string]interface{})
+	if !ok || childRaw["yixiaoerId"] != "child_1" || childRaw["yixiaoerName"] != "法治案件" {
+		t.Fatalf("expected raw snapshot for child category, got %#v", child["raw"])
+	}
+}
+
 func TestGamesUsesExpectedEndpointAndKeywordQuery(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/platform-accounts/acc_1/games" {

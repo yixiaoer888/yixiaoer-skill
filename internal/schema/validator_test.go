@@ -148,6 +148,55 @@ func TestValidateAcceptsYidianhaoVideoUsingCurrentCreateType(t *testing.T) {
 	}
 }
 
+func TestValidateRequiresNonEmptyYidianhaoVideoCategory(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	doc, err := validator.Schema("一点号", "video")
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, requiredField := range doc.Required {
+		if requiredField == "category" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("yidianhao video schema must require category, got %#v", doc.Required)
+	}
+
+	base := map[string]interface{}{
+		"formType":    "task",
+		"title":       "一点号视频标题",
+		"description": "一点号视频描述",
+		"tags":        []interface{}{"社会"},
+	}
+	for _, tc := range []struct {
+		name    string
+		payload map[string]interface{}
+	}{
+		{name: "missing", payload: base},
+		{name: "empty", payload: func() map[string]interface{} {
+			payload := map[string]interface{}{}
+			for key, value := range base {
+				payload[key] = value
+			}
+			payload["category"] = []interface{}{}
+			return payload
+		}()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := validator.ValidateStrict("一点号", "video", tc.payload)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.Valid {
+				t.Fatalf("expected Yidianhao category %s case to fail validation", tc.name)
+			}
+		})
+	}
+}
+
 func TestSchemaResolvesVideoAccountAliasesToCanonicalKeys(t *testing.T) {
 	validator := NewValidator(filepath.Join("..", "..", "schemas"))
 

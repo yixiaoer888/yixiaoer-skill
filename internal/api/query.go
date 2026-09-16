@@ -858,6 +858,19 @@ func normalizeCategoryItem(obj map[string]interface{}) map[string]interface{} {
 		copyCategoryChildren(obj, canonical)
 		return canonical
 	}
+	// Some live category endpoints already provide the canonical identity but
+	// omit raw. Complete the stable query shape here so the result can be used
+	// by form provenance and the publish preflight without inventing fields at
+	// the command layer.
+	if id := stringField(obj, "yixiaoerId"); id != "" {
+		if name := stringField(obj, "yixiaoerName"); name != "" {
+			canonical := cloneInterfaceMap(obj)
+			raw := cloneObjectExcluding(obj, "raw")
+			canonical["raw"] = raw
+			copyCategoryChildren(obj, canonical)
+			return canonical
+		}
+	}
 
 	id := stringField(obj, "id")
 	if id == "" {
@@ -886,10 +899,8 @@ func isCategoryQueryObject(obj map[string]interface{}) bool {
 	if obj == nil {
 		return false
 	}
-	_, hasID := obj["yixiaoerId"]
-	_, hasName := obj["yixiaoerName"]
-	_, hasRaw := obj["raw"]
-	return hasID && hasName && hasRaw
+	_, hasRaw := obj["raw"].(map[string]interface{})
+	return stringField(obj, "yixiaoerId") != "" && stringField(obj, "yixiaoerName") != "" && hasRaw
 }
 
 func copyCategoryChildren(from, to map[string]interface{}) {
@@ -978,6 +989,14 @@ func cloneInterfaceMap(input map[string]interface{}) map[string]interface{} {
 	out := make(map[string]interface{}, len(input))
 	for key, value := range input {
 		out[key] = value
+	}
+	return out
+}
+
+func cloneObjectExcluding(input map[string]interface{}, excluded ...string) map[string]interface{} {
+	out := cloneInterfaceMap(input)
+	for _, key := range excluded {
+		delete(out, key)
 	}
 	return out
 }
