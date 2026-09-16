@@ -853,6 +853,71 @@ func TestValidateAcceptsXhsImageTextScheduledFields(t *testing.T) {
 	}
 }
 
+func TestValidateXhsDescriptionCountsVisibleCharacters(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	raw := `{"id":"friend-id","name":"主播","padding":"` + strings.Repeat("x", 600) + ">" + strings.Repeat("x", 600) + `"}`
+
+	for _, publishType := range []string{"video", "imageText"} {
+		t.Run(publishType, func(t *testing.T) {
+			for _, tc := range []struct {
+				name         string
+				visibleCount int
+				valid        bool
+			}{
+				{name: "at limit", visibleCount: 1000, valid: true},
+				{name: "over limit", visibleCount: 1001, valid: false},
+			} {
+				t.Run(tc.name, func(t *testing.T) {
+					visibleText := "@主播" + strings.Repeat("字", tc.visibleCount-3)
+					description := "<p><friend raw='" + raw + "'>" + visibleText + "</friend></p>"
+					payload := map[string]interface{}{
+						"formType":    "task",
+						"description": description,
+						"visibleType": float64(0),
+					}
+					if publishType == "imageText" {
+						payload["images"] = []interface{}{map[string]interface{}{
+							"key": "image-key", "size": float64(100), "width": float64(10), "height": float64(10), "format": "jpg",
+						}}
+					}
+
+					result, err := validator.ValidateStrict("小红书", publishType, payload)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if result.Valid != tc.valid {
+						t.Fatalf("expected valid=%t for %d visible characters, got errors %v", tc.valid, tc.visibleCount, result.Errors)
+					}
+					if !tc.valid && !containsError(result.Errors, "description: must NOT have more than 1000 characters") {
+						t.Fatalf("expected description maxLength error, got %v", result.Errors)
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestValidateXhsImageTextRequiresVisibleDescriptionText(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	description := "<p><friend raw='" + `{"id":"friend-id","padding":"` + strings.Repeat("x", 1200) + `"}` + "'></friend></p>"
+	payload := map[string]interface{}{
+		"formType":    "task",
+		"description": description,
+		"visibleType": float64(0),
+		"images": []interface{}{map[string]interface{}{
+			"key": "image-key", "size": float64(100), "width": float64(10), "height": float64(10), "format": "jpg",
+		}},
+	}
+
+	result, err := validator.ValidateStrict("小红书", "imageText", payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Valid || !containsError(result.Errors, "description: must NOT have fewer than 1 characters") {
+		t.Fatalf("expected description containing only markup to fail minLength, got valid=%t errors=%v", result.Valid, result.Errors)
+	}
+}
+
 func TestValidateRejectsXhsImageTextMusicField(t *testing.T) {
 	validator := NewValidator(filepath.Join("..", "..", "schemas"))
 	payload := map[string]interface{}{

@@ -3,10 +3,12 @@ package schema
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	platformutil "github.com/yixiaoer/yixiaoer-skill/internal/platform"
 )
@@ -40,9 +42,10 @@ func (v Validator) Validate(platform, publishType string, payload map[string]int
 	}
 	sanitizeSchemaDocument(schema)
 	targets := validationTargets(platform, publishType, payload)
+	countVisibleXhsDescriptionText := usesVisibleTextLength(platform, publishType)
 	var errors []string
 	for _, target := range targets {
-		errors = append(errors, validateValue(schema, target.Value, "/", target.Prefix)...)
+		errors = append(errors, validateValue(schema, target.Value, "/", target.Prefix, countVisibleXhsDescriptionText)...)
 	}
 	return Result{Valid: len(errors) == 0, Errors: errors}
 }
@@ -58,9 +61,10 @@ func (v Validator) ValidateStrict(platform, publishType string, payload map[stri
 	}
 	sanitizeSchemaDocument(schema)
 	targets := validationTargets(platform, publishType, payload)
+	countVisibleXhsDescriptionText := usesVisibleTextLength(platform, publishType)
 	var errors []string
 	for _, target := range targets {
-		errors = append(errors, validateValue(schema, target.Value, "/", target.Prefix)...)
+		errors = append(errors, validateValue(schema, target.Value, "/", target.Prefix, countVisibleXhsDescriptionText)...)
 	}
 	return Result{Valid: len(errors) == 0, Errors: errors}, nil
 }
@@ -309,7 +313,7 @@ func weixinAccountArticlePlatformForm(payload map[string]interface{}) map[string
 	return nil
 }
 
-func validateValue(schema map[string]interface{}, value interface{}, pathLabel, prefix string) []string {
+func validateValue(schema map[string]interface{}, value interface{}, pathLabel, prefix string, countVisibleXhsDescriptionText bool) []string {
 	var errors []string
 	if expectedType, ok := schema["type"].(string); ok && !matchesType(value, expectedType) {
 		return append(errors, fmt.Sprintf("%s%s: expected %s", prefix, pathLabel, expectedType))
@@ -325,11 +329,11 @@ func validateValue(schema map[string]interface{}, value interface{}, pathLabel, 
 
 	switch typed := value.(type) {
 	case map[string]interface{}:
-		errors = append(errors, validateObject(schema, typed, pathLabel, prefix)...)
+		errors = append(errors, validateObject(schema, typed, pathLabel, prefix, countVisibleXhsDescriptionText)...)
 	case []interface{}:
-		errors = append(errors, validateArray(schema, typed, pathLabel, prefix)...)
+		errors = append(errors, validateArray(schema, typed, pathLabel, prefix, countVisibleXhsDescriptionText)...)
 	case string:
-		errors = append(errors, validateString(schema, typed, pathLabel, prefix)...)
+		errors = append(errors, validateString(schema, typed, pathLabel, prefix, countVisibleXhsDescriptionText)...)
 	case float64:
 		errors = append(errors, validateNumber(schema, typed, pathLabel, prefix)...)
 	}
@@ -347,7 +351,7 @@ func validateNumber(schema map[string]interface{}, value float64, pathLabel, pre
 	return errors
 }
 
-func validateObject(schema map[string]interface{}, value map[string]interface{}, pathLabel, prefix string) []string {
+func validateObject(schema map[string]interface{}, value map[string]interface{}, pathLabel, prefix string, countVisibleXhsDescriptionText bool) []string {
 	var errors []string
 	if required, ok := schema["required"].([]interface{}); ok {
 		for _, item := range required {
@@ -380,7 +384,7 @@ func validateObject(schema map[string]interface{}, value map[string]interface{},
 		if !ok {
 			continue
 		}
-		errors = append(errors, validateValue(childMap, child, joinPath(pathLabel, key), prefix)...)
+		errors = append(errors, validateValue(childMap, child, joinPath(pathLabel, key), prefix, countVisibleXhsDescriptionText)...)
 	}
 	return errors
 }
@@ -417,7 +421,7 @@ func isCLICommonOptionalFieldAtPath(pathLabel, key string) bool {
 	return isCLICommonOptionalField(key)
 }
 
-func validateArray(schema map[string]interface{}, value []interface{}, pathLabel, prefix string) []string {
+func validateArray(schema map[string]interface{}, value []interface{}, pathLabel, prefix string, countVisibleXhsDescriptionText bool) []string {
 	var errors []string
 	if minItems, ok := number(schema["minItems"]); ok && len(value) < int(minItems) {
 		errors = append(errors, fmt.Sprintf("%s%s: must have at least %d items", prefix, pathLabel, int(minItems)))
@@ -430,20 +434,86 @@ func validateArray(schema map[string]interface{}, value []interface{}, pathLabel
 		return errors
 	}
 	for i, child := range value {
-		errors = append(errors, validateValue(itemSchema, child, fmt.Sprintf("%s/%d", strings.TrimRight(pathLabel, "/"), i), prefix)...)
+		errors = append(errors, validateValue(itemSchema, child, fmt.Sprintf("%s/%d", strings.TrimRight(pathLabel, "/"), i), prefix, countVisibleXhsDescriptionText)...)
 	}
 	return errors
 }
 
-func validateString(schema map[string]interface{}, value, pathLabel, prefix string) []string {
+func validateString(schema map[string]interface{}, value, pathLabel, prefix string, countVisibleXhsDescriptionText bool) []string {
 	var errors []string
-	if minLength, ok := number(schema["minLength"]); ok && len([]rune(value)) < int(minLength) {
+	length := len([]rune(value))
+	if countVisibleXhsDescriptionText && pathLabel == "/description" {
+		length = visibleHTMLTextLength(value)
+	}
+	if minLength, ok := number(schema["minLength"]); ok && length < int(minLength) {
 		errors = append(errors, fmt.Sprintf("%s%s: must NOT have fewer than %d characters", prefix, pathLabel, int(minLength)))
 	}
-	if maxLength, ok := number(schema["maxLength"]); ok && len([]rune(value)) > int(maxLength) {
+	if maxLength, ok := number(schema["maxLength"]); ok && length > int(maxLength) {
 		errors = append(errors, fmt.Sprintf("%s%s: must NOT have more than %d characters", prefix, pathLabel, int(maxLength)))
 	}
 	return errors
+}
+
+func usesVisibleTextLength(platform, publishType string) bool {
+	if platformutil.CanonicalKey(platform) != "xhs" {
+		return false
+	}
+	return publishType == "video" || publishType == "imageText"
+}
+
+// visibleHTMLTextLength counts rendered Unicode text while excluding HTML tags
+// and their attributes. In particular, XHS friend mention metadata in
+// <friend raw='...'> is not part of the description's visible character count.
+func visibleHTMLTextLength(value string) int {
+	var visibleText strings.Builder
+	for offset := 0; offset < len(value); {
+		if value[offset] == '<' {
+			if end, ok := htmlTagEnd(value, offset); ok {
+				offset = end
+				continue
+			}
+		}
+		_, size := utf8.DecodeRuneInString(value[offset:])
+		visibleText.WriteString(value[offset : offset+size])
+		offset += size
+	}
+	return utf8.RuneCountInString(html.UnescapeString(visibleText.String()))
+}
+
+func htmlTagEnd(value string, start int) (int, bool) {
+	if start+1 >= len(value) {
+		return start, false
+	}
+
+	nameStart := start + 1
+	if value[nameStart] == '/' {
+		nameStart++
+	}
+	if nameStart >= len(value) || !isHTMLTagNameStart(value[nameStart]) {
+		return start, false
+	}
+
+	var quote byte
+	for offset := nameStart + 1; offset < len(value); offset++ {
+		char := value[offset]
+		if quote != 0 {
+			if char == quote {
+				quote = 0
+			}
+			continue
+		}
+		switch char {
+		case '\'', '"':
+			quote = char
+		case '>':
+			return offset + 1, true
+		}
+	}
+	return start, false
+}
+
+func isHTMLTagNameStart(char byte) bool {
+	return char >= 'a' && char <= 'z' || char >= 'A' && char <= 'Z' || char == '!' || char == '?'
 }
 
 func matchesType(value interface{}, expected string) bool {
