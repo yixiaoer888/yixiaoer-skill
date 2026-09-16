@@ -254,11 +254,12 @@ GET /platform-accounts/{accountId}/taobao-guanghe/goods
 | `--next-page` | `nextPage` | 否 | 不透明分页游标 |
 | `--filter-value` | `filterValue` | 否 | 一级筛选值 |
 | `--second-filter-value` | `secondLevelFilterValue` | 否 | 二级筛选值 |
-| `--source` | `source` | 否 | 商品来源，必须来自分类响应 |
+| `--source` | `source` | 是 | 商品来源，必须来自当前账号和发布类型的分类响应 |
 
 要求：
 
 - `nextPage` 不解析、不拼接、不改写；
+- `source` 不得省略；缺失时返回 `taobao_guanghe_goods_source_required`，禁止依赖服务端默认商品池；
 - 所有查询参数只进行一次标准 URL 编码；
 - 分页结束以响应中 `nextPage` 缺失、为 `null` 或为空字符串为准；
 - 首版不提供自动拉取全部页面的 `--all`；
@@ -278,11 +279,11 @@ publishArgs.accountForms[].contentPublishForm.shopping_cart
 ```bash
 yxer publish form start 淘宝光合 video --output publish-form.json
 yxer query taobao-guanghe-goods-tabs <account_id> --type video --json
-yxer query taobao-guanghe-goods <account_id> --type video --json
+yxer query taobao-guanghe-goods <account_id> --type video --source <source> --json
 yxer publish form choose publish-form.json shopping_cart \
   --value-file goods.json \
   --id <yixiaoerId> \
-  --source-command "yxer query taobao-guanghe-goods <account_id> --type video --json"
+  --source-command "yxer query taobao-guanghe-goods <account_id> --type video --source <source> --json"
 ```
 
 `choose`、`verify`、`review` 和 `export` 必须校验：
@@ -533,6 +534,7 @@ publishChannel=cloud
 | 内容类型不支持 | `taobao_guanghe_invalid_content_type` | `taobao_guanghe_goods` | `false` |
 | 商品超过 6 件 | `taobao_guanghe_goods_limit` | `taobao_guanghe_goods` | `false` |
 | 商品结构不完整 | `taobao_guanghe_goods_invalid` | `taobao_guanghe_goods` | `false` |
+| 商品查询未指定来源 | `taobao_guanghe_goods_source_required` | `taobao_guanghe_goods_source` | `false` |
 | 商品来源账号不一致 | `taobao_guanghe_goods_account_mismatch` | `taobao_guanghe_goods_source` | `false` |
 | 商品来源类型不一致 | `taobao_guanghe_goods_type_mismatch` | `taobao_guanghe_goods_source` | `false` |
 | 商品查询失败 | 沿用远程错误 code | `taobao_guanghe_goods_query` | 取决于远端错误 |

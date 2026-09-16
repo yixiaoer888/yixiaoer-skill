@@ -28,7 +28,7 @@ func TestTaobaoGuangheSchemasAreDiscoverable(t *testing.T) {
 			}
 			examples := data["dynamicFieldExamples"].(map[string]interface{})
 			cart := examples["shopping_cart"].(map[string]interface{})
-			want := "yxer query taobao-guanghe-goods <account_id> --type " + publishType + " --json"
+			want := "yxer query taobao-guanghe-goods <account_id> --type " + publishType + " --source <source> --json"
 			if cart["queryCommand"] != want {
 				t.Fatalf("unexpected query command: %#v", cart)
 			}

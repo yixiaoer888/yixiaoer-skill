@@ -196,7 +196,7 @@ func newTaobaoGuangheGoodsCmd() *cobra.Command {
 	cmd.Flags().StringVar(&nextPage, "next-page", "", "opaque pagination cursor from the previous response")
 	cmd.Flags().StringVar(&filterValue, "filter-value", "", "primary filter value from goods tabs")
 	cmd.Flags().StringVar(&secondFilterValue, "second-filter-value", "", "secondary filter value from goods tabs")
-	cmd.Flags().StringVar(&source, "source", "", "goods source from goods tabs")
+	cmd.Flags().StringVar(&source, "source", "", "required goods source from goods tabs")
 	_ = cmd.MarkFlagRequired("type")
 	return cmd
 }

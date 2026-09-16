@@ -122,13 +122,23 @@ func (c *Client) TaobaoGuangheGoods(accountID string, opts TaobaoGuangheGoodsOpt
 	if err != nil {
 		return nil, err
 	}
+	source := strings.TrimSpace(opts.Source)
+	if source == "" {
+		return nil, yxerrors.New(yxerrors.ValidationType, "taobao_guanghe_goods_source_required", "淘宝光合商品查询必须明确指定商品来源", map[string]interface{}{
+			"accountId": accountID,
+			"type":      opts.PublishType,
+		}).
+			WithCategory("taobao_guanghe_goods_source").
+			WithHint("请先查询当前账号和发布类型可用的商品来源，再将返回的 source 传给 --source；不要依赖接口默认来源。").
+			WithNextCommand(fmt.Sprintf("yxer query taobao-guanghe-goods-tabs %s --type %s --json", accountID, opts.PublishType))
+	}
 	result, err := c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/taobao-guanghe/goods", accountID), map[string]string{
 		"pageType":               pageType,
 		"keyword":                opts.Keyword,
 		"nextPage":               opts.NextPage,
 		"filterValue":            opts.FilterValue,
 		"secondLevelFilterValue": opts.SecondFilterValue,
-		"source":                 opts.Source,
+		"source":                 source,
 	}))
 	return result, decorateTaobaoGuangheGoodsQueryError(err)
 }

@@ -149,8 +149,8 @@ func addShoppingCartExample(examples map[string]dynamicFieldExample, doc schema.
 	queryCommand := "yxer query goods <account_id> [--query 关键词] --json"
 	note := "购物车商品必须来自 yxer query goods 返回的完整对象。"
 	if platformutil.CanonicalKey(doc.Platform) == "taobaoguanghe" {
-		queryCommand = "yxer query taobao-guanghe-goods <account_id> --type " + doc.Type + " --json"
-		note = "淘宝光合购物车商品必须来自目标账号和内容类型的专属商品查询，完整保留返回对象和 raw。"
+		queryCommand = "yxer query taobao-guanghe-goods <account_id> --type " + doc.Type + " --source <source> --json"
+		note = "淘宝光合购物车商品必须先查询 goods-tabs，再明确选择其返回的 source；商品须来自目标账号和内容类型的专属查询，并完整保留返回对象和 raw。"
 	}
 	if shoppingCartUsesNestedData(view) {
 		value = []interface{}{

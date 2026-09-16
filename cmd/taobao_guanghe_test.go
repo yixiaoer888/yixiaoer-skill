@@ -24,7 +24,7 @@ func TestTaobaoGuangheQueryCommandOutputContract(t *testing.T) {
 	var out bytes.Buffer
 	cmd := newTaobaoGuangheGoodsCmd()
 	cmd.SetOut(&out)
-	cmd.SetArgs([]string{"acc_1", "--type", "video"})
+	cmd.SetArgs([]string{"acc_1", "--type", "video", "--source", "selfShop"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +54,7 @@ func TestTaobaoGuangheQueryFailureUsesStructuredStderr(t *testing.T) {
 	defer server.Close()
 	useTestAPIBaseURL(t, server.URL)
 	var stdout, stderr bytes.Buffer
-	code := ExecuteWithIO([]string{"query", "taobao-guanghe-goods", "acc_1", "--type", "video", "--json"}, &stdout, &stderr)
+	code := ExecuteWithIO([]string{"query", "taobao-guanghe-goods", "acc_1", "--type", "video", "--source", "selfShop", "--json"}, &stdout, &stderr)
 	if code == 0 || stdout.Len() != 0 {
 		t.Fatalf("expected failure with empty stdout, code=%d stdout=%q", code, stdout.String())
 	}
@@ -65,6 +65,33 @@ func TestTaobaoGuangheQueryFailureUsesStructuredStderr(t *testing.T) {
 	errorObject := response["error"].(map[string]interface{})
 	if errorObject["code"] != "GOODS_SESSION_UNAVAILABLE" || errorObject["category"] != "taobao_guanghe_goods_query" {
 		t.Fatalf("unexpected error envelope: %#v", errorObject)
+	}
+}
+
+func TestTaobaoGuangheQueryRequiresExplicitSourceWithStructuredError(t *testing.T) {
+	withRepoRoot(t)
+	configureAPIKey(t, "test-key")
+	goodsCmd := mustChild(t, mustRootChild(t, "query"), "taobao-guanghe-goods")
+	sourceFlag := goodsCmd.Flags().Lookup("source")
+	if err := sourceFlag.Value.Set(""); err != nil {
+		t.Fatal(err)
+	}
+	sourceFlag.Changed = false
+	var stdout, stderr bytes.Buffer
+	code := ExecuteWithIO([]string{"query", "taobao-guanghe-goods", "acc_1", "--type", "video", "--json"}, &stdout, &stderr)
+	if code != yxerrors.ExitValidation || stdout.Len() != 0 {
+		t.Fatalf("expected validation failure with empty stdout, code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
+	}
+	var response map[string]interface{}
+	if err := json.Unmarshal(stderr.Bytes(), &response); err != nil {
+		t.Fatalf("stderr must contain JSON: %v; output=%s", err, stderr.String())
+	}
+	errorObject := response["error"].(map[string]interface{})
+	if errorObject["code"] != "taobao_guanghe_goods_source_required" || errorObject["category"] != "taobao_guanghe_goods_source" || errorObject["retryable"] != nil {
+		t.Fatalf("unexpected error envelope: %#v", errorObject)
+	}
+	if errorObject["nextCommand"] != "yxer query taobao-guanghe-goods-tabs acc_1 --type video --json" {
+		t.Fatalf("unexpected next command: %#v", errorObject)
 	}
 }
 
@@ -91,7 +118,7 @@ func TestTaobaoGuanghePublishFormSourceContract(t *testing.T) {
 	value := `{"data":{"dataList":[{"yixiaoerId":"goods_1","yixiaoerName":"商品一","price":99,"raw":{"id":"goods_1","secret":"preserved"}}]}}`
 	choose := newPublishFormChooseCmd()
 	choose.SetOut(&bytes.Buffer{})
-	choose.SetArgs([]string{sessionPath, "shopping_cart", "--value", value, "--id", "goods_1", "--source-command", "yxer query taobao-guanghe-goods acc_1 --type video --json"})
+	choose.SetArgs([]string{sessionPath, "shopping_cart", "--value", value, "--id", "goods_1", "--source-command", "yxer query taobao-guanghe-goods acc_1 --type video --source selfShop --json"})
 	if err := choose.Execute(); err != nil {
 		t.Fatal(err)
 	}
@@ -114,8 +141,9 @@ func TestTaobaoGuanghePublishFormRejectsWrongSources(t *testing.T) {
 	session := publishFormSession{Platform: "淘宝光合", Type: "imageText"}
 	for _, tc := range []struct{ name, command, target, code string }{
 		{"wrong command", "yxer query goods acc_1 --type imageText --json", "acc_1", "taobao_guanghe_goods_invalid"},
-		{"wrong type", "yxer query taobao-guanghe-goods acc_1 --type video --json", "acc_1", "taobao_guanghe_goods_type_mismatch"},
-		{"missing target", "yxer query taobao-guanghe-goods acc_1 --type imageText --json", "<account_id>", "taobao_guanghe_goods_account_mismatch"},
+		{"wrong type", "yxer query taobao-guanghe-goods acc_1 --type video --source selfShop --json", "acc_1", "taobao_guanghe_goods_type_mismatch"},
+		{"missing source", "yxer query taobao-guanghe-goods acc_1 --type imageText --json", "acc_1", "taobao_guanghe_goods_source_required"},
+		{"missing target", "yxer query taobao-guanghe-goods acc_1 --type imageText --source selfShop --json", "<account_id>", "taobao_guanghe_goods_account_mismatch"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var typed *yxerrors.Error

@@ -1173,7 +1173,7 @@ func validateTaobaoGuangheFormSource(session publishFormSession, field, command,
 	if querySourceCommandResource(command) != "taobao-guanghe-goods" {
 		return yxerrors.New(yxerrors.ValidationType, "taobao_guanghe_goods_invalid", "淘宝光合商品必须来自专属商品查询命令", map[string]interface{}{"sourceCommand": command}).
 			WithCategory("taobao_guanghe_goods_source").
-			WithHint("请先执行 yxer query taobao-guanghe-goods <account_id> --type <video|imageText> --json。")
+			WithHint("请先查询 goods-tabs，再执行 yxer query taobao-guanghe-goods <account_id> --type <video|imageText> --source <source> --json。")
 	}
 	if sourceAccount := querySourceCommandAccountID(command); sourceAccount == "" || sourceAccount != strings.TrimSpace(target) {
 		return yxerrors.New(yxerrors.ValidationType, "taobao_guanghe_goods_account_mismatch", "淘宝光合商品查询账号与目标账号不一致", map[string]interface{}{"sourceAccountId": sourceAccount, "targetAccountId": target}).
@@ -1184,6 +1184,12 @@ func validateTaobaoGuangheFormSource(session publishFormSession, field, command,
 		return yxerrors.New(yxerrors.ValidationType, "taobao_guanghe_goods_type_mismatch", "淘宝光合商品查询类型与发布类型不一致", map[string]interface{}{"sourceType": sourceType, "publishType": session.Type}).
 			WithCategory("taobao_guanghe_goods_source").
 			WithHint("请使用与当前发布会话相同的 --type 重新查询商品。")
+	}
+	if source := querySourceCommandFlag(command, "--source"); source == "" {
+		return yxerrors.New(yxerrors.ValidationType, "taobao_guanghe_goods_source_required", "淘宝光合商品查询命令必须明确指定商品来源", map[string]interface{}{"sourceCommand": command, "targetAccountId": target, "publishType": session.Type}).
+			WithCategory("taobao_guanghe_goods_source").
+			WithHint("请先查询当前账号可用的商品来源，再使用带 --source 的商品查询命令重新选择商品。").
+			WithNextCommand(fmt.Sprintf("yxer query taobao-guanghe-goods-tabs %s --type %s --json", target, session.Type))
 	}
 	return nil
 }

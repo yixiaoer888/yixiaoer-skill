@@ -20,6 +20,7 @@ yxer publish video 淘宝光合 payload.json --publish-channel local --client-id
 
 - `video`、`cover` 和 `coverKey` 放在账号表单层，`coverKey` 必须等于 `cover.key`。
 - `short_title` 最多 30 字，`desc` 最多 1000 字。
+- 商品查询必须先读取当前账号 `goods-tabs`，再显式传入其中返回的 `source`；不得省略 `--source` 或依赖默认商品池。根据用户意图选择来源，不全局禁止 `coreitem`。
 - `shopping_cart` 可为空；非空时只能使用该账号 `--type video` 商品查询返回的完整对象，最多 6 件，不得裁剪 `raw`。
 - 页面式表单选择多件商品时使用 `publish form choose ... shopping_cart --ids <id1>,<id2>`，必须明确列出每个商品 ID。
 - 立即发布不传 `scheduledTime`；定时发布使用 13 位毫秒时间戳。

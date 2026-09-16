@@ -52,3 +52,15 @@ func TestTaobaoGuangheGoodsRejectsUnsupportedTypeBeforeRequest(t *testing.T) {
 		t.Fatalf("unexpected error: %#v", err)
 	}
 }
+
+func TestTaobaoGuangheGoodsRequiresExplicitSourceBeforeRequest(t *testing.T) {
+	client := NewClient(config.Config{})
+	_, err := client.TaobaoGuangheGoods("acc_1", TaobaoGuangheGoodsOptions{PublishType: "video"})
+	var typed *yxerrors.Error
+	if !errors.As(err, &typed) || typed.Code != "taobao_guanghe_goods_source_required" || typed.Category != "taobao_guanghe_goods_source" || typed.Retryable {
+		t.Fatalf("unexpected error: %#v", err)
+	}
+	if typed.NextCommand != "yxer query taobao-guanghe-goods-tabs acc_1 --type video --json" {
+		t.Fatalf("unexpected next command: %q", typed.NextCommand)
+	}
+}
