@@ -261,6 +261,14 @@ func fieldPlacementFor(doc schema.Document, key string) fieldPlacementView {
 			}
 			view.Note = "横版封面最终写入 contentPublishForm.horizontalCover；可在 publishArgs.horizontalCover 共享填写，CLI 会自动补齐。"
 		}
+	case "verticalCover":
+		if doc.Type == "video" {
+			view.InputPaths = []string{
+				"publishArgs.verticalCover",
+				"publishArgs.accountForms[].contentPublishForm.verticalCover",
+			}
+			view.Note = "竖版封面最终写入 contentPublishForm.verticalCover；可在 publishArgs.verticalCover 共享填写，CLI 会自动补齐。"
+		}
 	case "shopping_cart":
 		if isDuoduoshipinPlatform(doc.Platform) {
 			view.Note = "多多视频的 shopping_cart.goods_id 由用户手工输入；CLI 固定 source 为 pdd，不使用 yxer query goods。"
@@ -434,6 +442,12 @@ func buildStandardPublishFieldView(doc schema.Document, businessFields map[strin
 			Properties: resourceFieldProperties(false),
 		}
 	}
+	if supportsVerticalCover(doc) {
+		publishArgsProperties["verticalCover"] = schema.PropertyView{
+			Type:       "object",
+			Properties: resourceFieldProperties(false),
+		}
+	}
 	if doc.Type == "article" {
 		publishArgsProperties["content"] = schema.PropertyView{
 			Type:     "string",
@@ -563,6 +577,14 @@ func supportsHorizontalCover(doc schema.Document) bool {
 		return false
 	}
 	_, ok := doc.Properties["horizontalCover"]
+	return ok
+}
+
+func supportsVerticalCover(doc schema.Document) bool {
+	if doc.Type != "video" {
+		return false
+	}
+	_, ok := doc.Properties["verticalCover"]
 	return ok
 }
 
@@ -867,6 +889,11 @@ func getPlatformSpecificNotes(platform, publishType string) []string {
 		if publishType == "video" {
 			notes = append(notes, "多多视频推广商品需用户手工填写 shopping_cart.goods_id；CLI 固定 source=pdd，不从 yxer query goods 的 yixiaoerId 映射")
 			notes = append(notes, "多多视频声明使用 declaration 数字字段：0=无需声明，1=内容由 AI 生成，3=内容为转载，5=虚构演绎仅供娱乐，7=内容含营销信息，8=个人观点仅供参考；0 不下沉为 statement，非 0 由服务端转换为 statement.type")
+		}
+
+	case "baijiahao", "百家号":
+		if publishType == "video" {
+			notes = append(notes, "百家号视频使用 statement 对象：type 为主声明（0=不声明、1=内容由AI生成、16=内容为转载、4=含虚构演绎内容、8=内容含有营销信息、32=个人观点，仅供参考），subType 为补充声明（0=不选择、1=内容可能引人不适、2=内容含有高危险行为、4=请理性适度消费、8=未成年人请在监护人指导下浏览）；statement 可省略，不要使用旧的 declaration 或输入 isAigc。主/横版封面使用必填 cover + coverKey，竖版封面使用可选 verticalCover；不要传 horizontalCover")
 		}
 
 	case "kuaishou", "快手":

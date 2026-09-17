@@ -43,6 +43,8 @@ func TestWebParitySchemasExposeCurrentFieldNamesAndEnums(t *testing.T) {
 		{"小红书", "imageText", []string{"visibleType"}, []float64{0, 1, 3}},
 		{"小红书", "imageText", []string{"declaration"}, []float64{0, 1, 2}},
 		{"多多视频", "video", []string{"declaration"}, []float64{0, 1, 3, 5, 7, 8}},
+		{"百家号", "video", []string{"statement", "type"}, []float64{0, 1, 16, 4, 8, 32}},
+		{"百家号", "video", []string{"statement", "subType"}, []float64{0, 1, 2, 4, 8}},
 		{"新浪微博", "imageText", []string{"visibleType"}, []float64{0, 1}},
 		{"新浪微博", "imageText", []string{"declaration"}, []float64{0, 1, 2, 3, 4}},
 		{"视频号", "video", []string{"declaration"}, []float64{0, 1, 2, 3, 7, 8}},

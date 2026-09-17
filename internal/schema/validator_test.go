@@ -967,6 +967,142 @@ func TestSchemaExposesXhsImageTextCreateType(t *testing.T) {
 	}
 }
 
+func TestBaijiahaoVideoExposesStatementAndSupplementContract(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	doc, err := validator.Schema("百家号", "video")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := doc.Properties["declaration"]; ok {
+		t.Fatalf("baijiahao video schema must not expose legacy declaration, got %#v", doc.Properties["declaration"])
+	}
+	statement, ok := doc.Properties["statement"]
+	if !ok {
+		t.Fatalf("expected baijiahao video schema to expose statement, got %#v", doc.Properties)
+	}
+	if statement.Type != "object" || statement.Required {
+		t.Fatalf("statement must be an optional object, got %#v", statement)
+	}
+	if statement.AdditionalProperties == nil || *statement.AdditionalProperties {
+		t.Fatalf("statement must reject undeclared properties, got %#v", statement.AdditionalProperties)
+	}
+	typeField, ok := statement.Properties["type"]
+	if !ok || typeField.Type != "integer" || !typeField.Required {
+		t.Fatalf("statement.type must be a required integer, got %#v", typeField)
+	}
+	assertPropertyEnum(t, "百家号视频.statement.type", typeField, 0, 1, 16, 4, 8, 32)
+	subType, ok := statement.Properties["subType"]
+	if !ok || subType.Type != "integer" || subType.Required {
+		t.Fatalf("statement.subType must be an optional integer, got %#v", subType)
+	}
+	assertPropertyEnum(t, "百家号视频.statement.subType", subType, 0, 1, 2, 4, 8)
+	if _, ok := statement.Properties["isAigc"]; ok {
+		t.Fatalf("baijiahao video statement must not expose internal isAigc")
+	}
+	if _, ok := doc.Properties["horizontalCover"]; ok {
+		t.Fatalf("baijiahao video schema must not expose an independent horizontalCover field")
+	}
+	verticalCover, ok := doc.Properties["verticalCover"]
+	if !ok || verticalCover.Type != "object" || verticalCover.Required {
+		t.Fatalf("verticalCover must be an optional object, got %#v", verticalCover)
+	}
+	for _, field := range []string{"key", "size", "width", "height"} {
+		if resourceField, ok := verticalCover.Properties[field]; !ok || !resourceField.Required {
+			t.Fatalf("verticalCover.%s must be required, got %#v", field, verticalCover.Properties)
+		}
+	}
+}
+
+func TestBaijiahaoVideoStatementValidation(t *testing.T) {
+	validator := NewValidator(filepath.Join("..", "..", "schemas"))
+	base := func(statement interface{}) map[string]interface{} {
+		return map[string]interface{}{
+			"formType":    "task",
+			"description": "百家号视频描述",
+			"pubType":     float64(1),
+			"statement":   statement,
+		}
+	}
+
+	for _, statement := range []map[string]interface{}{
+		{"type": float64(0)},
+		{"type": float64(1)},
+		{"type": float64(16), "subType": float64(1)},
+		{"type": float64(4), "subType": float64(2)},
+		{"type": float64(8), "subType": float64(4)},
+		{"type": float64(32), "subType": float64(8)},
+		{"type": float64(0), "subType": float64(0)},
+	} {
+		result := validator.Validate("百家号", "video", base(statement))
+		if !result.Valid {
+			t.Fatalf("expected client statement %#v to pass, got %v", statement, result.Errors)
+		}
+	}
+
+	withVerticalCover := base(map[string]interface{}{"type": float64(0)})
+	withVerticalCover["verticalCover"] = map[string]interface{}{
+		"key":    "vertical-cover-key",
+		"size":   float64(100),
+		"width":  float64(1080),
+		"height": float64(1440),
+	}
+	verticalResult := validator.Validate("百家号", "video", withVerticalCover)
+	if !verticalResult.Valid {
+		t.Fatalf("expected Baijiahao optional verticalCover to pass, got %v", verticalResult.Errors)
+	}
+
+	missingVerticalKey := base(map[string]interface{}{"type": float64(0)})
+	missingVerticalKey["verticalCover"] = map[string]interface{}{
+		"size":   float64(100),
+		"width":  float64(1080),
+		"height": float64(1440),
+	}
+	missingVerticalResult := validator.Validate("百家号", "video", missingVerticalKey)
+	if missingVerticalResult.Valid || !containsError(missingVerticalResult.Errors, `verticalCover: missing required field "key"`) {
+		t.Fatalf("expected verticalCover without key to be rejected, got valid=%v errors=%v", missingVerticalResult.Valid, missingVerticalResult.Errors)
+	}
+
+	missingType := validator.Validate("百家号", "video", base(map[string]interface{}{
+		"subType": float64(1),
+	}))
+	if missingType.Valid || !containsError(missingType.Errors, `statement: missing required field "type"`) {
+		t.Fatalf("expected statement without type to be rejected, got valid=%v errors=%v", missingType.Valid, missingType.Errors)
+	}
+
+	invalidType := validator.Validate("百家号", "video", base(map[string]interface{}{
+		"type": float64(2),
+	}))
+	if invalidType.Valid || !containsError(invalidType.Errors, "/statement/type: must be one of [0 1 16 4 8 32]") {
+		t.Fatalf("expected unsupported statement type to be rejected, got valid=%v errors=%v", invalidType.Valid, invalidType.Errors)
+	}
+
+	invalidSubType := validator.Validate("百家号", "video", base(map[string]interface{}{
+		"type":    float64(1),
+		"subType": float64(16),
+	}))
+	if invalidSubType.Valid || !containsError(invalidSubType.Errors, "/statement/subType: must be one of [0 1 2 4 8]") {
+		t.Fatalf("expected unsupported statement subType to be rejected, got valid=%v errors=%v", invalidSubType.Valid, invalidSubType.Errors)
+	}
+
+	internalAigc := validator.Validate("百家号", "video", base(map[string]interface{}{
+		"type":   float64(1),
+		"isAigc": true,
+	}))
+	if internalAigc.Valid || !containsError(internalAigc.Errors, `unexpected field "isAigc"`) {
+		t.Fatalf("expected internal isAigc field to be rejected, got valid=%v errors=%v", internalAigc.Valid, internalAigc.Errors)
+	}
+
+	legacyDeclaration := validator.Validate("百家号", "video", map[string]interface{}{
+		"formType":    "task",
+		"description": "百家号视频描述",
+		"pubType":     float64(1),
+		"declaration": float64(1),
+	})
+	if legacyDeclaration.Valid || !containsError(legacyDeclaration.Errors, `unexpected field "declaration"`) {
+		t.Fatalf("expected legacy declaration to be rejected, got valid=%v errors=%v", legacyDeclaration.Valid, legacyDeclaration.Errors)
+	}
+}
+
 func TestValidateAcceptsBaijiahaoImageTextPayload(t *testing.T) {
 	validator := NewValidator(filepath.Join("..", "..", "schemas"))
 	payload := map[string]interface{}{
@@ -1136,7 +1272,7 @@ func TestValidateAcceptsWebPushedVideoPlatformFields(t *testing.T) {
 			},
 		},
 		{
-			name:     "baijiahao statement without legacy title tags",
+			name:     "baijiahao statement and supplement contract",
 			platform: "百家号",
 			payload: map[string]interface{}{
 				"formType":    "task",

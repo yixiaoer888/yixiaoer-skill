@@ -42,8 +42,10 @@ yxer schema get <platform> video
 - 发布前必须确认目标账号 `status=1`
 - 视频只能有一个，封面必须单独上传
 - 用户未提供封面时，必须补问，不要自动截帧
+- 百家号视频的主/横版封面使用账号级 `cover` + `coverKey`（必填且 `coverKey` 必须等于 `cover.key`）；竖版封面使用可选的 `contentPublishForm.verticalCover`，也可放在共享的 `publishArgs.verticalCover`。客户端内部会生成 `covers[0]` / `verticalCovers[0]`，未提供竖版时以主封面兜底；不要给百家号传 `horizontalCover`
 - 可选复杂对象必须通过查询命令取得完整对象后再填入；多多视频 `shopping_cart.goods_id` 由用户输入，不使用商品查询对象，`source` 固定为 `pdd`
 - 多多视频声明使用 `contentPublishForm.declaration`，允许值为 `0/1/3/5/7/8`；`0` 表示无需声明且不转换为 `statement`，非 `0` 由服务端转换为 `statement.type`，不要手写旧的 `statement` 对象
+- 百家号视频声明使用 `contentPublishForm.statement` 对象；`type` 是主声明，当前值为 `0`（不声明）、`1`（内容由AI生成）、`16`（内容为转载）、`4`（含虚构演绎内容）、`8`（内容含有营销信息）、`32`（个人观点，仅供参考）；`subType` 是补充声明，值为 `0`（不选择）、`1`（内容可能引人不适）、`2`（内容含有高危险行为）、`4`（请理性适度消费）、`8`（未成年人请在监护人指导下浏览）。`statement` 可省略；不要使用旧的顶层 `declaration`，也不要传 `isAigc`
 - 视频号 `drama` 必须通过当前账号的 `drama-tasks` 查询并使用 `publish form choose` 选择；对象只保留 `yixiaoerId`、`yixiaoerImageUrl`、`yixiaoerName`，不要求 `raw`。`collection` 仍按合集规则使用完整 `raw`。
 - 话题/标签必须直接按 `../topic-tags.md` 的目标格式传入；不要依赖 CLI 从 `description` 自动改写
 - 视频号原创声明必须按平台文档映射：用户说“勾选原创”“声明原创”或“开启原创”时，在 `publishArgs.accountForms[].contentPublishForm` 写 `createType: 1`；未提及或明确关闭/转载时写 `createType: 2`。不要把 `pubType` 当作原创开关

@@ -2511,6 +2511,101 @@ func TestPublishCommandAcceptsBaijiahaoImageTextPayload(t *testing.T) {
 	}
 }
 
+func TestPublishCommandAcceptsBaijiahaoVideoStatementAndSupplement(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "video",
+		"platforms":      []interface{}{"百家号"},
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"verticalCover": map[string]interface{}{
+				"key":    "vertical-cover-key",
+				"size":   float64(512),
+				"width":  float64(1080),
+				"height": float64(1440),
+			},
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_bjh_video_1",
+					"video": map[string]interface{}{
+						"key":      "video-key",
+						"size":     float64(1024),
+						"width":    float64(1920),
+						"height":   float64(1080),
+						"duration": float64(30),
+					},
+					"cover": map[string]interface{}{
+						"key":    "cover-key",
+						"size":   float64(512),
+						"width":  float64(1920),
+						"height": float64(1080),
+					},
+					"coverKey": "cover-key",
+					"contentPublishForm": map[string]interface{}{
+						"formType":    "task",
+						"description": "百家号视频描述",
+						"pubType":     float64(1),
+						"statement": map[string]interface{}{
+							"type":    float64(1),
+							"subType": float64(4),
+						},
+					},
+				},
+			},
+		},
+	})
+
+	var publishCalls int
+	var publishBody map[string]interface{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{
+					{"platformAccountId": "acc_bjh_video_1", "name": "百家号视频账号", "status": 1},
+				},
+			})
+		case "/taskSets/v2":
+			publishCalls++
+			if err := json.NewDecoder(r.Body).Decode(&publishBody); err != nil {
+				t.Fatal(err)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{"taskSetId": "task_set_bjh_video_1"},
+			})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	configureAPIKey(t, "test-key")
+	useTestAPIBaseURL(t, server.URL)
+
+	err := newPublishCmd().RunE(testCobraCommand(), []string{"video", "百家号", payloadPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if publishCalls != 1 {
+		t.Fatalf("expected one publish call, got %d", publishCalls)
+	}
+	cpf := publishBody["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})["contentPublishForm"].(map[string]interface{})
+	statement := cpf["statement"].(map[string]interface{})
+	if statement["type"] != float64(1) || statement["subType"] != float64(4) {
+		t.Fatalf("expected Baijiahao statement and supplement to survive publish normalization, got %#v", statement)
+	}
+	if _, exists := statement["isAigc"]; exists {
+		t.Fatalf("did not expect internal isAigc in Baijiahao statement, got %#v", statement["isAigc"])
+	}
+	if _, exists := cpf["declaration"]; exists {
+		t.Fatalf("did not expect legacy declaration in Baijiahao video request, got %#v", cpf["declaration"])
+	}
+	verticalCover := cpf["verticalCover"].(map[string]interface{})
+	if verticalCover["key"] != "vertical-cover-key" {
+		t.Fatalf("expected shared verticalCover to be copied into Baijiahao content form, got %#v", cpf)
+	}
+}
+
 func TestPublishCommandAcceptsFirstImageCoverImageTextPayloadWithoutExternalCover(t *testing.T) {
 	withRepoRoot(t)
 	friendDescription := `<p>小红书图文内容 <friend raw='{"yixiaoerId":"friend_1","yixiaoerImageUrl":"https://example.com/avatar.jpg","yixiaoerName":"张三","raw":{"user_id":"user_1","user_nickname":"张三"}}'>@张三</friend></p>`

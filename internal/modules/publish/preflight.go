@@ -39,6 +39,7 @@ var placeholderPattern = regexp.MustCompile(`^<[^<>]+>$`)
 var hashtagPattern = regexp.MustCompile(`#([^\s#<]+)`)
 
 const shipinhaoImageMaxBytes = 512 * 1024
+const baijiahaoVideoCoverMaxBytes = 5 * 1024 * 1024
 
 func RequireStandardPayload(payload map[string]interface{}) error {
 	if payload == nil {
@@ -133,6 +134,9 @@ func PreflightWithTopicHTMLPolicyAndTrace(publishType string, platforms []string
 			if _, exists := form["horizontalCover"]; exists {
 				result.Errors = append(result.Errors, formPath+".horizontalCover: unexpected field; use contentPublishForm.horizontalCover or publishArgs.horizontalCover")
 			}
+			if _, exists := form["verticalCover"]; exists {
+				result.Errors = append(result.Errors, formPath+".verticalCover: unexpected field; use contentPublishForm.verticalCover or publishArgs.verticalCover")
+			}
 			video := objectField(form, "video")
 			if video == nil && cpf != nil {
 				video = objectField(cpf, "video")
@@ -146,6 +150,10 @@ func PreflightWithTopicHTMLPolicyAndTrace(publishType string, platforms []string
 			horizontalCover := objectField(cpf, "horizontalCover")
 			if horizontalCover != nil {
 				requireUploadedResource(horizontalCover, formPath+".contentPublishForm.horizontalCover", &result.Errors)
+			}
+			verticalCover := objectField(cpf, "verticalCover")
+			if verticalCover != nil {
+				requireUploadedResource(verticalCover, formPath+".contentPublishForm.verticalCover", &result.Errors)
 			}
 			requireCoverKey(form, cpf, cover, formPath, &result.Errors)
 			requirePlatformConstraints(platforms, cover, formPath, &result.Errors)
@@ -434,6 +442,7 @@ func NormalizeStandardPublishArgs(payload map[string]interface{}, publishType st
 		}
 		if NormalizePublishType(publishType) == "video" {
 			copyIfMissing(cpf, payload, "horizontalCover")
+			copyIfMissing(cpf, payload, "verticalCover")
 		}
 		if allowArticleCovers {
 			copyIfMissing(cpf, payload, "covers")
@@ -1489,7 +1498,22 @@ func requirePlatformConstraints(platforms []string, cover map[string]interface{}
 		switch strings.TrimSpace(platform) {
 		case "视频号", "微信视频号", "shipinhao":
 			requireShipinhaoCoverSize(cover, formPath, errors)
+		case "百家号", "baijiahao":
+			requireBaijiahaoVideoCoverSize(cover, formPath, errors)
 		}
+	}
+}
+
+func requireBaijiahaoVideoCoverSize(cover map[string]interface{}, formPath string, errors *[]string) {
+	if cover == nil {
+		return
+	}
+	size, ok := integerField(cover, "size")
+	if !ok {
+		return
+	}
+	if size > baijiahaoVideoCoverMaxBytes {
+		*errors = append(*errors, fmt.Sprintf("%s.cover.size: 百家号视频主封面不能超过 5MB，当前为 %d bytes", formPath, size))
 	}
 }
 
@@ -1823,6 +1847,7 @@ func enrichResourceContainerMetadata(container map[string]interface{}, path stri
 	enrichResourceObjectMetadata(objectField(container, "video"), path+".video", errors)
 	enrichResourceObjectMetadata(objectField(container, "cover"), path+".cover", errors)
 	enrichResourceObjectMetadata(objectField(container, "horizontalCover"), path+".horizontalCover", errors)
+	enrichResourceObjectMetadata(objectField(container, "verticalCover"), path+".verticalCover", errors)
 	if items, _ := container["images"].([]interface{}); len(items) > 0 {
 		for i, item := range items {
 			resource, _ := item.(map[string]interface{})

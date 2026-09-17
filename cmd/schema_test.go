@@ -145,6 +145,144 @@ func TestSchemaXiaohongshuExposesStrangerMentionContract(t *testing.T) {
 	}
 }
 
+func TestSchemaFieldsBaijiahaoVideoExposesStatementAndSupplementContract(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	var out bytes.Buffer
+	cmd := newSchemaFieldsCmd()
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"百家号", "video"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	fields := data["fields"].(map[string]interface{})
+	publishArgs := fields["publishArgs"].(map[string]interface{})
+	publishArgsProperties := publishArgs["properties"].(map[string]interface{})
+	accountForms := publishArgsProperties["accountForms"].(map[string]interface{})
+	accountFormItems := accountForms["items"].(map[string]interface{})
+	accountFormProperties := accountFormItems["properties"].(map[string]interface{})
+	contentPublishForm := accountFormProperties["contentPublishForm"].(map[string]interface{})
+	contentPublishProperties := contentPublishForm["properties"].(map[string]interface{})
+	if _, ok := contentPublishProperties["declaration"]; ok {
+		t.Fatalf("did not expect legacy declaration in Baijiahao video fields: %#v", contentPublishProperties["declaration"])
+	}
+	statement := contentPublishProperties["statement"].(map[string]interface{})
+	if statement["type"] != "object" || statement["additionalProperties"] != false {
+		t.Fatalf("unexpected Baijiahao statement field: %#v", statement)
+	}
+	properties := statement["properties"].(map[string]interface{})
+	typeField := properties["type"].(map[string]interface{})
+	if typeField["type"] != "integer" || typeField["required"] != true {
+		t.Fatalf("unexpected statement.type field: %#v", typeField)
+	}
+	assertEnum := func(name string, field map[string]interface{}, want []float64) {
+		values, ok := field["enum"].([]interface{})
+		if !ok || len(values) != len(want) {
+			t.Fatalf("unexpected %s enum: %#v", name, field["enum"])
+		}
+		for i, value := range want {
+			if values[i] != value {
+				t.Fatalf("unexpected %s enum: %#v", name, values)
+			}
+		}
+	}
+	assertEnum("statement.type", typeField, []float64{0, 1, 16, 4, 8, 32})
+
+	subType := properties["subType"].(map[string]interface{})
+	if subType["type"] != "integer" || subType["required"] == true {
+		t.Fatalf("unexpected statement.subType field: %#v", subType)
+	}
+	assertEnum("statement.subType", subType, []float64{0, 1, 2, 4, 8})
+	if _, ok := properties["isAigc"]; ok {
+		t.Fatalf("did not expect internal statement.isAigc field: %#v", properties["isAigc"])
+	}
+	verticalCover := contentPublishProperties["verticalCover"].(map[string]interface{})
+	if verticalCover["type"] != "object" || verticalCover["required"] == true {
+		t.Fatalf("unexpected Baijiahao verticalCover field: %#v", verticalCover)
+	}
+	verticalProperties := verticalCover["properties"].(map[string]interface{})
+	for _, field := range []string{"key", "size", "width", "height"} {
+		if verticalProperties[field].(map[string]interface{})["required"] != true {
+			t.Fatalf("expected verticalCover.%s to be required, got %#v", field, verticalProperties[field])
+		}
+	}
+	if _, ok := contentPublishProperties["horizontalCover"]; ok {
+		t.Fatalf("did not expect an independent Baijiahao horizontalCover field")
+	}
+	sharedVertical := publishArgsProperties["verticalCover"].(map[string]interface{})
+	if sharedVertical["type"] != "object" {
+		t.Fatalf("expected shared publishArgs.verticalCover object, got %#v", sharedVertical)
+	}
+
+	flatFields := data["flatFields"].([]interface{})
+	paths := map[string]bool{}
+	for _, raw := range flatFields {
+		paths[raw.(map[string]interface{})["path"].(string)] = true
+	}
+	for _, path := range []string{
+		"publishArgs.accountForms[].contentPublishForm.statement.type",
+		"publishArgs.accountForms[].contentPublishForm.statement.subType",
+		"publishArgs.accountForms[].contentPublishForm.verticalCover",
+	} {
+		if !paths[path] {
+			t.Fatalf("expected Baijiahao statement path %q in schema fields", path)
+		}
+	}
+	notes := data["platformNotes"].([]interface{})
+	if len(notes) != 1 || !strings.Contains(notes[0].(string), "subType 为补充声明") {
+		t.Fatalf("expected Baijiahao statement contract note, got %#v", notes)
+	}
+	if !strings.Contains(notes[0].(string), "主/横版封面") || !strings.Contains(notes[0].(string), "竖版封面") {
+		t.Fatalf("expected Baijiahao cover contract note, got %#v", notes)
+	}
+}
+
+func TestSchemaGetCommandPlacesBaijiahaoVideoCoverContracts(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	var out bytes.Buffer
+	cmd := newSchemaGetCmd()
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"百家号", "video"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	placements := data["fieldPlacements"].(map[string]interface{})
+	verticalPlacement := placements["verticalCover"].(map[string]interface{})
+	paths := verticalPlacement["inputPaths"].([]interface{})
+	if len(paths) != 2 ||
+		paths[0] != "publishArgs.verticalCover" ||
+		paths[1] != "publishArgs.accountForms[].contentPublishForm.verticalCover" {
+		t.Fatalf("expected shared and contentPublishForm verticalCover placement, got %#v", verticalPlacement)
+	}
+	if _, ok := placements["horizontalCover"]; ok {
+		t.Fatalf("did not expect Baijiahao horizontalCover placement, got %#v", placements["horizontalCover"])
+	}
+
+	template := data["minimalTemplate"].(map[string]interface{})
+	form := template["publishArgs"].(map[string]interface{})["accountForms"].([]interface{})[0].(map[string]interface{})
+	if _, exists := form["verticalCover"]; exists {
+		t.Fatalf("did not expect verticalCover at account form level in minimalTemplate, got %#v", form)
+	}
+	cpf := form["contentPublishForm"].(map[string]interface{})
+	if _, exists := cpf["verticalCover"]; exists {
+		t.Fatalf("did not expect optional verticalCover in minimalTemplate, got %#v", cpf)
+	}
+}
+
 func TestSchemaFieldsShipinhaoExposesDramaQueryExample(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)

@@ -38,14 +38,6 @@
       ],
       "default": 1
     },
-    "declaration": {
-      "type": "number",
-      "enum": [
-        0,
-        1
-      ],
-      "default": 0
-    },
     "statement": {
       "type": "object",
       "required": [
@@ -53,17 +45,30 @@
       ],
       "properties": {
         "type": {
-          "type": "number",
+          "type": "integer",
           "enum": [
             0,
-            1
-          ]
+            1,
+            16,
+            4,
+            8,
+            32
+          ],
+          "description": "声明：0-不声明，1-内容由AI生成，16-内容为转载，4-含虚构演绎内容，8-内容含有营销信息，32-个人观点，仅供参考。"
         },
         "subType": {
-          "type": "number"
+          "type": "integer",
+          "enum": [
+            0,
+            1,
+            2,
+            4,
+            8
+          ],
+          "description": "补充声明：0-不选择，1-内容可能引人不适，2-内容含有高危险行为，4-请理性适度消费，8-未成年人请在监护人指导下浏览。"
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false
     },
     "location": {
       "type": "object",
@@ -164,6 +169,7 @@
     },
     "cover": {
       "type": "object",
+      "description": "百家号视频主封面（客户端内部作为横版/主封面使用）。",
       "required": [
         "key",
         "size",
@@ -187,6 +193,30 @@
     },
     "coverKey": {
       "type": "string"
+    },
+    "verticalCover": {
+      "type": "object",
+      "description": "百家号视频可选竖版封面；未提供时客户端使用主封面兜底。",
+      "required": [
+        "key",
+        "size",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "width": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
+        }
+      }
     },
     "scheduledTime": {
       "type": "number",

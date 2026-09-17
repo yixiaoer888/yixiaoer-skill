@@ -244,6 +244,56 @@ func TestPreflightRejectsAccountLevelHorizontalCover(t *testing.T) {
 	assertHasError(t, result.Errors, "accountForms[0].horizontalCover: unexpected field")
 }
 
+func TestPreflightCopiesSharedBaijiahaoVerticalCoverIntoVideoContentForm(t *testing.T) {
+	payload := standardPayload("video", []string{"百家号"}, map[string]interface{}{
+		"video":         uploadedResource(),
+		"cover":         uploadedResourceWithKey("cover-key"),
+		"coverKey":      "cover-key",
+		"verticalCover": uploadedResourceWithKey("vertical-cover-key"),
+		"accountForms": []interface{}{
+			map[string]interface{}{
+				"platformAccountId": "acc_001",
+				"contentPublishForm": map[string]interface{}{
+					"formType":    "task",
+					"description": "百家号视频描述",
+					"pubType":     float64(1),
+				},
+			},
+		},
+	})
+
+	result := Preflight("video", []string{"百家号"}, payload)
+	if len(result.Errors) > 0 {
+		t.Fatalf("expected shared Baijiahao verticalCover to normalize, got %v", result.Errors)
+	}
+
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	cpf := form["contentPublishForm"].(map[string]interface{})
+	verticalCover := cpf["verticalCover"].(map[string]interface{})
+	if verticalCover["key"] != "vertical-cover-key" {
+		t.Fatalf("expected verticalCover in contentPublishForm, got %+v", cpf)
+	}
+}
+
+func TestPreflightRejectsAccountLevelVerticalCover(t *testing.T) {
+	payload := validVideoPayload()
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	form["verticalCover"] = uploadedResourceWithKey("vertical-cover-key")
+
+	result := Preflight("video", []string{"百家号"}, payload)
+	assertHasError(t, result.Errors, "accountForms[0].verticalCover: unexpected field")
+}
+
+func TestPreflightRejectsOversizedBaijiahaoVideoCover(t *testing.T) {
+	payload := validVideoPayload()
+	payload["platforms"] = []interface{}{"百家号"}
+	form := publishArgsOf(payload)["accountForms"].([]interface{})[0].(map[string]interface{})
+	form["cover"].(map[string]interface{})["size"] = float64(baijiahaoVideoCoverMaxBytes + 1)
+
+	result := Preflight("video", []string{"百家号"}, payload)
+	assertHasError(t, result.Errors, "accountForms[0].cover.size: 百家号视频主封面不能超过 5MB")
+}
+
 func TestPreflightAcceptsArticleContentFromPublishArgs(t *testing.T) {
 	payload := standardPayload("article", []string{"知乎"}, map[string]interface{}{
 		"cover":    uploadedResourceWithKey("cover-key"),
