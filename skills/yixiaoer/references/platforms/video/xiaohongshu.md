@@ -9,12 +9,12 @@
 - **意图辨析**：用户指定在“小红书”平台分发视频内容时触发。
 - **典型提示词**：
   - “把这个视频发布到小红书”
-  - “发布到小红书时艾特这个好友”
+  - “发布到小红书时按小红书号艾特这个用户”
   - “同步视频到小红书”
 
 ## 执行逻辑 (Logic Flow)
 1. **意图确认**：确认目标平台为小红书。
-2. **参数装配**：识别并填充标题、描述等平台特定字段至 `contentPublishForm`；如需艾特好友，将 `<friend>` HTML 标签写入 `description`。
+2. **参数装配**：识别并填充标题、描述等平台特定字段至 `contentPublishForm`；如需艾特用户（含陌生人），将 `<friend>` HTML 标签写入 `description`。
 3. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [--publish-channel local --client-id <clientId>]`。
 
 > [!TIP]
@@ -28,7 +28,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `formType` | `string` | **是** | 固定为 `task` | `task` |
 | `title` | `string` | 否 | 视频标题 (最多 20 字) | - |
-| `description` | `string` | 否 | 视频描述，支持 `<friend>` HTML 标签；好友对象必须来自 `yxer query friends`。最多 1000 字。 | - |
+| `description` | `string` | 否 | 视频描述，支持 `<friend>` HTML 标签；用户对象（含陌生人）必须来自 `yxer query friends --red-id`。最多 1000 字。 | - |
 | `declaration` | `number` | 否 | 内容类型申明: 1-虚构演绎, 2-笔记含 AI 合成内容 | - |
 | `createType` | `number` | 否 | 创作类型: 1-原创, 0-不申明 | 0 |
 | `location` | `object` | 否 | 视频位置，使用 `PlatformDataItem` 结构 | - |
@@ -84,15 +84,15 @@
 
 ## 3. 复杂对象结构说明
 
-### 3.1 description 中艾特好友
+### 3.1 description 中艾特用户（含陌生人）
 
-小红书好友艾特不是 `contentPublishForm` 的独立字段，而是描述 HTML 的一部分：
+小红书用户艾特不是 `contentPublishForm` 的独立字段，而是描述 HTML 的一部分；目标用户可以不是当前账号的好友：
 
 ```html
-<p>视频内容 <friend raw='好友查询结果的完整 JSON 序列化字符串'>@好友名称</friend></p>
+<p>视频内容 <friend raw='用户查询结果的完整 JSON 序列化字符串'>@用户名称</friend></p>
 ```
 
-先执行 `yxer query friends <account_id> [--red-id 小红书号] --json`，选择 `data.list` 中的完整好友对象，将其 JSON 序列化后写入 `raw`，并使用查询结果的 `yixiaoerName` 生成标签正文。详见 [获取好友/关联对象](../../get-friends.md)。
+先执行 `yxer query friends <account_id> --red-id <小红书号> --json`，选择 `data.list` 中的完整用户对象，将其 JSON 序列化后写入 `raw`，并使用查询结果的 `yixiaoerName` 生成标签正文。详见 [获取小红书用户/艾特对象](../../get-friends.md)。
 
 ### 3.2 PlatformDataItem (位置)
 
@@ -145,6 +145,6 @@
 | `location` | `locations` | [获取位置信息](../../get-locations.md) |
 | `collection` | `collections` | [获取合集列表](../../get-collections.md) |
 | `group` | `groups` | [获取群聊列表](../../get-groups.md) |
-| `description.friend` | `friends` | [获取好友/关联对象](../../get-friends.md) |
+| `description.friend` | `friends` | [获取小红书用户/艾特对象](../../get-friends.md) |
 | `shopping_cart` | `goods` | [获取商品列表](../../get-goods.md) |
 | `video.key` | `upload` | [资源上传](../../upload-resource.md) |

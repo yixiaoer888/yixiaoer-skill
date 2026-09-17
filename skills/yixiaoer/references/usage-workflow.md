@@ -78,7 +78,7 @@ yxer upload --file .\cover.jpg
 yxer query categories <account_id> --type video
 yxer query locations <account_id> --query 上海
 yxer query music <account_id> --query 热门
-yxer query friends <account_id> [--red-id 小红书号]
+yxer query friends <account_id> [--red-id 小红书号] [--query 关键词]
 ```
 
 ### 步骤 6：填写 payload

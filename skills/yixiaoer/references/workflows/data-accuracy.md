@@ -63,7 +63,7 @@
 | 合集 | `yxer query collections` | 使用完整合集对象并保留 `raw` |
 | 视频号剧集 | `yxer query drama-tasks` | 使用完整三字段对象：`yixiaoerId`、`yixiaoerImageUrl`、`yixiaoerName`；不添加 `raw` |
 | 话题/挑战 | `yxer query challenges` 或平台文档规定格式 | 不凭热门词手写 raw |
-| 小红书描述中的好友艾特 | `yxer query friends` | 将完整好友对象 JSON 序列化到 `<friend>` 的 `raw`，不手写好友对象 |
+| 小红书描述中的用户艾特（含陌生人） | `yxer query friends --red-id` | 将完整用户对象 JSON 序列化到 `<friend>` 的 `raw`，不手写用户对象 |
 | 活动/热点 | `yxer query activities` / `hot-events` | 使用完整返回对象 |
 | 小程序/同步应用/游戏/群组 | 对应 `yxer query miniapps/syncapps/games/groups` | 使用 CLI 返回对象 |
 

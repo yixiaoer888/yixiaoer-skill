@@ -976,6 +976,46 @@ func TestFriendsUsesExpectedEndpoint(t *testing.T) {
 	}
 }
 
+func TestSearchFriendsUsesKeywordContract(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/platform-accounts/acc_1/friends" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if got := r.URL.Query().Get("keyWord"); got != "26439197554" {
+			t.Fatalf("unexpected keyWord query: %q", got)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"data": map[string]interface{}{
+				"list": []map[string]interface{}{{
+					"yixiaoerId":       "user_1",
+					"yixiaoerName":     "陌生用户",
+					"yixiaoerImageUrl": "https://example.com/avatar.jpg",
+					"raw":              map[string]interface{}{"user_id": "user_1", "red_id": "26439197554"},
+				}},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(config.Config{APIKey: "test-key", APIURL: server.URL})
+	result, err := client.SearchFriends("acc_1", " 26439197554 ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, ok := result.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected search response object, got %#v", result)
+	}
+	items, ok := response["list"].([]interface{})
+	if !ok || len(items) != 1 {
+		t.Fatalf("expected one search result, got %#v", response["list"])
+	}
+	friend := items[0].(map[string]interface{})
+	if friend["yixiaoerName"] != "陌生用户" {
+		t.Fatalf("unexpected search result: %#v", friend)
+	}
+}
+
 func TestFilterFriendsByRedID(t *testing.T) {
 	result := map[string]interface{}{
 		"list": []interface{}{

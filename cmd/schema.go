@@ -190,6 +190,9 @@ func runSchemaGet(cmd *cobra.Command, platform, publishType string, verbose bool
 
 		"recommendedCommand": "yxer schema fields " + platform + " " + publishType,
 	}
+	if mentionContract := buildXiaohongshuMentionContract(schemaDoc); mentionContract != nil {
+		result["mentionContract"] = mentionContract
+	}
 
 	// verbose 模式返回完整 schema（用于调试）
 	if verbose {
@@ -301,7 +304,7 @@ func runSchemaFields(cmd *cobra.Command, platform, publishType string) error {
 	// 按重要性分组字段
 	grouped := groupFieldsByImportance(flatFields, platform, publishType)
 
-	return output.Success(cmd.OutOrStdout(), "schema.fields", map[string]interface{}{
+	result := map[string]interface{}{
 		"platform": doc.Platform,
 		"type":     doc.Type,
 		"key":      doc.Key,
@@ -337,7 +340,11 @@ func runSchemaFields(cmd *cobra.Command, platform, publishType string) error {
 
 		// 推荐使用方式
 		"recommendedResponse": "required + optional（按需查看 complex）",
-	})
+	}
+	if mentionContract := buildXiaohongshuMentionContract(doc); mentionContract != nil {
+		result["mentionContract"] = mentionContract
+	}
+	return output.Success(cmd.OutOrStdout(), "schema.fields", result)
 }
 
 func buildStandardPublishSchema(doc schema.Document) schema.Document {
@@ -831,7 +838,7 @@ func getQueryCommand(fieldType string) string {
 		"mini_app":   "yxer query miniapps <account_id> [--query 关键词]",
 		"hot_event":  "yxer query hot-events <account_id> [--query 关键词]",
 		"game":       "yxer query games <account_id> [--query 关键词]",
-		"friends":    "yxer query friends <account_id>",
+		"friends":    "yxer query friends <account_id> [--red-id 小红书号] [--query 关键词]",
 		"group":      "yxer query groups <account_id>",
 	}
 	if cmd, ok := commands[fieldType]; ok {
@@ -875,9 +882,9 @@ func getPlatformSpecificNotes(platform, publishType string) []string {
 
 	case "xiaohongshu", "xhs", "小红书":
 		if publishType == "imageText" {
-			notes = append(notes, "小红书图文需要1-9张图片，支持话题标签")
+			notes = append(notes, "小红书图文需要1-9张图片，支持话题标签和按小红书号搜索的用户艾特（含陌生人）")
 		} else if publishType == "video" {
-			notes = append(notes, "小红书视频支持话题和位置")
+			notes = append(notes, "小红书视频支持话题、位置和按小红书号搜索的用户艾特（含陌生人）")
 		}
 
 	case "weixin", "shipinhao", "视频号", "微信视频号":

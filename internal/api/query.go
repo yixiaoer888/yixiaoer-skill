@@ -228,11 +228,21 @@ func (c *Client) Groups(accountID string) (interface{}, error) {
 }
 
 func (c *Client) Friends(accountID string) (interface{}, error) {
-	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/friends", accountID), nil))
+	return c.SearchFriends(accountID, "")
 }
 
-// FilterFriendsByRedID filters a friends query result by the platform's
-// public Xiaohongshu identifier stored in raw.red_id.
+// SearchFriends mirrors the client-side user search contract. The keyword is
+// passed to the platform-account endpoint so a Xiaohongshu ID can resolve a
+// user who is not already in the account's friend list.
+func (c *Client) SearchFriends(accountID, keyword string) (interface{}, error) {
+	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/friends", accountID), map[string]string{
+		"keyWord": strings.TrimSpace(keyword),
+	}))
+}
+
+// FilterFriendsByRedID keeps exact-ID matching as a final guard for backends
+// that return a fuzzy user-search result. It is deliberately applied after
+// the remote search request, rather than being the search implementation.
 func FilterFriendsByRedID(result interface{}, redID string) interface{} {
 	redID = strings.TrimSpace(redID)
 	if redID == "" {

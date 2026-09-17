@@ -143,6 +143,12 @@ func TestFriendsCommandSupportsRedIDFilter(t *testing.T) {
 	if cmd.Flag("red-id") == nil {
 		t.Fatal("friends command is missing --red-id filter")
 	}
+	if cmd.Flag("query") == nil || cmd.Flag("keyword") == nil {
+		t.Fatal("friends command is missing keyword search flags")
+	}
+	if !strings.Contains(cmd.Long, "陌生人") || !strings.Contains(cmd.Flag("red-id").Usage, "keyWord") || !strings.Contains(cmd.Flag("red-id").Usage, "keyword") {
+		t.Fatalf("friends command must describe stranger search contract: %q / %q", cmd.Long, cmd.Flag("red-id").Usage)
+	}
 }
 
 func TestQueryCommandsUseCommandLocalFlagStorage(t *testing.T) {

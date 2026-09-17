@@ -347,15 +347,19 @@ func newGroupsCmd() *cobra.Command {
 }
 
 func newFriendsCmd() *cobra.Command {
-	var redID string
+	var redID, query, keyword string
 	cmd := &cobra.Command{
 		Use:   "friends <account_id>",
-		Short: "查询可艾特好友",
-		Long:  "查询账号可用于小红书描述 <friend> 标签的好友对象。可使用 --red-id 按好友小红书号精确筛选。发布时须使用查询结果中的完整对象生成 raw 属性。",
+		Short: "查询小红书用户（用于艾特）",
+		Long:  "按小红书用户搜索契约查询可用于描述 <friend> 标签的用户，支持陌生人。--query/--keyword 传搜索关键词；--red-id 会将小红书号作为搜索关键词发送，并对 raw.red_id 做精确匹配。发布时须使用查询结果中的完整对象生成 raw 属性。",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runQuery(cmd, "friends", func(service queryflow.Service) (interface{}, error) {
-				result, err := service.Friends(args[0])
+				searchKeyword := resolveQueryAlias(query, keyword)
+				if strings.TrimSpace(redID) != "" {
+					searchKeyword = redID
+				}
+				result, err := service.SearchFriends(args[0], searchKeyword)
 				if err != nil {
 					return nil, err
 				}
@@ -363,7 +367,9 @@ func newFriendsCmd() *cobra.Command {
 			})
 		},
 	}
-	cmd.Flags().StringVar(&redID, "red-id", "", "按好友小红书号筛选（查询结果中的 raw.red_id）")
+	cmd.Flags().StringVar(&query, "query", "", "按小红书号或昵称搜索用户")
+	cmd.Flags().StringVar(&keyword, "keyword", "", "搜索关键词（--query 的别名）")
+	cmd.Flags().StringVar(&redID, "red-id", "", "按小红书号搜索并精确匹配（网关发送为 keyWord；客户端契约为 keyword）")
 	return cmd
 }
 

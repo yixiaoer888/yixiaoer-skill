@@ -84,7 +84,7 @@ yxer query entitlements <account_id>
 yxer query collections <account_id> [--type video|article]
 yxer query drama-tasks <account_id> [--query 关键词] [--keyword 关键词]
 yxer query members [--page 1] [--size 10] [--status notJoined|pending|joined] [--query 关键词] [--role master|admin|member]
-yxer query friends <account_id> [--red-id 小红书号]
+yxer query friends <account_id> [--red-id 小红书号] [--query 关键词]
 yxer query challenges <account_id> [--query 关键词] [--type video]
 yxer query records [--platform P] [--limit N] [--status S] [--json]
 yxer query account-increments --start-date YYYY-MM-DD --end-date YYYY-MM-DD [--group-id GROUP_ID]

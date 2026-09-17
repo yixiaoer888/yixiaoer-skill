@@ -68,7 +68,7 @@ yxer query syncapps <account_id>
 yxer query games <account_id> [--query 关键词]
 yxer query hot-events <account_id> [--type video|article]
 yxer query groups <account_id>
-yxer query friends <account_id> [--red-id 小红书号]
+yxer query friends <account_id> [--red-id 小红书号] [--query 关键词]
 yxer query activities <account_id> [--type video|article] [--category-id ID] [--query 关键词]
 yxer query challenges <account_id> [--query 关键词] [--type video] [--next-page TOKEN]
 yxer validate <platform> <type> <payload.json> [--publish-channel cloud|local] [--client-id <clientId>]
@@ -83,5 +83,5 @@ yxer publish <type> <platform> <payload.json> [--publish-channel cloud|local] [-
 - 用户要填分类、位置、音乐、合集、话题、商品时，先查询，再回填完整对象；多多视频的 `shopping_cart.goods_id` 由用户手工提供，固定 `source=pdd`，不使用商品查询返回的 `yixiaoerId`；视频号剧集使用 `yxer query drama-tasks`，只写入查询结果的 `yixiaoerId`、`yixiaoerImageUrl`、`yixiaoerName`，不添加 `raw`。
 - 用户要挂载小程序或选择同步发布应用时，先执行 `yxer query miniapps` / `yxer query syncapps`，再把 CLI 返回对象完整回填到 payload。
 - 用户要挂载游戏、绑定热点或选择群聊时，先执行 `yxer query games` / `yxer query hot-events` / `yxer query groups`，再把 CLI 返回对象完整回填到 payload。
-- 用户要在小红书描述中艾特好友时，先执行 `yxer query friends <account_id> [--red-id 小红书号]`，将选中的完整对象 JSON 序列化后写入 `<friend raw='...'>@好友名</friend>`；不要新增未被 schema 声明的 `friends` 字段。
+- 用户要在小红书描述中艾特用户（包括陌生人）时，先执行 `yxer query friends <account_id> --red-id <小红书号> --json`，将选中的完整对象 JSON 序列化后写入 `<friend raw='...'>@用户名</friend>`；不要新增未被 schema 声明的 `friends` 字段。
 - 用户要按音乐分类找配乐或参加平台活动时，先执行 `yxer query music-categories` / `yxer query activities`，再把 CLI 返回对象完整回填到 payload。

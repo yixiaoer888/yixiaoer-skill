@@ -19,6 +19,7 @@ func buildPublishFormContract(doc schema.Document) map[string]interface{} {
 	sort.Strings(resourceFields)
 
 	dynamic := buildDynamicFieldExamples(doc)
+	mentionContract := buildXiaohongshuMentionContract(doc)
 	queries := make([]string, 0, len(dynamic))
 	for _, example := range dynamic {
 		if example.QueryCommand != "" {
@@ -49,7 +50,7 @@ func buildPublishFormContract(doc schema.Document) map[string]interface{} {
 		"yxer publish form review <session.json>",
 	}})
 
-	return map[string]interface{}{
+	contract := map[string]interface{}{
 		"version":              1,
 		"platform":             doc.Platform,
 		"platformName":         platformutil.ChineseName(doc.Platform),
@@ -62,6 +63,10 @@ func buildPublishFormContract(doc schema.Document) map[string]interface{} {
 		"template":             buildPayloadTemplate(doc),
 		"sourceOfTruth":        []string{"prepare", "schema fields", "schema get", "query results", "user-provided business values", "upload results", "session.sources"},
 	}
+	if mentionContract != nil {
+		contract["mentionContract"] = mentionContract
+	}
+	return contract
 }
 
 func publishFormAccountSelectionCommand(doc schema.Document) string {

@@ -286,6 +286,31 @@ func TestPublishFormStartDryRunDoesNotWrite(t *testing.T) {
 	}
 }
 
+func TestXiaohongshuPublishFormExposesStrangerMentionContract(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+	sessionPath := filepath.Join(t.TempDir(), "form.json")
+
+	start := newPublishFormStartCmd()
+	start.SetArgs([]string{"小红书", "imageText", "--output", sessionPath})
+	start.SetOut(&bytes.Buffer{})
+	if err := start.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	session, err := readPublishFormSession(sessionPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract, ok := session.Contract["mentionContract"].(map[string]interface{})
+	if !ok || contract["supportsStrangers"] != true {
+		t.Fatalf("expected publish form stranger mention contract, got %#v", session.Contract["mentionContract"])
+	}
+	if contract["syntax"] != "<friend raw='完整用户对象 JSON'>@用户昵称</friend>" {
+		t.Fatalf("unexpected publish form mention syntax: %#v", contract["syntax"])
+	}
+}
+
 func TestPublishFormExportProducesStandardPayload(t *testing.T) {
 	withRepoRoot(t)
 	withGoBuildCache(t)

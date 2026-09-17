@@ -431,7 +431,7 @@ yxer query goods <account_id> [--query 关键词]
 yxer query taobao-guanghe-goods-tabs <account_id> --type video|imageText
 yxer query taobao-guanghe-goods <account_id> --type video|imageText --source SOURCE [--filter-value VALUE] [--second-filter-value VALUE] [--query 关键词] [--next-page TOKEN]
 yxer query collections <account_id> [--type video|article]
-yxer query friends <account_id> [--red-id 小红书号]
+yxer query friends <account_id> [--red-id 小红书号] [--query 关键词]
 yxer query challenges <account_id> [--query 关键词] [--type video]
 yxer query records [--platform P] [--limit N] [--status S] [--json]
 yxer query account-increments --start-date YYYY-MM-DD --end-date YYYY-MM-DD

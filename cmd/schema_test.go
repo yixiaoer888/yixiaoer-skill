@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/spf13/cobra"
 )
 
 func TestSchemaListCommandOutputsAgentDiscoverableItems(t *testing.T) {
@@ -98,6 +100,48 @@ func TestSchemaGetCommandOutputsSchemaForChinesePlatformAlias(t *testing.T) {
 	guidance := data["guidance"].([]interface{})
 	if len(guidance) < 3 {
 		t.Fatalf("expected schema.get guidance, got %#v", guidance)
+	}
+}
+
+func TestSchemaXiaohongshuExposesStrangerMentionContract(t *testing.T) {
+	withRepoRoot(t)
+	withGoBuildCache(t)
+
+	for _, tc := range []struct {
+		name string
+		cmd  *cobra.Command
+	}{
+		{name: "schema get", cmd: newSchemaGetCmd()},
+		{name: "schema fields", cmd: newSchemaFieldsCmd()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var out bytes.Buffer
+			tc.cmd.SetOut(&out)
+			tc.cmd.SetArgs([]string{"小红书", "imageText"})
+			if err := tc.cmd.Execute(); err != nil {
+				t.Fatal(err)
+			}
+
+			var response map[string]interface{}
+			if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+				t.Fatal(err)
+			}
+			data := response["data"].(map[string]interface{})
+			contract, ok := data["mentionContract"].(map[string]interface{})
+			if !ok {
+				t.Fatalf("expected stranger mention contract, got %#v", data["mentionContract"])
+			}
+			if contract["path"] != "publishArgs.accountForms[].contentPublishForm.description" || contract["supportsStrangers"] != true {
+				t.Fatalf("unexpected mention contract: %#v", contract)
+			}
+			if contract["queryCommand"] != "yxer query friends <account_id> --red-id <小红书号> --json" {
+				t.Fatalf("unexpected mention query command: %#v", contract["queryCommand"])
+			}
+			search := contract["search"].(map[string]interface{})
+			if search["gatewayParameter"] != "keyWord" || search["clientParameter"] != "keyword" || search["exactMatchField"] != "raw.red_id" {
+				t.Fatalf("unexpected mention search contract: %#v", search)
+			}
+		})
 	}
 }
 

@@ -12,7 +12,7 @@
 
 1. 先走工作流和 `yxer` CLI。
 2. 只有在构造平台特有字段时，才继续查具体平台文档。
-3. 如果字段来源可以由 `yxer query categories`、`yxer query locations`、`yxer query music`、`yxer query friends` 等命令获得，优先用命令，不要手写对象。
+3. 如果字段来源可以由 `yxer query categories`、`yxer query locations`、`yxer query music`、`yxer query friends` 等命令获得，优先用命令，不要手写对象；小红书用户艾特支持用 `--red-id` 查询陌生人。
 
 ## 维护约束
 
