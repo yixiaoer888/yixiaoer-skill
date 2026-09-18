@@ -1,8 +1,7 @@
 package draft
 
+import publishflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/publish"
+
 func PreviewSave(payload map[string]interface{}) map[string]interface{} {
-	body := cloneMap(payload)
-	delete(body, "action")
-	body["isDraft"] = true
-	return body
+	return publishflow.BuildDraftBody(payload)
 }

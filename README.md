@@ -402,6 +402,15 @@ yxer material move-by-name <file_name> --group-id <group_id> [--dry-run]
 yxer material groups [--page 1] [--size 50]
 ```
 
+### 草稿与 DOCX 导入
+
+```bash
+yxer draft save <payload.json> [--dry-run]
+yxer draft import <article.docx> --cover <horizontal-cover.jpg> --account-id <online-account-id> [--author 蚁小二] [--original-author <original-author>] [--draft-id <existing-draft-id>] [--dry-run]
+```
+
+微信公众号 DOCX 导入会提取正文内嵌图片并改写为蚁小二稳定 URL；封面必须传入宽度大于高度的横版图片，默认不声明原创，也不会自动裁剪竖版封面。
+
 ### 发布和校验
 
 ```bash

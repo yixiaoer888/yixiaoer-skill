@@ -440,6 +440,49 @@ func BuildPublishBody(payload, publishArgs map[string]interface{}, publishType s
 	return body
 }
 
+// BuildDraftBody builds the wire envelope for the internal draft endpoint.
+// Drafts do not run publish preflight or remote checks, but they still use the
+// same standard envelope normalization as publish. In particular, a WeChat
+// article cover lives under platformForms.articles[].cover in the input and
+// must also be available as the task-level cover/coverKey fields.
+func BuildDraftBody(payload map[string]interface{}) map[string]interface{} {
+	body := cloneMap(payload)
+	publishType := publishmod.NormalizePublishType(stringField(body, "publishType"))
+	platforms := payloadPlatforms(body["platforms"])
+	publishArgs := publishmod.ExtractPublishArgs(body)
+	if publishType != "" && len(platforms) > 0 && publishArgs != nil {
+		body = BuildPublishBody(body, publishArgs, publishType, platforms, stringField(body, "publishChannel"), stringField(body, "clientId"))
+	}
+	delete(body, "action")
+	body["isDraft"] = true
+	return body
+}
+
+func payloadPlatforms(value interface{}) []string {
+	var items []interface{}
+	switch typed := value.(type) {
+	case []interface{}:
+		items = typed
+	case []string:
+		items = make([]interface{}, len(typed))
+		for index, item := range typed {
+			items[index] = item
+		}
+	default:
+		return nil
+	}
+
+	platforms := make([]string, 0, len(items))
+	for _, item := range items {
+		name := strings.TrimSpace(fmt.Sprint(item))
+		if name == "" || name == "<nil>" {
+			continue
+		}
+		platforms = append(platforms, platformutil.ChineseName(name))
+	}
+	return platforms
+}
+
 func BuildPublishBodyWithInferred(payload, publishArgs map[string]interface{}, publishType string, platforms []string, channel, clientID string) (map[string]interface{}, map[string]InferredField) {
 	body := map[string]interface{}{
 		"publishType":    publishType,

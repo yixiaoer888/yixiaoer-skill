@@ -2,6 +2,7 @@ package draft
 
 import (
 	"github.com/yixiaoer/yixiaoer-skill/internal/app"
+	publishflow "github.com/yixiaoer/yixiaoer-skill/internal/workflows/publish"
 )
 
 type Service struct {
@@ -13,19 +14,6 @@ func NewService(rt *app.Runtime) Service {
 }
 
 func (s Service) Save(payload map[string]interface{}) (map[string]interface{}, error) {
-	body := cloneMap(payload)
-	delete(body, "action")
-	body["isDraft"] = true
+	body := publishflow.BuildDraftBody(payload)
 	return s.rt.Client.SaveDraft(body)
-}
-
-func cloneMap(src map[string]interface{}) map[string]interface{} {
-	if src == nil {
-		return map[string]interface{}{}
-	}
-	dst := make(map[string]interface{}, len(src))
-	for key, value := range src {
-		dst[key] = value
-	}
-	return dst
 }

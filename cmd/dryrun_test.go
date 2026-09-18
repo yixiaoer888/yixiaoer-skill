@@ -176,6 +176,63 @@ func TestDraftSaveDryRunAddsDraftFlag(t *testing.T) {
 	}
 }
 
+func TestDraftSaveDryRunPromotesWeixinArticleCover(t *testing.T) {
+	withRepoRoot(t)
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":      "publish",
+		"publishType": "article",
+		"platforms":   []interface{}{"微信公众号"},
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "acc_weixin_draft_1",
+				},
+			},
+			"platformForms": map[string]interface{}{
+				"微信公众号": map[string]interface{}{
+					"articles": []interface{}{
+						map[string]interface{}{
+							"title":   "公众号草稿标题",
+							"content": "<p>公众号草稿正文</p>",
+							"type":    float64(1),
+							"cover": map[string]interface{}{
+								"key": "wx-draft-cover-key",
+								"raw": map[string]interface{}{"source": "upload"},
+							},
+						},
+					},
+					"notifySubscribers": float64(0),
+					"pubType":           float64(0),
+				},
+			},
+		},
+	})
+	var out bytes.Buffer
+	cmd := newDraftSaveCmd()
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{payloadPath, "--dry-run"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	request := response["data"].(map[string]interface{})["request"].(map[string]interface{})
+	if request["coverKey"] != "wx-draft-cover-key" {
+		t.Fatalf("expected draft coverKey to be promoted from WeChat article cover, got %#v", request["coverKey"])
+	}
+	cover := request["cover"].(map[string]interface{})
+	if cover["key"] != "wx-draft-cover-key" {
+		t.Fatalf("expected draft cover to be promoted from WeChat article cover, got %#v", cover)
+	}
+	if request["isDraft"] != true {
+		t.Fatalf("expected normalized draft request to include isDraft=true, got %#v", request["isDraft"])
+	}
+}
+
 func testPNGBytesWithSize(t *testing.T, width, height int) []byte {
 	t.Helper()
 	img := image.NewRGBA(image.Rect(0, 0, width, height))

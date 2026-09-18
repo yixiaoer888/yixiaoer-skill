@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"image"
@@ -372,6 +373,28 @@ func TestInspectUploadLocalImage(t *testing.T) {
 	}
 }
 
+func TestInspectUploadLocalWebP(t *testing.T) {
+	tmpDir := t.TempDir()
+	imagePath := filepath.Join(tmpDir, "cover.webp")
+	if err := os.WriteFile(imagePath, testWebPBytes(331, 186), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	result, fileName, err := InspectUpload(imagePath, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fileName != "cover.webp" {
+		t.Fatalf("unexpected fileName: %s", fileName)
+	}
+	if result.ContentType != "image/webp" || result.Format != "webp" {
+		t.Fatalf("unexpected metadata: %+v", result)
+	}
+	if result.Width != 331 || result.Height != 186 {
+		t.Fatalf("unexpected dimensions: %dx%d", result.Width, result.Height)
+	}
+}
+
 func testPNG(t *testing.T, width, height int) []byte {
 	t.Helper()
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
@@ -385,6 +408,22 @@ func testPNG(t *testing.T, width, height int) []byte {
 		t.Fatal(err)
 	}
 	return buffer.Bytes()
+}
+
+func testWebPBytes(width, height int) []byte {
+	// Minimal RIFF/VP8 header sufficient for dimension inspection.
+	raw := make([]byte, 12+8+10)
+	copy(raw[0:4], []byte("RIFF"))
+	copy(raw[8:12], []byte("WEBP"))
+	binary.LittleEndian.PutUint32(raw[4:8], uint32(len(raw)-8))
+	copy(raw[12:16], []byte("VP8 "))
+	binary.LittleEndian.PutUint32(raw[16:20], 10)
+	raw[23] = 0x9d
+	raw[24] = 0x01
+	raw[25] = 0x2a
+	binary.LittleEndian.PutUint16(raw[26:28], uint16(width))
+	binary.LittleEndian.PutUint16(raw[28:30], uint16(height))
+	return raw
 }
 
 func noisyPNG(t *testing.T, width, height int) []byte {

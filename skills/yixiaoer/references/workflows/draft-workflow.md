@@ -24,6 +24,8 @@
 4. 生成或修正草稿 payload
 5. 执行 `yxer draft save <payload.json> [--dry-run]`
 
+微信公众号文章如果来源是 Word 文档，使用 `yxer draft import <article.docx>`，并同时传入账号 ID 和横版封面。该入口会提取 DOCX 内嵌图片、上传到素材库并替换为稳定 URL；竖版或正方形封面在上传前拒绝，不自动裁剪。
+
 ## 规则
 
 - `yxer draft save` 保存的是蚁小二内部草稿，不等同于平台草稿箱
@@ -35,6 +37,7 @@
 ```bash
 yxer draft save .\draft-payload.json --dry-run
 yxer draft save .\draft-payload.json
+yxer draft import .\article.docx --cover .\horizontal-cover.jpg --account-id <online-account-id> --author 蚁小二 --draft-id <existing-draft-id> --dry-run
 ```
 
 ## 严禁行为

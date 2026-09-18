@@ -235,7 +235,7 @@ func TestVisibleCommandTreeSnapshot(t *testing.T) {
 		"account-group": {"create", "delete", "list", "update"},
 		"accounts":      {"list", "update"},
 		"config":        {"get", "init", "set-api-key", "set-local-client-id"},
-		"draft":         {"save"},
+		"draft":         {"import", "save"},
 		"material":      {"add", "create", "groups", "list", "move", "move-by-name"},
 		"publish":       {"delete", "form", "init"},
 		"query": {

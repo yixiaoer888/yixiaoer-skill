@@ -62,6 +62,7 @@ yxer publish form export <session.json> [--output payload.json] [--dry-run]
 
 ```bash
 yxer draft save <payload.json> [--dry-run]
+yxer draft import <article.docx> --cover <horizontal-cover.jpg> --account-id <online-account-id> [--author 蚁小二] [--original-author <original-author>] [--draft-id <existing-draft-id>] [--title <title>] [--digest <digest>] [--dry-run]
 yxer material create <payload.json> [--dry-run]
 yxer material add --file <文件路径或URL> [--thumb <缩略图路径或URL>] [--type image|video|file] [--dry-run]
 yxer material list [--name <file_name>] [--type image|video|file] [--page 1] [--size 100]
@@ -109,6 +110,9 @@ yxer schema get <platform> <type>
 - 新建或补字段时，先执行 `yxer prepare <platform> <type>` / `yxer publish form start` 和 `yxer schema fields <platform> <type>`；`schema fields` 默认返回扁平路径清单，只有需要完整 payload 骨架时再执行 `yxer schema get <platform> <type>`
 - `payload.json` 只支持标准 `publishArgs` 结构，所有平台统一
 - `article` 发布可通过 `--content-file <article.md>` 指定 Markdown 正文源；CLI 会将 Markdown 渲染为 HTML，并按 Markdown 文件目录解析本地图片
+- `yxer draft import <article.docx>` 是微信公众号文章的 DOCX 导入入口：读取 Word 正文和内嵌图片，封面必须在导入前提供横版图片；默认不声明原创
+- DOCX 导入会把封面上传到 `cloud-publish`，把正文内嵌图片上传到 `material-library`，并把正文 `<img src>` 改成稳定可访问 URL，避免草稿编辑器显示黑图
+- DOCX 导入不会自动裁剪竖版封面；宽度必须大于高度，建议按公众号常用的 900×383 横版比例准备封面
 - `--content-file` 支持 `![alt](path)`、`![[path]]`、`<img src="path">` 和远程图片 URL；正式 `publish` 会上传图片并把 `publishArgs.content` 中的引用替换为稳定可访问 URL
 - CLI 会根据 `publishArgs` 自动补齐最外层 `cover`、`coverKey`、`desc`、`isDraft`、`isAppContent`
 - 云发布是默认模式

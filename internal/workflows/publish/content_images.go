@@ -31,7 +31,7 @@ type ArticleContentImageMaterialization struct {
 	Error  string `json:"error,omitempty"`
 }
 
-func materializeArticleContentImages(apiClient *api.Client, body map[string]interface{}, baseDir string, continueOnError bool) ([]ArticleContentImageMaterialization, error) {
+func MaterializeArticleContentImages(apiClient *api.Client, body map[string]interface{}, baseDir string, continueOnError bool) ([]ArticleContentImageMaterialization, error) {
 	return rewriteArticleContentImagesWithBaseDir(body, baseDir, continueOnError, func(sourceURL string) (string, string, error) {
 		uploaded, err := apiClient.Upload(sourceURL, articleImageMaterializeBucket, false)
 		if err != nil {
@@ -43,6 +43,10 @@ func materializeArticleContentImages(apiClient *api.Client, body map[string]inte
 		}
 		return stableURL, uploaded.Key, nil
 	})
+}
+
+func materializeArticleContentImages(apiClient *api.Client, body map[string]interface{}, baseDir string, continueOnError bool) ([]ArticleContentImageMaterialization, error) {
+	return MaterializeArticleContentImages(apiClient, body, baseDir, continueOnError)
 }
 
 func previewArticleContentImageMaterialization(body map[string]interface{}, baseDir string) []ArticleContentImageMaterialization {

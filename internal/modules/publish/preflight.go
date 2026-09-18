@@ -3,6 +3,7 @@ package publish
 import (
 	"fmt"
 	"math"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -282,11 +283,30 @@ func preflightWeixinAccountArticle(payload, platformForm map[string]interface{},
 		if strings.TrimSpace(stringField(article, "content")) == "" {
 			*errors = append(*errors, articlePath+".content: missing required field")
 		}
-		requireUploadedResource(objectField(article, "cover"), articlePath+".cover", errors)
+		cover := objectField(article, "cover")
+		requireUploadedResource(cover, articlePath+".cover", errors)
+		requireHorizontalWeixinArticleCover(cover, articlePath+".cover", errors)
 		if categories, ok := article["categories"]; ok {
 			assertRawObject(categories, articlePath+".categories", errors)
 		}
 	}
+}
+
+func requireHorizontalWeixinArticleCover(cover map[string]interface{}, pathLabel string, errors *[]string) {
+	if cover == nil {
+		return
+	}
+	width, widthOK := numericField(cover, "width")
+	height, heightOK := numericField(cover, "height")
+	if !widthOK || !heightOK || width <= 0 || height <= 0 {
+		// Older payloads may contain only a key. The DOCX import workflow always
+		// supplies metadata and performs the strict check before uploading.
+		return
+	}
+	if width > height {
+		return
+	}
+	*errors = append(*errors, pathLabel+": 微信公众号文章封面必须是横版图片（width must be greater than height）")
 }
 
 func shouldIgnoreExternalURLPath(path string) bool {
@@ -1579,10 +1599,26 @@ func requireUploadedResource(resource map[string]interface{}, pathLabel string, 
 		*errors = append(*errors, fmt.Sprintf("%s: missing uploaded resource field %q", pathLabel, "key"))
 	}
 	walk(resource, func(value interface{}, path string) {
-		if text, ok := value.(string); ok && externalURLPattern.MatchString(text) {
+		if text, ok := value.(string); ok && externalURLPattern.MatchString(text) && !isStableResourceURLPath(pathLabel+path[1:], text) {
 			*errors = append(*errors, pathLabel+path[1:]+`: external URL is not allowed; run "yxer upload" and use the returned key`)
 		}
 	}, "$")
+}
+
+func isStableResourceURLPath(pathLabel, value string) bool {
+	if !strings.HasSuffix(strings.ToLower(pathLabel), ".pathorurl") {
+		return false
+	}
+	parsed, err := url.Parse(strings.TrimSpace(value))
+	if err != nil {
+		return false
+	}
+	switch strings.ToLower(parsed.Hostname()) {
+	case "oss-v2.yixiaoer.cn", "yixiaoer-lite-asserts.oss-cn-shanghai.aliyuncs.com":
+		return true
+	default:
+		return false
+	}
 }
 
 func requireUploadedVideoResource(resource map[string]interface{}, pathLabel string, errors *[]string) {
