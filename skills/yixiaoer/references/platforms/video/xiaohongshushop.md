@@ -87,6 +87,6 @@
 
 | 目标字段 | 对应 Action | 文档参考 |
 | :--- | :--- | :--- |
-| `location` | `locations` | [获取位置信息](../get-locations.md) |
+| `location` | `locations` | [获取位置信息](../../get-locations.md) |
 | `shoppingCart` | `goods` | [获取商品列表](../../get-goods.md) |
 | `video.key` | `upload` | [资源上传](../../upload-resource.md) |
