@@ -1,5 +1,13 @@
 # 变更日志
 
+## [未发布] - 2026-09-22
+
+### 🐛 缺陷修复
+
+- 修复哔哩哔哩-Open 视频发布契约不一致的问题：平台 schema 错误地描述了完整账号表单，导致 CLI 自动包装后生成 `contentPublishForm.contentPublishForm`，并将 `platformAccountId`、视频和封面资源重复放入错误层级，最终造成 `validate` / `publish` 报错。
+- 将哔哩哔哩-Open schema 调整为只描述平台业务字段；标准请求继续使用 `publishArgs.accountForms[].contentPublishForm`，账号和视频/封面资源保留在 `accountForms[]` 层级。
+- 更新前端字段契约测试并增加回归测试，确保标题、标签、分类等字段使用单层 `contentPublishForm`，且标准 payload 可通过校验和 dry-run。
+
 ## [3.2.20] - 2026-09-16
 
 - 修复淘宝光合挂车在省略商品来源时可能默认选中 `coreitem`（平台优选）的问题：专属商品查询现在强制显式传入 `--source`。
