@@ -77,6 +77,78 @@ func TestValidateCommandUsesLocalFlags(t *testing.T) {
 	}
 }
 
+func TestValidateBilibiliOpenVideoUsesSingleContentPublishForm(t *testing.T) {
+	withRepoRoot(t)
+	configureEmptyConfig(t)
+	payloadPath := writePublishPayload(t, map[string]interface{}{
+		"action":         "publish",
+		"publishType":    "video",
+		"platforms":      []interface{}{"哔哩哔哩-Open"},
+		"publishChannel": "cloud",
+		"publishArgs": map[string]interface{}{
+			"accountForms": []interface{}{
+				map[string]interface{}{
+					"platformAccountId": "bilibili-open-account",
+					"video": map[string]interface{}{
+						"key":      "video-key",
+						"size":     float64(1024),
+						"width":    float64(1920),
+						"height":   float64(1080),
+						"duration": float64(30),
+					},
+					"cover": map[string]interface{}{
+						"key":    "cover-key",
+						"size":   float64(512),
+						"width":  float64(1920),
+						"height": float64(1080),
+					},
+					"coverKey": "cover-key",
+					"contentPublishForm": map[string]interface{}{
+						"formType": "task",
+						"title":    "B站 Open 标题",
+						"tags":     []interface{}{"生活"},
+						"category": []interface{}{
+							map[string]interface{}{
+								"yixiaoerId":   "160",
+								"yixiaoerName": "生活",
+								"raw":          map[string]interface{}{"id": "160", "name": "生活"},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	cmd := newValidateCmd()
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetErr(&bytes.Buffer{})
+	cmd.SetArgs([]string{"哔哩哔哩-Open", "video", payloadPath})
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	data := response["data"].(map[string]interface{})
+	if data["valid"] != true {
+		t.Fatalf("expected valid payload, got %#v", data)
+	}
+	request := data["request"].(map[string]interface{})
+	args := request["publishArgs"].(map[string]interface{})
+	form := args["accountForms"].([]interface{})[0].(map[string]interface{})
+	contentForm := form["contentPublishForm"].(map[string]interface{})
+	if _, nested := contentForm["contentPublishForm"]; nested {
+		t.Fatalf("bilibili-open contentPublishForm is double nested: %#v", contentForm)
+	}
+	if contentForm["title"] != "B站 Open 标题" {
+		t.Fatalf("expected title in contentPublishForm, got %#v", contentForm)
+	}
+}
+
 func TestValidateCommandRejectsInnerBusinessFormPayload(t *testing.T) {
 	withRepoRoot(t)
 	payloadPath := writePublishPayload(t, map[string]interface{}{

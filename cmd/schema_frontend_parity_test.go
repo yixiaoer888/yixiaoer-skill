@@ -51,10 +51,10 @@ func TestWebParitySchemasExposeCurrentFieldNamesAndEnums(t *testing.T) {
 		{"WeiXinGongZhongHao", "imageText", []string{"needOpenComment"}, []float64{0, 1, 2, 3}},
 		{"WeiXinGongZhongHao", "imageText", []string{"statement"}, []float64{0, 1, 3, 4, 5, 6}},
 		{"WeiXinGongZhongHao", "imageText", []string{"disableRecommend"}, []float64{0, 1}},
-		{"哔哩哔哩-Open", "video", []string{"contentPublishForm", "allowReprint"}, []float64{0, 1}},
-		{"哔哩哔哩-Open", "video", []string{"contentPublishForm", "createType"}, []float64{1, 2}},
-		{"哔哩哔哩-Open", "video", []string{"contentPublishForm", "type"}, []float64{1, 2}},
-		{"哔哩哔哩-Open", "video", []string{"contentPublishForm", "pubType"}, []float64{0, 1}},
+		{"哔哩哔哩-Open", "video", []string{"allowReprint"}, []float64{0, 1}},
+		{"哔哩哔哩-Open", "video", []string{"createType"}, []float64{1, 2}},
+		{"哔哩哔哩-Open", "video", []string{"type"}, []float64{1, 2}},
+		{"哔哩哔哩-Open", "video", []string{"pubType"}, []float64{0, 1}},
 		{"一点号", "video", []string{"createType"}, []float64{1, 2}},
 	}
 	for _, tc := range tests {
@@ -84,8 +84,8 @@ func TestOpenPlatformVideoSchemasUseWebPlatformNames(t *testing.T) {
 		wantName      string
 		requiredField []string
 	}{
-		{"BiLiBiLi-Open", "bilibili-open/video", "哔哩哔哩-Open", []string{"contentPublishForm", "title"}},
-		{"哔哩哔哩-Open", "bilibili-open/video", "哔哩哔哩-Open", []string{"contentPublishForm", "tags"}},
+		{"BiLiBiLi-Open", "bilibili-open/video", "哔哩哔哩-Open", []string{"title"}},
+		{"哔哩哔哩-Open", "bilibili-open/video", "哔哩哔哩-Open", []string{"tags"}},
 		{"KuaiShou-Open", "kuaishou-open/video", "快手-Open", []string{"description"}},
 		{"快手-Open", "kuaishou-open/video", "快手-Open", []string{"description"}},
 	}
