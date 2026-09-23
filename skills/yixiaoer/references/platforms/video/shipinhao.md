@@ -53,7 +53,7 @@ yxer publish form account publish-form.json --id <online_account_id>
 | `pubType` | `number` | **是** | 发布类型：0-草稿，1-直接发布；与原创声明无关 | 1 |
 | `location` | `object` | 否 | 视频位置，使用 `PlatformDataItem` 结构 | - |
 | `scheduledTime` | `number` | 否 | 定时发布时间戳 (13 位 Unix 时间戳，单位: 毫秒) | - |
-| `shoppingCart` | `object` | 否 | 关联商品信息 (`yixiaoerId`, `yixiaoerName`, `raw`) | - |
+| `shopping_cart` | `object` | 否 | 关联商品：使用 `yxer query goods` 返回的单个 GoodListItemResponse 对象，不包装为数组，不要求 `raw` | - |
 | `collection` | `object` | 否 | 合集信息 (`yixiaoerId`, `yixiaoerName`, `raw`) | - |
 | `drama` | `object` | 否 | 剧集信息：仅 `yixiaoerId`、`yixiaoerImageUrl`、`yixiaoerName`，不使用 `raw` | - |
 | `activity` | `object` | 否 | 活动信息 (`yixiaoerId`, `yixiaoerName`, `raw`) | - |
@@ -100,10 +100,14 @@ yxer publish form account publish-form.json --id <online_account_id>
 ### 3.1 OldCover
 包含 `key`, `size`, `width`, `height`。
 
-### 3.2 PlatformDataItem (位置/商品/合集/活动)
+### 3.2 PlatformDataItem (位置/合集/活动)
 包含 `yixiaoerId`, `yixiaoerName`, `raw` (必须完整透传)。
 
-### 3.3 Drama (剧集)
+### 3.3 视频号商品
+
+`contentPublishForm.shopping_cart` 是一个商品对象，不是数组。直接选择 `yxer query goods <account_id> --json` 返回的单个商品对象并完整保留查询字段。Web 的 `GoodListItemResponse` 包含 `yixiaoerId`、`yixiaoerName`、`price`，以及可能返回的 `earnPrice`、`count`、`yixiaoerDesc`、`yixiaoerImageUrl`；不需要手工补 `raw`。
+
+### 3.4 Drama (剧集)
 
 剧集不是合集，必须使用 `yxer query drama-tasks <account_id> [--query 关键词] --json` 查询，并通过 `publish form choose` 选择。发布路径为 `publishArgs.accountForms[].contentPublishForm.drama`，对象严格为：
 
@@ -123,7 +127,7 @@ yxer publish form account publish-form.json --id <online_account_id>
 | :--- | :--- | :--- |
 | `location`  | `locations` | [获取位置信息](../../get-locations.md) |
 | `activity`  | `activities` | [获取活动列表](../../get-publish-activities.md) |
-| `shoppingCart`| `goods`   | [获取商品列表](../../get-goods.md) |
+| `shopping_cart`| `goods`   | [获取商品列表](../../get-goods.md) |
 | `drama` | `drama-tasks` | [获取视频号剧集列表](../../get-drama-tasks.md) |
 | `video.key` | `upload`    | [资源上传](../../upload-resource.md) |
 

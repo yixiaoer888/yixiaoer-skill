@@ -28,7 +28,7 @@ yxer query goods-detail YOUR_ACCOUNT_ID --url "商品链接" --json
 
 ## 3. 返回数据结构
 
-返回一个包含 `ShoppingCartItem` 对象的数组及分页信息。对于使用 `ShoppingCartItem` 结构的平台，发布时必须使用 `yxer query goods` 返回的完整对象，不能只保留 `data.yixiaoerId`、`data.yixiaoerName` 或局部字段。
+返回商品对象数组及分页信息。发布时按目标平台 schema 使用查询结果要求的结构，并完整保留所选商品对象；不要只保留 ID/name 等局部字段。不同平台的挂车结构不同，例如视频号使用单个商品对象，抖音等平台可能要求额外的外层结构。
 
 `yxer query goods-detail` 返回相同的完整商品对象结构，可将其结果中的商品对象用于抖音 `shopping_cart`；该命令只解析链接，不执行发布。
 
@@ -36,23 +36,17 @@ yxer query goods-detail YOUR_ACCOUNT_ID --url "商品链接" --json
 
 对于支持该接口的平台，发布前可执行 `yxer query entitlements YOUR_ACCOUNT_ID --json` 确认返回的 `shopping_cart` 为 `true`。CLI 在 `shopping_cart` 非空时会在 `validate`、`publish --dry-run` 与正式 `publish` 前执行同一权限检查；多多视频不支持该通用权限接口，因此会跳过该接口，仅依赖 payload/schema 校验及平台侧发布校验。
 
-### ShoppingCartItem 结构说明
+### 商品查询结果字段
+
+以下是常见商品查询字段；实际返回字段以 CLI 查询结果为准：
 | 字段名 | 类型 | 说明 |
 | :--- | :--- | :--- |
-| `sale_title` | `string` | 挂车推广标题 |
-| `images` | `string[]` | 顶层商品图片数组 |
-| `data` | `object` | 核心商品数据对象 |
-
-`data` 对象中的核心字段如下：
-
-| 字段名 | 类型 | 说明 |
-| :--- | :--- | :--- |
-| `yixiaoerId` | `string` | (必填) 商品 ID |
-| `yixiaoerName` | `string` | (必填) 商品名称 |
-| `raw` | `object` | (必填) 平台原始商品对象。如果在获取时该字段存在，发布表单中必须携带并完整透传 |
-| `yixiaoerDesc` | `string` | 商品规格说明 |
-| `yixiaoerImageUrl` | `string` | 商品图片 URL |
+| `yixiaoerId` | `string` | 商品 ID |
+| `yixiaoerName` | `string` | 商品名称 |
 | `price` | `number` | 商品价格（单位：分） |
 | `earnPrice` | `number` | 预估佣金（单位：分） |
 | `count` | `number` | 剩余库存 |
+| `yixiaoerDesc` | `string` | 商品规格说明 |
+| `yixiaoerImageUrl` | `string` | 商品图片 URL |
+| `raw` | `object` | 某些接口或平台可能返回的原始对象；若查询结果包含该字段，按平台 schema 要求完整透传。视频号 GoodListItemResponse 不要求此字段。 |
 

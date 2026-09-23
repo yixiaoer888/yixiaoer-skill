@@ -145,22 +145,35 @@ func addShoppingCartExample(examples map[string]dynamicFieldExample, doc schema.
 			"...": "copy complete goods raw object from query result",
 		},
 	}
-	value := []interface{}{item}
+	itemValue := interface{}(item)
+	value := interface{}([]interface{}{itemValue})
 	queryCommand := "yxer query goods <account_id> [--query 关键词] --json"
 	note := "购物车商品必须来自 yxer query goods 返回的完整对象。"
-	if platformutil.CanonicalKey(doc.Platform) == "taobaoguanghe" {
+	platformKey := platformutil.CanonicalKey(doc.Platform)
+	if platformKey == "shipinhao" {
+		item = map[string]interface{}{
+			"yixiaoerId":   "<from query>",
+			"yixiaoerName": "<from query>",
+			"price":        float64(0),
+		}
+		itemValue = item
+		note = "视频号使用 goods 查询返回的单个商品对象（GoodListItemResponse），保留查询返回字段；不要包装为数组或自行补 raw。"
+	} else if platformKey == "taobaoguanghe" {
 		queryCommand = "yxer query taobao-guanghe-goods <account_id> --type " + doc.Type + " --source <source> --json"
 		note = "淘宝光合购物车商品必须先查询 goods-tabs，再明确选择其返回的 source；商品须来自目标账号和内容类型的专属查询，并完整保留返回对象和 raw。"
 	}
 	if shoppingCartUsesNestedData(view) {
-		value = []interface{}{
-			map[string]interface{}{
-				"sale_title": "点击购买",
-				"images":     []interface{}{"<from query images[0]>"},
-				"data":       item,
-			},
+		itemValue = map[string]interface{}{
+			"sale_title": "点击购买",
+			"images":     []interface{}{"<from query images[0]>"},
+			"data":       item,
 		}
 		note = "购物车使用顶层 sale_title/images + 内层 data；直接把商品字段扁平放在根节点会在 dry-run 中被归一化，但新 payload 应直接使用该结构。"
+	}
+	if view.Type == "object" {
+		value = itemValue
+	} else {
+		value = []interface{}{itemValue}
 	}
 	examples[field] = dynamicFieldExample{
 		Field:        field,
