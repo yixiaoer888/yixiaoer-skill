@@ -11,37 +11,46 @@ import (
 func TestCategoriesCommandPathsReturnsCompleteTreeAndLeafPaths(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/platform-accounts/acc_categories/categories" {
-			t.Fatalf("unexpected path: %s", r.URL.Path)
-		}
-		if r.URL.Query().Get("publishType") != "video" {
-			t.Fatalf("unexpected publishType: %s", r.URL.Query().Get("publishType"))
-		}
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"data": map[string]interface{}{
-				"dataList": []map[string]interface{}{
-					{
-						"yixiaoerId":   "43",
-						"yixiaoerName": "生活",
-						"raw":          map[string]interface{}{"id": 43},
-						"child": []map[string]interface{}{
-							{
-								"yixiaoerId":   "58",
-								"yixiaoerName": "生活百态",
-								"raw":          map[string]interface{}{"id": 58, "channelId": 43},
-								"child": []map[string]interface{}{
-									{
-										"yixiaoerId":   "99",
-										"yixiaoerName": "访谈",
-										"raw":          map[string]interface{}{"id": 99, "channelId": 58},
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{{
+					"platformAccountId": "acc_categories",
+					"platformName":      "抖音",
+				}},
+			})
+		case "/platform-accounts/acc_categories/categories":
+			if r.URL.Query().Get("publishType") != "video" {
+				t.Fatalf("unexpected publishType: %s", r.URL.Query().Get("publishType"))
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"dataList": []map[string]interface{}{
+						{
+							"yixiaoerId":   "43",
+							"yixiaoerName": "生活",
+							"raw":          map[string]interface{}{"id": 43},
+							"child": []map[string]interface{}{
+								{
+									"yixiaoerId":   "58",
+									"yixiaoerName": "生活百态",
+									"raw":          map[string]interface{}{"id": 58, "channelId": 43},
+									"child": []map[string]interface{}{
+										{
+											"yixiaoerId":   "99",
+											"yixiaoerName": "访谈",
+											"raw":          map[string]interface{}{"id": 99, "channelId": 58},
+										},
 									},
 								},
 							},
 						},
 					},
 				},
-			},
-		})
+			})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
 	}))
 	defer server.Close()
 	useTestAPIBaseURL(t, server.URL)
@@ -85,13 +94,25 @@ func TestCategoriesCommandPathsReturnsCompleteTreeAndLeafPaths(t *testing.T) {
 func TestCategoriesCommandDefaultOutputKeepsDataListShape(t *testing.T) {
 	configureAPIKey(t, "test-key")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"data": map[string]interface{}{
-				"dataList": []map[string]interface{}{
-					{"yixiaoerId": "1", "yixiaoerName": "科技", "raw": map[string]interface{}{"id": 1}},
+		switch r.URL.Path {
+		case "/v2/platform/accounts":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{{
+					"platformAccountId": "acc_categories",
+					"platformName":      "抖音",
+				}},
+			})
+		case "/platform-accounts/acc_categories/categories":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"dataList": []map[string]interface{}{
+						{"yixiaoerId": "1", "yixiaoerName": "科技", "raw": map[string]interface{}{"id": 1}},
+					},
 				},
-			},
-		})
+			})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
 	}))
 	defer server.Close()
 	useTestAPIBaseURL(t, server.URL)
