@@ -9,15 +9,13 @@ permissions:
   contents: read
 
 jobs:
-  release:
+  build:
     runs-on: windows-latest
-    permissions:
-      contents: write
+    env:
+      YXER_DOWNLOAD_ROOT_URL: ${{ vars.YXER_DOWNLOAD_ROOT_URL || 'https://oss-v2.yixiaoer.cn/yxer/releases' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -31,59 +29,105 @@ jobs:
 
       - name: Build release artifacts
         shell: pwsh
-        run: |
-          ./scripts/build-npm-package.ps1
+        run: ./scripts/build-npm-package.ps1
 
-      - name: Publish GitHub release
-        uses: softprops/action-gh-release@v2
+      - name: Upload artifacts for release jobs
+        uses: actions/upload-artifact@v4
         with:
-          files: |
+          name: yxer-release
+          path: |
             out/release/checksums.txt
-            out/release/yxer-cli-*-windows-amd64.zip
-            out/release/yxer-cli-*-windows-arm64.zip
-            out/release/yxer-cli-*-darwin-amd64.tar.gz
-            out/release/yxer-cli-*-darwin-arm64.tar.gz
-            out/release/yxer-cli-*-linux-amd64.tar.gz
-            out/release/yxer-cli-*-linux-arm64.tar.gz
+            out/release/yxer-cli-*.zip
+            out/release/yxer-cli-*.tar.gz
             out/npm/*.tgz
+          if-no-files-found: error
 
-  publish-npm:
-    needs: release
+  upload-tos:
+    needs: build
     runs-on: ubuntu-22.04
-    permissions:
-      contents: read
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.TOS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.TOS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ vars.TOS_REGION || 'cn-shanghai' }}
+      AWS_EC2_METADATA_DISABLED: "true"
+      TOS_BUCKET: ${{ vars.TOS_BUCKET || 'yixiaoer-lite-asserts' }}
+      # AWS CLI needs the S3 endpoint; tos-cn-shanghai.volces.com is the native TOS endpoint.
+      TOS_S3_ENDPOINT: ${{ vars.TOS_S3_ENDPOINT || 'https://tos-s3-cn-shanghai.volces.com' }}
+      TOS_OBJECT_PREFIX: ${{ vars.TOS_OBJECT_PREFIX || 'yxer/releases' }}
+      YXER_DOWNLOAD_ROOT_URL: ${{ vars.YXER_DOWNLOAD_ROOT_URL || 'https://oss-v2.yixiaoer.cn/yxer/releases' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Download built artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: yxer-release
+          path: out
+
+      - name: Verify artifacts before upload
+        shell: pwsh
+        run: ./scripts/verify-release-artifacts.ps1 -ReleaseDir out/release -TarballDir out/npm
+
+      - name: Install AWS CLI for TOS S3 API
+        run: |
+          python3 -m venv "$RUNNER_TEMP/awscli-venv"
+          "$RUNNER_TEMP/awscli-venv/bin/pip" install --disable-pip-version-check awscli
+          "$RUNNER_TEMP/awscli-venv/bin/aws" configure set default.s3.addressing_style virtual
+
+      - name: Upload release archives to TOS
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${AWS_ACCESS_KEY_ID:?Missing TOS_ACCESS_KEY_ID secret}"
+          : "${AWS_SECRET_ACCESS_KEY:?Missing TOS_SECRET_ACCESS_KEY secret}"
+          : "${AWS_DEFAULT_REGION:?Missing TOS_REGION variable}"
+          : "${TOS_BUCKET:?Missing TOS_BUCKET variable}"
+          : "${TOS_S3_ENDPOINT:?Missing TOS_S3_ENDPOINT variable}"
+          : "${TOS_OBJECT_PREFIX:?Missing TOS_OBJECT_PREFIX variable}"
+          : "${YXER_DOWNLOAD_ROOT_URL:?Missing YXER_DOWNLOAD_ROOT_URL variable}"
+          prefix="${TOS_OBJECT_PREFIX#/}"
+          prefix="${prefix%/}"
+          destination="s3://${TOS_BUCKET}/${prefix}/${GITHUB_REF_NAME}"
+          for file in out/release/checksums.txt out/release/yxer-cli-*.zip out/release/yxer-cli-*.tar.gz; do
+            "$RUNNER_TEMP/awscli-venv/bin/aws" s3 cp "$file" "$destination/$(basename "$file")" \
+              --endpoint-url "$TOS_S3_ENDPOINT" --no-progress
+          done
+
+      - name: Verify public CDN downloads and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${YXER_DOWNLOAD_ROOT_URL%/}/${GITHUB_REF_NAME}"
+          mkdir -p downloaded
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 5 \
+            "$base/checksums.txt" -o downloaded/checksums.txt
+          tr -d '\r' < downloaded/checksums.txt > downloaded/checksums.normalized.txt
+          mv downloaded/checksums.normalized.txt downloaded/checksums.txt
+          cmp downloaded/checksums.txt <(tr -d '\r' < out/release/checksums.txt)
+          while read -r digest filename; do
+            curl --fail --location --retry 5 --retry-all-errors --retry-delay 5 \
+              "$base/$filename" -o "downloaded/$filename"
+          done < downloaded/checksums.txt
+          (cd downloaded && sha256sum --check checksums.txt)
+
+  publish-npm:
+    needs: upload-tos
+    runs-on: ubuntu-22.04
+    steps:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Download npm tarball from release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          TAG="${GITHUB_REF_NAME}"
-          gh release download "${TAG}" --pattern "*" --dir out/release
-          ls -l out/release
-
-      - name: Verify release artifacts before npm publish
-        shell: pwsh
-        run: |
-          ./scripts/verify-release-artifacts.ps1 -ReleaseDir out/release
-
-      - name: Prepare npm tarball
-        run: |
-          set -euo pipefail
-          cp out/release/*.tgz .
-          ls -l *.tgz
+      - name: Download npm tarball
+        uses: actions/download-artifact@v4
+        with:
+          name: yxer-release
+          path: out
 
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish ./*.tgz --access public
+        run: npm publish out/npm/*.tgz --access public

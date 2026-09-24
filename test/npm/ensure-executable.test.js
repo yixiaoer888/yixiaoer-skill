@@ -7,10 +7,12 @@ const path = require("node:path");
 
 const {
   buildDownloadUrl,
+  buildVersionBaseUrl,
   download,
   getExpectedChecksum,
   getTarget,
   parseChecksums,
+  resolveBaseUrl,
   verifyChecksum
 } = require("../../npm/bin/install");
 const { ensureExecutable, shouldEnsureExecutable } = require("../../npm/bin/ensure-executable");
@@ -47,6 +49,27 @@ test("buildDownloadUrl trims trailing slash", () => {
     buildDownloadUrl("https://example.com/releases/", "yxer-cli-3.2.2-linux-amd64.tar.gz"),
     "https://example.com/releases/yxer-cli-3.2.2-linux-amd64.tar.gz"
   );
+});
+
+test("buildVersionBaseUrl uses the versioned release directory", () => {
+  assert.equal(
+    buildVersionBaseUrl("https://download.example.cn/yxer/releases/", "3.2.22"),
+    "https://download.example.cn/yxer/releases/v3.2.22"
+  );
+});
+
+test("default installer URL uses the packaged domestic download root", () => {
+  const previous = process.env.YXER_DOWNLOAD_BASE_URL;
+  delete process.env.YXER_DOWNLOAD_BASE_URL;
+  try {
+    assert.equal(resolveBaseUrl(), "https://oss-v2.yixiaoer.cn/yxer/releases/v0.0.0");
+  } finally {
+    if (previous === undefined) {
+      delete process.env.YXER_DOWNLOAD_BASE_URL;
+    } else {
+      process.env.YXER_DOWNLOAD_BASE_URL = previous;
+    }
+  }
 });
 
 test("parseChecksums reads sha256 entries", () => {

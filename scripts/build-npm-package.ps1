@@ -3,6 +3,8 @@ param(
 
     [string]$PackageName = "@yixiaoermail/cli",
 
+    [string]$DownloadRootUrl = $env:YXER_DOWNLOAD_ROOT_URL,
+
     [string]$OutputDir = "out\npm",
 
     [string]$ReleaseDir = "out\release",
@@ -152,12 +154,30 @@ if ($distinctVersions.Count -ne 1) {
 }
 
 $resolvedVersion = $goVersion
+
+if (-not $DownloadRootUrl) {
+    $templatePackageJson = Get-Content -LiteralPath (Join-Path $npmTemplateDir "package.json") -Raw | ConvertFrom-Json
+    $DownloadRootUrl = $templatePackageJson.yxerDownloadRootUrl
+}
+
+if ($DownloadRootUrl) {
+    $parsedDownloadRoot = $null
+    if (-not [System.Uri]::TryCreate($DownloadRootUrl, [System.UriKind]::Absolute, [ref]$parsedDownloadRoot) -or
+        $parsedDownloadRoot.Scheme -ne "https") {
+        throw "DownloadRootUrl must be an absolute HTTPS URL"
+    }
+    $DownloadRootUrl = $DownloadRootUrl.TrimEnd('/')
+}
 if ($Version) {
     if ($Version -ne $resolvedVersion) {
         throw "Provided version '$Version' does not match internal version '$resolvedVersion'"
     }
 } else {
     $Version = $resolvedVersion
+}
+
+if ($env:GITHUB_REF_TYPE -eq "tag" -and $env:GITHUB_REF_NAME -ne "v$Version") {
+    throw "Git tag '$env:GITHUB_REF_NAME' does not match package version 'v$Version'"
 }
 
 Write-Host "Using package version $Version"
@@ -246,6 +266,7 @@ try {
     $packageJson = Get-Content -LiteralPath $packageJsonPath -Raw | ConvertFrom-Json
     $packageJson.version = $Version
     $packageJson.name = $PackageName
+    $packageJson.yxerDownloadRootUrl = $DownloadRootUrl
     $packageJson | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $packageJsonPath -Encoding utf8
 
     Write-Host "Packing npm artifact"

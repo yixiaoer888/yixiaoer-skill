@@ -45,11 +45,12 @@ npm 包现在采用轻量安装器模式：
 - npm 包本身只包含启动器、skill 源文档、schema 和 references 打包输出
 - 安装阶段会按当前系统下载匹配的 `yxer` 二进制归档
 - 如果 `postinstall` 被跳过，首次运行 `yxer` 时也会自动补装二进制
+- 默认从 `https://oss-v2.yixiaoer.cn/yxer/releases/v<version>/` 下载二进制归档
 
 如需使用私有镜像或自建发布源，可在安装前设置：
 
 ```powershell
-$env:YXER_DOWNLOAD_BASE_URL = "https://your-release-host/yxer/v3.2.2"
+$env:YXER_DOWNLOAD_BASE_URL = "https://mirror.example.cn/yxer/releases/v3.2.22"
 npm install -g @yixiaoermail/cli@latest
 ```
 
@@ -285,7 +286,7 @@ yxer --version
 yxer skill sync
 ```
 
-发布到 GitHub Release 或其他下载源时，需同时上传：
+发布到火山引擎 TOS 时，需在桶内 `yxer/releases/v<version>/` 上传：
 
 - `yxer-cli-<version>-windows-amd64.zip`
 - `yxer-cli-<version>-windows-arm64.zip`
@@ -295,22 +296,23 @@ yxer skill sync
 - `yxer-cli-<version>-linux-arm64.tar.gz`
 - `checksums.txt`
 
-如果仓库已配置 GitHub Actions 发版流，也可以直接通过打 tag 触发自动上传：
+先将 `internal/domain/response.go` 和 `skills/yixiaoer/SKILL.md` 的版本更新为尚未发布的新版本，再提交并推送同版本 tag。当前仓库已有 `v3.2.22` 标签；例如下个版本定为 `3.2.23` 时：
 
 ```powershell
-git tag v3.2.2
-git push origin v3.2.2
+git tag v3.2.23
+git push origin v3.2.23
 ```
 
 注意：仅本地创建 tag 不会触发远端发版，必须把 tag push 到 GitHub。
 
 按当前仓库的自动发版逻辑，push `v*` tag 后会依次完成：
 
-- 构建并上传 GitHub Release 资产
-- 上传 npm tarball 到 Release
-- 使用 Release 中的 tarball 自动发布到 npmjs
+- 构建六个平台归档和 npm tarball，并在 GitHub Actions 内部传递产物
+- 校验产物并将归档和 `checksums.txt` 上传到火山引擎 TOS
+- 从 `https://oss-v2.yixiaoer.cn/yxer/releases/v<version>/` 下载全部归档，复核 SHA-256
+- CDN 校验成功后发布 npm tarball 到 npmjs
 
-如需启用 npm 自动发布，需要在 GitHub 仓库 Secrets 中配置 `NPM_TOKEN`。
+发版前，在 GitHub 仓库 Actions Secrets 中配置 `TOS_ACCESS_KEY_ID`、`TOS_SECRET_ACCESS_KEY`、`NPM_TOKEN`。CI 默认上传到上海地域的 `yixiaoer-lite-asserts` 桶，使用公网 S3 Endpoint `https://tos-s3-cn-shanghai.volces.com`，对象前缀为 `yxer/releases`。`tos-cn-shanghai.volces.com` 是原生 TOS Endpoint；当前 CI 使用 AWS CLI，须使用带 `tos-s3-` 的 Endpoint 和虚拟主机访问方式。这些非敏感参数可通过 Actions Variables `TOS_BUCKET`、`TOS_REGION`、`TOS_S3_ENDPOINT`、`TOS_OBJECT_PREFIX` 覆盖；下载根地址可通过 `YXER_DOWNLOAD_ROOT_URL` 覆盖，并须映射到同一批对象。TOS 凭据仅需目标桶前缀的上传权限。
 
 ### 查看当前技能包位置
 

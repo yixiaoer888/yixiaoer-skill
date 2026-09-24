@@ -9,10 +9,19 @@ const { ensureExecutable } = require("./ensure-executable");
 
 const PACKAGE_NAME = "yxer";
 const ARCHIVE_PREFIX = "yxer-cli";
-const VERSION = require("../package.json").version.replace(/-.*$/, "");
-const DEFAULT_REPO = "yixiaoer888/yixiaoer-skill";
-const DEFAULT_BASE_URL = `https://github.com/${DEFAULT_REPO}/releases/download/v${VERSION}`;
+const packageInfo = require("../package.json");
+const VERSION = packageInfo.version.replace(/-.*$/, "");
+if (!packageInfo.yxerDownloadRootUrl) {
+  throw new Error("Missing yxerDownloadRootUrl in package.json");
+}
+
+function buildVersionBaseUrl(rootUrl, version) {
+  return `${rootUrl.replace(/\/+$/, "")}/v${version}`;
+}
+
+const DEFAULT_BASE_URL = buildVersionBaseUrl(packageInfo.yxerDownloadRootUrl, VERSION);
 const ALLOWED_HOSTS = new Set([
+  new URL(DEFAULT_BASE_URL).hostname,
   "github.com",
   "objects.githubusercontent.com",
   "release-assets.githubusercontent.com",
@@ -286,6 +295,7 @@ if (require.main === module) {
 module.exports = {
   ALLOWED_HOSTS,
   buildDownloadUrl,
+  buildVersionBaseUrl,
   download,
   downloadWithCurl,
   downloadWithPowerShell,
@@ -296,5 +306,6 @@ module.exports = {
   install,
   isSupportedPlatform,
   parseChecksums,
+  resolveBaseUrl,
   verifyChecksum
 };

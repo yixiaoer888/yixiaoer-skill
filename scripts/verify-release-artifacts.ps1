@@ -92,6 +92,15 @@ try {
 
     $embeddedChecksumsPath = Join-Path $tmpDir "package\checksums.txt"
     $embeddedChecksums = Get-ChecksumMap -Path $embeddedChecksumsPath
+    $embeddedPackageJsonPath = Join-Path $tmpDir "package\package.json"
+    $embeddedPackageJson = Get-Content -LiteralPath $embeddedPackageJsonPath -Raw | ConvertFrom-Json
+    if (-not $embeddedPackageJson.yxerDownloadRootUrl) {
+        throw "npm tarball has no yxerDownloadRootUrl"
+    }
+    if ($env:YXER_DOWNLOAD_ROOT_URL -and
+        $embeddedPackageJson.yxerDownloadRootUrl.TrimEnd('/') -ne $env:YXER_DOWNLOAD_ROOT_URL.TrimEnd('/')) {
+        throw "npm tarball download root does not match YXER_DOWNLOAD_ROOT_URL"
+    }
 
     if ($embeddedChecksums.Count -ne $releaseChecksums.Count) {
         throw "Embedded checksum count ($($embeddedChecksums.Count)) does not match release checksum count ($($releaseChecksums.Count))"
