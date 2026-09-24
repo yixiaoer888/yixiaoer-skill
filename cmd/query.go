@@ -61,7 +61,7 @@ func newCategoriesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "categories <account_id>",
 		Short: "查询分类",
-		Long:  "查询分类。\n\n搜狐号视频分类支持使用 --paths 查看可直接发布的父子分类路径。\n\n当前支持平台：百家号、爱奇艺、哔哩哔哩、企鹅号、搜狐号、网易号、一点号、知乎、蜂网、AcFun。",
+		Long:  "查询分类。\n\n搜狐号视频分类支持使用 --paths 查看可直接发布的父子分类路径。大鱼号视频分类使用 CLI 内置的蚁小二 Web 固定目录，不请求大鱼号账号分类接口。\n\n当前支持平台：百家号、爱奇艺、哔哩哔哩、企鹅号、搜狐号、网易号、一点号、大鱼号、知乎、蜂网、AcFun。",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runQuery(cmd, "categories", func(service queryflow.Service) (interface{}, error) {

@@ -13,7 +13,7 @@
 
 ## 执行逻辑 (Logic Flow)
 1. **意图确认**：确认目标平台为Dayuhao。
-2. **参数装配**：识别并填充标题、描述等平台特定字段至 `contentPublishForm`。
+2. **参数装配**：识别并填充标题、标签、分类等平台特定字段至 `contentPublishForm`。
 3. **指令执行**：先执行 `yxer validate <platform> <type> <payload.json>`，再执行 `yxer publish <type> <platform> <payload.json> [--publish-channel local --client-id <clientId>]`。
 
 
@@ -24,10 +24,9 @@
 | 字段名 | 类型 | 必填 | 说明 | 默认值 |
 | :--- | :--- | :--- | :--- | :--- |
 | `formType` | `string` | **是** | 固定值为 `task` | `task` |
-| `title` | `string` | **是** | 视频标题 (最多 50 字符) | - |
-| `description` | `string` | **是** | 视频描述 (最多 1000 字符) | - |
-| `tags` | `string[]` | **是** | 视频标签 (1-6 个) | - |
-| `category` | `Array` | 否 | 视频分类，使用 `CascadingPlatformDataItem[]` | - |
+| `title` | `string` | **是** | 视频标题 (5-60 字符) | - |
+| `tags` | `string[]` | 否 | 最多 10 个标签，每个标签最多 10 字 | `[]` |
+| `category` | `Array` | **是** | 视频分类，至少选择一个查询结果，使用 `CascadingPlatformDataItem[]` | - |
 | `createType` | `number` | 否 | 创作类型: 0-非原创, 1-原创 | 0 |
 | `declaration` | `number` | 否 | 声明字段: 0-无需申明, 3-虚构演绎, 4-AI 生成 | 0 |
 | `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
@@ -57,7 +56,6 @@
         "contentPublishForm": {
           "formType": "task",
           "title": "大鱼号视频发布标题",
-          "description": "这是关于此视频的详细描述内容。",
           "horizontalCover": { "key": "horizontal_cover_key", "size": 102400, "width": 1280, "height": 720 },
           "tags": ["生活", "摄影"],
           "category": [
@@ -74,6 +72,8 @@
 ```
 
 ## 3. 复杂对象结构说明
+
+发布前先执行 `yxer query categories <platformAccountId> --type video --json`，从结果中选择分类并保留完整对象。大鱼号分类跟随蚁小二 Web 端固定目录，CLI 将目录嵌入自身并在确认账号平台后直接返回，不请求不支持大鱼号的账号分类接口。CLI 会在提交时将查询对象转换为蚁小二表单使用的 `id`、`text`、`raw` 结构。
 
 ### 3.1 CascadingPlatformDataItem (分类对象)
 | 字段名 | 类型 | 必填 | 说明 |

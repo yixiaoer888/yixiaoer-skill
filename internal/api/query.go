@@ -757,7 +757,10 @@ func (c *Client) Prepare(platform, publishType string) (PrepareData, error) {
 
 	var categories interface{}
 	if len(onlineAccounts) > 0 && (publishType == "video" || publishType == "article") {
-		if result, err := c.Categories(AccountID(onlineAccounts[0]), publishType); err == nil {
+		accountID := AccountID(onlineAccounts[0])
+		if platformutil.CanonicalKey(platform) == "dayuhao" && publishType == "video" {
+			categories, err = dayuhaoVideoCategoriesCatalog()
+		} else if result, categoryErr := c.Categories(accountID, publishType); categoryErr == nil {
 			categories = result
 		}
 	}

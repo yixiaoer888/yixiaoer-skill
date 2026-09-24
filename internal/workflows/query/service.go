@@ -14,7 +14,7 @@ func NewService(rt *app.Runtime) Service {
 }
 
 func (s Service) Categories(accountID, publishType string) (interface{}, error) {
-	return s.rt.Client.Categories(accountID, publishType)
+	return s.rt.Client.CategoriesForAccount(accountID, publishType)
 }
 
 func (s Service) Locations(accountID, keyword, locationType, nextPage string) (interface{}, error) {
