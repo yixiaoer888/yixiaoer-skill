@@ -94,6 +94,14 @@ try {
     $embeddedChecksums = Get-ChecksumMap -Path $embeddedChecksumsPath
     $embeddedPackageJsonPath = Join-Path $tmpDir "package\package.json"
     $embeddedPackageJson = Get-Content -LiteralPath $embeddedPackageJsonPath -Raw | ConvertFrom-Json
+    $embeddedSkillManifestPath = Join-Path $tmpDir "package\skills\yixiaoer\SKILL.md"
+    $embeddedSkillManifest = Get-Content -LiteralPath $embeddedSkillManifestPath -Raw
+    if ($embeddedSkillManifest -notmatch '(?m)^version:[ \t]*([^\r\n \t]+)') {
+        throw "npm tarball has no skill version"
+    }
+    if ($Matches[1] -ne $embeddedPackageJson.version) {
+        throw "npm tarball skill version does not match package version"
+    }
     if (-not $embeddedPackageJson.yxerDownloadRootUrl) {
         throw "npm tarball has no yxerDownloadRootUrl"
     }

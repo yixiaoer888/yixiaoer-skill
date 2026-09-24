@@ -260,15 +260,15 @@ npm 包会内置 `skills/yixiaoer`，`skill sync` 会直接使用本地随包分
 .\scripts\build-npm-package.ps1
 ```
 
-默认会自动读取仓库内部版本，并校验以下版本源保持一致：
+本地构建默认读取仓库内部版本，并校验以下两个版本源保持一致：
 
 - `internal/domain/response.go`
 - `skills/yixiaoer/SKILL.md`
 
-如需显式传版本号，也必须与内部版本一致：
+本地构建如需显式传版本号，也必须与内部版本一致：
 
 ```powershell
-.\scripts\build-npm-package.ps1 -Version 3.1.1
+.\scripts\build-npm-package.ps1 -Version 3.2.22
 ```
 
 该脚本会：
@@ -296,11 +296,12 @@ yxer skill sync
 - `yxer-cli-<version>-linux-arm64.tar.gz`
 - `checksums.txt`
 
-先将 `internal/domain/response.go` 和 `skills/yixiaoer/SKILL.md` 的版本更新为尚未发布的新版本，再提交并推送同版本 tag。当前仓库已有 `v3.2.22` 标签；例如下个版本定为 `3.2.23` 时：
+GitHub Actions 通过 `v<major>.<minor>.<patch>` 标签决定发布版本，并把该版本写入编译后的 CLI、归档名称、npm 包和随包分发的 Skill。仓库中的两个版本源只作为本地构建默认值，彼此仍须一致。先提交发版代码，再推送一个未使用的新标签；`v3.2.23` 已指向旧提交，不能通过重跑该标签应用新代码。例如：
 
 ```powershell
-git tag v3.2.23
-git push origin v3.2.23
+$releaseVersion = "3.2.24"
+git tag "v$releaseVersion"
+git push origin "v$releaseVersion"
 ```
 
 注意：仅本地创建 tag 不会触发远端发版，必须把 tag push 到 GitHub。
