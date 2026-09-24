@@ -61,7 +61,7 @@ function Get-GoSkillVersion {
     )
 
     $content = Get-Content -LiteralPath $Path -Raw
-    $match = [regex]::Match($content, '(?:const|var)\s+SkillVersion\s*=\s*"([^"]+)"')
+    $match = [regex]::Match($content, 'const\s+SkillVersion\s*=\s*"([^"]+)"')
     if (-not $match.Success) {
         throw "SkillVersion constant not found: $Path"
     }
@@ -168,21 +168,16 @@ if ($DownloadRootUrl) {
     }
     $DownloadRootUrl = $DownloadRootUrl.TrimEnd('/')
 }
-if ($env:GITHUB_REF_TYPE -eq "tag") {
-    if ($env:GITHUB_REF_NAME -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') {
-        throw "Release tag must have the form v<major>.<minor>.<patch>: '$env:GITHUB_REF_NAME'"
-    }
-    $tagVersion = $env:GITHUB_REF_NAME.Substring(1)
-    if ($Version -and $Version -ne $tagVersion) {
-        throw "Provided version '$Version' does not match Git tag '$env:GITHUB_REF_NAME'"
-    }
-    $Version = $tagVersion
-} elseif ($Version) {
+if ($Version) {
     if ($Version -ne $resolvedVersion) {
         throw "Provided version '$Version' does not match internal version '$resolvedVersion'"
     }
 } else {
     $Version = $resolvedVersion
+}
+
+if ($env:GITHUB_REF_TYPE -eq "tag" -and $env:GITHUB_REF_NAME -ne "v$Version") {
+    throw "Git tag '$env:GITHUB_REF_NAME' does not match package version 'v$Version'"
 }
 
 Write-Host "Using package version $Version"
@@ -235,15 +230,6 @@ try {
     Copy-Item -Path $schemaSourceDir -Destination $packageRoot -Recurse -Force
     Copy-Item -Path $referencesSourceDir -Destination $packageRoot -Recurse -Force
 
-    $packagedSkillManifestPath = Join-Path $packagedSkillRoot "yixiaoer\SKILL.md"
-    $packagedSkillManifest = Get-Content -LiteralPath $packagedSkillManifestPath -Raw
-    $skillVersionPattern = [regex]::new('(?m)^version:[ \t]*[^\r\n]+')
-    if ($skillVersionPattern.Matches($packagedSkillManifest).Count -ne 1) {
-        throw "Expected exactly one skill version in $packagedSkillManifestPath"
-    }
-    $packagedSkillManifest = $skillVersionPattern.Replace($packagedSkillManifest, "version: $Version", 1)
-    Set-Content -LiteralPath $packagedSkillManifestPath -Value $packagedSkillManifest -Encoding utf8 -NoNewline
-
     $targets = @(
         @{ GOOS = "windows"; GOARCH = "amd64"; BinaryName = "yxer.exe" },
         @{ GOOS = "windows"; GOARCH = "arm64"; BinaryName = "yxer.exe" },
@@ -266,7 +252,7 @@ try {
         Write-Host "Building $($target.GOOS)/$($target.GOARCH) -> $binaryPath"
         $env:GOOS = $target.GOOS
         $env:GOARCH = $target.GOARCH
-        go build -buildvcs=false -ldflags "-X github.com/yixiaoer/yixiaoer-skill/internal/domain.SkillVersion=$Version" -o $binaryPath .
+        go build -buildvcs=false -o $binaryPath .
         Assert-LastExitCode "go build ($($target.GOOS)/$($target.GOARCH))"
 
         if ($target.GOOS -eq $hostGoOS -and $target.GOARCH -eq $hostGoArch) {

@@ -50,7 +50,7 @@ npm 包现在采用轻量安装器模式：
 如需使用私有镜像或自建发布源，可在安装前设置：
 
 ```powershell
-$env:YXER_DOWNLOAD_BASE_URL = "https://mirror.example.cn/yxer/releases/v3.2.22"
+$env:YXER_DOWNLOAD_BASE_URL = "https://mirror.example.cn/yxer/releases/v3.2.24"
 npm install -g @yixiaoermail/cli@latest
 ```
 
@@ -268,7 +268,7 @@ npm 包会内置 `skills/yixiaoer`，`skill sync` 会直接使用本地随包分
 本地构建如需显式传版本号，也必须与内部版本一致：
 
 ```powershell
-.\scripts\build-npm-package.ps1 -Version 3.2.22
+.\scripts\build-npm-package.ps1 -Version 3.2.24
 ```
 
 该脚本会：
@@ -296,7 +296,7 @@ yxer skill sync
 - `yxer-cli-<version>-linux-arm64.tar.gz`
 - `checksums.txt`
 
-GitHub Actions 通过 `v<major>.<minor>.<patch>` 标签决定发布版本，并把该版本写入编译后的 CLI、归档名称、npm 包和随包分发的 Skill。仓库中的两个版本源只作为本地构建默认值，彼此仍须一致。先提交发版代码，再推送一个未使用的新标签；`v3.2.23` 已指向旧提交，不能通过重跑该标签应用新代码。例如：
+发版版本以 `internal/domain/response.go` 和 `skills/yixiaoer/SKILL.md` 为准，两处必须一致；GitHub Actions 的标签必须与该版本匹配。`v3.2.23` 已指向旧提交，不能通过重跑该标签应用新代码。当前源码版本为 `3.2.24`，提交并推送代码后，可在该提交上创建新标签：
 
 ```powershell
 $releaseVersion = "3.2.24"
