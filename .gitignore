@@ -6,6 +6,7 @@ bin/**
 .agents/**
 .gomodcache/**
 out/**
+.local-release/
 .yxer-online-test/
 goods-video*.json
 payload-*.json

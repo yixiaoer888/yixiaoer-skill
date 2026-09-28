@@ -296,25 +296,62 @@ yxer skill sync
 - `yxer-cli-<version>-linux-arm64.tar.gz`
 - `checksums.txt`
 
-GitHub Actions 发版时，`v<major>.<minor>.<patch>` tag 是发布版本的唯一来源，不检查源码中的版本号。同一份源码使用不同的新 tag，会分别生成对应版本的 CLI、归档路径、npm 包和随包 Skill。`v3.2.23` 已指向旧提交，不能通过重跑该标签应用新代码。提交并推送代码后，可在该提交上创建未使用的新标签：
+#### 1. 准备新版本并推送源码
+
+更新 `internal/domain/response.go` 和 `skills/yixiaoer/SKILL.md` 中的版本号，确保二者一致。使用从未发布过的新版本号，然后提交并推送源码：
 
 ```powershell
-$releaseVersion = "3.2.24"
+$releaseVersion = "3.2.27" # 替换为新的、未发布过的版本号
+$branch = "main"           # 替换为实际发版分支
+git add internal/domain/response.go skills/yixiaoer/SKILL.md
+git commit -m "release: v$releaseVersion"
+git push origin $branch
+
+# 在推送的提交上创建并推送版本 tag
 git tag "v$releaseVersion"
 git push origin "v$releaseVersion"
 ```
 
-注意：仅本地创建 tag 不会触发远端发版，必须把 tag push 到 GitHub。
-同一提交可以使用不同的未发布版本 tag 分别构建；已经发布到 npm 的同名同版本包不能再次发布。
+推送 tag 只用于标记源码版本，不会触发 GitHub 构建或发布。确认本机检出的源码就是该 tag 对应的提交，再继续操作。
 
-按当前仓库的自动发版逻辑，push `v*` tag 后会依次完成：
+#### 2. 准备本机工具和凭据
 
-- 构建六个平台归档和 npm tarball，并在 GitHub Actions 内部传递产物
-- 校验产物并将归档和 `checksums.txt` 上传到火山引擎 TOS
-- 从 `https://oss-v2.yixiaoer.cn/yxer/releases/v<version>/` 下载全部归档，复核 SHA-256
-- CDN 校验成功后发布 npm tarball 到 npmjs
+本机需要安装 Go、Node.js/npm、AWS CLI 和 `curl.exe`，并确保它们在 `PATH` 中。本地发布时，分别把 TOS Access Key ID、Secret Access Key 和 npm 发布 token 填入 `.local-release/TOS_ACCESS_KEY_ID.txt`、`.local-release/TOS_SECRET_ACCESS_KEY.txt`、`.local-release/NPM_TOKEN.txt`。每个文件只写一行原始值，不要加变量名、引号或空格。该目录已加入 `.gitignore`；文件仍是明文，请只在受信任的本机保存，不要发送或提交密钥。对应的环境变量优先于文件；npm token 文件未填写时，也可以使用已有的 npm 登录配置。若使用登录配置，先确认当前账号：
 
-发版前，在 GitHub 仓库 Actions Secrets 中配置 `TOS_ACCESS_KEY_ID`、`TOS_SECRET_ACCESS_KEY`、`NPM_TOKEN`。CI 默认上传到上海地域的 `yixiaoer-lite-asserts` 桶，使用公网 S3 Endpoint `https://tos-s3-cn-shanghai.volces.com`，对象前缀为 `yxer/releases`。`tos-cn-shanghai.volces.com` 是原生 TOS Endpoint；当前 CI 使用 AWS CLI，须使用带 `tos-s3-` 的 Endpoint 和虚拟主机访问方式。这些非敏感参数可通过 Actions Variables `TOS_BUCKET`、`TOS_REGION`、`TOS_S3_ENDPOINT`、`TOS_OBJECT_PREFIX` 覆盖；下载根地址可通过 `YXER_DOWNLOAD_ROOT_URL` 覆盖，并须映射到同一批对象。TOS 凭据仅需目标桶前缀的上传权限。
+```powershell
+npm login --registry https://registry.npmjs.org
+npm whoami --registry https://registry.npmjs.org
+```
+
+使用 `NPM_TOKEN.txt` 时无需运行 `npm login`；发布脚本会通过仅作用于 `registry.npmjs.org` 的临时 npm 配置读取该 token，并在发布前检查身份。
+
+#### 3. 本机构建并预览
+
+在仓库根目录执行：
+
+```powershell
+.\scripts\publish-release.ps1 -DryRun
+```
+
+脚本会运行构建测试、交叉编译六个平台、生成 npm tarball、校验成品，并预览 TOS 上传和 npm 发布。此步骤不会上传 TOS 或发布 npm，但会在本机生成或更新 `out\release` 和 `out\npm`。检查版本、TOS 目标路径和包名无误后再继续。
+
+#### 4. 上传 TOS 并发布 npm
+
+```powershell
+.\scripts\publish-release.ps1 -Execute
+```
+
+脚本会先检查 npm 登录状态和版本是否已发布，再并发上传归档到 TOS，从国内 CDN 下载归档并校验 SHA-256，全部通过后才发布 npm。默认目标是上海地域的 `yixiaoer-lite-asserts` 桶、对象前缀 `yxer/releases` 和 `https://tos-s3-cn-shanghai.volces.com`；下载根地址默认取 `npm/package.json` 中的国内域名。可通过参数或环境变量 `TOS_BUCKET`、`TOS_REGION`、`TOS_S3_ENDPOINT`、`TOS_OBJECT_PREFIX`、`YXER_DOWNLOAD_ROOT_URL` 覆盖。TOS 凭据仅需目标桶前缀的上传权限。
+
+#### 5. 确认发布结果
+
+```powershell
+npm view @yixiaoermail/cli version
+npm install -g "@yixiaoermail/cli@$releaseVersion"
+yxer --version
+```
+
+已发布到 npm 的同名同版本包不能再次发布。GitHub 只保存源码和 tag，不负责构建、打包、上传或 npm 发布。
 
 ### 查看当前技能包位置
 

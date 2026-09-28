@@ -41,3 +41,5 @@ checksums.txt
 ```
 
 To override the versioned download directory, set `YXER_DOWNLOAD_BASE_URL` before installation.
+
+Release builds and publishing are performed from the repository owner's local machine with `scripts/publish-release.ps1`. The script previews by default; pass `-Execute` only after reviewing the TOS and npm dry-run output.
