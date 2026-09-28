@@ -200,6 +200,9 @@ try {
         Write-Host "Running npm installer tests"
         node --test .\test\npm\ensure-executable.test.js
         Assert-LastExitCode "node --test .\test\npm\ensure-executable.test.js"
+
+        Write-Host "Running npm release preflight tests"
+        & (Join-Path $repoRoot "test\npm\check-npm-version.test.ps1")
     }
 
     if (Test-Path $stagingRoot) {

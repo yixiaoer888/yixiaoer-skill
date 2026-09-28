@@ -45,7 +45,7 @@ npm 包现在采用轻量安装器模式：
 - npm 包本身只包含启动器、skill 源文档、schema 和 references 打包输出
 - 安装阶段会按当前系统下载匹配的 `yxer` 二进制归档
 - 如果 `postinstall` 被跳过，首次运行 `yxer` 时也会自动补装二进制
-- 默认从 `https://oss-v2.yixiaoer.cn/yxer/releases/v<version>/` 下载二进制归档
+- 默认从 `https://yixiaoer-lite-asserts.tos-cn-shanghai.volces.com/yxer/releases/v<version>/` 下载二进制归档
 
 如需使用私有镜像或自建发布源，可在安装前设置：
 
@@ -341,7 +341,7 @@ npm whoami --registry https://registry.npmjs.org
 .\scripts\publish-release.ps1 -Execute
 ```
 
-脚本会先检查 npm 登录状态和版本是否已发布，再并发上传归档到 TOS，从国内 CDN 下载归档并校验 SHA-256，全部通过后才发布 npm。默认目标是上海地域的 `yixiaoer-lite-asserts` 桶、对象前缀 `yxer/releases` 和 `https://tos-s3-cn-shanghai.volces.com`；下载根地址默认取 `npm/package.json` 中的国内域名。可通过参数或环境变量 `TOS_BUCKET`、`TOS_REGION`、`TOS_S3_ENDPOINT`、`TOS_OBJECT_PREFIX`、`YXER_DOWNLOAD_ROOT_URL` 覆盖。TOS 凭据仅需目标桶前缀的上传权限。
+脚本会先检查 npm 登录状态和版本是否已发布，再并发上传归档到 TOS，从包内配置的下载地址读取归档并校验 SHA-256，全部通过后才发布 npm。默认目标是上海地域的 `yixiaoer-lite-asserts` 桶、对象前缀 `yxer/releases` 和 `https://tos-s3-cn-shanghai.volces.com`；下载根地址默认取 `npm/package.json` 中的 TOS 公共域名 `yixiaoer-lite-asserts.tos-cn-shanghai.volces.com`。可通过参数或环境变量 `TOS_BUCKET`、`TOS_REGION`、`TOS_S3_ENDPOINT`、`TOS_OBJECT_PREFIX`、`YXER_DOWNLOAD_ROOT_URL` 覆盖。TOS 凭据仅需目标桶前缀的上传权限。
 
 #### 5. 确认发布结果
 

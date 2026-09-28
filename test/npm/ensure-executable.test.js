@@ -58,11 +58,11 @@ test("buildVersionBaseUrl uses the versioned release directory", () => {
   );
 });
 
-test("default installer URL uses the packaged domestic download root", () => {
+test("default installer URL uses the packaged TOS download root", () => {
   const previous = process.env.YXER_DOWNLOAD_BASE_URL;
   delete process.env.YXER_DOWNLOAD_BASE_URL;
   try {
-    assert.equal(resolveBaseUrl(), "https://oss-v2.yixiaoer.cn/yxer/releases/v0.0.0");
+    assert.equal(resolveBaseUrl(), "https://yixiaoer-lite-asserts.tos-cn-shanghai.volces.com/yxer/releases/v0.0.0");
   } finally {
     if (previous === undefined) {
       delete process.env.YXER_DOWNLOAD_BASE_URL;

@@ -23,6 +23,7 @@ $releaseDir = Join-Path $repoRoot "out\release"
 $npmDir = Join-Path $repoRoot "out\npm"
 $verifyScript = Join-Path $PSScriptRoot "verify-release-artifacts.ps1"
 $buildScript = Join-Path $PSScriptRoot "build-npm-package.ps1"
+$checkNpmVersionScript = Join-Path $PSScriptRoot "check-npm-version.ps1"
 $awsConfigPath = Join-Path ([System.IO.Path]::GetTempPath()) ("yxer-aws-" + [guid]::NewGuid().ToString("N"))
 $npmConfigPath = Join-Path ([System.IO.Path]::GetTempPath()) ("yxer-npm-" + [guid]::NewGuid().ToString("N") + ".npmrc")
 
@@ -81,41 +82,41 @@ function Get-FileSha256 {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 
-function Invoke-CdnVerification {
+function Invoke-DownloadVerification {
     param([string]$BaseUrl)
 
-    $downloadDir = Join-Path ([System.IO.Path]::GetTempPath()) ("yxer-cdn-verify-" + [guid]::NewGuid().ToString("N"))
+    $downloadDir = Join-Path ([System.IO.Path]::GetTempPath()) ("yxer-download-verify-" + [guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Path $downloadDir -Force | Out-Null
     try {
         $checksumsPath = Join-Path $downloadDir "checksums.txt"
         $checksumsUrl = "$BaseUrl/checksums.txt"
-        Write-Host "Downloading CDN checksum list: $checksumsUrl"
-        & curl.exe --fail --location --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 $checksumsUrl --output $checksumsPath
-        Assert-LastExitCode "Download CDN checksums"
+        Write-Host "Downloading release checksum list: $checksumsUrl"
+        & curl.exe --fail --location --silent --show-error --retry 5 --retry-delay 5 $checksumsUrl --output $checksumsPath
+        Assert-LastExitCode "Download release checksums from $checksumsUrl"
 
         $actualChecksums = (Get-Content -LiteralPath $checksumsPath -Raw).Replace("`r", "").TrimEnd("`n")
         $localChecksums = (Get-Content -LiteralPath (Join-Path $releaseDir "checksums.txt") -Raw).Replace("`r", "").TrimEnd("`n")
         if ($actualChecksums -ne $localChecksums) {
-            throw "CDN checksums.txt does not match the local release artifact"
+            throw "Downloaded checksums.txt does not match the local release artifact"
         }
 
         foreach ($line in $actualChecksums -split "`n") {
             if (-not $line.Trim()) { continue }
             if ($line -notmatch '^([0-9a-fA-F]{64})\s{2}(.+)$') {
-                throw "Invalid checksum line from CDN: $line"
+                throw "Invalid checksum line from download URL: $line"
             }
             $expectedHash = $Matches[1].ToLowerInvariant()
             $fileName = $Matches[2].Trim()
             $downloadPath = Join-Path $downloadDir $fileName
-            Write-Host "Downloading CDN artifact: $fileName"
-            & curl.exe --fail --location --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 "$BaseUrl/$fileName" --output $downloadPath
-            Assert-LastExitCode "Download $fileName from CDN"
+            Write-Host "Downloading release artifact: $fileName"
+            & curl.exe --fail --location --silent --show-error --retry 5 --retry-delay 5 "$BaseUrl/$fileName" --output $downloadPath
+            Assert-LastExitCode "Download $fileName from $BaseUrl"
             $actualHash = Get-FileSha256 -Path $downloadPath
             if ($actualHash -ne $expectedHash) {
-                throw "CDN checksum mismatch for ${fileName}: expected $expectedHash but got $actualHash"
+                throw "Download checksum mismatch for ${fileName}: expected $expectedHash but got $actualHash"
             }
         }
-        Write-Host "Verified all CDN release archives and checksums"
+        Write-Host "Verified all release archives and checksums from download URL"
     } finally {
         Remove-Item -LiteralPath $downloadDir -Recurse -Force -ErrorAction SilentlyContinue
     }
@@ -156,7 +157,7 @@ if (-not [System.Uri]::TryCreate($S3Endpoint, [System.UriKind]::Absolute, [ref]$
 
 $releaseTag = "v$Version"
 $destination = "s3://$Bucket/$ObjectPrefix/$releaseTag"
-$cdnBaseUrl = "$($DownloadRootUrl.TrimEnd('/'))/$releaseTag"
+$downloadBaseUrl = "$($DownloadRootUrl.TrimEnd('/'))/$releaseTag"
 
 $awsKey = Get-EnvOrDefault -Value $env:TOS_ACCESS_KEY_ID -DefaultValue $env:AWS_ACCESS_KEY_ID
 $awsSecret = Get-EnvOrDefault -Value $env:TOS_SECRET_ACCESS_KEY -DefaultValue $env:AWS_SECRET_ACCESS_KEY
@@ -194,7 +195,7 @@ if ($Execute -and -not $DryRun) {
 
 Write-Host "Release version: $Version"
 Write-Host "TOS destination: $destination/"
-Write-Host "Public download path: $cdnBaseUrl/"
+Write-Host "Public download path: $downloadBaseUrl/"
 Write-Host "Building artifacts locally and verifying the npm tarball..."
 
 & $buildScript -Version $Version -PackageName $PackageName -DownloadRootUrl $DownloadRootUrl -SkipTests:$SkipBuildTests
@@ -254,10 +255,7 @@ s3 =
         return
     }
 
-    $existingVersion = & npm view "$PackageName@$Version" version --registry "https://registry.npmjs.org" @npmAuthArgs 2>$null
-    if ($LASTEXITCODE -eq 0 -and $existingVersion) {
-        throw "$PackageName@$Version already exists on npm and cannot be published again"
-    }
+    & $checkNpmVersionScript -PackageName $PackageName -Version $Version -NpmAuthArgs $npmAuthArgs
 
     if ($npmToken) { $env:NODE_AUTH_TOKEN = $originalNodeAuthToken }
     $env:AWS_ACCESS_KEY_ID = $awsKey
@@ -268,7 +266,7 @@ s3 =
     $env:AWS_ACCESS_KEY_ID = $originalAwsKey
     $env:AWS_SECRET_ACCESS_KEY = $originalAwsSecret
 
-    Invoke-CdnVerification -BaseUrl $cdnBaseUrl
+    Invoke-DownloadVerification -BaseUrl $downloadBaseUrl
 
     if ($npmToken) { $env:NODE_AUTH_TOKEN = $npmToken }
     Write-Host "Publishing $PackageName@$Version to npm..."

@@ -8,7 +8,7 @@ Packaged `yxer` CLI for global npm installation.
 npm install -g @yixiaoermail/cli
 ```
 
-The npm package installs a lightweight launcher. During install or first run it downloads the matching platform binary from `https://oss-v2.yixiaoer.cn/yxer/releases/v<version>/`.
+The npm package installs a lightweight launcher. During install or first run it downloads the matching platform binary from `https://yixiaoer-lite-asserts.tos-cn-shanghai.volces.com/yxer/releases/v<version>/`.
 
 ## Verify
 
@@ -28,7 +28,7 @@ Use `yxer skill sync --global` if your host expects a global skill install.
 
 ## Release Packaging
 
-This package expects assets in the versioned TOS/CDN directory named like:
+This package expects assets in the versioned TOS directory named like:
 
 ```text
 yxer-cli-<version>-windows-amd64.zip
