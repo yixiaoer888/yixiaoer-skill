@@ -1,0 +1,118 @@
+name: Publish release assets to Volcano TOS
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to mirror (for example v3.2.9)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve release tag and version
+        id: release
+        shell: bash
+        env:
+          EVENT_TAG: ${{ github.event.release.tag_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          REF_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          tag="${EVENT_TAG:-${INPUT_TAG:-$REF_TAG}}"
+          if [[ -z "$tag" ]]; then
+            echo "Release tag is empty" >&2
+            exit 1
+          fi
+          version="${tag#v}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for release assets and download them
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          GH_REPO: ${{ github.repository }}
+          ASSET_DIR: ${{ runner.temp }}/yxer-release
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected=(
+            "yxer-cli-${TAG#v}-windows-amd64.zip"
+            "yxer-cli-${TAG#v}-windows-arm64.zip"
+            "yxer-cli-${TAG#v}-darwin-amd64.tar.gz"
+            "yxer-cli-${TAG#v}-darwin-arm64.tar.gz"
+            "yxer-cli-${TAG#v}-linux-amd64.tar.gz"
+            "yxer-cli-${TAG#v}-linux-arm64.tar.gz"
+            "checksums.txt"
+          )
+          for attempt in $(seq 1 60); do
+            is_draft="true"
+            if gh release view "$TAG" --repo "$GH_REPO" --json isDraft --jq .isDraft > "$RUNNER_TEMP/is-draft" 2>/dev/null; then
+              is_draft="$(cat "$RUNNER_TEMP/is-draft")"
+            fi
+            if [[ "$is_draft" == "false" ]]; then
+              attempt_dir="$RUNNER_TEMP/yxer-release-attempt-$attempt"
+              mkdir -p "$attempt_dir"
+              if gh release download "$TAG" --repo "$GH_REPO" --dir "$attempt_dir" \
+                --pattern 'yxer-cli-*' --pattern 'checksums.txt'; then
+                complete="true"
+                for asset in "${expected[@]}"; do
+                  if [[ ! -s "$attempt_dir/$asset" ]]; then
+                    complete="false"
+                    break
+                  fi
+                done
+                if [[ "$complete" == "true" ]]; then
+                  mkdir -p "$ASSET_DIR"
+                  cp "$attempt_dir"/* "$ASSET_DIR/"
+                  exit 0
+                fi
+              fi
+            fi
+            echo "Release $TAG is not published with all assets yet (attempt $attempt/60)."
+            sleep 15
+          done
+          echo "Timed out waiting for all release assets for $TAG." >&2
+          exit 1
+
+      - name: Install AWS CLI for TOS S3-compatible endpoint
+        run: |
+          python3 -m venv "$RUNNER_TEMP/awscli-venv"
+          "$RUNNER_TEMP/awscli-venv/bin/pip" install --disable-pip-version-check awscli
+          echo "$RUNNER_TEMP/awscli-venv/bin" >> "$GITHUB_PATH"
+
+      - name: Upload versioned assets to TOS
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.TOS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.TOS_SECRET_ACCESS_KEY }}
+          AWS_EC2_METADATA_DISABLED: "true"
+          AWS_DEFAULT_REGION: ${{ vars.TOS_REGION || 'cn-shanghai' }}
+          TOS_REGION: ${{ vars.TOS_REGION || 'cn-shanghai' }}
+          TOS_BUCKET: ${{ vars.TOS_BUCKET || 'yixiaoer-lite-asserts' }}
+          TOS_PREFIX: ${{ vars.TOS_PREFIX }}
+          VERSION: ${{ steps.release.outputs.version }}
+          ASSET_DIR: ${{ runner.temp }}/yxer-release
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${AWS_ACCESS_KEY_ID:?Missing GitHub secret TOS_ACCESS_KEY_ID}"
+          : "${AWS_SECRET_ACCESS_KEY:?Missing GitHub secret TOS_SECRET_ACCESS_KEY}"
+          prefix="${TOS_PREFIX:-yxer}"
+          # TOS S3-compatible API endpoint; the public download host is different.
+          endpoint="https://tos-s3-${TOS_REGION}.volces.com"
+          destination="s3://${TOS_BUCKET}/${prefix}/v${VERSION}/"
+          for asset in "$ASSET_DIR"/*; do
+            aws s3 cp "$asset" "$destination$(basename "$asset")" \
+              --endpoint-url "$endpoint" \
+              --region "$TOS_REGION" \
+              --cache-control 'public, max-age=31536000, immutable'
+          done
