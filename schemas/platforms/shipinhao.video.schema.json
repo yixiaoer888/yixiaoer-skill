@@ -185,11 +185,11 @@
       "additionalProperties": true
     },
     "shopping_cart": {
+      "description": "单个视频号关联商品，直接使用 goods 查询返回的 GoodListItemResponse，不包装成数组。",
       "type": "object",
       "required": [
         "yixiaoerId",
-        "yixiaoerName",
-        "raw"
+        "yixiaoerName"
       ],
       "properties": {
         "yixiaoerId": {
@@ -198,29 +198,23 @@
         "yixiaoerName": {
           "type": "string"
         },
-        "raw": {
-          "type": "object"
-        }
-      }
-    },
-    "shoppingCart": {
-      "type": "object",
-      "required": [
-        "yixiaoerId",
-        "yixiaoerName",
-        "raw"
-      ],
-      "properties": {
-        "yixiaoerId": {
+        "price": {
+          "type": "number"
+        },
+        "earnPrice": {
+          "type": "number"
+        },
+        "count": {
+          "type": "number"
+        },
+        "yixiaoerDesc": {
           "type": "string"
         },
-        "yixiaoerName": {
+        "yixiaoerImageUrl": {
           "type": "string"
-        },
-        "raw": {
-          "type": "object"
         }
-      }
+      },
+      "additionalProperties": true
     },
     "collection": {
       "type": "object",

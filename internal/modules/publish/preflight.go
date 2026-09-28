@@ -98,6 +98,7 @@ func PreflightWithTopicHTMLPolicyAndTrace(publishType string, platforms []string
 		result.Errors = append(result.Errors, "at least one target platform is required")
 	}
 	weixinAccountArticle := isWeixinAccountArticlePublish(platforms, publishType)
+	shipinhaoVideo := isShipinhaoVideoPublish(publishType, platforms)
 	weixinPlatformForm := weixinAccountArticleForm(payload)
 	accountForms, ok := payload["accountForms"].([]interface{})
 	if !ok || len(accountForms) == 0 {
@@ -218,6 +219,9 @@ func PreflightWithTopicHTMLPolicyAndTrace(publishType string, platforms []string
 		}, "$")
 
 		for _, field := range []string{"location", "music", "collection", "collections", "challenge", "challenges", "goods", "group", "groups", "miniapp", "miniapps", "shopping_cart", "shoppingCart"} {
+			if shipinhaoVideo && (field == "shopping_cart" || field == "shoppingCart") {
+				continue
+			}
 			if value, ok := form[field]; ok {
 				assertRawObject(value, formPath+"."+field, &result.Errors)
 			}
@@ -640,6 +644,8 @@ func normalizePlatformSpecificFields(publishType string, platforms []string, pay
 		} else if isTaobaoGuanghePlatformSet(platformSet) {
 			// Taobao Guanghe requires the complete goods snapshot from its
 			// dedicated query endpoint; never wrap or rewrite it as Douyin data.
+		} else if publishType == "video" && isShipinhaoPlatformSet(platformSet) {
+			normalizeShipinhaoShoppingCart(cpf, formPath, normalizations)
 		} else {
 			normalizeFlatShoppingCart(cpf, formPath, normalizations)
 		}
@@ -648,6 +654,22 @@ func normalizePlatformSpecificFields(publishType string, platforms []string, pay
 
 func isTaobaoGuanghePlatformSet(platformSet map[string]bool) bool {
 	return platformSet["淘宝光合"] || platformSet["taobaoguanghe"]
+}
+
+func isShipinhaoPlatformSet(platformSet map[string]bool) bool {
+	return platformSet["视频号"] || platformSet["微信视频号"] || platformSet["shipinhao"]
+}
+
+func isShipinhaoVideoPublish(publishType string, platforms []string) bool {
+	if NormalizePublishType(publishType) != "video" {
+		return false
+	}
+	for _, platform := range platforms {
+		if platformutil.CanonicalKey(platform) == "shipinhao" {
+			return true
+		}
+	}
+	return false
 }
 
 func normalizeDuoduoshipinVideoDefaults(cpf map[string]interface{}, formPath string, normalizations *[]NormalizationEvent) {
@@ -1195,6 +1217,33 @@ func normalizeFlatShoppingCart(cpf map[string]interface{}, formPath string, norm
 	if changed {
 		cpf["shopping_cart"] = normalized
 	}
+}
+
+func normalizeShipinhaoShoppingCart(cpf map[string]interface{}, formPath string, normalizations *[]NormalizationEvent) {
+	if cpf == nil {
+		return
+	}
+	if legacyValue, exists := cpf["shoppingCart"]; exists {
+		_, hasCanonicalValue := cpf["shopping_cart"]
+		if !hasCanonicalValue {
+			cpf["shopping_cart"] = legacyValue
+		}
+		delete(cpf, "shoppingCart")
+		action := "rename_field"
+		message := `Renamed legacy "shoppingCart" to the Yixiaoer "shopping_cart" field.`
+		if hasCanonicalValue {
+			action = "drop_legacy_alias"
+			message = `Removed legacy "shoppingCart" because canonical "shopping_cart" was also provided.`
+		}
+		appendNormalization(normalizations, NormalizationEvent{
+			Field:        "shopping_cart",
+			Path:         formPath + ".shoppingCart",
+			Action:       action,
+			Message:      message,
+			QueryCommand: "yxer query goods <account_id> [--query 关键词] --json",
+		})
+	}
+	normalizeFlatShoppingCart(cpf, formPath, normalizations)
 }
 
 func normalizeDuoduoShoppingCart(cpf map[string]interface{}, formPath string, normalizations *[]NormalizationEvent) {
