@@ -45,7 +45,6 @@ npm 包现在采用轻量安装器模式：
 - npm 包本身只包含启动器、skill 源文档、schema 和 references 打包输出
 - 安装阶段会按当前系统下载匹配的 `yxer` 二进制归档
 - 如果 `postinstall` 被跳过，首次运行 `yxer` 时也会自动补装二进制
-- 默认从 `https://yixiaoer-lite-asserts.tos-cn-shanghai.volces.com/yxer/releases/v<version>/` 下载二进制归档
 
 如需使用私有镜像或自建发布源，可在安装前设置：
 

@@ -8,8 +8,6 @@ Packaged `yxer` CLI for global npm installation.
 npm install -g @yixiaoermail/cli
 ```
 
-The npm package installs a lightweight launcher. During install or first run it downloads the matching platform binary from `https://yixiaoer-lite-asserts.tos-cn-shanghai.volces.com/yxer/releases/v<version>/`.
-
 ## Verify
 
 ```bash
