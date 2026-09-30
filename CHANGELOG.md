@@ -1,5 +1,17 @@
 # 变更日志
 
+## [3.2.26] - 2026-09-30
+
+### 🎉 新增功能
+
+- 头条号文章、视频、图文发布支持 `declaration=9`（独家精选）和 `declaration=10`（首发精选），并保留客户端使用的 `0/1/2/3/6/7/8` 普通声明值。
+- `validate`、`publish` 和 `publish --dry-run` 会在发布前查询头条号账号信息；账号缺少 `right_exclusive_selection` 或 `right_first_selection` 时返回结构化错误并拒绝发布。
+
+### 🔧 契约同步
+
+- CLI 三类头条号 schema 统一使用 `declaration` 数字字段，服务端继续将其转换为 `statement.type`。
+- 文章的 `isFirst`（头条首发）保持独立，不与 `declaration=10`（首发精选）合并。
+
 ## [3.2.24] - 2026-09-24
 
 ### 🐛 缺陷修复
