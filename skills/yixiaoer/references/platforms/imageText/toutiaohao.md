@@ -25,8 +25,10 @@
 | `formType` | `string` | **是** | 固定值: `task` | `task` |
 | `description` | `string` | **是** | 图文描述，支持 HTML 和话题标签 (`<topic>`)。最多 1000 字符。 | - |
 | `images` | `Array` | **是** | 图片数组 (`OldImage[]`) | - |
-| `declaration` | `number` | 否 | 创作类型 1:自行拍摄 2:取自站外 3:AI生成 6:虚构演绎,故事经历 7:投资观点,仅供参考 8:健康医疗分享,仅供参考 | - |
+| `declaration` | `number` | 否 | 创作声明：`0`-不声明，`1`-取材网络，`2`-个人观点，仅供参考，`3`-引用 AI，`6`-虚构演绎/故事经历，`7`-投资观点，仅供参考，`8`-健康医疗分享，仅供参考；`9`-独家精选（需 `right_exclusive_selection`），`10`-首发精选（需 `right_first_selection`） | `0` |
 | `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | - |
+
+普通声明值 `0/1/2/3/6/7/8` 不受精选权益影响；`9/10` 只有账号信息返回对应权益时才填写，否则使用 `0` 或省略。CLI 接收 `declaration` 数字，并会在 `validate`、`publish`（含 `--dry-run`）前查询 `/platform-accounts/{id}/account-info`，拒绝无对应权益的值；服务端会将其转换为 `statement.type` 透传给头条号。
 
 ## 2. 复杂对象结构说明
 

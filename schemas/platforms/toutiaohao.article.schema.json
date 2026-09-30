@@ -141,21 +141,17 @@
     "declaration": {
       "type": "number",
       "enum": [
+        0,
         1,
         2,
         3,
         6,
         7,
-        8
-      ]
-    },
-    "statement": {
-      "type": "number",
-      "enum": [
-        1,
-        2,
-        3
-      ]
+        8,
+        9,
+        10
+      ],
+      "default": 0
     },
     "publishTime": {
       "type": "string",

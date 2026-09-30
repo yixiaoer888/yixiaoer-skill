@@ -27,10 +27,12 @@
 | `title` | `string` | **是** | 视频标题 (1-30 字符) | - |
 | `description` | `string` | **是** | 视频描述 (1-400 字符) | - |
 | `tags` | `string[]` | **是** | 视频标签 (1-5 个，字符串数组) | - |
-| `declaration` | `number` | 否 | 创作者申明：1-自行拍摄, 2-取自站外, 3-AI生成, 6-虚构演绎故事经历, 7-投资观点仅供参考, 8-健康医疗分享仅供参考 | - |
+| `declaration` | `number` | 否 | 创作声明：`0`-无需声明，`2`-取自站外，`1`-自行拍摄，`3`-AI 生成，`6`-虚构演绎/故事经历，`7`-投资观点，仅供参考，`8`-健康医疗分享，仅供参考；`9`-独家精选（需 `right_exclusive_selection`），`10`-首发精选（需 `right_first_selection`） | `0` |
 | `scheduledTime` | `number` | 否 | 定时发布时间戳（13 位 Unix 时间戳，单位：毫秒） | - |
 | `visibleType` | `number` | **是** | 可见性: 0-公开, 1-私密 | 0 |
 | `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
+
+普通声明值 `0/1/2/3/6/7/8` 不受精选权益影响；`9/10` 只有账号信息返回对应权益时才填写，否则使用 `0` 或省略。CLI 接收 `declaration` 数字，并会在 `validate`、`publish`（含 `--dry-run`）前查询 `/platform-accounts/{id}/account-info`，拒绝无对应权益的值；服务端会将其转换为 `statement.type` 透传给头条号。
 
 ## 2. Payload 完整示例
 

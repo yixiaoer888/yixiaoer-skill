@@ -159,8 +159,14 @@ func (s Service) Prepare(input ExecuteInput, opts PrepareOptions) (PreparedPubli
 		return PreparedPublish{}, yxerrors.Usage("Publish preflight failed", preflight.Errors).
 			WithHint("请先完成资源上传、账号校验，并确保发布参数中不包含外部 URL。")
 	}
-
 	remoteChecked := false
+	if hasToutiaohaoPlatform(platforms) && len(toutiaohaoDeclarationRequirements(resolvedPayload)) > 0 {
+		remoteChecked = true
+	}
+	if err := AssertToutiaohaoDeclarationEntitlements(s.rt.Client, resolvedPayload, platforms...); err != nil {
+		return PreparedPublish{}, err
+	}
+
 	if shouldPrepareRemoteCheck(opts.RemoteChecks, channel, cfg, preflight.AccountIDs) {
 		accountsByID, err := ResolveTargetAccounts(s.rt.Client, platforms, preflight.AccountIDs)
 		if err != nil {

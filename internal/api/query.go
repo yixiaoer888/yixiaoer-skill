@@ -170,6 +170,12 @@ func (c *Client) Entitlements(accountID string) (interface{}, error) {
 	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/entitlements", accountID), nil))
 }
 
+// AccountInfo returns the platform-specific account information used by
+// account forms to determine available rights.
+func (c *Client) AccountInfo(accountID string) (interface{}, error) {
+	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/account-info", accountID), nil))
+}
+
 func (c *Client) Collections(accountID, publishType string) (interface{}, error) {
 	return c.queryData(Query(fmt.Sprintf("/platform-accounts/%s/collections", accountID), map[string]string{
 		"publishType": schemaTypeName(publishType),

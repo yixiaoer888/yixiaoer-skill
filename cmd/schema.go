@@ -891,6 +891,15 @@ func getPlatformSpecificNotes(platform, publishType string) []string {
 			notes = append(notes, "多多视频声明使用 declaration 数字字段：0=无需声明，1=内容由 AI 生成，3=内容为转载，5=虚构演绎仅供娱乐，7=内容含营销信息，8=个人观点仅供参考；0 不下沉为 statement，非 0 由服务端转换为 statement.type")
 		}
 
+	case "toutiaohao", "头条号":
+		if publishType == "article" || publishType == "video" || publishType == "imageText" {
+			note := "头条号使用 declaration 数字字段：0=不声明，1/2/3/6/7/8 为普通创作声明，9=独家精选（账号权益 right_exclusive_selection），10=首发精选（账号权益 right_first_selection）；9/10 仅在账号信息有对应权益时填写，CLI 会在 validate/publish 前查询 account-info 并拒绝无对应权益的值，服务端会将 declaration 数值转换为 statement.type"
+			if publishType == "article" {
+				note += "。文章的 isFirst=true 表示头条首发，与 declaration=10 的首发精选是独立字段"
+			}
+			notes = append(notes, note)
+		}
+
 	case "baijiahao", "百家号":
 		if publishType == "video" {
 			notes = append(notes, "百家号视频使用 statement 对象：type 为主声明（0=不声明、1=内容由AI生成、16=内容为转载、4=含虚构演绎内容、8=内容含有营销信息、32=个人观点，仅供参考），subType 为补充声明（0=不选择、1=内容可能引人不适、2=内容含有高危险行为、4=请理性适度消费、8=未成年人请在监护人指导下浏览）；statement 可省略，不要使用旧的 declaration 或输入 isAigc。主/横版封面使用必填 cover + coverKey，竖版封面使用可选 verticalCover；不要传 horizontalCover")

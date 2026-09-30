@@ -31,8 +31,10 @@
 | `location` | `Object` | 否 | 位置对象 (`PlatformDataItem`) | - |
 | `scheduledTime` | `number` | 否 | 定时发布时间 (13 位 Unix 时间戳，单位: 毫秒) | - |
 | `advertisement` | `number` | 否 | 广告投放收益: 2-无收益, 3-投放广告赚收益 | `3` |
-| `declaration`| `number` | 否 | 创作类型 1:自行拍摄 2:取自站外 3:AI生成 6:虚构演绎 7:投资观点 8:健康医疗 | - |
+| `declaration` | `number` | 否 | 创作声明：`0`-不声明，`1`-取材网络，`2`-个人观点，仅供参考，`3`-引用 AI，`6`-虚构演绎/故事经历，`7`-投资观点，仅供参考，`8`-健康医疗分享，仅供参考；`9`-独家精选（需 `right_exclusive_selection`），`10`-首发精选（需 `right_first_selection`） | `0` |
 | `pubType` | `number` | **是** | 发布类型: 0-草稿, 1-直接发布 | 1 |
+
+普通声明值 `0/1/2/3/6/7/8` 不受精选权益影响；`9/10` 只有账号信息返回对应权益时才填写，否则使用 `0` 或省略。CLI 接收 `declaration` 数字，并会在 `validate`、`publish`（含 `--dry-run`）前查询 `/platform-accounts/{id}/account-info`，拒绝无对应权益的值；服务端会将其转换为 `statement.type` 透传给头条号。`isFirst=true` 表示“头条首发”，与 `declaration=10` 的“首发精选”是两个独立字段。
 
 ## 2. Payload 完整示例
 
